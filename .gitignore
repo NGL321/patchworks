@@ -1,0 +1,3 @@
+.venv-proto/
+prototypes/sandbox/out/
+__pycache__/
