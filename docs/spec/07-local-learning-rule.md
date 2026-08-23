@@ -42,7 +42,9 @@ load-bearing rather than stylistic ([ADR-0010](../adr/0010-restriction-map-scale
 Learning on *change* in disagreement does not exclude the trivial solution: shrinking the maps produces
 a negative change every step, which a change-descending rule can read as progress. Learning on
 disagreement **relative to the restricted beliefs' own current magnitudes** — `‖F_u x_u‖ + ‖F_v x_v‖` —
-does, because the ratio is unchanged by `F ↦ αF`, so shrinking buys nothing. The normaliser is
+does, because the ratio is unchanged when both of an edge's maps scale together, so shrinking the edge
+buys nothing. Scaling *one* map is not invariant, and points the other way: the ratio lies in `[0, 1]`
+and sending a map to zero sends it to `1`, its worst value. The normaliser is
 **locally stateless** and deliberately not a running average of the edge's recent scale: that would be a
 per-edge auxiliary variable with a hand-set time constant, the object ADR-0007 rejects under *A per-edge
 learned baseline*, and it is the same criterion form the change gate settled on
@@ -57,7 +59,9 @@ Both terms are therefore blind to a map's overall magnitude, which is why that m
 construction rather than learned** (`01-cell-and-sheaf.md`, *Scale is gauge-fixed*): interior maps are
 projected back into `‖F‖_F ∈ [1/ρ, ρ]` after each step, boundary maps onto `‖F‖_F = 1`. The projection
 is part of the transport rule's step and is as local as the rest of it — a cell owns its own incident
-maps and needs nothing from a neighbour to project them.
+maps and needs nothing from a neighbour to project them. It is **not** inert in practice: an edge's
+joint scale grows monotonically under a scale-invariant objective, so the upper face binds essentially
+every step once a map reaches `ρ`.
 
 This trains transport: the basis in which a cell's features become comparable to a neighbour's. It
 never reads a neighbour's raw node stalk — only the disagreement already derived from it during

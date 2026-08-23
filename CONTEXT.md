@@ -42,14 +42,15 @@ _Avoid_: message, edge feature, edge embedding
 **Restriction map**:
 The map from a cell's node stalk into one incident edge stalk. Performs transport and change
 of basis only; all inference happens inside the cell. Its overall magnitude is **gauge-fixed**,
-not learned — no term in the transport rule's objective identifies it, and left free it drifts
-toward zero, where the sheaf couples nothing.
+not learned — no term in the transport rule's objective identifies it, and left free an edge's
+joint scale grows without bound, until the maps stop moving.
 _Avoid_: projection, encoder, transport map
 
 **Scale gauge**:
 The construction-time bound on a restriction map's Frobenius norm: a band `[1/ρ, ρ]` for
 interior maps, exactly 1 for boundary-cell maps, restored by projection after each transport
-step. Excludes the collapsed sheaf `F = 0` without constraining a map's basis or rank.
+step. The upper face is the working constraint and binds continuously; the lower is a guardrail.
+What the band leaves free is an edge's scale ratio, not each map's magnitude.
 _Avoid_: normalisation, regularisation, weight decay, orthogonality constraint
 
 **Effective rank**:
