@@ -50,7 +50,13 @@ invariant no training story may violate. *Which* features occupy the `k` chart d
 entirely learned, and they need not correlate with any exposed feature — the chart is a compressed
 set derived from the node stalk, not a subset of it.
 
-`n` and `k` are **global constants**, identical for every cell. `n` is fixed on a canonical-microcircuit
+`n` and `k` are **global constants**, identical for every **predicting** cell — boundary cells are
+exempt and carry world-shaped node stalks
+([ADR-0006](../adr/0006-boundary-cell-stalks-are-world-shaped.md)). The proof of concept's values,
+and the arithmetic that sets them, are in
+[`06-graph-topology.md`](./06-graph-topology.md): `n = 32`, `k = 12`.
+
+`n` is fixed on a canonical-microcircuit
 rationale: a cortical column has an efficient size, and cells are the analogue. The *degree* of
 compression (`n/k`) is a hyperparameter; the spec commits to `k < n` and nothing more. That a useful
 `k` turns out to be much smaller than `n` is a finding the proof-of-concept reports, not a number
@@ -80,11 +86,18 @@ cell body does not adapt at all; see *The cell body* below.
 
 Cells are **uniform in contract**: same interface, same algorithm, same `n`, same `k`. A cell's
 individuality is not in its machinery but in **what its features mean**, which is fixed entirely by
-its restriction maps and biases. This is the precise sense in which each cell works in its own
-metric space, and it is compatible with every cell running identical machinery.
+its restriction maps and biases. It is compatible with every cell running identical machinery.
 
-**Schedule** is the only per-cell freedom this section grants. Whether cells need differing clock
-rates at all is deferred to the multi-timescale section.
+**A cell's own metric space is its node stalk**, and the basis of that space is fixed by its
+restriction maps. Not the chart: the chart is shared machinery (see *The cell body*), and every cell
+drives the same one. Locating "its own metric space" in the stalk rather than the chart is what makes
+that shared body consistent with the claim, and *The geometry* below states the division of labour
+exactly.
+
+**Schedule** is the only per-cell freedom this section grants, and
+[`05-timescales.md`](./05-timescales.md) declines to spend it: every cell runs every tick, and a
+slow cell is slow because its content *persists*, not because it updates rarely. A hand-forced clock
+divisor survives there as an instrument, never as the mechanism.
 
 A relay cell is the degenerate instance of the contract: `step` is the identity.
 
@@ -149,7 +162,9 @@ They are:
 
 - **Linear.** All nonlinearity lives inside the cell. This keeps the cellular-sheaf formalism real —
   a genuine sheaf Laplacian, disagreement as Dirichlet energy, cheap reconciliation — and avoids
-  turning reconciliation into a nested optimisation.
+  turning reconciliation into a nested optimisation. Linearity is also a **geometric commitment**,
+  not only an efficiency one: it assumes each overlap is locally flat. See
+  [ADR-0004](../adr/0004-linear-restriction-maps-assume-local-flatness.md) and *The geometry* below.
 - **Learned**, under a sparsity pressure. This is the local-neuroplasticity analogue: pruning within
   what structure permits.
 - **Masked** by a hand-specified structural mask, set at graph construction, naming which node stalk
@@ -162,6 +177,12 @@ Edge stalk dimension `m` is **determined by the mask**: the shared space is exac
 hold the features that edge permits. `m` is therefore not an independent parameter and varies across
 edges — the sheaf Laplacian has no uniform block structure, which is accepted.
 
+**`m` is fixed at construction and never changes.** The sparsity pressure prunes *within* the mask —
+it drives weights to zero; it does not shrink the stalk. A stalk dimension that moved during a run
+would make the sheaf a moving target and would edge toward structural growth, which is out of scope.
+Whether pruning and re-opening could later alternate in developmental phases is held in the map's
+fog, not exercised here.
+
 ### Disagreement, and what is done about it
 
 Disagreement is the difference, in an edge stalk, between the two endpoint cells' restrictions of
@@ -171,10 +192,25 @@ reads that sum; it only ever sees its own edges' terms. Predictive coding's erro
 inconsistency are **the same quantity**, not two objects that need relating.
 
 Agreement is **penalised, not enforced.** Reconciliation runs exactly one local descent step on
-disagreement per tick (see [`02-tick-semantics.md`](./02-tick-semantics.md)) and never clears it.
-Residual disagreement *is* the signal the local learning rule consumes; a hard projection onto the
-consistent subspace would zero out the quantity the architecture runs on, and would drag a global
-solve into a system whose thesis is locality.
+disagreement per tick (see [`02-tick-semantics.md`](./02-tick-semantics.md)) and never clears it. A
+hard projection onto the consistent subspace would zero out the quantity the architecture runs on,
+and would drag a global solve into a system whose thesis is locality.
+
+Residual disagreement divides in two, and only one half is a signal:
+
+- the **reducible** part — model error, the cell simply being wrong. This is what the local learning
+  rule consumes.
+- the **disagreement floor** — the part learning cannot remove, in two kinds. A **static floor** is a
+  function of configuration: curvature the linear map cannot follow
+  ([ADR-0004](../adr/0004-linear-restriction-maps-assume-local-flatness.md)), mask or learned rank
+  deficiency, aleatoric noise. A **lag floor** is a function of motion: two endpoints whose contents
+  live at different timescales ([ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md)),
+  so the slow end is behind.
+
+Nothing in the architecture represents the floor, and the learning rule is constrained never to
+target zero residual. See
+[ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md), which also carries the
+offline probe that separates the two kinds.
 
 ### How reconciliation re-enters inference
 
@@ -193,9 +229,138 @@ Two consequences:
 - **Graph-locality is structural, not a preference.** With per-edge delay there is no "now" spanning
   the graph, so a global aggregation step is not expressible.
 - **Depth buys horizon, not rate.** Every cell still updates every tick; a distant cell sees staler
-  information and sits in a longer loop, but its update rate is unchanged. Depth alone does not
-  produce slowly-integrating cells. Whether an explicit schedule is needed for that belongs to the
-  multi-timescale section.
+  information and sits in a longer loop, but its update rate is unchanged. The reason, argued in
+  [`05-timescales.md`](./05-timescales.md), is that **delay is a phase shift, not a decimation**: it
+  removes no frequency content, so a deep cell has the same input bandwidth as one at the rim and is
+  merely looking at older data. Depth alone does not produce slowly-integrating cells. Where they do
+  come from is `05-timescales.md` — persistence in the private features, not a schedule.
+
+## The geometry
+
+Where the geometric structure of Patchworks actually lives, and — as much of the point — where it
+does not. Settled in [patchworks#15](https://github.com/NGL321/patchworks/issues/15).
+
+### The piece, and why there is a chart at all
+
+**Each cell owns a `k`-dimensional, locally Euclidean piece of the problem.** Its chart is a chart of
+*that piece*, in the strict mathematical sense. This is the geometric statement of the thesis: the
+world is highly nonlinear and entangled and is not claimed to be a manifold; the pieces are, each is
+flat enough at its own scale for linear transport, and the sheaf recomposes them.
+
+It is also why `k < n` rather than merely that: **`k` is the dimension of the piece; `n` is the room
+needed to talk about it with neighbours.**
+
+**Patchworks is a sheaf, not an atlas.** An atlas requires every chart to have the dimension of the
+manifold it covers; ours do not, and the world does not have one dimension to have. A cellular sheaf
+is the atlas idea with the constant-dimension requirement removed — locally-defined data, overlaps,
+gluing conditions, no demand that the union be a manifold at all. That is the reason the formalism
+fits, and "patches of a manifold" in the project's name should be read as *patches with gluing*.
+
+**"Manifold" is not general vocabulary here.** Node stalks, edge stalks and their direct sums are
+**vector spaces** — flat, uncurved, uninteresting as geometry — and are called that. The word is
+reserved for the local flatness above, which is the one place something depends on it
+([ADR-0004](../adr/0004-linear-restriction-maps-assume-local-flatness.md)).
+
+### The division of labour between the two adapting surfaces
+
+The cell body is shared and frozen, so `step` is **one** map on **one** `k`-dimensional space: there
+are not `N` little geometries. But the biases are per-cell, and in a piecewise-linear network the
+weights fix the *directions* of every folding hyperplane while the biases fix **where each fold
+sits**. Cells therefore share one arrangement of folds **up to translation** — same fold directions,
+different offsets, and so genuinely different activation patterns and local behaviour.
+
+**One arrangement of folds, translated per cell.** This is why bias-only adaptation is not the thin
+residue it sounds like.
+
+| Surface | Where it acts | What it does geometrically |
+|---|---|---|
+| **Biases** | inside the shared body | translate the folds of the shared nonlinear map |
+| **Restriction maps** | outside, on stalks | fix the basis of the node stalk and the transport into each edge stalk |
+
+The restriction maps never touch the body's geometry. They fix what features mean and how they
+relate; the biases move the shape that consumes them.
+
+### Three lossy maps
+
+Information is discarded in exactly three places, and they are not the same kind of act:
+
+| Map | Loses | Kind |
+|---|---|---|
+| world → sensory tiling (*the sensory slice*) | everything outside the render; all object pose | fixed by the environment |
+| node stalk → chart (*compression*, in `encode`) | whatever the cell's piece does not need | **nonlinear, private** |
+| node stalk → edge stalk (*restriction*) | everything the mask forbids | **linear, shared** |
+
+That asymmetry — compression nonlinear and private, restriction linear and shared — is the geometric
+statement of why there are three tiers rather than two.
+
+**"Projection" is deliberately not vocabulary.** It would invite the reading that inference happens
+inside a restriction map, which is exactly what the three-tier split exists to prevent.
+
+### `H⁰` is the private features
+
+The coboundary `δ` maps a configuration to its per-edge disagreements; the sheaf Laplacian is
+`L = δᵀδ`, and `xᵀLx` is the Dirichlet energy — the sum over edges of squared disagreement.
+`H⁰ = ker δ = ker L` is the set of configurations on which every edge disagrees by zero.
+
+Under Patchworks' masks that space has a concrete identity: **masked-out node stalk directions are
+global sections.** A direction that participates in no edge cannot disagree on any edge, so it lies
+in `H⁰` by construction. The *features private to a cell's sub-problem* — named at the top of this
+document as one of the two things a two-tier scheme cannot express — **are `H⁰`**. Not analogous to
+it; identical.
+
+This gives a bound holding for **any** restriction maps, learned or not:
+
+```
+dim H⁰  ≥  Σ_v max(0, n − Σ_{e∋v} m_e)
+```
+
+Two consequences. `H⁰` is **large by construction and enlarged by sparsity**, so consistency is not
+scarce in the way a naive dimension count suggests. And low-degree cells manufacture private
+structure permanently.
+
+**Corrected by [`06-graph-topology.md`](./06-graph-topology.md):** this bound and `χ` below are
+computed over **predicting cells only**. Boundary cells were originally counted here as the
+lowest-degree cells in the graph, which is arithmetically true and diagnostically worthless — the
+world overwrites their stalks every tick and no boundary cell holds anything. With their stalks now
+world-shaped rather than `n`-shaped ([ADR-0006](../adr/0006-boundary-cell-stalks-are-world-shaped.md)),
+including them swamps the measurement outright.
+
+A third, from [`05-timescales.md`](./05-timescales.md): because reconciliation descends along
+`im δᵀ` and `ker δ = (im δᵀ)^⊥`, **the private component of a node stalk is exactly invariant under
+reconciliation**. That insulation is what makes slow state possible at all, so the bound above also
+sizes a cell's capacity to hold a slowly-varying variable — and turns that capacity into a
+construction quantity set by the masks.
+
+**What is recorded, and what it is worth:**
+
+- **`χ = Σ_v n − Σ_e m_e = dim H⁰ − dim H¹`.** Fixed at construction by the masks, invariant under
+  learning — no learned parameter appears in it. Computed and recorded at graph construction. It is
+  a diagnostic, not a budget to hit, and nothing branches on it.
+- **`dim H⁰`** and the **minimum achievable Dirichlet energy under the world's boundary clamps** are
+  run-time measurements against the learned maps, not construction constants.
+
+**`H⁰` and `H¹` are not topological invariants here.** They are weight-dependent linear subspaces
+that move as the restriction maps learn, and `H¹` has two sources — graph cycles, and map
+rank-deficiency, which is invisible to graph topology and which Patchworks' masked maps guarantee.
+Claims of the form "`H¹` vanishes on a tree" hold only for surjective restriction maps and are false
+here. Topological invariance is **not** load-bearing on the sheaf side; where it does bite is the
+world's workspace ([patchworks#25](https://github.com/NGL321/patchworks/issues/25)).
+
+### Two cohomologies, which are not the same cohomology
+
+Sheaf cohomology above is taken over the **graph**, with stalks as coefficients and restriction maps
+as the differential. **Information cohomology** (Baudot & Bennequin, *The Homological Nature of
+Entropy*, Entropy 17(5), 2015) is taken over a **poset of partitions of one sample space**, with
+functionals of a probability law as coefficients. There is no graph in it. The two share the letter
+`H` and nothing else, and their `H¹`s are different groups of different complexes over different
+sites.
+
+In that theory `H⁰` is the constants, `H¹` is generated by Shannon entropy — the chain rule *is* the
+1-cocycle condition — and the higher mutual informations are **coboundaries**, hence zero in
+cohomology. It is retained as an **interpretive lens** and is the right citation for why entropy and
+the chain rule are canonical. It is **not** available as the shape of the local learning rule; see
+[patchworks#5](https://github.com/NGL321/patchworks/issues/5) and
+`docs/research/015-information-cohomology.md` for why, including a cost ceiling that would not batch.
 
 ## Known exposure
 
@@ -212,7 +377,8 @@ Recorded, not pre-emptively solved.
   shared frozen body, and compare each against a per-cell-body control.** Cells at opposite ends of the
   graph — closest to raw pixels, and furthest from them — are the premise's hardest case; if a shared
   body holds across both, it has survived cheaply. Requires the local learning rule
-  ([patchworks#5](https://github.com/NGL321/patchworks/issues/5)) first.
+  ([`07-local-learning-rule.md`](./07-local-learning-rule.md)), settled but for the stability question
+  it carries forward as its own open ticket.
 
 - **Flex priority.** Fixed parameters, ordered by willingness to see them become hyperparameters, so
   later pressure hits the most flexible first. Read it as the constraint ladder: each rung loosens how
