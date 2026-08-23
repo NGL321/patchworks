@@ -89,6 +89,8 @@ problem. Across ticks the risk splits by parameter group and neither half needed
   the same schedule the global learning-rate and sparsity anneals already use, rather than once at
   construction.
 
-Neither [#20](https://github.com/NGL321/patchworks/issues/20)'s change gate nor the probabilistic
-sheaf plays a role: confirmed orthogonal, and declined a third time respectively. See ADR-0007,
-*Simultaneous learning does not need its own bound*.
+Neither the **change gate** ([`05-timescales.md`](./05-timescales.md)) nor the probabilistic sheaf
+plays a role: confirmed orthogonal, and declined a third time respectively. See ADR-0007,
+*Simultaneous learning does not need its own bound*. The gate needs no special case in either rule
+either, if it is ever built: the sender computes disagreement from its own current restricted
+belief, which gating does not touch, and the receiver trains against whatever the edge buffer holds.

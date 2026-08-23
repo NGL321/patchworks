@@ -136,6 +136,91 @@ criterion. A drive attaches by hop distance
 respect — and it attaches through ordinary edges, so it never reads a timescale either. This prohibition is what keeps the divisor and the persistence
 mechanism interchangeable; the moment anything branches on rate, the cheap fallback is gone.
 
+## The change gate, pre-specified
+
+**Change-gated transport is the named amplifier of this section's mechanism, and it is specified
+here but not built.** Suppressing transmission when a restricted belief has not moved makes
+transmission rate track content rate, which sharpens whatever differentiation persistence already
+produced. It is an amplifier and nothing else: it cannot bootstrap differentiation from nothing
+([ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md)), and it does not substitute for
+the reconciliation gain or for persistence — the three are permanently distinct
+([ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md)).
+
+It is specified rather than built for the same reason the relay cells are
+([`06-graph-topology.md`](./06-graph-topology.md)): it has no job it is *needed* for, and it carries
+a standing cost. A future session reaches for it without re-deriving it.
+
+**The trigger.** Reach for the gate when the live private-component readout (*Demonstrating it*,
+below) shows persistence differentiation that is **nonzero but below what planning needs**. Nonzero
+because an amplifier has nothing to amplify otherwise; below-sufficient because if the ratio already
+suffices, the gate buys only lag floor. The numeric cut belongs to the build, not to this spec.
+The gate's own accept/reject test is the **quiescent hold** protocol
+([#23](https://github.com/NGL321/patchworks/issues/23)): a gated graph held still must still drain
+to zero.
+
+**Where it attaches: outbound only.** The gate scales a restriction map's output *before broadcast*.
+The two alternatives are the reconciliation gain wearing a hat — scaling the descent step *is* the
+gain by definition, and scaling what is received before reconciliation is a per-edge gain
+modulation, which reintroduces at the receiver exactly the differentiation that `γ / Σ_e m_e`
+was specified to equalise ([`02-tick-semantics.md`](./02-tick-semantics.md)). Only the outbound form
+changes what exists on the edge rather than how hard the receiver descends on it, and only the
+outbound form makes transmission rate track content rate.
+
+**What suppression means: hold the edge buffer.** A gated edge keeps last tick's transmitted value.
+It does not send zero — that would manufacture a spurious disagreement the size of the whole belief
+— and "sends nothing" has no meaning on an edge that is read every tick. Because unit delay already
+means every edge carries the previous tick's value
+([`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md)), a hold is *do not overwrite the buffer this
+tick*: **the gate adds no state**.
+
+Neither learning rule needs a special case
+([`07-local-learning-rule.md`](./07-local-learning-rule.md)). The sender computes its own
+disagreement from its own current restricted belief, which gating does not touch; the receiver
+reconciles and trains against whatever the buffer holds, stale or fresh, exactly as it always does.
+
+**The threshold is locally stateless, with one global constant.** Hold when
+
+```
+‖ Δ(F_{v→e} x_v) ‖  <  ε · ‖ F_{v→e} x_v ‖
+```
+
+relative to the restricted belief's own current magnitude, with a single global `ε`. This
+satisfies the real requirement — `m` varies by mask, so one absolute constant cannot mean the same
+thing on two edges — without per-edge memory, and `ε` joins `γ` and the learning rate as a
+permitted global scalar ([ADR-0008](../adr/0008-the-local-rule-splits-by-parameter-not-by-cell.md)).
+
+*Considered and rejected:* deriving the threshold from a **running average of the edge's recent
+scale**, the literal reading of "relative to that edge's own recent scale". It is an auxiliary
+per-edge variable with a hand-set time constant, which is ADR-0005 reversed — the same objection
+ADR-0007 used to reject the per-edge disagreement baseline. The gate does not get to import what the
+baseline was refused.
+
+**Boundary edges are exempt, categorically** — sensory, motor, and drive. A drive is a *standing
+constant assertion* ([ADR-0009](../adr/0009-a-drive-is-a-motor-edge-attached-deep.md)), so it is the
+maximally-unchanging signal in the graph and a change gate would silence it on the second tick.
+Sensory and motor edges are exempt for the reason boundary cells are exempt from the settling floor:
+no body, no chart, no timescale to amplify (ADR-0006). The gate is an interior-edge mechanism.
+Applying it to a boundary edge deliberately, to probe staleness sensitivity, is permitted as an
+**instrument** on the clock divisor's precedent — never as architecture.
+
+**The deadband is accepted and instrumented, not designed away.** A threshold is a deadband, and a
+deadband inside a loop with unit delay is a standard recipe for sustained limit cycles rather than
+the equilibrium it intuitively suggests. This is a pre-specified risk of building the gate, and the
+quiescent hold is what catches it.
+
+*Considered and rejected:* **hysteresis** — two thresholds widen the very deadband at issue.
+**A graded gate**, scaling transmission smoothly rather than cutting it — it removes the
+discontinuity but transmits every tick, so it decimates nothing in time, which is the one property
+the gate exists for. It is a weaker, different object, not a safer version of this one.
+
+**Two neighbours it is not.** *Attention* also arrives as gating on transport
+([`04-action-and-the-boundary.md`](./04-action-and-the-boundary.md)), but it is a different object:
+it selects which inbound evidence a cell weights, driven by something other than the sender's own
+rate of change, and its likely mechanism is the core's broadcast subspace or relay cells rather than
+a per-edge threshold. *Recurrent-state gating* — the LSTM-shaped escape hatch of
+[`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md) — is distinguished by **tier**: it sits inside the
+cell body's recurrence, not on the edge ([#38](https://github.com/NGL321/patchworks/issues/38)).
+
 ## Demonstrating it
 
 The acceptance demo's evidence is a **live private-component readout**: during a perturbation,
@@ -172,15 +257,10 @@ footage.
   the standing offset a floor leaves on the reconciled component shifts the cell's operating point,
   which is where this section's decay rate comes from. That is bounded by the reconciliation gain
   ([`02-tick-semantics.md`](./02-tick-semantics.md)), whose bound binds hardest at the apex.
-- **Change-gated transport is the named amplifier, and is not taken here.** Suppressing transmission
-  when a restricted belief has not moved makes transmission rate track content rate, which sharpens
-  whatever differentiation exists — positive feedback on exactly this mechanism. It cannot bootstrap
-  from nothing, so it is worth reaching for only if the persistence mechanism shows weak but nonzero
-  differentiation. Handed to [#20](https://github.com/NGL321/patchworks/issues/20) with two cautions:
-  a threshold gate is a **deadband**, and a deadband inside a loop with unit delay is a standard
-  recipe for sustained limit cycles rather than the equilibrium it intuitively suggests; and any
-  threshold must be **derived** (relative to that edge's own recent scale) rather than hand-set,
-  since `m` varies by mask and one absolute constant cannot mean the same thing on two edges.
+- **Change-gated transport is specified and not built.** It is the named amplifier of this
+  section's mechanism; see *The change gate, pre-specified* above for its trigger, its shape, and
+  what it costs. No longer open exposure: [#20](https://github.com/NGL321/patchworks/issues/20)
+  settled it.
 - **A confidence gate is not a substitute.** Suppressing transmission when a belief is *uninformative*
   sparsifies the graph but decimates nothing in time — a confident, fast-changing cell still sends
   every tick. Recorded because the two gates are easy to conflate, and only one is a low-pass filter.

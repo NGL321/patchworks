@@ -235,8 +235,13 @@ which is an ordinary structural-mask change and needs no new mechanism.
 
 *Considered and rejected:* **saccades** — restricting the agent to a small moving viewport, as the
 active predictive coding papers do. The whole field is visible here. It is visible *as many cells*,
-so if attention is ever wanted it arrives as gating on transport
-([#20](https://github.com/NGL321/patchworks/issues/20)) rather than as an imposed viewport.
+so if attention is ever wanted it arrives as **gating on transport** rather than as an imposed
+viewport. That is *not* the change gate of [`05-timescales.md`](./05-timescales.md), which is
+outbound and driven by the sender's own rate of change: attention selects which **inbound** evidence
+a cell weights, and its likely mechanism is the semi-global reach of the core's broadcast subspace
+or of relay cells ([`06-graph-topology.md`](./06-graph-topology.md)) rather than a per-edge
+threshold. Neither of those is established, so attention is unspecified here and stays in the map's
+fog.
 
 ## Known exposure
 

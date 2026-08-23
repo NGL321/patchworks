@@ -323,8 +323,9 @@ Two residual costs, both smaller than performance costs:
   zero. Recorded as a measurement requirement.
 - **A raised energy floor** slightly compresses signal-to-noise for the local learning rule
   ([#5](https://github.com/NGL321/patchworks/issues/5)), largely absorbed if thresholds are derived
-  relative to an edge's own recent scale — which [#20](https://github.com/NGL321/patchworks/issues/20)
-  already requires of the change gate.
+  relative to an edge's own scale rather than set absolutely — which the change gate also requires,
+  though it takes that scale from the restricted belief's *current* magnitude rather than from a
+  running average ([`05-timescales.md`](./05-timescales.md), *The change gate, pre-specified*).
 
 This softens half of the wheel critique recorded in `01-cell-and-sheaf.md`. Its load-bearing
 objections survive intact — a rim-adjacent hub collapses the diameter and destroys the abstraction

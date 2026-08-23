@@ -275,6 +275,15 @@ the basis a neighbour's features become comparable in — never inference. Never
 neighbour's raw node stalk.
 _Avoid_: restriction rule, map rule
 
+**Change gate**:
+A specified-but-unbuilt amplifier of timescale differentiation: an interior edge holds its
+previous transmitted value rather than broadcasting a fresh one when the sender's restricted
+belief has not moved, so transmission rate tracks content rate. Outbound only, adds no state,
+and exempt on every boundary edge. Distinct from the reconciliation gain (stability of one
+descent step), from persistence (commitment), from attention (inbound, differently driven), and
+from recurrent-state gating (inside the body, not on the edge).
+_Avoid_: gate (unqualified), confidence gate, attention
+
 **Cell contract**:
 What is uniform across every cell: its interface and the algorithm it runs. Capacity and
 schedule may vary per cell; the contract may not. A relay cell is the degenerate instance —
