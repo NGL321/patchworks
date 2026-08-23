@@ -74,6 +74,12 @@ Strictly the cell. Both rules read only the chart, node stalk, and per-edge disa
 already has once reconciliation finishes in the same tick. Nothing is read that the architecture wasn't
 already routing to the cell through the ordinary message-passing channel.
 
+That boundary is what the rule *is*. What stops an implementation from crossing it accidentally is
+specified separately, in [`09-the-build-stack.md`](./09-the-build-stack.md), *The locality guard*: the
+tick carries no autograd tape, each cell's update is a function of detached inputs plus its own adapting
+surface, and a standing perturbation test asserts that no cell's update moves when another cell's
+parameters do ([ADR-0011](../adr/0011-the-locality-guarantee-is-enforced-not-inherited.md)).
+
 ## Permitted global signals
 
 Exactly two, both schedule-shaped rather than information-shaped, so neither carries any particular
