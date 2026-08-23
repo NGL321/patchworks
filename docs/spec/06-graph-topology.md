@@ -107,7 +107,12 @@ world at all is [#30](https://github.com/NGL321/patchworks/issues/30).
 - **Vertical.** Each cell connects to the cells it covers on the level below and to the cell covering
   it above. On the vision lattices this is a 2×2 block.
 - **Lateral.** Four-neighbour within each vision lattice; sparse within the core.
-- **Core.** Uniform degree ~6, no lattice.
+- **Core.** Uniform degree ~6, no lattice — **except the apex, at ~4**. L7 has no *predicting* level
+  above it to connect up to, so its cells lose their up-edges by construction rather than by
+  stipulation. This is what the private-dimension table below depends on, and the two statements
+  contradicted each other until now: at a uniform degree ~6 the apex would carry `Σ_e m_e = 24` and a
+  guaranteed private dimension of 7, flat with the rest of the core, and the slack the drive is
+  attached *for* would not exist.
 - **Drive.** One edge from the drive boundary cell to each of the eight L7 cells — see *Where the
   drive attaches*, below.
 - **Mean degree ~7** across predicting cells; roughly 698 edges in total.
@@ -168,6 +173,17 @@ cells instead of concentrating it, and it never makes any single cell pay more t
 drive proves too weak, the response is **more attachment points**, and only after that the learned
 drive vector ADR-0009 holds as its escape hatch.
 
+**What the apex has above it is the internal rim, and it is a budget.** "No level above" is true only
+of *predicting* levels: the apex is precisely where internal faculties attach, and one already does.
+The drive boundary cell is there now; `04-action-and-the-boundary.md`'s hippocampal-analogue is the
+other candidate, and it would attach the same way, as an ordinary boundary cell at the same rim. Each
+such attachment is another incident edge on every apex cell, so the apex's privacy is a **budget spent
+by the internal rim**, not a fixed figure: `Σ_e m_e` 16 → 17 → 18 and guaranteed private dimension
+16 → 15 → 14 as faculties are added. At scalar stalks and `m_e = 1` this is cheap, which is a second
+reason the width decision above matters; it is also the quantity to check before a *third* faculty is
+attached, since [#25](https://github.com/NGL321/patchworks/issues/25) cashes exactly this dimension as
+**commitment**.
+
 The cost is one dimension of privacy at each apex cell: `Σ_e m_e` goes 16 → 17 and guaranteed private
 dimension 16 → 15. This is not free — [#25](https://github.com/NGL321/patchworks/issues/25) cashes the
 apex's private dimension as the substrate of **commitment** — but it is the cheapest place in the core
@@ -197,6 +213,14 @@ roughly one hop, a perturbation that moves a puck at roughly four. "Recovered at
 level of the hierarchy" becomes a comparison rather than a single number, which hands
 [#10](https://github.com/NGL321/patchworks/issues/10) a real criterion for choosing the demo
 perturbation.
+
+**Read those depths as an upper bound on locality, not as a prediction of where influence actually
+lands.** The one-hop / four-hop figures are *nominal* receptive-field arithmetic, and Luo et al. (2016)
+find the effective receptive field is Gaussian-distributed and occupies only a fraction of the
+theoretical one — so real influence is more concentrated than the count suggests. Their derivation
+also assumes a feedforward stack, which the dome's bidirectional unit-delay edges are not, so it
+transfers as a caution rather than a correction. The comparison survives either way, because what the
+demo claims is that the two depths **differ**, not that either equals its nominal value.
 
 Merging the modalities at L1 was rejected: a two-dimensional joint signal against a
 forty-eight-dimensional patch would be swamped, and the likely outcome is that only the bare minimum
@@ -241,6 +265,18 @@ Boundary edges are given `m = 8` against the interior's 4 for a specific reason:
 are the only route that patch's information ever takes, unlike an interior cell, which is reachable
 many ways.
 
+**Of the four committed dimensions, `m = 4` has the least theoretical headroom.**
+[#32](https://github.com/NGL321/patchworks/issues/32) found `n = 32`, `k = 12` and `m = 8` all
+comfortable and `m = 4` thin: the one dimensionally commensurate body of theory (delay embedding) puts
+the governing quantity at **twice the box-counting dimension** of the piece being carried, so an
+interior edge stalk of 4 supports a shared piece of box dimension under 2, and **no source was found
+either way** on whether that is enough. Recorded rather than acted on, for two reasons: `m` is the
+*first* rung on [#14](https://github.com/NGL321/patchworks/issues/14)'s constraint ladder, so it is the
+cheapest exposure in the design to carry; and widening it trades against delay and size directly —
+every interior stalk widened raises `Σ_e m_e` at every cell, which lowers the per-cell reconciliation
+gain and eats the private dimension the taper exists to produce. If a piece turns out not to fit
+through 4, that is the rung to pull first.
+
 **The drive edge is the exception, and in the other direction.** It is a boundary edge at `m = 1`,
 because the argument above is about *bandwidth the world needs* and the drive is not the world: it
 asserts one number, and an edge stalk wider than its stalk carries nothing extra (*Where the drive
@@ -266,16 +302,32 @@ map would be squeezing 192 → 8 in a single linear step.
 
 `05-timescales.md`'s bound `dim H⁰ ≥ Σ_v max(0, n − Σ_{e∋v} m_e)` applied to the levels above:
 
-| cell | `Σ_e m_e` | guaranteed private dimension |
-|---|---|---|
-| L1 vision | 4×8 + 4×4 + 4 = 52 | 0 |
-| L2 vision | 4×4 + 4×4 + 4 = 36 | 0 |
-| L3–L6 core | ~24 | ~8 |
-| L7 apex | ~16 + 1 drive edge = 17 | **15** |
+| cell | degree | `Σ_e m_e` | guaranteed private dimension |
+|---|---|---|---|
+| L1 vision (interior) | 4 down + 4 lateral + 1 up = 9 | 4×8 + 4×4 + 4 = 52 | 0 |
+| L1 vision (lattice corner) | 4 + 2 + 1 = 7 | 32 + 8 + 4 = 44 | 0 |
+| L2 vision (interior) | 4 + 4 + 1 = 9 | 4×4 + 4×4 + 4 = 36 | 0 |
+| L2 vision (lattice corner) | 4 + 2 + 1 = 7 | 16 + 8 + 4 = 28 | **4** |
+| L3–L6 core | ~6 | ~24 | ~8 |
+| L7 apex | ~4 + 1 drive edge | ~16 + 1 = 17 | **15** |
 
 **Guaranteed private dimension is zero at the rim and rises to about fifteen at the apex.** Slow state
 lives deep by construction, which is precisely the gradient `05-timescales.md` wanted and did not have
-a mechanism for. It is not designed here; it falls out of the taper, because rim-adjacent cells are
+a mechanism for.
+
+Two corrections to how that sentence used to read, neither of which moves the headline:
+
+- **"Zero at the rim" has exceptions at the corners.** The four corner cells of the 4×4 L2 lattice
+  have only two lateral neighbours, which leaves them `Σ_e m_e = 28` and a guaranteed private
+  dimension of **4**. Small, and it argues nothing — but the unqualified "zero at the rim" was false,
+  and the four cells with structural privacy at L2 are worth knowing about if the private-component
+  readout is ever run per-cell rather than per-level.
+- **It is a step, not a ramp.** 0 at the vision levels, ~8 flat across L3–L6, 15 at the apex. Degree
+  falls at the apex and nowhere else in the core, so nothing about this gradient is smooth.
+  [#41](https://github.com/NGL321/patchworks/issues/41) already half-said this from the other
+  direction — the gradient is one in *means*, with adjacent depths overlapping per tick — and the
+  structural picture agrees: what the taper buys is deep-versus-shallow, not a graded ordering
+  through the core. It is not designed here; it falls out of the taper, because rim-adjacent cells are
 necessarily high-degree — an L1 vision cell must read four patches — and depth reduces degree.
 
 Zero *guaranteed* private dimension is not zero private dimension: the bound is a lower bound, and
@@ -286,9 +338,19 @@ privacy is contingent on learning, and deep it is structural.
 by 8, which is inside the rounding on every other number here; the drive's cost is local to the apex
 cells, not to the diagnostic.
 
-**`χ` must be computed over predicting cells only.** Including boundary cells swamps it — 256 cells ×
-48 dimensions of nominally private state that the world overwrites every tick and no cell holds. This
-is a correction to the diagnostic as recorded in `01-cell-and-sheaf.md`.
+**`χ` restricts the node sum only. Every edge in the graph still counts.** The node term runs over
+predicting cells alone — including boundary cells swamps it, 256 cells × 48 dimensions of nominally
+private state that the world overwrites every tick and no cell holds — but the edge term runs over
+**all** edges, boundary-incident ones included, because those edge stalks are ordinary and are the
+route the boundary's information actually takes (*The world only ever touches node stalks*, above).
+The rule was previously stated as "computed over predicting cells only", which licensed the wrong
+computation: dropping boundary edges as well as boundary nodes gives χ ≈ +3200, three times the figure
+this section carries. This is a correction to the diagnostic as recorded in `01-cell-and-sheaf.md`.
+
+The value is edge-count sensitive and is not a target: recomputed independently from the connectivity
+rules above, a ~663-edge count gives χ ≈ +1096 against the ~698-edge count that gives ~980. The spread
+is the rounding on "roughly 698 edges", and it does not matter, because what is load-bearing about `χ`
+is its **invariance under learning**, not its value.
 
 ## Sparsity is a property of the maps, not of the graph
 
@@ -323,17 +385,69 @@ dimensionally-reduced *messaging subspaces*, with the rarer many-to-many **broad
 almost all corticothalamocortical. The functional one is the documented difficulty of long-range
 transport in graph neural networks.
 
+**The two halves of that biological premise have very different standing, and the spec should not
+write them with equal confidence.** The messaging half is published under the name *communication
+subspace*: Semedo et al. (2019) identify a low-dimensional subspace of source-population fluctuations
+most predictive of target-population fluctuations and propose it as a general mechanism for
+selectively routing activity between areas, and Kang et al. (2024) extend it to whole-cortex models,
+where long-range projections "selectively route a small number of dimensions of neural dynamics while
+maintaining others private". The **broadcast** half — the many-to-many corticothalamocortical
+counterpart — has **no source in print**:
+[#31](https://github.com/NGL321/patchworks/issues/31) searched for it and found nothing, and Kang et
+al. explicitly scope it out, being corticocortical and without cell types. It is **unpublished
+conference-talk provenance**, and the first finding below rests on it. That is not a reason to drop
+the finding — it is a reason not to let it borrow the authority of the cited material next to it.
+
 **The proof of concept builds none.** Three findings, in order of weight:
 
 - **The core already is the broadcast subspace.** Every region is within about four hops of it, it is
   low-dimensional, and it is the shared space through which distant regions communicate. That is
   structurally the corticothalamocortical picture, and a better match to it than chords across the
   surface would be — the thalamus is a deep low-dimensional shared space, not a shortcut wire.
-- **Relays solve reach, and reach is not what is squeezed.** The graph's diameter is about **9 hops**
-  between the most distant predicting cells, about 11 world-to-world. The real bottleneck is the
-  taper: 256 patches × 48 dimensions funnelling into ~60 core cells at `n = 32` through edge stalks of
-  `m = 4`. That is severe oversquashing, and a relay makes distant things closer without widening the
-  funnel.
+  **Weight this by its provenance** (above): the analogy is to an object that is unpublished, so this
+  is the weakest-sourced of the three findings despite being the first, and it is doing structural
+  rather than evidential work.
+- **Reach and squeeze are the same quantity, and the relays that would relieve it are the ones
+  rejected below.** An earlier version of this finding separated them — "relays solve reach, and reach
+  is not what is squeezed" — and indexed reach by the graph's ~9-hop diameter. That separation does not
+  survive the literature. Over-squashing is indexed by **commute time / effective resistance**, not hop
+  distance (Di Giovanni et al. 2023, which runs exactly the width/depth/topology decomposition this
+  section needs and finds topology dominant); by that measure the taper *is* the reach problem, stated
+  in the one unit the field uses.
+
+  The quantitative form is the **per-tick capacity of each cut**, which is this section's own best
+  evidence: `12,288 → 2,104 → 280 → 80`. The entire sensory boundary reaches the core through
+  **eighty numbers per tick**, a 154:1 squeeze at a single cut, while the two farthest predicting
+  cells are only ~9 hops apart. Both readings live in that number and the tension is owned rather
+  than resolved by choosing a favourable metric.
+
+  What still holds is the conclusion, on arithmetic rather than on the discarded distinction.
+  Effective resistance from rim to rim is a **series** quantity, and it is dominated by the single
+  L2→L3 cut — twenty edges at `m = 4`. The pre-specified relays sit across **L4–L6, entirely inside
+  the core**, above that cut: they add parallel paths to a term that is not the binding one, and
+  leave the cut untouched. The relays that *would* parallel it are **chords across the vision
+  levels**, and those are rejected below at a price this design is not willing to pay — they collapse
+  hop distance, which is the abstraction measure and the acceptance demo's yardstick.
+
+  Read the other way, this **vindicates the pre-specified intervention** rather than weakening it:
+  relays across L4–L6 are correctly aimed at the core-internal resistance term, which is the term
+  relays can actually lower, and they are already gated on the measurement that would show it binding
+  — two core regions that must agree failing to.
+
+  **One mitigation is available in the literature and is deliberately not claimed.** Arroyo et al.
+  (2025) restate over-squashing unchanged for the recurrent setting and factor sensitivity into a
+  topology term and a **model-dynamics** term, mitigated by direct control of the Jacobian spectrum —
+  and Patchworks is recurrent with unit-delay bidirectional edges, so the term exists here. It is not
+  claimed because the spectrum is **already spoken for three times over**: the body is shared and
+  frozen, the regional spectrum is deliberately *spread* to supply timescales
+  ([`05-timescales.md`](./05-timescales.md), [#27](https://github.com/NGL321/patchworks/issues/27)),
+  spread and stability are the same global knob
+  ([#42](https://github.com/NGL321/patchworks/issues/42)), and `γ` is fixed for stability and recorded
+  as explicitly not a timescale knob
+  ([ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md), promoted to a
+  precondition by [#41](https://github.com/NGL321/patchworks/issues/41)). Buying long-range
+  sensitivity there would spend what the timescale mechanism runs on. Recorded as a route, with the
+  reason it is shut.
 - **Scale.** At 150 cells this is nearer a fly's brain than a mammal's. Among 150 columnar units of
   neocortex one would not expect significant thalamic communication either.
 
@@ -422,7 +536,50 @@ measure, and `n` being a global constant means no predicting cell can be dimensi
   neighbouring units to agree. Lateral edges plus reconciliation supply exactly that, at that level,
   in one tick. If the dome is worth trying, that is why, and if lateral reconciliation turns out to
   contribute nothing measurable, the dome's main justification is gone.
-- **The taper is the real bottleneck**, not distance: 12,288 numbers at the base reaching ~60 core
-  cells of dimension 32. Nothing in this document fixes that, and no relay would.
+
+  This is the best-cited claim in the document and the caveat is in the same sources. Linsley et al.
+  (2018) show a single recurrent lateral layer matching or beating feedforward hierarchies with orders
+  of magnitude more parameters, and Spoerer et al. (2017) show recurrence beating parameter-matched
+  feedforward controls at recognising occluded objects. But Spoerer's **clutter** condition — several
+  overlapping objects, the closest published analogue to two patch cells disagreeing about one puck —
+  is exactly where their recurrent advantage is **weakest**: recurrent networks stay better in
+  absolute terms but take similar hits to the error rate. The nearest prior art supports the dome's
+  main justification least strongly on the condition the dome cares most about, and the 4×4 tiling is
+  chosen specifically to manufacture that condition.
+
+- **The dome is a locally connected network, which is the configuration the literature warns about —
+  and the shared frozen body is what keeps it off the bad extreme.** Elsayed et al. (2020) define
+  locally connected layers as differing from convolutional ones *only* in lacking spatial invariance,
+  and report that they usually perform poorly; the mechanism is statistical, not representational —
+  they are strictly more powerful and could in principle converge to the convolution solution, but in
+  practice they **overfit**, because nearby regions share statistical structure that a shared kernel
+  exploits and per-position parameters throw away. Per-cell restriction maps put the dome squarely in
+  that class.
+
+  Two things answer it, and one does not. **The body is shared**: the nonlinearity is weight-shared
+  across every cell in the graph (ADR-0001, for the unrelated reason that it must batch), and what
+  varies per position is a thin linear change of basis — a masked 32→4 restriction map is 128
+  parameters. That is the same *strategy* as the low-rank locally connected layer Elsayed et al.
+  propose, whose whole finding is that partial relaxation of spatial invariance beats **both**
+  convolution and full local connectivity, though it is not their construction (they vary combining
+  weights over a basis of filter banks; here there is one shared body and the variation is in the maps
+  into it). **And the sample-scarcity premise does not bind**: "typical datasets are too small to
+  constrain the parameters of a locally connected layer" is a claim about datasets, and there is no
+  dataset here — experience is generated by interaction with the sandbox, so the sample budget is
+  unbounded by construction (`03-the-sandbox.md`; distinct from, and not implied by, that contract's
+  absence of episodes).
+
+  What is *not* answered: the **biases are per-cell too**, and `05-timescales.md` already records them
+  as over-subscribed — three geometrically distinct jobs on one vector. Overfitting is precisely the
+  pressure that makes an over-subscribed per-cell parameter worse, so this is a second and independent
+  argument for pulling per-cell adapters off
+  [#14](https://github.com/NGL321/patchworks/issues/14)'s constraint ladder early.
+- **The taper is the real bottleneck**, and *distance is not a separate thing from it*: the cut
+  capacities run `12,288 → 2,104 → 280 → 80`, so the whole sensory boundary reaches the core through
+  eighty numbers per tick. In the literature's own units that single narrow cut **is** the high
+  effective resistance between distant cells, which is why this document no longer argues that reach
+  and squeeze are different problems (*Broadcast subspaces*, above). Nothing here fixes it; the relays
+  that could are the ones rejected for collapsing the abstraction measure, and the deep relays that
+  are pre-specified address a different, smaller term.
 - **Vision dominates the boundary.** 256 of 264 boundary cells are visual. If the acceptance demo
   turns out to rest on proprioception, the graph is built around the wrong modality.
