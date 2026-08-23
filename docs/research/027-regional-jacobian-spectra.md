@@ -1,253 +1,398 @@
 # Constructing a body with spread regional Jacobian spectra (patchworks#27)
 
-> **STATUS: INCOMPLETE — RECOVERED PARTIAL.** The agent running this pass was killed mid-flight by an
-> API spend limit and never wrote a file. This document is a reconstruction of its research trail from
-> its transcript, assembled so the pass can be resumed rather than restarted. **No verdict has been
-> reached on any sub-question.** Everything below is evidence; the synthesis is the part that is
-> missing.
->
-> **The paper corpus has been rescued out of `/tmp` and is durable at
-> `~/.claude/projects/-Users-angl-Documents-patchworks/research-cache-027/`** — text extractions of
-> `chrono`, `leaky`, `deepesn`, `s4d`, `hr2019`, `1801.03744`, `1802.09979`, `1812.05994`,
-> `1906.00904`, `2003.01219`, `2111.00396`, plus both unread Scholar Gateway result sets. Re-download
-> is unnecessary. The original `.pdf` files remain in the dead session's scratchpad at
-> `/private/tmp/claude-501/-Users-angl-Documents-patchworks/c3c36451-fe6e-4cd3-b707-d90c4195de24/scratchpad/`
-> and will be lost whenever `/tmp` is cleaned; the extracted text is what matters and it is safe.
->
-> The two Scholar Gateway result sets (480 and 484 lines) were fetched and **never read** — they blew
-> the tool's output cap. A spot-check of titles suggested mostly low-relevance reservoir-hardware
-> papers, but neither was read in full.
+An **inverted citation-sequencing pass**, run *ahead* of the decision it serves rather than after it
+— precedent [patchworks#13](https://github.com/NGL321/patchworks/issues/13). The decision waiting on
+it is [#7](https://github.com/NGL321/patchworks/issues/7) / `docs/spec/05-timescales.md` /
+[ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md), which makes a cell's effective
+timescale the spectral radius of the Jacobian of the activation region its biases select.
 
-Terms used here are defined in [`CONTEXT.md`](../../CONTEXT.md). The question is set by
-[`05-timescales.md`](../spec/05-timescales.md) and
-[ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md).
+Terms used here are defined in [`CONTEXT.md`](../../CONTEXT.md).
+
+> **How this pass ran.** Its first agent was killed by an API spend limit about forty steps in,
+> having written no file; a second session reconstructed its trail from the transcript as an
+> explicitly incomplete partial. This document completes it. Sources the first agent read are marked
+> **[verified at source]**; everything added since is verified the same way or marked otherwise. The
+> paper corpus is cached at
+> `~/.claude/projects/-Users-angl-Documents-patchworks/research-cache-027/`.
+>
+> One thing the earlier passes could not do, and this one did: **the go/no-go rig `05-timescales.md`
+> asks for was built and run** (`prototypes/regional-spectra/spread_pilot.py`). Its numbers are
+> reported in §6 and are load-bearing for the verdict. They are a *pilot on a stand-in body*, not a
+> measurement of the body — see §6's caveats before quoting them.
 
 ## The question, restated
 
 One shared frozen piecewise-linear cell body. Weights fix fold *directions*; per-cell biases fix fold
 *offsets*, so each cell sits in a different activation region of the same map, with its own local
-Jacobian and its own spectrum. #7 makes a cell's effective time constant the spectral radius of *its*
-region's Jacobian. That differentiates cells only if the **distribution of regional Jacobian spectral
-radii, across the bias settings cells actually occupy, has real spread**. If it is a spike, every cell
-lands in the same dynamic regime and #7's mechanism is dead on arrival.
+Jacobian and its own spectrum. That differentiates cells only if the **distribution of regional
+Jacobian spectral radii, across the bias settings cells actually occupy, has real spread**. If it is
+a spike, every cell lands in the same dynamic regime and #7's mechanism is dead on arrival.
 
-This is a **feasibility** question asked *ahead* of the decision, not a validation pass after it —
-the inverted sequencing precedent is [#13](https://github.com/NGL321/patchworks/issues/13).
+The ticket's five sub-questions are answered in §1–§5; §6 is the measurement; §7 is the verdict.
 
 ---
 
-## What was established, with sources
-
-Each item is marked **[verified at source]** where the agent read the paper's own text (PDF or ar5iv
-full text), or **[secondary]** where the claim rests on a search-result summary or an abstract page
-and still needs confirming.
-
-### The single most on-point result: bias variance moves the operating point along the order-to-chaos axis
+## 1. Is it a solved problem? — Not as posed, and nobody has tried to *widen* this distribution
 
 **[verified at source]** Schoenholz, Gilmer, Ganguli & Sohl-Dickstein, *Deep Information Propagation*
-([arXiv:1611.01232](https://arxiv.org/abs/1611.01232)), read via ar5iv.
+([arXiv:1611.01232](https://arxiv.org/abs/1611.01232)). The order-to-chaos control parameter is
+`χ₁ = σ_w² ∫ 𝒟z [ϕ'(√q* z)]²` (Eq. 5), with the fixed point `q*` satisfying
+`q* = σ_w² ∫ 𝒟z φ²(√q* z) + σ_b²`, and the critical line `χ₁ = 1` drawn in the **(σ_w², σ_b²)
+plane**. `σ_b²` does not enter `χ₁` directly, but it enters `q*` additively and `χ₁` depends on `q*`
+— so **bias variance shifts the local dynamical regime**, weights held fixed. Structurally that is
+this ticket's claim, and it is the closest thing in the literature to a positive answer.
 
-The order-to-chaos control parameter is
+**[verified at source]** Pennington, Schoenholz & Ganguli, *Resurrecting the sigmoid…*
+([arXiv:1711.04735](https://arxiv.org/abs/1711.04735)): "controlling the entire distribution of
+Jacobian singular values is an important design consideration in deep learning." And
+*The Emergence of Spectral Universality in Deep Networks*
+([arXiv:1802.09979](https://arxiv.org/abs/1802.09979)): free probability gives "a detailed analytic
+understanding of how a deep network's Jacobian spectrum depends on various hyperparameters including
+the nonlinearity, the weight **and bias** distributions, and the depth."
 
-> "χ₁ = σ_w² ∫ 𝒟z [ϕ'(√q\* z)]²" (Eq. 5)
+**But the objective is inverted, and that is the finding.** This entire literature exists to achieve
+**dynamical isometry** — to *concentrate* the Jacobian spectrum around one. Patchworks wants the
+opposite: deliberate spread. Nothing found in this pass shows anyone attempting to widen an
+across-region spectral distribution on purpose. The analytic machinery transfers; the design goal
+does not, and there is no recipe to copy.
 
-and the fixed point q\* satisfies
+**Answer to sub-question 1: no, it is not a solved problem in the form asked.** What exists is (i)
+theory that says the knobs are real and (ii) two published instances of spreading timescales across
+units by construction, in architectures where the bias→timescale route is analytic rather than
+regional:
 
-> "q\* = σ_w² ∫ 𝒟z φ²(√q\* z) + σ_b²"
+- **Chrono initialization.** **[verified at source]** Tallec & Ollivier, *Can recurrent neural
+  networks warp time?* ([arXiv:1804.11188](https://arxiv.org/abs/1804.11188), ICLR 2018), Eq. 16:
+  `b_f ∼ log(𝒰([1, T_max − 1]))`, `b_i = −b_f`, with `T_max` "the expected range of long-term
+  dependencies to be captured". Gate biases spread **log-uniformly over a task-set range**.
+- **S4D's timescale parameter.** **[verified at source]** Gu, Gupta, Goel & Ré,
+  *On the Parameterization and Initialization of Diagonal State Space Models*
+  ([arXiv:2206.11893](https://arxiv.org/abs/2206.11893)), Listing 1:
+  `log_dt = np.random.rand() * (np.log(dt_max) - np.log(dt_min)) + np.log(dt_min)` with
+  `dt_min=1e-3, dt_max=1e-1`, commented "**Geometrically uniform timescale**". Confirms what the
+  earlier pass flagged **unverified — the claim is now verified at source and citable**, in S4D
+  rather than in S4.
 
-with the critical line χ₁ = 1 separating an ordered from a chaotic phase, drawn in the
-**(σ_w², σ_b²) plane**.
+Two independent modern architectures spread per-unit timescales **log-uniformly over a range set by
+the task horizon**. If #7's spread has to be imposed rather than inherited, that is the published
+shape to impose.
 
-**Why this is the load-bearing hit.** σ_b² does not appear in χ₁ *directly* — but it appears
-additively in q\*, and χ₁ depends on q\*. So **bias variance shifts χ₁ indirectly, by moving q\***.
-That is structurally the Patchworks claim: hold the weights fixed, vary the biases, and the local
-dynamical regime moves. This is the closest thing found to a positive answer on Q1, and the resumed
-pass should build its answer around it.
+**The transfer is not free.** Both set a parameter whose map to a time constant is analytic — a
+gate's sigmoid *is* a retention coefficient, `Δ` *is* a step size. Patchworks has no gate: its route
+from bias to time constant runs through *which activation region the cell lands in*. That step is the
+unestablished one, and §6 is the first evidence on it.
 
-**What it does not yet settle.** Mean-field theory describes an *ensemble* at initialization, in the
-infinite-width limit, in terms of variances σ_w², σ_b² — not the spread of spectral radii across the
-*specific, learned, finite* bias vectors ~150 cells actually occupy in a `k = 12` body. The gap
-between "σ_b² moves the mean operating point" and "the across-cell distribution of regional spectral
-radii has usable spread" is exactly what the pass still has to close, and it is not a small gap.
+## 2. Is it provably hard? — Hardness attaches to *exact* control only
 
-### Controlling the Jacobian spectrum is an established design activity — and the activation choice matters
+**[verified at source]** Scaman & Virmaux, *Lipschitz regularity of deep neural networks*
+([arXiv:1805.10965](https://arxiv.org/abs/1805.10965)): "even for two layer neural networks, the
+exact computation of this quantity is NP-hard."
 
-**[verified at source]** Pennington, Schoenholz & Ganguli, *Resurrecting the sigmoid in deep learning
-through dynamical isometry* ([arXiv:1711.04735](https://arxiv.org/abs/1711.04735)): "controlling the
-entire distribution of Jacobian singular values is an important design consideration in deep
-learning." Critically for Q4: **ReLU networks "are incapable of dynamical isometry"**, whereas sigmoid
-networks can achieve it — but only under orthogonal weight initialization.
+**[verified at source]** Jordan & Dimakis, *Exactly Computing the Local Lipschitz Constant of ReLU
+Networks* ([arXiv:2003.01219](https://arxiv.org/abs/2003.01219)) sharpens it: they "establish strong
+inapproximability results showing that it is hard to even approximate Lipschitz constants of
+scalar-valued ReLU networks, for `ℓ₁` and `ℓ∞` norms", then give LipMIP, a mixed-integer program that
+computes the quantity **exactly** and does "not run in polynomial time in the worst-case."
 
-**[verified at source]** Pennington, Schoenholz & Ganguli, *The Emergence of Spectral Universality in
-Deep Networks* ([arXiv:1802.09979](https://arxiv.org/abs/1802.09979)): free probability theory gives
-"a detailed analytic understanding of how a deep network's Jacobian spectrum depends on various
-hyperparameters including the nonlinearity, the weight **and bias** distributions, and the depth."
+**[verified at source]** Fazlyab et al. ([arXiv:1906.04893](https://arxiv.org/abs/1906.04893))
+supplies the tractable side: an SDP yielding "guaranteed upper bounds."
 
-**Note the direction of the tension.** This literature is overwhelmingly about achieving *isometry* —
-concentrating the spectrum tightly around one. Patchworks wants the **opposite**: deliberate spread.
-The machinery for reasoning about the spectrum transfers; the objective is inverted. The resumed pass
-should say plainly whether anyone has ever tried to *widen* this distribution on purpose, because
-nothing found so far suggests they have.
+**Answer to sub-question 2: the hardness does not bind here, for two independent reasons.** First,
+it is about *exact* computation of a global constant, while #7 needs the *distribution* of a local
+quantity. Second, Patchworks' regional Jacobian is a **12 × 12 matrix** (`k = 12`,
+`06-graph-topology.md`): its spectrum is an exact `eigvals` call costing microseconds. The
+intractability results are about networks whose region structure cannot be enumerated; they say
+nothing against sampling regions and reading each one's spectrum exactly, which is what the rig in
+§6 does.
 
-### Finite width is what produces spread — and Patchworks is narrow
+## 3. Statistical vs exact — statistical shaping is available, and it is what #7 needs
+
+**Answer to sub-question 3: yes, in the affirmative, and this is the pass's cheapest firm result.**
+The literature supports shaping the distribution statistically — via `σ_w²`, `σ_b²`, width and depth
+(Schoenholz; Pennington; Hanin below) — even where per-region construction is intractable (§2). #7
+asks for spread, not a designed spectrum per region, so the statistical route is sufficient.
+
+**[verified at source]** Hanin & Nica, *Products of Many Large Random Matrices…*
+([arXiv:1812.05994](https://arxiv.org/abs/1812.05994)) says what shape to expect: "the norm of the
+vector `M^(d) u` is approximately **log-normal** distributed." The natural summary statistic for the
+spread is therefore a spread of `log ρ`, not of `ρ` — which also matches chrono and S4D both being
+log-uniform. **Report the distribution in log space.**
+
+## 4. Does architecture matter? — Yes, and narrowness is the lever
 
 **[verified at source]** Hanin, *Which Neural Net Architectures Give Rise to Exploding and Vanishing
 Gradients?* ([arXiv:1801.03744](https://arxiv.org/abs/1801.03744)): the empirical variance of the
-squares of the entries of the input-output Jacobian is **exponential in β = Σ_j 1/n_j**, the sum of
-reciprocals of hidden-layer widths. "When β is large, the gradients computed by N at initialization
-vary wildly." The paper's own advice — via the power-mean inequality — is to *minimize* β, and hence
-to keep widths equal and large.
+squares of the input-output Jacobian entries is **exponential in `β = Σ_j 1/n_j`**, the sum of
+reciprocals of the hidden-layer widths. "When `β` is large, the gradients computed by `N` at
+initialization vary wildly," and the paper's own advice is to *minimize* `β` — equal, wide layers.
 
-**This may be the pass's most interesting finding, and it cuts both ways.** Patchworks' body is
-narrow by construction (`k = 12`), so β is large, so Jacobian statistics fluctuate wildly. What that
-literature calls a pathology to be minimized is, for #7, **the very spread the mechanism needs**. The
-low-dimensionality constraint may be buying the timescale spread for free.
+**Patchworks is narrow by construction** (`k = 12`, `n = 32`), so `β` is large, so the Jacobian
+statistics fluctuate wildly. **What that literature calls a pathology is, for #7, exactly the spread
+the mechanism needs.** The low-dimensionality constraint buys the dispersion for free. §6 measures
+this and it holds.
 
-The obvious caution, which the pass never got to state: wild Jacobian variation is also exactly what
-ADR-0007's `γ × floor < fold margin` bound and #33's settling floor are trying to keep bounded. Spread
-and stability are being asked of the same quantity. That tension deserves to be the resumed pass's
-headline, not a footnote.
+**[verified at source]** Pennington et al. (1711.04735) adds one hard architectural constraint:
+ReLU networks "are incapable of dynamical isometry," while sigmoid networks achieve it under
+orthogonal initialization. Read in the inverted direction this is *favourable*: the activation that
+cannot be made isometric is the one that cannot suppress spread.
 
-**[verified at source]** Hanin & Nica, *Products of Many Large Random Matrices and Gradients in Deep
-Neural Networks* ([arXiv:1812.05994](https://arxiv.org/abs/1812.05994)): the log of the ℓ² norm of
-such a product is asymptotically Gaussian, giving "a quantitative measure of the extent to which the
-exploding and vanishing gradient problem occurs." A candidate analytic handle on the *shape* of the
-distribution, not just its width — worth pursuing, unexamined so far.
+**Orthogonal / unitary RNN parameterisations point the wrong way, with one exception.** uRNN, scoRNN,
+expRNN and AntisymmetricRNN all exist to *pin* the transition spectrum to the unit circle — the
+isometry objective again, and the opposite of what is wanted. The exception is worth naming:
+**[verified at source, abstract]** Kerg et al., *Non-normal Recurrent Neural Network (nnRNN)*
+([arXiv:1905.12080](https://arxiv.org/abs/1905.12080)), which argues orthogonal constraints come "at
+the cost of reduced expressivity due to the limited variety of orthogonal transformations" and
+deliberately uses **non-normal** matrices to gain "transient dynamics" while keeping stability. That
+is the nearest published statement of Patchworks' actual preference: keep the spectrum controlled,
+but do not make the operator normal. §6 finds the body's regional Jacobians are non-normal by a
+factor of ~2.6, which per nnRNN is a feature, and per §5 is a measurement hazard.
 
-### Do cells actually land in different regions? Region counts are far below the exponential bound
+## 5. What the empirical check should be — naive sampling is fine; the statistic is what needs care
+
+The earlier pass died mid-search on stochastic Lanczos quadrature. **The answer is that it does not
+apply.** SLQ (Ubaru, Chen & Saad, *Fast estimation of tr(f(A)) via stochastic Lanczos quadrature*,
+SIMAX 38(4), 2017; analysed by [Chen, Trogdon & Ubaru, ICML 2021](https://proceedings.mlr.press/v139/chen21s.html))
+estimates the cumulative empirical spectral measure of a **large** symmetric matrix under matrix-vector
+access, with cost scaling in the dimension `n`. Patchworks' regional Jacobian is `12 × 12` and
+explicitly available, and it is **not symmetric**. Exact eigendecomposition is free. There is no
+better-conditioned estimator to reach for at the matrix level.
+
+**The variance that matters is in the sampling over regions, and it is small.** §6 measures it:
+**50 sampled cells already pin the spread statistic to ±0.011 in `sd(log₁₀ ρ)`, and 150 to ±0.006.**
+The go/no-go run `05-timescales.md` specifies is adequately powered at the population size the
+architecture already has. **Answer to sub-question 5: no better estimator is needed. Four changes to
+the protocol are.**
+
+1. **Report `τ = −1/ln ρ` in quantiles, not `ρ` in moments.** `τ` is the quantity the mechanism cares
+   about and it diverges as `ρ → 1`, so means and standard deviations of the spread are dominated by
+   the tail. §6 shows `sd(log₁₀ ρ)` behaving erratically (0.98 in one narrow configuration) purely
+   from a heavy left tail of near-zero radii. Quantile ratios are stable where moments are not.
+2. **Sample the operating point as well as the bias.** §6's control finds the operating point
+   contributes *as much* spread as the bias does. A sweep that varies biases at a fixed chart and
+   stalk measures roughly half the phenomenon and attributes all of it to the wrong cause.
+3. **Cross-check `ρ` against the actual decay.** These Jacobians are non-normal: §6 measures
+   `σ_max/ρ ≈ 2.6`, so a cell with `ρ = 0.5` still amplifies some perturbation directions on the
+   first tick. The `ρ`-only reading is the error Yildiz, Jaeger & Kiebel warn about
+   (*Re-visiting the echo state property*, Neural Networks 35, 2012, **[verified at source]**):
+   spectral radius below unity is **not sufficient** for the echo state property. Pair `ρ` with
+   `‖J^t‖` at the horizon of interest; the standard tooling for the gap is pseudospectra and the
+   Kreiss constant (Trefethen & Embree, *Spectra and Pseudospectra*, Princeton, 2005).
+4. **Measure a run, not only a Jacobian.** See §7's first defect: the one-step regional Jacobian is
+   only a cell's timescale if the cell stays in its region.
+
+### Region counts are not the binding constraint
+
+The earlier partial flagged region-counting as the strongest negative evidence found. **On this
+pass's reading it does not bind.**
 
 **[verified at source]** Hanin & Rolnick, *Complexity of Linear Regions in Deep Networks*
-([arXiv:1901.09021](https://arxiv.org/abs/1901.09021)): for networks at initialization, "the average
-number of regions along any one-dimensional subspace grows **linearly** in the total number of
-neurons, far below the exponential upper bound," and "the average distance to the nearest region
-boundary at initialization scales like the inverse of the number of neurons." Both quantities stay
-"roughly constant during training."
+([arXiv:1901.09021](https://arxiv.org/abs/1901.09021), ICML 2019): "the average number of regions
+along any one-dimensional subspace grows **linearly** in the total number of neurons, far below the
+exponential upper bound," the average distance to the nearest region boundary scales like the inverse
+of the number of neurons, and both stay "roughly constant during training." Companion result,
+**[verified at source]** Hanin & Rolnick, *Deep ReLU Networks Have Surprisingly Few Activation
+Patterns* ([arXiv:1906.00904](https://arxiv.org/abs/1906.00904)): in a 2-D cross-section the count
+"starts at approximately `(#neurons)²/2`", is "independent of the depth", and "changes little during
+training." Both are far below the exponential-in-depth maximum of Montúfar, Pascanu, Cho & Bengio
+([arXiv:1402.1869](https://arxiv.org/abs/1402.1869)), whose bound rests on depth letting a network
+"re-use pieces of computation exponentially often" (**[verified at source, abstract]**; the exact
+formula was not read).
 
-Also recorded, exact: `distance(x, B_N) = min |z(x) − b_z| / ‖∇z(x)‖`.
+**Why it does not bind: Patchworks needs ~150 distinct regions, not many.** A body with even a
+hundred hidden units offers thousands of regions on the pessimistic count. The count was never the
+scarce resource; the **dispersion of `ρ` across the occupied regions** is, and that is a different
+quantity, governed by §4's `β` rather than by any region count. §6 confirms the separation directly:
+every sampled cell landed in a live region (no dead cell in any configuration), and the spread came
+from `β` and `σ_w²`.
 
-**Two unexamined consequences.** (i) Far fewer distinct regions than the folklore suggests means the
-spread available across ~150 bias settings may be much smaller than a naive count implies — this is
-the strongest *negative* evidence found, and it was never weighed against the positive evidence above.
-(ii) That distance formula is the same object as ADR-0007's fold margin, and the 1/#neurons scaling is
-a quantitative handle on it. Nobody has connected those yet.
+**One genuine caution survives, and it is not about counting.** **[verified at source]** Sattelberg,
+Cavalieri, Kirby, Peterson & Beveridge, *Locally linear attributes of ReLU neural networks*
+(*Frontiers in Artificial Intelligence* 6:1255192, 2023) find that regions are almost all distinct —
+in MNIST networks "even simple networks… only have overlap on < 1% of the training inputs" — but that
+the local maps are highly **redundant**: "there is potentially a great deal of redundancy or
+similarity among them," and clustering to as few as ten centres preserved accuracy on Inception.
+Distinct matrices need not be dynamically distinct. That is the right worry and it is about
+*similarity*, not *count* — which is precisely what §6 measures and finds nonzero.
 
-### Hardness: the intractability is specifically about *exact* control
-
-**[verified at source]** Scaman & Virmaux, *Lipschitz regularity of deep neural networks*
-([arXiv:1805.10965](https://arxiv.org/abs/1805.10965)): "even for two layer neural networks, the exact
-computation of this quantity is NP-hard" — the quantity being the Lipschitz constant itself.
-
-**[verified at source]** Fazlyab, Robey, Hassani, Morari & Pappas
-([arXiv:1906.04893](https://arxiv.org/abs/1906.04893)): recasts the problem as a semidefinite program
-yielding "guaranteed upper bounds," the most accurate in the literature. The abstract does not discuss
-NP-hardness.
-
-**Where this points, unstated so far:** hardness attaches to *exact* computation, while tractable
-methods deliver *bounds* and *statistics*. #7 needs spread, not a designed spectrum per region — so
-sub-question 3 (statistical vs exact) looks answerable in the affirmative, and this is probably the
-cheapest remaining win in the pass.
-
-### Reservoir computing: heterogeneous timescales exist, but as an explicit parameter
-
-**[verified at source]** Jaeger, Lukoševičius, Popovici & Siewert, *Optimization and applications of
-echo state networks with leaky-integrator neurons* (Neural Networks 20(3), 2007;
-[PDF](https://www.ai.rug.nl/minds/uploads/leakyESN.pdf)): leaky-integrator ESNs have "one more global
-control parameter than standard sigmoid unit ESNs… a leaking rate has to be optimized," with the paper
-"managing very slow timescales by adjusting the leaky neurons' time constants" on the "lazy eight"
-task, and a gain γ dialled from 1.0 down to 0.02 and back to speed the dynamics up and down at
-runtime.
-
-**The relevance is precise and unfavourable to the interesting claim.** This is a real precedent for
-heterogeneous per-unit time constants — but as a **hand-set parameter per unit**, which is exactly
-#7's *clock divisor* fallback, not its emergent-from-biases mechanism. It strengthens the fallback; it
-does not support the claim. Note the paper assumes a uniform leaking rate "for simplicity," so even
-the heterogeneous case is less explored than it first appears.
-
-**[verified at source]** Yildiz, Jaeger & Kiebel, *Re-visiting the echo state property* (Neural
-Networks 35, 2012): spectral radius below unity is **not sufficient** for the echo state property. A
-direct caution against reading a spectral radius as a time constant too naively — which is what #7's
-mechanism does.
+### DeepESN vs #7's rejection of depth: they are about different mechanisms
 
 **[verified at source]** Gallicchio & Micheli, *Deep Echo State Networks*
 ([arXiv:1712.04323](https://arxiv.org/abs/1712.04323)): "the structured state space organization with
 multiple time-scales dynamics in deep RNNs is **intrinsic to the nature of compositionality** of
 recurrent neural modules," with timescales "naturally ordered along the network's hierarchy."
+`05-timescales.md` rejects depth-gives-timescale on the grounds that unit delay is a phase shift, not
+a decimation.
 
-**This one deserves a fight, and the pass never had it.** DeepESN says depth *does* produce a
-timescale hierarchy for free — while #7 rejected depth-produces-timescale for Patchworks on the
-grounds that unit delay is a phase shift, not a decimation. Either the two claims are about different
-mechanisms (stacked recurrent layers each with their own recurrence, versus a delay line between
-single-recurrence cells) or #7 gave up something it did not need to. The resumed pass should
-adjudicate this explicitly.
+**Adjudication: both are right, and they are not in contact.** DeepESN's layers are each *themselves
+recurrent reservoirs*, with their own leaky-integrator state and their own spectral radius; the
+hierarchy of timescales is a hierarchy of **per-layer recurrences**, tuned per layer. Patchworks'
+depth is a chain of **singly-recurrent cells separated by a unit-delay edge**; there is no second
+recurrence per hop to slow anything down. `05-timescales.md`'s argument is untouched — and DeepESN is
+in fact evidence *for* #7's actual mechanism rather than against it, since what produces DeepESN's
+hierarchy is per-module recurrent dynamics differing in spectral radius, which is exactly what #7
+proposes to obtain from bias-selected regions instead of by hand.
 
-### Biases setting timescales: the exact analogue exists, and it is called chrono initialization
+**[verified at source]** Jaeger, Lukoševičius, Popovici & Siewert, *Optimization and applications of
+echo state networks with leaky-integrator neurons* (Neural Networks 20(3), 2007) remains the
+precedent for the **fallback**, not the mechanism: heterogeneous per-unit time constants exist there
+as a hand-set "global control parameter… a leaking rate has to be optimized" — `05-timescales.md`'s
+clock divisor, one field over. It strengthens the fallback and does not support the claim.
 
-**[verified at source]** Tallec & Ollivier, *Can recurrent neural networks warp time?*
-([arXiv:1804.11188](https://arxiv.org/abs/1804.11188), ICLR 2018): learnable gates give
-"quasi-invariance to general time transformations," recovering part of the LSTM from first principles,
-and this "leads to a new way of initializing **gate biases** in LSTMs and GRUs… this new chrono
-initialization is shown to greatly improve learning of long term dependencies, with minimal
-implementation effort." Confirmed present in the PDF at line 324 ("Hereafter, we refer to this as the
-chrono initialization") and used with `T_max = 3T/2` on the copy task.
+## 6. The measurement
 
-The formula the agent never reached (Eq. 16, recovered here from the downloaded PDF):
+`prototypes/regional-spectra/spread_pilot.py` builds the go/no-go rig `05-timescales.md` asks for and
+runs it. Per cell it forms `J = ∂chart_{t+1}/∂chart_t` — the chart's round trip through `encode` then
+`step` — for one frozen shared body and 150 cells differing in bias, and reads `ρ(J)` exactly.
 
-```
-b_f ∼ log(𝒰([1, T_max − 1]))
-b_i = −b_f
-```
+**Caveats, before any number below is quoted.** The body is a **stand-in**: iid Gaussian ReLU MLPs at
+`k = 12`, `n = 32`, because nothing else about the body is specified yet — not its widths, not its
+depth, not its activation. The biases are iid Gaussian, not biases a cell would learn. It is a
+one-step Jacobian, not a simulated trajectory. **This establishes the shape of the answer and the
+sensitivity of the rig, not the body's number.**
 
-with `𝒰` the uniform distribution and `T_max` "the expected range of long-term dependencies to be
-captured."
+**Spread exists. It is not a spike.** In every non-degenerate configuration the across-cell `ρ` spans
+a factor of 2–8, and `τ = −1/ln ρ` a factor of 3–46. At `widths=[64,64], σ_w²=1.7`: `ρ` p05/med/p95 =
+0.32 / 0.57 / 0.98, `τ` = 0.86 / 1.76 / 5.49 ticks.
 
-**Why this matters most for the *shape* of the answer.** Chrono initialization is a real, published
-instance of **biases spanning a range of timescales by construction** — the same move #7 wants, one
-architecture over — and note the form: the spread is **log-uniform over a range**, not Gaussian, and
-`T_max` is set from the task's known horizon. If #7's mechanism has a published ancestor, this is it.
+**Narrow layers widen the dispersion, as Hanin's `β` predicts** (`σ_w²=1.7, σ_b²=0.5`):
 
-**The transfer is not free, and the pass should say so.** Chrono initialization sets the biases of an
-explicit *gate* whose sigmoid output is directly a retention coefficient — the bias maps to a time
-constant analytically. Patchworks has no gate; its biases translate folds in a shared frozen
-piecewise-linear body, and the route from bias to effective time constant runs through *which
-activation region the cell lands in*, which is exactly the unestablished step. Chrono is the right
-precedent to argue from and does not settle the question.
+| widths | `sd(log₁₀ ρ)` | `ρ` p05 → p95 |
+|---|---|---|
+| `[12,12]` | **0.32** | 0.064 → 0.693 |
+| `[32]` | 0.12 | 0.440 → 1.113 |
+| `[64,64]` | 0.13 | 0.354 → 0.883 |
+| `[128,128,128]` | 0.13 | 0.344 → 0.862 |
 
-### Unconfirmed and unfinished
+**Biases alone reproduce essentially the whole spread — #7's mechanism is the one doing the work.**
+Holding the operating point fixed and varying only the per-cell biases (`[12,12], σ_w²=1.7`) gives
+`ρ` p05/med/p95 = 0.147 / 0.463 / 0.871, a `τ` p95/p05 ratio of **7.7**; at `[64,64], σ_w²=1.9` the
+ratio is **46**. The regional route from bias to timescale — the step §1 called unestablished —
+**works in the pilot**.
 
-- **S4 / S4D timescale initialization.** The agent tried to confirm that the Δ timescale parameter is
-  initialized log-uniformly over a range ([arXiv:2111.00396](https://arxiv.org/abs/2111.00396), and
-  S4D at [arXiv:2206.11893](https://arxiv.org/abs/2206.11893), `s4d.pdf` downloaded). Both greps came
-  back empty and the abstract pages do not carry it. **Unverified — do not cite until confirmed.** If
-  it holds, it is a second modern instance of deliberately spreading timescales across units.
-- **Sub-question 5 — a better-conditioned estimator than naive bias sampling.** Never reached. The
-  agent was searching for stochastic Lanczos quadrature for spectral density estimation (Ubaru, Chen &
-  Saad 2017, SIMAX) at the moment it was killed. That is the thread to pick up first, and it is the
-  one #7 explicitly asked for.
-- **Two papers surfaced but never opened:** *Locally linear attributes of ReLU neural networks*
-  (Frontiers in AI, 2023, `10.3389/frai.2023.1255192` — the fetch died on the spend limit) and
-  *Neural Networks with Orthogonal Jacobian* ([arXiv:2508.02882](https://arxiv.org/abs/2508.02882)).
-  The first states the Jacobian as `J = S(x₀)W` per activation region, which is exactly this pass's
-  object.
-- **Montúfar et al. and Serra et al.** on linear-region counting were named in the ticket and never
-  searched; Hanin & Rolnick covers adjacent ground and may make them redundant.
-- **Orthogonal/unitary RNN parameterisations** (uRNN, expRNN, antisymmetric RNNs) were named in the
-  ticket and never searched at all.
+**But the operating point moves it just as much.** The same sweep varying only the chart and incoming
+stalk, biases fixed, gives a `τ` ratio of **7.3** (and 42 in the wide configuration): statistically
+indistinguishable from the bias effect. See §7's first defect.
 
-## How to resume
+**`σ_b²` is the weak knob; `σ_w²` is the strong one, and `σ_w²` is not per-cell.** At frozen weights,
+sweeping `σ_b²` over three orders of magnitude (0.01 → 8) moved median `ρ` only 0.261 → 0.309, while
+`σ_w²` from 1.2 → 2.0 moved it 0.198 → 0.943. This **qualifies the Schoenholz hit**: `σ_b²` does move
+the operating point, as mean-field says, but in a finite `k = 12` body its leverage over the *median*
+is small. Its leverage over the *spread* — which is what #7 needs — is the part that survives.
 
-1. ~~Pull the chrono-initialization formula.~~ **Done during recovery** — see above. What remains is
-   judging how far it transfers to a gateless frozen body.
-2. Pick up sub-question 5 where it was cut off: stochastic Lanczos quadrature as an estimator for the
-   spectral-radius distribution, versus #7's naive bias sampling.
-3. Weigh Hanin's β (narrow width → wild Jacobian variation → **spread**) against Hanin & Rolnick
-   (region counts far below exponential → **less spread than hoped**). These are the two strongest
-   results found and they point opposite ways. The pass's verdict lives here.
-4. State the tension between spread and ADR-0007's fold margin / #33's settling floor. The same
-   narrowness that buys the spread threatens the stability bound.
-5. Adjudicate DeepESN's depth-gives-timescales against #7's rejection of depth.
-6. Confirm or drop the S4/S4D claim.
-7. Then write the verdicts, and the *Candidate revisions* section in the house style of
-   [`018-sandbox-citations.md`](./018-sandbox-citations.md) — including, if it comes to it, the
-   ticket's own pre-authorised outcome: **"not constructible"** is a clean result, absorbed by #7's
-   fallback (random non-degenerate init plus an empirical spread check, backed by the clock divisor as
-   an already-built rig). Nothing downstream breaks; the interesting claim just does not get made.
+**Spread and stability are the same knob.** The `σ_w²` sweep at `[64,64]`:
+
+| `σ_w²` | `τ` p95/p05 | cells with `ρ ≥ 1` |
+|---|---|---|
+| 1.2 | 2.0 | 0.00 |
+| 1.5 | 3.2 | 0.01 |
+| 1.7 | 6.4 | 0.05 |
+| 1.9 | 19.0 | 0.24 |
+| 2.0 | 35.1 | 0.39 |
+
+Every configuration with a usable timescale ratio has a **material fraction of cells above the
+stability boundary**, and every configuration with no unstable cells has every `τ` under one tick.
+The median crosses `ρ = 1` at `σ_w² ≈ 2`, the known ReLU criticality point — the pilot reproduces it.
+**This is the pass's headline and it is not in the literature found:** a single global `σ_w²` cannot
+buy spread and unconditional stability at once, because the spread lives in the tail that crosses the
+boundary.
+
+**Non-normality is real but mild**: `σ_max/ρ` median **2.62**, while `‖J⁸‖^(1/8)/ρ` median 1.12 — i.e.
+a one-tick transient amplification of ~2.6× that decays at the eigenvalue rate thereafter.
+
+**Estimator power**: `sd(log₁₀ ρ)` measured across 8 seeds is stable to ±0.021 at 20 cells, **±0.011
+at 50**, ±0.006 at 150. Naive sampling at the architecture's own population size is sufficient (§5).
+
+---
+
+## 7. Verdict
+
+**The mechanism is not dead on arrival. Sub-question 1's "is it constructible" answers *yes,
+statistically*, with two named knobs and one unresolved conflict between them.**
+
+- **Spread is available and biases are what produce it.** Measured, at fixed shared frozen weights
+  and a fixed operating point, a 7.7×–46× spread in `τ` across 150 bias settings (§6).
+- **The construction recipe is two knobs, and only one is per-cell.** `σ_w²` (global, shared, frozen)
+  positions the distribution against the stability boundary; **narrowness — large `β` — supplies the
+  dispersion**, and Patchworks is narrow by construction, so it gets the dispersion for free (§4,
+  §6). `σ_b²` is a weak third knob.
+- **Statistical shaping is enough and is not blocked by hardness** (§2, §3).
+- **If the emergent spread proves thin, impose it in the published shape:** log-uniform over a range
+  set by the task horizon, as chrono initialization and S4D both do (§1).
+- **The go/no-go run is cheap, correctly specified, and adequately powered** — with the four protocol
+  corrections in §5.
+
+**"Not constructible" was pre-authorised as a clean result. It is not the result.** The result is
+*constructible but coupled*: the same quantity that buys the spread is the one three other parts of
+the spec need bounded.
+
+### Defects and revisions warranted
+
+**7.1 — A cell's timescale is not a per-cell constant, and `05-timescales.md` reads as if it were.**
+The measurement (§6) finds the operating point contributes as much spread as the bias does. The spec
+says "a cell's **effective timescale is the spectral radius of its region's Jacobian**, selected by
+its biases"; `CONTEXT.md` defines it as a property of "the activation region its biases select."
+Both are true only if the cell *stays in its region*, and the cell's chart moves every tick. What the
+biases set is the **distribution** a cell's per-tick regional spectrum is drawn from — its mean
+timescale — not a fixed rate. **This is a wording-and-substance revision to `05-timescales.md`
+(*Persistence under the cell's own dynamics*), `CONTEXT.md` (*effective timescale*), and ADR-0005's
+decision paragraph.** It does not break the mechanism; a mean rate is still a rate. It does change
+what the go/no-go run measures and what the acceptance demo's readout means.
+
+**7.2 — This makes the fold margin structural, not just a stability side-condition.** ADR-0007's
+bound `γ × floor < fold margin` was framed as protecting the operating point from the disagreement
+floor. Given 7.1 it is doing a second job: **the fold margin is what makes "the cell's region" a
+well-defined object at all.** A cell whose margin is small re-draws its timescale every tick. The
+bound binds hardest at the apex (`gain_v = γ/Σ_e m_e`, `Σ_e m_e` falling with depth,
+`02-tick-semantics.md`) — which is exactly where slow cells are supposed to live. **Recommend
+`05-timescales.md` state the fold margin as a precondition of the timescale claim, not only as a
+reconciliation constraint.** Hanin & Rolnick supply the quantitative handle: mean distance to the
+nearest region boundary scales like `1/#neurons`, so **a wider body has a smaller fold margin** — the
+same axis as §4's `β`, pulling the same direction. Wide bodies: stable timescales, little spread.
+Narrow bodies: real spread, margins that may not hold.
+
+**7.3 — Spread and stability cannot both come from one global `σ_w²` (§6).** Configurations with a
+useful `τ` ratio put 5–39% of cells past `ρ ≥ 1`. Three ways out, none yet chosen, all cheap to test
+on the existing rig: (i) accept a truncated distribution — clip the body's construction so the
+realised maximum `ρ` is below one, and take the smaller ratio; (ii) spread in the *slow* direction
+only, choosing `σ_w²` so the median is fast and the tail reaches toward one rather than through it;
+(iii) impose the spread (chrono/S4D shape, §1) instead of drawing it. **Recommend this be recorded as
+a construction question against the body, not left implicit in "constructed for spread."**
+
+**7.4 — `ρ` is the wrong single statistic to build the acceptance readout on.** Non-normality of ~2.6×
+(§6) plus Yildiz et al.'s result that `ρ < 1` is not sufficient for the echo state property means the
+demo's per-cell timescale readout should be a measured decay (`‖J^t‖`, or the live private-component
+trace `05-timescales.md` already specifies) rather than an eigenvalue. The spec's chosen demo
+evidence — `‖Δ(private component)‖` per cell against hop distance — is already the right object.
+**No change needed to the demo; the change is to the go/no-go run, which should not report `ρ`
+alone.**
+
+### Measurements to run
+
+- Re-run `spread_pilot.py` against the body once its widths, depth and activation are fixed. The
+  pilot's numbers are a stand-in (§6 caveats) and should not be quoted as the body's.
+- Add a **fold-margin** column to the same sweep — `min |z(x) − b_z| / ‖∇z(x)‖` (Hanin & Rolnick,
+  verified) — and check it against `γ × floor` per cell across the taper, as #28 and #9 both asked.
+  One sweep answers both tickets; the apparatus is already written.
+- Measure `τ` over a **driven trajectory**, not a single Jacobian, to size how often a cell changes
+  region (7.1).
+
+### Honest gaps
+
+- **The pilot is not the body.** iid Gaussian ReLU MLPs, iid Gaussian biases, one-step Jacobians. It
+  establishes shape and sensitivity, not the body's number.
+- **Nobody has tried to widen this distribution on purpose** (§1). Read the whole positive case as
+  *the machinery permits it*, not as *it has been done*.
+- **Sattelberg et al.'s redundancy result (§5) was not tested here.** Distinct regions with similar
+  local maps is the failure mode the pilot would not have caught if the similarity were in `ρ`
+  specifically; the pilot measures dispersion in `ρ` and finds it nonzero, which is evidence against
+  the worry but not a direct test of it.
+- **Not read in full:** Montúfar et al.'s exact region bound (abstract only); Fazlyab et al. beyond
+  the abstract; Ubaru, Chen & Saad's SIMAX text (paywalled — its scope was taken from the ICML 2021
+  analysis paper and the method's own description); Serra et al. on region counting (not searched,
+  judged redundant to Hanin & Rolnick); Hanin & Nica's finite-`k` regime beyond the log-normal
+  statement.
+- **The two Scholar Gateway result sets the first agent fetched and never read have now been read.**
+  Both are reservoir-computing hardware and applications papers (memristive reservoirs, photonic
+  reservoirs, ESN forecasting) with no bearing on regional Jacobian spectra. **Closed, not a gap.**
+- **`arXiv:2508.02882`** (*Deep Network Trainability via Persistent Subspace Orthogonality*) was
+  opened and is the isometry objective again, relaxed to a subspace — noted, not load-bearing.
