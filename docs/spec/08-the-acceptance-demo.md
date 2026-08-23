@@ -36,7 +36,9 @@ uninterpretable — the demo would be answering two questions with one number.
 
 ## What is measured
 
-Two quantities, both live, neither of them behaviour.
+Two quantities, both live, neither of them behaviour. How they are *displayed* —
+and how each of the near-misses below is told apart on screen — belongs to
+[`10-the-demo-surface.md`](./10-the-demo-surface.md).
 
 **Depth.** [`05-timescales.md`](./05-timescales.md)'s private-component readout: `‖Δ(private
 component)‖` per cell against hop distance from the sensorimotor rim, displayed during each event.
