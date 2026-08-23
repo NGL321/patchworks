@@ -131,8 +131,9 @@ it is only less interesting.
 
 **Nothing in the architecture reads a cell's timescale.** It is observable from outside and is never
 an input to any computation, never a cell attribute another mechanism branches on, never a selection
-criterion. Clamping selects by hop distance ([#9](https://github.com/NGL321/patchworks/issues/9)),
-which both configurations respect. This prohibition is what keeps the divisor and the persistence
+criterion. A drive attaches by hop distance
+([`04-action-and-the-boundary.md`](./04-action-and-the-boundary.md)), which both configurations
+respect — and it attaches through ordinary edges, so it never reads a timescale either. This prohibition is what keeps the divisor and the persistence
 mechanism interchangeable; the moment anything branches on rate, the cheap fallback is gone.
 
 ## Demonstrating it

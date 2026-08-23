@@ -79,8 +79,14 @@ render, unlabelled: the agent must learn that the coloured blobs are objects, th
 different masses, and how they respond to being hit.
 
 **The goal is perception, not a scalar.** The target zone lights up in the render. There is no goal
-vector, no task id, and no reward. This is what lets a goal be expressed as a clamped prediction
-later, and it means retargeting mid-task is just a change in the world's appearance.
+vector, no task id, and no reward. Retargeting mid-task is therefore just a change in the world's
+appearance.
+
+This is what lets the agent's drive carry **valence without specification**
+([ADR-0009](../adr/0009-a-drive-is-a-motor-edge-attached-deep.md)): because the render already says
+*which* puck and *which* zone, the only thing left for a drive to assert is *satisfied*. The two
+statements are not in tension — the goal's **content** is perception, and the discomfort at not having
+reached it is the scalar.
 
 ### Known exposure: what 64×64 does and does not resolve
 

@@ -158,7 +158,8 @@ _Avoid_: hub, router, passthrough node
 A cell whose node stalk something outside the sheaf writes or reads directly — the seam between
 the graph and everything that is not the graph. Like a relay cell it performs no inference; unlike
 one, it is not fed by reconciliation alone. Its node stalk is **world-shaped**: it has whatever
-dimension the world gives it, not `n`. Its edge stalks are ordinary.
+dimension the world gives it, not `n`. Its edge stalks are ordinary. Three kinds: sensory, actuator,
+and drive — the first two at the sensorimotor rim, the third at the core.
 _Avoid_: input node, output node, sensor node, IO cell
 
 **Predicting cell**:
@@ -207,6 +208,32 @@ _Avoid_: input edge, afferent edge, observation channel
 An edge whose far endpoint is a boundary cell the world reads. Disagreement on it is cleared by the
 world moving — this, and not any property of the cell, is what makes a prediction an action.
 _Avoid_: output edge, efferent edge, action channel, command
+
+**Drive**:
+A standing assertion, written from outside the sheaf, that some state of affairs holds — so that while
+it does not, the graph carries disagreement it can only clear by acting. What keeps an unsolved task
+uncomfortable, and therefore the answer to the dark room problem. A goal is the particular drive a
+human sets; curiosity and any later appetite are others.
+_Avoid_: reward, goal (reserve for the human-set drive), clamp, objective, utility
+
+**Drive boundary cell**:
+The boundary cell a drive is written into: it holds the assertion and nothing else, runs no body, and
+is read by nothing. Attached at the **core**, not the sensorimotor rim. One cell is one drive. Its
+stalk is near-scalar — it carries **valence, not specification**, because the render already says what
+is wanted.
+_Avoid_: goal cell, reward node, limbic cell, clamp site
+
+**Drive edge**:
+An edge from a drive boundary cell to a core cell. A **motor edge** by the only test that sorts edges
+— disagreement on it is cleared by the world moving — differing from the actuator's only in being far
+from the rim, which is what makes it abstract action rather than a torque.
+_Avoid_: goal edge, reward channel, top-down edge
+
+**Dark room problem**:
+That a pure prediction-error minimiser is best off predicting a world it does not disturb: an unsolved
+task, watched from a standstill, is a low-error state. The reason drives exist. Named as a problem the
+architecture answers by construction, never one it hopes to outgrow.
+_Avoid_: exploration problem, motivation problem, the boredom problem
 
 **Efference copy**:
 What an actuator boundary cell writes back after the world has read it: the command as actually

@@ -336,7 +336,7 @@ construction quantity set by the masks.
 - **`χ = Σ_v n − Σ_e m_e = dim H⁰ − dim H¹`.** Fixed at construction by the masks, invariant under
   learning — no learned parameter appears in it. Computed and recorded at graph construction. It is
   a diagnostic, not a budget to hit, and nothing branches on it.
-- **`dim H⁰`** and the **minimum achievable Dirichlet energy under the world's boundary clamps** are
+- **`dim H⁰`** and the **minimum achievable Dirichlet energy under the world's boundary conditions** are
   run-time measurements against the learned maps, not construction constants.
 
 **`H⁰` and `H¹` are not topological invariants here.** They are weight-dependent linear subspaces

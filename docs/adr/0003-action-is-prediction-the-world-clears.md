@@ -26,11 +26,18 @@ give.
   Where several cells drive the same actuator boundary cell, reconciliation on those edges *is* the
   arbitration.
 - Planning cannot be a separate faculty. With no second mode of operation, a goal is realised by a
-  clamped prediction propagating to the boundary — which means the architecture has **no
+  standing assertion propagating to the boundary — which means the architecture has **no
   counterfactual evaluation at all**. See
   [route selection](https://github.com/NGL321/patchworks/issues/25).
 - The generative/action-selection opposition of the literature survives as a *path* through the
   graph (sensory rim → centre → motor rim, abstraction rising then falling), not as two objects.
+
+*Amended by [ADR-0009](./0009-a-drive-is-a-motor-edge-attached-deep.md).* The sensory/motor split
+above is exhaustive over the *world's* edges but not over the graph's: a **drive edge** is written from
+outside and cleared by the world moving, which makes it a motor edge attached far from the rim rather
+than a third kind. The taxonomy holds; it gains a row. The consequence above originally read "a
+*clamped* prediction", which named a mechanism ADR-0009 rejects — the word is retired, the claim is
+unchanged.
 
 ## The bet, stated plainly
 

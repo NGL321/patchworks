@@ -60,14 +60,20 @@ capability depends on timescale at all — and thereby becomes an already-valida
 - **An explicit per-cell clock divisor as the answer.** Retained as an instrument and fallback, not
   as the mechanism: `k` is arbitrary, it aliases, and it hard-codes hierarchy at construction time in
   a spec that has worked to make hierarchy emergent.
-- **Termination-driven abstract steps** — a cell holding until the disagreement it clamps is
+- **Termination-driven abstract steps** — a cell holding until the disagreement it asserts is
   cleared. The most faithful to the active-predictive-coding framing and the most expensive: it needs
   a termination signal, which is new mechanism, and it breaks the synchronous single-step reconciliation
   of [ADR-0002](./0002-message-passing-is-one-step-not-a-solve.md). Held as the named escape hatch.
-- **Clamp dwell alone** — treating a held goal as the slow variable. Rejected because it would pass
-  the acceptance demo with a *human* supplying the abstraction, and because it would require inventing
-  self-clamping for agent-originated plans. Under this decision, persistence *is* holding, so no
-  self-clamping mechanism is needed.
+- **Drive dwell alone** — treating a held goal as the slow variable. Rejected because it would pass
+  the acceptance demo with a *human* supplying the abstraction, and because it would require the agent
+  to assert drives on itself for agent-originated plans. Under this decision, persistence *is* holding,
+  so no self-assertion mechanism is needed.
+
+  *Amended by [ADR-0009](./0009-a-drive-is-a-motor-edge-attached-deep.md):* this alternative was
+  written when a goal was thought to be a **clamp** on an ordinary cell. It is now a
+  [drive boundary cell](../spec/04-action-and-the-boundary.md) writing across ordinary edges. The
+  rejection is unaffected — a human-held drive still supplies the abstraction the demo is supposed to
+  show — and the wording is updated only because "clamp" is retired.
 - **A probabilistic sheaf**, so that low-confidence messages fail to pass. Rejected as the tail
   wagging the dog: it would change what an edge stalk is, what restriction maps map, what disagreement
   means, and what `decode` outputs — a rewrite of the foundational cell contract — in service of a

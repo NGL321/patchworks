@@ -24,7 +24,8 @@ next node stalk. "Generative" and "action-selecting" name no object in this arch
 
 That is the whole difference. A prediction running out along a sensory edge is world modelling; the
 identical prediction running out along a motor edge is action, because the far end of that edge
-executes. The map anticipated that action cells would need "slight modification"; they need none.
+executes. A third kind, the **drive edge**, is added under *Drives* below; it turns out to be a motor
+edge attached far from the rim rather than a new kind of thing. The map anticipated that action cells would need "slight modification"; they need none.
 The modification is a property of the edge, and the edge already existed.
 
 ### The bet this makes
@@ -125,14 +126,15 @@ delay means it also sits in a longer loop and sees staler information.
 The measure is from the **sensorimotor** rim specifically, not from any boundary whatsoever.
 Boundary cells are alike *mechanically* — all are seams where something outside writes or reads a
 stalk — but they are not alike in kind. Sensory and motor boundaries are where the world touches
-the graph. Internal faculties (a limbic-analogue reward signal, a hippocampal-analogue memory
-module) attach by the same mechanism at a **different rim**, and are not thereby concrete: they
-belong at greater abstraction, and attach adjacent to the abstract pole rather than next to the arm.
+the graph. Internal faculties (a hippocampal-analogue memory module) attach by the same mechanism at a
+**different rim**, and are not thereby concrete: they belong at greater abstraction, and attach
+adjacent to the abstract pole rather than next to the arm. The first such faculty is already built:
+a **drive boundary cell** at the core (*Drives*, below) is that rim, arriving earlier than expected.
 
 Two things this makes mechanical rather than vague:
 
-- Which cells a goal may be clamped on ([#9](https://github.com/NGL321/patchworks/issues/9))
-  becomes a question about hop count.
+- Where a drive attaches (*Drives*, below) becomes a question about hop count. It attaches at the
+  core, which is as far from the sensorimotor rim as the graph goes.
 - The acceptance demo's "recovered at the appropriate level of the hierarchy" becomes falsifiable:
   you can measure how many hops from the sensorimotor rim the correction originated.
 
@@ -157,19 +159,79 @@ proto-thalamic pass-throughs as chords across it, and explicit partitions — en
 hand-specified structural mask rather than as new mechanism — held in reserve if the
 undifferentiated graph needs constraining.
 
-## Planning and epistemic action
+## Drives
 
-**Planning is clamp propagation.** A goal clamped on a cell deep in the graph becomes, some ticks
-later, a motor prediction at the boundary, by exactly the same one-step-per-tick machinery as
-everything else. No rollout, no search, no separate planner, and no second mode of operation in
-which the agent simulates without acting. Plan depth is graph depth; deliberation time is literally
-ticks.
+### The dark room problem
 
-**Epistemic action needs no new channel.** A pure disagreement-minimiser's optimal policy is to sit
-still facing a blank wall, and the destination requires an agent that explores a workspace nothing
-rewarded it for visiting — so this is not waved away as emergent. The architectural decision is
-narrow: whatever drive eventually supplies curiosity (the limbic analogue, still in fog) enters as
-**an ordinary clamp on an ordinary cell**, not as a new channel and not as a second error signal.
+A pure prediction-error minimiser has no reason to act. If the agent correctly predicts that the puck
+stays put and the target zone stays lit, that prediction is **right** — and right predictions are what
+this architecture minimises. An unsolved task, watched from a standstill, is a *low-error* state.
+
+So goal-directed behaviour is not something to hope emerges. Something outside the graph has to assert
+that an unmet task is uncomfortable, and it is that discomfort, not any planner, that makes the agent
+move.
+
+### A drive is a boundary cell in the core
+
+A **drive boundary cell** is written from outside the sheaf — by the human today, by an internal
+faculty later — and holds a standing assertion: *satisfied*. Like every boundary cell it runs no body
+and holds no chart ([ADR-0006](../adr/0006-boundary-cell-stalks-are-world-shaped.md)). Its **drive
+edges** run to a subset of **core** cells and are ordinary edges with ordinary masked linear
+restriction maps.
+
+Nothing is overridden. The assertion reaches those cells as ordinary disagreement, pulled by the
+ordinary reconciliation gain, and every cell it touches keeps its body and keeps inferring every tick.
+It nudges; it does not constrain. See
+[ADR-0009](../adr/0009-a-drive-is-a-motor-edge-attached-deep.md), which also records why the earlier
+proposal — pinning a cell's node stalk to a goal value — was rejected: a genuine override removes that
+cell from inference, leaving a hole in the network dynamics.
+
+**A drive edge is a motor edge.** Sorting by who clears the disagreement, which is the only sort this
+spec makes:
+
+| | Sensory edge | Motor edge | Drive edge |
+|---|---|---|---|
+| Boundary cell is | written by the world | read by the world | written from outside, read by no one |
+| Disagreement cleared by | the cell changing its belief | the world moving | the world moving |
+
+The actuator's motor edge is cleared by the world moving *immediately*; a drive edge by the world
+moving *eventually*. Because abstraction is hop distance from the sensorimotor rim, **abstract action
+is literally a motor edge attached deep** — the same object as a torque command, further in.
+
+### Valence, not specification
+
+The drive stalk is **near-scalar**. It asserts *satisfied* and nothing else. It never names a puck or a
+zone, because the render already does: the target zone lights up, and `retarget()` only changes what is
+seen ([`03-the-sandbox.md`](./03-the-sandbox.md)). The drive supplies the discomfort; the world supplies
+the content. Direction is absent from the signal and comes instead from the graph's own learned model
+of what satisfaction looks like.
+
+Low bandwidth is the point. A wide drive channel would smuggle the task specification back in through
+the side door, after the sandbox worked to put it in the render.
+
+**One cell is one drive.** For this PoC there is exactly one — the task drive — with several drive
+edges into the core. Curiosity, fatigue, or any later drive arrives as an additional boundary cell,
+which is an ordinary structural-mask change and needs no new mechanism.
+
+### What follows without being built
+
+- **Release needs no detector.** The cell asserts *satisfied* forever. When the task is met, what is
+  sensed agrees and disagreement falls to the floor; pressure vanishes with nothing released. `perturb()`
+  knocks the puck out and the disagreement returns by itself. Nothing in the graph ever reads whether
+  the goal is met — `info.goal_satisfied` stays privileged, for logging only.
+- **Planning is drive propagation.** A drive asserted in the core becomes, some ticks later, a motor
+  prediction at the rim, by the same one-step-per-tick machinery as everything else. No rollout, no
+  search, no separate planner, no mode in which the agent simulates without acting. Plan depth is graph
+  depth; deliberation time is literally ticks.
+- **Epistemic action needs no new channel.** A pure disagreement-minimiser's optimal policy is to sit
+  still facing a blank wall, and the destination requires an agent that explores a workspace nothing
+  rewarded it for visiting — so this is not waved away as emergent. Whatever eventually supplies
+  curiosity enters as **another drive boundary cell**, not as a new channel and not as a second error
+  signal.
+- **Several drives compose by reconciliation**, exactly as several cells driving one actuator do.
+  Incompatible drives are standing disagreement, a fourth source alongside static, lag, and settling
+  ([ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md)) — tolerated, not
+  represented, and needing no arbitration mechanism.
 
 *Considered and rejected:* **saccades** — restricting the agent to a small moving viewport, as the
 active predictive coding papers do. The whole field is visible here. It is visible *as many cells*,
@@ -181,8 +243,16 @@ so if attention is ever wanted it arrives as gating on transport
 - **The APC bet.** *Action is prediction the world clears* is strong for reflexive control and
   historically shakier for anything needing lookahead. Flagged for the citation pass; a revision
   sweep through this section and its dependents is pre-accepted.
+- **A scalar drive steering a 150-cell graph is unproven.** Low bandwidth is deliberate, but whether
+  one dimension of standing disagreement can differentiate behaviour across the whole taper is the
+  thing most likely to need widening. Escape hatch: a small learned drive vector, at the cost of the
+  one-cell-one-drive reading (ADR-0009).
+- **Hallucinating satisfaction.** A core cell can reduce disagreement by *believing* the task is met
+  rather than by acting. Bounded rather than eliminated: the sensory edges pull the other way, so the
+  cell settles at a compromise, and that compromise is the prediction the motor rim must clear. Leaves
+  an observable signature — sensory-side disagreement growing while the motor side stays quiet.
 - **No plan comparison.** Nothing in this architecture evaluates counterfactuals. The agent settles
-  into a route; it does not compare two. The candidate answer — several clamps propagating from
+  into a route; it does not compare two. The candidate answer — several drives propagating from
   different abstract regions, colliding, and reconciling — is genuinely promising and genuinely
   unproven, and it is where explicit lookahead would be reopened if it fails. Its own ticket:
   [route selection](https://github.com/NGL321/patchworks/issues/25). Not expected to bite in the
