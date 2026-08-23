@@ -59,10 +59,10 @@ the bias rule.
 _Avoid_: error (bare), residual, disagreement, loss
 
 **Disagreement floor**:
-The part of an edge's disagreement that learning cannot remove. Umbrella over two kinds, static and
-lag. Nothing in the architecture represents it; the learning rule is constrained never to target zero
-residual. What is left over is model error, which is reducible and needs no name of its own — its
-role is to be what the floors are distinguished from.
+The part of an edge's disagreement that learning cannot remove. Umbrella over three kinds, static,
+lag, and settling. Nothing in the architecture represents it; the learning rule is constrained never
+to target zero residual. What is left over is model error, which is reducible and needs no name of
+its own — its role is to be what the floors are distinguished from.
 _Avoid_: irreducible error, noise floor, bias, residual (bare)
 
 **Static floor**:
@@ -77,6 +77,15 @@ different effective timescales, so the slow end is behind. Velocity-shaped and s
 to zero when the world is held still. The price of timescale separation, and the mechanism working
 rather than failing.
 _Avoid_: staleness (reserve for unit delay), timescale error, phase error
+
+**Settling floor**:
+Disagreement floor that is a function of *parameter drift* — a predicting cell whose bias rule
+receives ambiguous, sign-flipping prediction error oscillates between activation regions rather than
+converging, so its outgoing prediction never stabilises. Bounded by the same construction that bounds
+reconciliation (`γ`); `decode` still emits every tick, so it degrades a neighbour's evidence but never
+blocks it. Confined to mid-depth predicting cells — boundary cells run no body and are exempt by
+construction, deep cells are insulated by `H⁰`.
+_Avoid_: instability, confidence, null predictor (describes the cell's state, not the floor itself)
 
 **Compression**:
 The lossy, nonlinear, cell-private map from node stalk into chart, performed inside `encode`.
