@@ -28,7 +28,13 @@ The **disagreement floor** is the part of an edge's disagreement that learning c
 three kinds:
 
 - **Static floor** — a function of *configuration*. Curvature the linear restriction map cannot
-  follow (ADR-0004), mask or learned rank deficiency, and aleatoric noise. Present at rest.
+  follow (ADR-0004), mask or learned rank deficiency, and aleatoric noise. Present at rest. *Amended by
+  [#37](https://github.com/NGL321/patchworks/issues/37):* it has a fourth source, added deliberately.
+  [ADR-0010](./0010-restriction-map-scale-is-gauge-fixed.md) bounds every restriction map's norm, so an
+  edge's representable **scale ratio** between its two ends is bounded too — `ρ²` times the range rank
+  concentration affords. Where two cells' stalks genuinely differ in scale by more than that, the
+  remainder cannot be transported away and sits here. It is the price of excluding `F = 0`, and it is
+  paid in the currency this ADR already tolerates.
 - **Lag floor** — a function of *motion*. The two endpoints' contents live at different timescales,
   so the slow end is behind. Drains at rest.
 - **Settling floor** — a function of *parameter drift*, added by
@@ -120,13 +126,20 @@ naming, the other needed this bound extended.**
   Σ_e m_e` treats `Σ_e m_e` as a proxy for the local Laplacian block's largest eigenvalue, accurate when
   it was checked. The transport rule trains the restriction-map *magnitudes* that proxy stands in for,
   so as training proceeds the proxy can drift away from the block's true spectral radius, silently
-  loosening `γ × floor < fold margin` without anything re-checking it. The fix is not a cap on what a
+  loosening `γ × floor < fold margin` without anything re-checking it. The fix was not a cap on what a
   restriction map may learn — that would impose a geometric constraint the maps' job (`01-cell-and-sheaf.md`,
-  ADR-0004) doesn't call for. It is cheaper and stays local: each cell already owns its own incident
-  restriction maps, so it can recompute its own actual spectral estimate from them and use that in place
-  of the static proxy. Run on the same schedule the global learning-rate and sparsity anneals already
-  use ([`07-local-learning-rule.md`](../spec/07-local-learning-rule.md)) rather than every tick — the
-  drift is slow, one small transport-rule step per tick, so a schedule-cadence recheck is enough.
+  ADR-0004) doesn't call for. It was cheaper and stayed local: each cell recomputing its own actual
+  spectral estimate from its own incident maps, on the same schedule the global learning-rate and
+  sparsity anneals already use ([`07-local-learning-rule.md`](../spec/07-local-learning-rule.md)).
+
+  *Superseded by [#37](https://github.com/NGL321/patchworks/issues/37).* That fix was correct and is no
+  longer needed. [ADR-0010](./0010-restriction-map-scale-is-gauge-fixed.md) **fixes the magnitudes the
+  transport rule was found not to identify**, so the proxy stops drifting because there is nothing left
+  to drift: `λ_max ≤ ρ² · deg(v)` holds for as long as the run does, and
+  [`02-tick-semantics.md`](../spec/02-tick-semantics.md) takes the max of the two bounds. The periodic
+  re-derivation is **struck** rather than kept just-in-case. Note what did *not* happen — the gauge is
+  still not a cap on what a map may learn. It fixes a magnitude no term in the objective has an opinion
+  about, which is why it closes this hole without imposing the geometric constraint declined above.
 
 Neither half is [#20](https://github.com/NGL321/patchworks/issues/20)'s change gate or the probabilistic
 sheaf. The gate amplifies differentiation on an edge; it has no purchase on whether a cell's own
@@ -145,9 +158,10 @@ what this question is actually about.
   informative. Some now is not.
 - **Reconciliation gain enters the spec**, along with a per-cell construction check folded into
   [#27](https://github.com/NGL321/patchworks/issues/27)'s sampling rig. Per
-  [#33](https://github.com/NGL321/patchworks/issues/33), that check does not stay construction-time
-  only: the transport rule trains the map magnitudes the `Σ_e m_e` proxy stands in for, so it is
-  re-derived locally, per cell, on the learning-rate anneal's schedule, for as long as training runs.
+  [#33](https://github.com/NGL321/patchworks/issues/33) that check could not stay construction-time
+  only — and per [#37](https://github.com/NGL321/patchworks/issues/37) it does after all, because
+  ADR-0010 bounds the map magnitudes the `Σ_e m_e` proxy stood in for. One construction-time check, no
+  running re-derivation.
 - **The gain is not a timescale knob and must not become one.** Normalising by `Σ_e m_e` tracks the
   local Laplacian block's largest eigenvalue; its job is to *equalise* the effective step across the
   taper, removing a degree artifact. A gain deliberately graded by depth would be ADR-0005's rejected

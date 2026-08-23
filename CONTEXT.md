@@ -29,8 +29,9 @@ _Avoid_: patch (reserve for the sensory tiling), subproblem, region, manifold (b
 
 **Node stalk**:
 A cell's public face — the feature vector it exposes to the graph, and **the cell's own metric
-space**, whose basis its restriction maps fix. Distinct from the cell's private internal state,
-which reconciliation never touches.
+space** in both basis and scale: its restriction maps fix the basis, and its scale is its own,
+bounded by construction rather than pinned to its neighbours'. Distinct from the cell's private
+internal state, which reconciliation never touches.
 _Avoid_: node state, node embedding, activation
 
 **Edge stalk**:
@@ -40,8 +41,22 @@ _Avoid_: message, edge feature, edge embedding
 
 **Restriction map**:
 The map from a cell's node stalk into one incident edge stalk. Performs transport and change
-of basis only; all inference happens inside the cell.
+of basis only; all inference happens inside the cell. Its overall magnitude is **gauge-fixed**,
+not learned — no term in the transport rule's objective identifies it, and left free it drifts
+toward zero, where the sheaf couples nothing.
 _Avoid_: projection, encoder, transport map
+
+**Scale gauge**:
+The construction-time bound on a restriction map's Frobenius norm: a band `[1/ρ, ρ]` for
+interior maps, exactly 1 for boundary-cell maps, restored by projection after each transport
+step. Excludes the collapsed sheaf `F = 0` without constraining a map's basis or rank.
+_Avoid_: normalisation, regularisation, weight decay, orthogonality constraint
+
+**Effective rank**:
+How many directions a restriction map is actually transmitting — the participation ratio of its
+singular values, read on the diagnostic cadence. Paired with per-edge disagreement energy it
+separates parameter collapse from a lag floor draining; neither reading separates them alone.
+_Avoid_: rank (bare), sparsity, bandwidth
 
 **Disagreement**:
 The difference, measured in an edge stalk, between the two adjacent cells' restrictions of
@@ -304,9 +319,10 @@ _Avoid_: predictive rule, inference rule
 
 **Transport rule**:
 The half of the local learning rule that updates a cell's restriction maps: a local gradient
-step on disagreement, composed in the same step with the sparsity pressure. Trains transport —
-the basis a neighbour's features become comparable in — never inference. Never reads a
-neighbour's raw node stalk.
+step on disagreement **relative to the restricted beliefs' own current magnitudes**, composed in
+the same step with the sparsity pressure and followed by projection back into the maps' gauge.
+Trains transport — the basis a neighbour's features become comparable in — never inference.
+Never reads a neighbour's raw node stalk.
 _Avoid_: restriction rule, map rule
 
 **Change gate**:

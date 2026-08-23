@@ -73,8 +73,15 @@ One descent step needs a step size. It is **per cell**, normalised by that cell'
 width:
 
 ```
-gain_v  =  γ / Σ_{e∋v} m_e          with a single global γ ≤ 1
+gain_v  =  γ / max( Σ_{e∋v} m_e , ρ² · deg(v) )     with a single global γ ≤ 1
 ```
+
+The denominator bounds the largest eigenvalue of the cell's local Laplacian block **provably**, not by
+proxy: [ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md) bounds every incident
+restriction map by `‖F‖_F ≤ ρ`, so `λ_max(Σ_e F_evᵀF_ev) ≤ Σ_e ‖F_ev‖_F² ≤ ρ² · deg(v)`. At the
+specified `ρ = 2` and the vertical edges' `m = 4` the two terms are equal, so the gain is in practice
+what it always was; it is written as the max so that a later change to `ρ` cannot silently loosen the
+bound below.
 
 `Σ_e m_e` tracks the largest eigenvalue of the cell's local Laplacian block, so this normalisation
 **equalises** the effective step across the graph: every cell takes roughly the same descent on its
@@ -113,13 +120,15 @@ is not enough to lean on. If the apex fails it, `γ` is capped globally by the t
 everywhere costs only some reconciliation speed at the rim, which is the cheapest thing in the system
 to give up.
 
-**The check does not stay construction-time only.** Per
-[#33](https://github.com/NGL321/patchworks/issues/33), the transport rule
-([`07-local-learning-rule.md`](./07-local-learning-rule.md)) trains the restriction-map magnitudes
-`Σ_e m_e` stands in for, so the proxy can drift away from the block's true spectral radius as training
-proceeds. Each cell re-derives its own estimate from its own current incident maps — already-owned
-data, no new channel — on the same schedule the global learning-rate and sparsity anneals use, not
-every tick. See ADR-0007, *Simultaneous learning does not need its own bound*.
+**The check is construction-time, and stays there.** [#33](https://github.com/NGL321/patchworks/issues/33)
+found that it could not: the transport rule ([`07-local-learning-rule.md`](./07-local-learning-rule.md))
+trains the restriction-map magnitudes `Σ_e m_e` stood in for, so the proxy drifted away from the block's
+true spectral radius as training proceeded, and each cell had to re-derive its own estimate on the
+anneal schedule. [ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md) **removed that drift at
+its source** by fixing the magnitudes the rule no longer identifies, so the denominator above is a bound
+that holds for as long as the run does. The periodic re-derivation is struck rather than kept
+just-in-case — a maintenance step retained "in case the bound slips" invites the build to trust a check
+that is no longer being made. See ADR-0007, *Simultaneous learning does not need its own bound*.
 
 ## Known exposure
 

@@ -201,7 +201,9 @@ They are:
   error are the same quantity" would stop being **true**, not merely become expensive to compute. See
   [ADR-0004](../adr/0004-linear-restriction-maps-assume-local-flatness.md) and *The geometry* below.
 - **Learned**, under a sparsity pressure. This is the local-neuroplasticity analogue: pruning within
-  what structure permits.
+  what structure permits. The pressure is an **L1 on the normalised map**, so it redistributes weight
+  across the map's directions rather than removing it — see *Scale is gauge-fixed* below and
+  [`06-graph-topology.md`](./06-graph-topology.md).
 - **Masked** by a hand-specified structural mask, set at graph construction, naming which node stalk
   features may participate on that edge. The mask is graph structure, not a parameter. **It closes and
   never re-opens** — re-opening a masked feature is structural growth, which is out of scope.
@@ -217,6 +219,40 @@ it drives weights to zero; it does not shrink the stalk. A stalk dimension that 
 would make the sheaf a moving target and would edge toward structural growth, which is out of scope.
 Whether pruning and re-opening could later alternate in developmental phases is held in the map's
 fog, not exercised here.
+
+### Scale is gauge-fixed
+
+A restriction map's overall magnitude is **not identified by the transport rule's objective**. The rule
+learns on disagreement relative to the restricted beliefs' own current magnitudes
+([`07-local-learning-rule.md`](./07-local-learning-rule.md)), which is invariant under `F ↦ αF`, and the
+sparsity pressure is an L1 on the normalised map, which is blind to magnitude too. Nothing in the rule
+has an opinion about it. Left free, it drifts — and the direction it drifts is toward `F = 0`, where
+every edge agrees perfectly, the sheaf couples nothing, and the only error signal the architecture has
+is gone.
+
+So the magnitude is fixed rather than learned. Fixing it removes a free parameter; it does not cap a
+learned one.
+
+- **Interior maps** carry a band: `‖F‖_F ∈ [1/ρ, ρ]`, with `ρ = 2` fixed at construction. Within the
+  band nothing acts. The band leaves each cell's scale its own — a cell's node stalk is its own metric
+  space in **basis and scale** — while bounding how far two ends of an edge may differ.
+- **Boundary-cell maps** carry the exact gauge, `‖F‖_F = 1`. A boundary cell runs no body and its stalk
+  is world-shaped ([ADR-0006](../adr/0006-boundary-cell-stalks-are-world-shaped.md)), so it has no
+  metric individuality to protect; unit conversion is the environment contract's job, not the sheaf's.
+
+Enforced by **projection** after each transport step. The norm is Frobenius, not spectral, and the
+difference matters: a spectral gauge pins only the largest singular value, leaving every other direction
+free to shrink at no cost, so it would exclude `F = 0` and leave `F → rank 1` open. A Frobenius gauge
+pins the budget across all directions, so rank concentration buys per-direction gain and pays for it
+elsewhere. **No rank floor is imposed** — learned rank-deficiency is wanted, and its degenerate limit is
+instrumented rather than forbidden (*Known exposure*).
+
+The cost: an edge's representable scale ratio is bounded by `ρ²` times the range rank concentration
+affords. Genuine mismatch beyond that is irreducible, and joins the static floor in
+[ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md).
+
+See [ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md); settled in
+[#37](https://github.com/NGL321/patchworks/issues/37).
 
 ### Disagreement, and what is done about it
 
@@ -479,6 +515,30 @@ Recorded, not pre-emptively solved.
   commitment exactly as well as a good one — the same price
   [`04-action-and-the-boundary.md`](./04-action-and-the-boundary.md) already accepts for `H⁰`
   insulation, appearing a second time one tier down.
+- **Over-smoothing here is the error signal vanishing, not a quality loss.** Cai & Wang
+  ([arXiv:2006.13318](https://arxiv.org/abs/2006.13318)) state over-smoothing precisely as the Dirichlet
+  energy of the embeddings converging to zero. Since disagreement *is* the Dirichlet energy and is the
+  only error signal this architecture has, the classical failure mode arrives here as the disappearance
+  of the quantity both halves of the local learning rule are computed from — **and of the only
+  instrument that would show it happening**. This is state collapse, the sibling of the parameter
+  collapse *Scale is gauge-fixed* excludes; the gauge does not exclude it, and nothing else does either.
+
+  It is not, on its own, a pathology. Boundary cells are written by the world every tick, prediction
+  pushes states off the consistent set continuously, and `H⁰` is large by construction, so a consistent
+  section here is content-rich rather than degenerate. Energy draining **at rest** is the quiescent hold
+  ([ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md)) working as designed.
+  The alarming case is energy falling **while the world drives**, and telling the two apart is what the
+  paired instrument is for: per-edge energy read alongside per-edge **effective rank**, the
+  participation ratio `(Σσᵢ²)² / Σσᵢ⁴` of a restriction map's singular values, on the diagnostic cadence.
+  Energy down under drive with effective rank sliding toward 1 across the fleet is collapse; energy down
+  at rest with rank steady is the lag floor draining.
+
+  The counterweight the literature offers is **orientation, not authority**: Bodnar et al.'s
+  sheaf-diffusion result that a rich harmonic space resists collapse is proved for *orthogonal* sheaves,
+  and per `docs/research/015-sheaf-geometry.md` those theorems do not reach a sheaf whose maps are
+  masked, learned, and merely norm-bounded. The proof-of-concept instruments for this; it does not
+  assume it away.
+
 - **The shared frozen body is a bet, and it has a first experiment.** Nothing in the literature
   demonstrates its sufficiency, because no prior system trains a frozen-body-plus-thin-surface
   architecture by cell-local rules alone — that conjunction *is* the thesis, so the demonstration is the
