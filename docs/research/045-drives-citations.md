@@ -63,8 +63,56 @@ am dissatisfied by most responses, which seem to me to be variations on the poin
 always defined relative to a model." Her objection is that predictive processing has no *internal*
 account of why the model is a good one — which does not reach an architecture whose answer is stipulated.
 
+### The Sun & Firestone exchange, read in full (gap closed)
+
+This pass originally recorded the *TiCS* exchange as unreachable and named the Seth reply as its soft
+spot. The full exchange has since been obtained and read: Van de Cruys, Friston & Clark (2020),
+"Controlled Optimism: Reply to Sun and Firestone on the Dark Room Problem," *TiCS* 24(9):680–681, DOI
+10.1016/j.tics.2020.05.012; Seth, Millidge, Buckley & Tschantz (2020), "Curious Inferences: Reply to Sun
+and Firestone on the Dark Room Problem," *TiCS* 24(9):681–682, DOI 10.1016/j.tics.2020.05.011; and Sun &
+Firestone's rejoinder, "Optimism and Pessimism in the Predictive Brain," *TiCS* 24(9):683–684.
+
+**The soft spot resolves, and it resolves in ADR-0009's favour — but it sharpens the price.** Seth et al.
+are the epistemic camp's clearest statement, and they place the two routes in exactly the relation
+ADR-0009 assumes. On the priors route they write: "One standard response is that Dark Room type
+environments are intrinsically surprising, given the homeostatic imperatives of living organisms. One
+might worry that this response solves nothing, since it merely redefines what counts as 'surprising' for
+an agent. The reply by Van de Cruys and colleagues **relieves us of this worry** by highlighting the
+principled role of 'optimistic predictions' in driving actions." So the priors-only horn is not a
+fringe position and is not held to be circular — conceded by the authors who decline to stop there.
+
+**What they add, and what Patchworks therefore gives up.** Their own route is expected free energy, and
+they are explicit that the epistemic term is what produces exploration: "Minimising expected free energy
+entails minimising a (negative) expected information gain term, which rewards sampling those novel
+environmental states that are (predicted to) induce a large divergence between prior and posterior
+beliefs. This is why long-term free-energy-minimising agents are intrinsically drawn towards novel
+experiences (and thus out of Dark Rooms)." Box 1 insists this is not a patch: the epistemic terms "arise
+naturally out of the mathematical formalism, instead of being bolted on," and "only arise when performing
+inference over temporally extended sequences." **This is precisely the summand ADR-0003 makes
+unavailable.** The honest consequence for the spec: Patchworks forfeits a *derived* account of curiosity.
+Novelty-seeking cannot fall out of the formalism here — if the agent explores, that is because a drive
+was written from outside saying so. ADR-0009 should say this rather than leave it implicit.
+
+**Sun & Firestone's rejoinder is the sharpest attack on the priors route, and it misses Patchworks
+specifically.** Their charge is smuggling: "what counts as 'optimistic' *depends on one's desires* … the
+only way optimism gets agents out of Dark Rooms and living their lives is by smuggling in desires after
+all. (Nor will it do to define optimism relative to evolutionary considerations.)" The force of this is
+that predictive processing "aims to replace [beliefs and desires] with a single state: prediction," so
+reintroducing desires concedes the central claim. **Patchworks is not making that claim.** It never
+asserted that prediction is the only state; it writes the drive in from outside, openly, as a motor edge.
+The objection is that the desire arrives undeclared — and here it is declared. This is the strongest
+available support for the pass's headline: on this claim Patchworks is *less* exposed than the theories
+it borrows from, because it is not defending predictive processing's radical monism.
+
+Their **"Homeostatic Room"** — an IV drip, the right electrolytes, a thermostat, "this arrangement should
+be paradise for a surprise-minimizer. Yet, it seems unlikely that you'd stay" — is worth recording as the
+sharp form of the objection to *homeostatic* readings specifically. It reinforces the `CONTEXT.md`
+_Avoid_ recommendation below: a drive read as a deficit that discharges on satiation walks straight into
+this room and stays. Patchworks' drive is a standing assertion, so it does not.
+
 **Verdict: supported.** No revision, beyond a rhetorical note: ADR-0009 calls the compatibility "a
 happier coincidence than it had any right to be", when the external write makes it the natural reading.
+Add the forfeited-curiosity note above, which is a genuine cost rather than a rhetorical one.
 
 ## (b) A goal as a standing assertion, not a clamp and not a reward
 
@@ -254,15 +302,24 @@ Optionally add the electronics disambiguation to **Drive edge**. No spec claim c
 2. **`CONTEXT.md` _Avoid_: the Hullian drive**, per the section above. Trivial.
 3. *(Optional, framing only)* **ADR-0009's dark-room paragraph understates its own position** — the
    external write frees Patchworks of the phylogenetic burden the priors reading usually carries.
+4. **Record the forfeited account of curiosity** (ADR-0009, and ADR-0003 where it declines expected free
+   energy). Added after the *TiCS* exchange was read in full. Seth et al. are explicit that the epistemic
+   term is what makes long-horizon agents intrinsically novelty-seeking, and that it falls out of the
+   formalism rather than being bolted on. Declining it is the right call under ADR-0003, but it has a
+   price worth naming: **novelty-seeking cannot be derived here.** If the agent explores, it is because a
+   drive was written from outside saying so. This is a real cost, not a rhetorical one, and it belongs
+   next to the scalar exposure rather than buried in a citation doc.
 
 ## Gaps
 
 - **Friston (2012), *Entropy* 14(11):2100–2121** — MDPI returned 403 on both HTML and PDF. ADR-0009's
   "Friston et al. (2012)" is validated here against the *Frontiers* paper, which carries the quoted line.
-- **Sun & Firestone (2020), *TiCS* 24(5):346–348**, and the two published replies (Van de Cruys, Friston
-  & Clark; Seth & Millidge) — all three PDFs 403, Cell abstracts paywalled; the critique is represented
-  at one remove via Perfors (2024). **The Seth & Millidge reply is the one most likely to bear on (a) and
-  was not read** — if this pass has a soft spot, it is there.
+- ~~**Sun & Firestone (2020), *TiCS* 24(5):346–348**, and the two published replies~~ — **CLOSED.**
+  Obtained via institutional access and read in full; see *The Sun & Firestone exchange, read in full*
+  under (a). The named soft spot is resolved, and in ADR-0009's favour. The original *TiCS* 24(5):346–348
+  target article is still known only through the three replies that quote it, which is sufficient for
+  this pass's question — every claim (a) rests on is now sourced to a primary text rather than to
+  Perfors (2024) at one remove.
 - **Zhu & Ghahramani (2002), CMU-CALD-02-107** — "clamp the labelled data" attested only second-hand via
   Zhou et al. Two attempts (unextractable Type-3 PDF; connection refused).
 - **LeCun (2022), "A Path Towards Autonomous Machine Intelligence"** — OpenReview verification wall, two
