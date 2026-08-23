@@ -59,10 +59,10 @@ the bias rule.
 _Avoid_: error (bare), residual, disagreement, loss
 
 **Disagreement floor**:
-The part of an edge's disagreement that learning cannot remove. Umbrella over two kinds, static and
-lag. Nothing in the architecture represents it; the learning rule is constrained never to target zero
-residual. What is left over is model error, which is reducible and needs no name of its own — its
-role is to be what the floors are distinguished from.
+The part of an edge's disagreement that learning cannot remove. Umbrella over three kinds, static,
+lag, and settling. Nothing in the architecture represents it; the learning rule is constrained never
+to target zero residual. What is left over is model error, which is reducible and needs no name of
+its own — its role is to be what the floors are distinguished from.
 _Avoid_: irreducible error, noise floor, bias, residual (bare)
 
 **Static floor**:
@@ -77,6 +77,15 @@ different effective timescales, so the slow end is behind. Velocity-shaped and s
 to zero when the world is held still. The price of timescale separation, and the mechanism working
 rather than failing.
 _Avoid_: staleness (reserve for unit delay), timescale error, phase error
+
+**Settling floor**:
+Disagreement floor that is a function of *parameter drift* — a predicting cell whose bias rule
+receives ambiguous, sign-flipping prediction error oscillates between activation regions rather than
+converging, so its outgoing prediction never stabilises. Bounded by the same construction that bounds
+reconciliation (`γ`); `decode` still emits every tick, so it degrades a neighbour's evidence but never
+blocks it. Confined to mid-depth predicting cells — boundary cells run no body and are exempt by
+construction, deep cells are insulated by `H⁰`.
+_Avoid_: instability, confidence, null predictor (describes the cell's state, not the floor itself)
 
 **Compression**:
 The lossy, nonlinear, cell-private map from node stalk into chart, performed inside `encode`.
@@ -149,7 +158,8 @@ _Avoid_: hub, router, passthrough node
 A cell whose node stalk something outside the sheaf writes or reads directly — the seam between
 the graph and everything that is not the graph. Like a relay cell it performs no inference; unlike
 one, it is not fed by reconciliation alone. Its node stalk is **world-shaped**: it has whatever
-dimension the world gives it, not `n`. Its edge stalks are ordinary.
+dimension the world gives it, not `n`. Its edge stalks are ordinary. Three kinds: sensory, actuator,
+and drive — the first two at the sensorimotor rim, the third at the core.
 _Avoid_: input node, output node, sensor node, IO cell
 
 **Predicting cell**:
@@ -198,6 +208,32 @@ _Avoid_: input edge, afferent edge, observation channel
 An edge whose far endpoint is a boundary cell the world reads. Disagreement on it is cleared by the
 world moving — this, and not any property of the cell, is what makes a prediction an action.
 _Avoid_: output edge, efferent edge, action channel, command
+
+**Drive**:
+A standing assertion, written from outside the sheaf, that some state of affairs holds — so that while
+it does not, the graph carries disagreement it can only clear by acting. What keeps an unsolved task
+uncomfortable, and therefore the answer to the dark room problem. A goal is the particular drive a
+human sets; curiosity and any later appetite are others.
+_Avoid_: reward, goal (reserve for the human-set drive), clamp, objective, utility
+
+**Drive boundary cell**:
+The boundary cell a drive is written into: it holds the assertion and nothing else, runs no body, and
+is read by nothing. Attached at the **core**, not the sensorimotor rim. One cell is one drive. Its
+stalk is near-scalar — it carries **valence, not specification**, because the render already says what
+is wanted.
+_Avoid_: goal cell, reward node, limbic cell, clamp site
+
+**Drive edge**:
+An edge from a drive boundary cell to a core cell. A **motor edge** by the only test that sorts edges
+— disagreement on it is cleared by the world moving — differing from the actuator's only in being far
+from the rim, which is what makes it abstract action rather than a torque.
+_Avoid_: goal edge, reward channel, top-down edge
+
+**Dark room problem**:
+That a pure prediction-error minimiser is best off predicting a world it does not disturb: an unsolved
+task, watched from a standstill, is a low-error state. The reason drives exist. Named as a problem the
+architecture answers by construction, never one it hopes to outgrow.
+_Avoid_: exploration problem, motivation problem, the boredom problem
 
 **Efference copy**:
 What an actuator boundary cell writes back after the world has read it: the command as actually

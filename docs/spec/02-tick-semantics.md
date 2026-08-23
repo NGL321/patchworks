@@ -79,6 +79,14 @@ afternoon. If the apex fails it, `γ` is capped globally by the tightest cell; p
 everywhere costs only some reconciliation speed at the rim, which is the cheapest thing in the system
 to give up.
 
+**The check does not stay construction-time only.** Per
+[#33](https://github.com/NGL321/patchworks/issues/33), the transport rule
+([`07-local-learning-rule.md`](./07-local-learning-rule.md)) trains the restriction-map magnitudes
+`Σ_e m_e` stands in for, so the proxy can drift away from the block's true spectral radius as training
+proceeds. Each cell re-derives its own estimate from its own current incident maps — already-owned
+data, no new channel — on the same schedule the global learning-rate and sparsity anneals use, not
+every tick. See ADR-0007, *Simultaneous learning does not need its own bound*.
+
 ## Known exposure
 
 - **Cross-tick settling, not within-tick settling.** Because message passing is a single step

@@ -25,12 +25,19 @@ Two facts about the shape of the problem, established before anything was decide
 ### Disagreement divides into a reducible part and a floor
 
 The **disagreement floor** is the part of an edge's disagreement that learning cannot remove. It has
-two kinds, and the architecture never needs a finer taxonomy than this:
+three kinds:
 
 - **Static floor** — a function of *configuration*. Curvature the linear restriction map cannot
   follow (ADR-0004), mask or learned rank deficiency, and aleatoric noise. Present at rest.
 - **Lag floor** — a function of *motion*. The two endpoints' contents live at different timescales,
   so the slow end is behind. Drains at rest.
+- **Settling floor** — a function of *parameter drift*, added by
+  [#33](https://github.com/NGL321/patchworks/issues/33). A mid-depth predicting cell whose bias rule
+  ([#5](https://github.com/NGL321/patchworks/issues/5)) receives ambiguous, sign-flipping prediction
+  error oscillates between activation regions instead of converging, so its outgoing prediction never
+  stabilises and its incident edges never fully clear. Bounded, not cumulative, by the same
+  construction that already bounds reconciliation — see "Simultaneous learning does not need its own
+  bound" below.
 
 Everything else is **model error**: the cell is simply wrong, the residual is reducible, and this is
 what the local learning rule feeds on. It gets no name of its own; its whole role is to be the thing
@@ -76,6 +83,48 @@ composes with `06-graph-topology.md`'s topology-only baseline rather than replac
 says what disagreement a cycle produces with no curvature at all, the hold says how much of the
 remainder is lag.
 
+### Simultaneous learning does not need its own bound
+
+[#33](https://github.com/NGL321/patchworks/issues/33) asked whether the local learning rule
+([#5](https://github.com/NGL321/patchworks/issues/5)) — every cell running both the bias rule and the
+transport rule every tick, off signals that shift as neighbours update simultaneously — needs a bound
+of its own, the way reconciliation needed `γ × floor < fold margin`, or whether it inherits stability
+from what is already decided. The answer splits along tick-locality.
+
+**Within a tick, nothing new is needed.** Each rule is already a single local gradient step, applied
+after that tick's signals (prediction error, disagreement) are read — the same shape ADR-0002 requires
+of reconciliation, already satisfied by construction. Simultaneity across cells creates no new locality
+problem, because no cell's update this tick depends on another cell's update this tick.
+
+**Across ticks, the risk splits by parameter group, and neither half needs new mechanism — one needed
+naming, the other needed this bound extended.**
+
+- **The bias rule can produce the settling floor** above: a mid-depth cell with ambiguous evidence
+  oscillates between activation regions rather than settling. This is not the "standing offset dragging
+  the operating point" failure this ADR already guards against — that failure is a *cell being pushed*
+  by something external; this is a cell's own gradient step being genuinely undecided. It cannot diverge
+  (bounded by the same `γ` that already bounds reconciliation; `decode` still emits every tick, so a
+  neighbour's evidence degrades but is never blocked) and it is not a stability defect to fix — it is a
+  third floor, tolerated the same way the other two are.
+- **The transport rule does not need a new bound; it makes an existing one go stale.** `gain_v = γ /
+  Σ_e m_e` treats `Σ_e m_e` as a proxy for the local Laplacian block's largest eigenvalue, accurate when
+  it was checked. The transport rule trains the restriction-map *magnitudes* that proxy stands in for,
+  so as training proceeds the proxy can drift away from the block's true spectral radius, silently
+  loosening `γ × floor < fold margin` without anything re-checking it. The fix is not a cap on what a
+  restriction map may learn — that would impose a geometric constraint the maps' job (`01-cell-and-sheaf.md`,
+  ADR-0004) doesn't call for. It is cheaper and stays local: each cell already owns its own incident
+  restriction maps, so it can recompute its own actual spectral estimate from them and use that in place
+  of the static proxy. Run on the same schedule the global learning-rate and sparsity anneals already
+  use ([`07-local-learning-rule.md`](../spec/07-local-learning-rule.md)) rather than every tick — the
+  drift is slow, one small transport-rule step per tick, so a schedule-cadence recheck is enough.
+
+Neither half is [#20](https://github.com/NGL321/patchworks/issues/20)'s change gate or the probabilistic
+sheaf. The gate amplifies differentiation on an edge; it has no purchase on whether a cell's own
+parameter update oscillates or whether a spectral-radius proxy has gone stale. The probabilistic sheaf
+was declined a third time on the same structural grounds as its first two declines (ADR-0005, #7): a
+distribution over stalk values doesn't change how many things are moving at once or how far, which is
+what this question is actually about.
+
 ## Consequences
 
 - **ADR-0004's falsification signature is no longer readable on its own.** It has a second cause, and
@@ -85,7 +134,10 @@ remainder is lag.
   "Residual disagreement *is* the signal the rule consumes" was written when all residual was
   informative. Some now is not.
 - **Reconciliation gain enters the spec**, along with a per-cell construction check folded into
-  [#27](https://github.com/NGL321/patchworks/issues/27)'s sampling rig.
+  [#27](https://github.com/NGL321/patchworks/issues/27)'s sampling rig. Per
+  [#33](https://github.com/NGL321/patchworks/issues/33), that check does not stay construction-time
+  only: the transport rule trains the map magnitudes the `Σ_e m_e` proxy stands in for, so it is
+  re-derived locally, per cell, on the learning-rate anneal's schedule, for as long as training runs.
 - **The gain is not a timescale knob and must not become one.** Normalising by `Σ_e m_e` tracks the
   local Laplacian block's largest eigenvalue; its job is to *equalise* the effective step across the
   taper, removing a degree artifact. A gain deliberately graded by depth would be ADR-0005's rejected
@@ -145,4 +197,5 @@ quiescent hold is the instrument that catches it: a gated graph held still shoul
 Not a veto. [#20](https://github.com/NGL321/patchworks/issues/20)'s question is narrowed from *how to
 gate* to *whether the gate is ever reached for, and on what observed trigger*.
 
-See [patchworks#28](https://github.com/NGL321/patchworks/issues/28).
+See [patchworks#28](https://github.com/NGL321/patchworks/issues/28) and
+[patchworks#33](https://github.com/NGL321/patchworks/issues/33).

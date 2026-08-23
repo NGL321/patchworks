@@ -72,12 +72,23 @@ Considered and disqualified as the shape of either rule; recorded in
 `docs/research/015-information-cohomology.md`. No variational principle, no graph in the theory, and an
 `O(2ⁿ)` cost ceiling that would not batch. Retained only as an interpretive lens.
 
-## Known exposure
+## Stability under simultaneous, cell-local learning
 
-- **Stability under simultaneous, cell-local learning is not resolved here.** Every cell runs both
-  rules every tick, off signals that shift as neighbours also update. Whether the same argument that
-  justifies single-step reconciliation (bounded step, no inner loop) is sufficient here, or whether
-  simultaneous *parameter* drift needs its own bound the way reconciliation needed
-  `γ × floor < fold margin`, is open. It entangles with change gating
-  ([#20](https://github.com/NGL321/patchworks/issues/20)) and the probabilistic sheaf (held in the
-  map's fog), and is carried forward as its own ticket rather than forced here.
+Settled in [#33](https://github.com/NGL321/patchworks/issues/33); ADR-0007 amended. Within a tick,
+both rules already take the same shape ADR-0002 requires of reconciliation — a single local step,
+applied after that tick's signals are read — so simultaneity across cells adds no new locality
+problem. Across ticks the risk splits by parameter group and neither half needed new mechanism:
+
+- The **bias rule** can leave a mid-depth cell oscillating between activation regions under
+  ambiguous evidence rather than settling — the **settling floor**, a third kind alongside static and
+  lag in ADR-0007's taxonomy. Bounded by the same `γ` that bounds reconciliation; tolerated, not
+  represented, like the other two.
+- The **transport rule** doesn't need a bound of its own — it makes ADR-0007's existing
+  `γ × floor < fold margin` check go stale, since it trains the magnitudes the `Σ_e m_e` proxy stands
+  in for. The check is re-derived locally, per cell, from that cell's own current restriction maps, on
+  the same schedule the global learning-rate and sparsity anneals already use, rather than once at
+  construction.
+
+Neither [#20](https://github.com/NGL321/patchworks/issues/20)'s change gate nor the probabilistic
+sheaf plays a role: confirmed orthogonal, and declined a third time respectively. See ADR-0007,
+*Simultaneous learning does not need its own bound*.
