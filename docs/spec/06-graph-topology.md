@@ -227,9 +227,11 @@ Two consequences, both wanted:
 The second gives the acceptance demo its sharpest falsifiable form yet. It predicts **two different
 depths for two different perturbations**: a perturbation to the arm alone should be corrected at
 roughly one hop, a perturbation that moves a puck at roughly four. "Recovered at the appropriate
-level of the hierarchy" becomes a comparison rather than a single number, which hands
-[#10](https://github.com/NGL321/patchworks/issues/10) a real criterion for choosing the demo
-perturbation.
+level of the hierarchy" becomes a comparison rather than a single number, which gave
+[#10](https://github.com/NGL321/patchworks/issues/10) its criterion for choosing the demo
+perturbation. It chose a **three-event staircase** — an arm impulse, a puck teleport, a retarget —
+and cashed the reflex-loop figure as the shallow rung's expected **onset latency**:
+[`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md).
 
 **Read those depths as an upper bound on locality, not as a prediction of where influence actually
 lands.** The one-hop / four-hop figures are *nominal* receptive-field arithmetic, and Luo et al. (2016)

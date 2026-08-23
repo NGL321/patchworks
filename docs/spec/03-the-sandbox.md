@@ -139,7 +139,9 @@ first — **the ladder must not be aligned with the graph's levels by constructi
 timescales must never be built to correspond to three levels of the core, or "recovered at the
 appropriate level" degenerates into a lookup. [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md)
 has the graph's timescales emerging from persistence; the world's job is to give that something to
-find, not to tell it what to find.
+find, not to tell it what to find. The acceptance demo respects the same constraint from the other
+side, by measuring onset rather than decay
+([`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md)).
 
 Known exposure: this buys a **timescale ladder**, which is not the same object as precedence depth.
 The claim that traversing the ladder induces ordered sub-goals is plausible and unproven.
@@ -202,14 +204,29 @@ Because there is no episode boundary to restart from, reproducibility comes from
 
 ### The human's hand
 
-Two entry points, which together are the acceptance demo's interface:
+Three entry points, which together are the acceptance demo's interface:
 
+- `disturb_arm(joint, impulse)` — an impulse to one joint mid-task. In the live viewer this is a
+  ctrl-drag on a link.
 - `perturb(puck, xy)` — teleport a puck mid-task. In the live viewer this is a ctrl-drag.
 - `retarget(goal_puck, goal_zone)` — change what is wanted without touching the world.
 
-The distinction matters for the acceptance demo: perturbing the world should be absorbed low in the
-hierarchy, while retargeting should be absorbed high. Having both means the demo can show the
+The distinction matters for the acceptance demo: disturbing the body should be absorbed lowest of
+all, perturbing the world low, and retargeting high. Having all three means the demo can show the
 *level* at which recovery happens, not merely that it happens.
+
+**The arm is disturbed by an impulse, never by a teleport.** Displacing `qpos` directly would have
+the world rewrite the arm's configuration, which is the one thing this env never does — `reset()`
+rearranges the world and leaves the agent where it is. An impulse is the world moving, which is
+exactly what a motor edge is defined as being cleared by
+([ADR-0003](../adr/0003-action-is-prediction-the-world-clears.md)), so proprioception reports it the
+way it reports everything else and no new observation path exists.
+
+Recovery from that impulse is read as **onset latency** — ticks to the first corrective torque — and
+never as a decay or settling time. A settling time here would be a joint's mechanical time constant,
+which is precisely what *Per-joint gearing* above is building a deliberate spread in; reading
+recovery off that ladder is what the non-alignment constraint forbids. See
+[`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md) for the protocol.
 
 ## Achievability
 

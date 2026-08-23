@@ -385,3 +385,17 @@ numbers its state holds. Distinct from **Commitment**, which is the architecture
 holding to a route; precedence depth is a property of the world, and nothing in the graph
 represents it.
 _Avoid_: task complexity, horizon, difficulty, planning depth, commitment
+
+**Acceptance demo**:
+The single live interaction the proof of concept is judged by: a human disturbs the agent mid-task
+and the agent recovers at the appropriate level of its hierarchy. One named protocol with fixed
+pass and fail conditions, settled before the run — not a category of demonstration and not a
+synonym for evaluation, which is the broader reporting contract over many trials.
+_Avoid_: the demo (bare), evaluation, benchmark, test run, showcase
+
+**Onset latency**:
+Ticks from a disturbance to the first corrective torque. The demo's temporal measure, chosen
+because it is a property of the graph — how far a correction had to travel before acting — where a
+settling or decay time would be a property of the body's mechanics. Reported per event; a
+difference in onset is what "recovered at a different level" means in time rather than in hops.
+_Avoid_: reaction time, settling time, response time, recovery time, latency (bare)
