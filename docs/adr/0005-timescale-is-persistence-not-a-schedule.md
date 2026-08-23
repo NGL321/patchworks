@@ -15,6 +15,11 @@ regardless of hop distance, and depth's genuine ratio is in *latency* rather tha
 Per-cell time constants appeared to be foreclosed by the shared frozen body of
 [ADR-0001](./0001-continual-learning-applies-to-the-adapting-surface.md).
 
+One divergence is recorded here because a reader who checks the source will find it. Active
+predictive coding's `T1`/`T2` — the source of the goal this decision serves — *is* a fixed clock
+divisor, and in APC it is the **mechanism**, not an instrument. This decision takes APC's goal,
+declines its mechanism, and rebuilds that mechanism as the instrument it measures against.
+
 ## Decision
 
 **A cell is slow because its content persists, not because it updates rarely.** Every cell runs
@@ -72,8 +77,12 @@ capability depends on timescale at all — and thereby becomes an already-valida
 
 ## Alternatives considered
 
-- **Emergence from depth.** Rejected on the phase-versus-frequency argument above. Its slow resonant
-  modes (~`2L` ticks, ~0.5 s here) are an artifact, unsteerable and an order of magnitude short.
+- **Emergence from depth.** Rejected on the phase-versus-frequency argument above. The secondary
+  dismissal that stood here — its slow modes are unsteerable `~2L` artifacts, an order of magnitude
+  short — was wrong, and is corrected in `05-timescales.md`: delay-coupled loops reach second-scale
+  rhythms, in relative phase, steerable by coupling gain. The route is closed here because that gain
+  is `γ`, which ADR-0007 fixed for stability and recorded as explicitly not a timescale knob, and
+  which the fold margin binds.
 - **An explicit per-cell clock divisor as the answer.** Retained as an instrument and fallback, not
   as the mechanism: `k` is arbitrary, it aliases, and it hard-codes hierarchy at construction time in
   a spec that has worked to make hierarchy emergent.
@@ -96,3 +105,11 @@ capability depends on timescale at all — and thereby becomes an already-valida
   means, and what `decode` outputs — a rewrite of the foundational cell contract — in service of a
   gate that needs only a magnitude threshold on a vector difference. The probabilistic sheaf stays in
   the map's fog on its own merits.
+
+## What the literature does and does not give
+
+No prior system obtains timescale separation from persistence alone: every architecture surveyed sets
+it with a hand-set schedule, a learned discrete gate, or a dedicated per-unit rate parameter. This
+decision takes none of them — the novelty claim, and the reason the divisor is built first. The
+phase-shift argument and the commitment-versus-latency distinction are this project's own: stated
+nowhere, contradicted nowhere. See `docs/research/029-timescale-citations.md`.
