@@ -131,6 +131,14 @@ measured from outside, never an input to any computation and never a criterion a
 and under the distributional reading there is no constant for anything to read even in principle.
 _Avoid_: clock rate, update rate, level, tier, frequency
 
+**Activation region**:
+One of the finitely many convex regions of chart values on which the shared cell body is exactly
+affine. The body's activation is piecewise-linear, which is what makes these regions exist at all; a
+**fold** is a boundary between two of them, and a cell crosses one when its chart moves far enough.
+Everything the timescale mechanism is built from is a property of the region a cell occupies, not of
+the cell — see *Regional spectrum*, *Region dwell*, *Fold margin*.
+_Avoid_: linear region, cell, piece (reserve that for the sub-problem), basin
+
 **Regional spectrum**:
 The spectrum of the local Jacobian of whichever activation region of the shared body a cell occupies
 on a given tick. A per-tick quantity, re-drawn whenever the cell's chart carries it across a fold —

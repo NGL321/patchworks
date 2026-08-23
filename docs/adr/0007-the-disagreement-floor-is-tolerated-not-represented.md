@@ -34,7 +34,16 @@ three kinds:
   edge's representable **scale ratio** between its two ends is bounded too — `ρ²` times the range rank
   concentration affords. Where two cells' stalks genuinely differ in scale by more than that, the
   remainder cannot be transported away and sits here. It is the price of excluding `F = 0`, and it is
-  paid in the currency this ADR already tolerates.
+  paid in the currency this ADR already tolerates. *Amended by
+  [#49](https://github.com/NGL321/patchworks/issues/49):* and a **fifth** — **self-intersection**, a
+  stalk too narrow to embed the piece it carries, so two genuinely distinct situations receive the same
+  coordinates and the difference between them cannot be transported at all. Distinct from rank
+  deficiency, which is a property of the *map*: this is a property of the *dimension*, present even
+  where every map is full rank. It is the one static source with a criterion known in advance rather
+  than only in diagnosis — an embedding is generic once the coordinate count exceeds **twice the
+  box-counting dimension** of the piece (Sauer, Yorke & Casdagli; Duan et al.), which is checkable at
+  construction, and `06-graph-topology.md` records `m = 4` as the dimension with the least headroom
+  under it. See ADR-0004, where the *reading* of this source lives.
 - **Lag floor** — a function of *motion*. The two endpoints' contents live at different timescales,
   so the slow end is behind. Drains at rest.
 - **Settling floor** — a function of *parameter drift*, added by
