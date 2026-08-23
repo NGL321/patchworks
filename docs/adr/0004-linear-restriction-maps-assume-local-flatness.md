@@ -46,6 +46,15 @@ piece; `n` is the room needed to talk about it with neighbours.**
   such an offset. Affine restriction maps would launder the signature away into a learned offset while
   the geometry stayed just as bent. This is a better argument for linearity than efficiency, and it
   was not visible until the floor was named.
+- **Linearity is also what makes disagreement and prediction error the same quantity.** Recorded here
+  because this is where a future reader comes looking for permission to bend the maps. The
+  identification of predictive-coding error with the sheaf coboundary — the result the whole
+  single-error-signal design rests on — is **derived for linear networks**; the energy identity
+  `E_PC(s) = ½‖δ⁰s‖²` depends on it. Under nonlinear restriction maps that identification stops being
+  **true**, not merely harder to compute, and Patchworks would be back to two objects needing to be
+  related rather than one quantity read two ways. So linearity is load-bearing three times over: the
+  formalism, the geometry recorded above, and this. See
+  `docs/research/016-cell-contract-citations.md`.
 - **The escape hatch is not "make restriction maps nonlinear."** That would destroy `L = δᵀδ`,
   and with it the Laplacian, the Dirichlet-energy reading of disagreement, and one-step
   reconciliation. The literature leaves nonlinear coboundaries essentially unexplored for exactly

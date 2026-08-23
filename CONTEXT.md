@@ -284,6 +284,15 @@ descent step), from persistence (commitment), from attention (inbound, different
 from recurrent-state gating (inside the body, not on the edge).
 _Avoid_: gate (unqualified), confidence gate, attention
 
+**Recurrent-state gating**:
+The tier, not a mechanism: anything controlling what the chart carries across `step`. Two members,
+neither built. The **protected channel** is an ungated subspace the chart passes with unit gain — a
+construction choice about the shared body, costing no parameters and breaking no freeze, and the one
+to reach for first. Behind it sits a **learned gate** on `encode`'s fusion, reached for only if
+deliberate clearing proves necessary, and priced at a third parameter group and therefore a third
+learning rule. Distinct from the change gate by tier: inside the body's recurrence, not on the edge.
+_Avoid_: gate (unqualified), change gate, LSTM hatch, edge-stalk pass-through
+
 **Cell contract**:
 What is uniform across every cell: its interface and the algorithm it runs. Capacity and
 schedule may vary per cell; the contract may not. A relay cell is the degenerate instance —

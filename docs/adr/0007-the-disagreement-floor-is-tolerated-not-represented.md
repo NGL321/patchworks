@@ -206,9 +206,10 @@ variable with a hand-set time constant, which is the same object, and the same o
 per-edge baseline this decision rejects above. The gate uses a locally stateless criterion instead,
 relative to the restricted belief's own current magnitude. Second, the register of easily-conflated
 objects this section opens is now **four**, not three — gain, persistence, the change gate, and
-**recurrent-state gating** ([#38](https://github.com/NGL321/patchworks/issues/38)), which is
-distinguished from the change gate by *tier*: it sits inside the cell body's recurrence, not on the
-edge.
+**recurrent-state gating**, which is distinguished from the change gate by *tier*: it sits inside the
+cell body's recurrence, not on the edge. Its shape is settled and its two rungs — an ungated protected
+channel through `step`, and behind it a learned gate on `encode`'s fusion — are specified in
+[`01-cell-and-sheaf.md`](../spec/01-cell-and-sheaf.md) (*Known exposure*). Neither is built.
 
 See [patchworks#28](https://github.com/NGL321/patchworks/issues/28) and
 [patchworks#33](https://github.com/NGL321/patchworks/issues/33).

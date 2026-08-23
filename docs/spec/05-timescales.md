@@ -21,7 +21,7 @@ bought here:
 |---|---|
 | **Commitment** — holding an abstract intention steady while the rim churns | this section |
 | **Representation** — encoding a variable that only exists over seconds | this section |
-| **Memory** — retaining information across hundreds of ticks | recurrent failure modes; escape hatch is the LSTM-shaped edge-stalk pass-through |
+| **Memory** — retaining information across hundreds of ticks | recurrent failure modes; escape hatch is recurrent-state gating, a protected channel through `step` before a learned gate |
 | **Credit** — associating an abstract belief with a much later outcome | [`#5`](https://github.com/NGL321/patchworks/issues/5) |
 
 Nothing in this section improves memory or credit assignment. Believing otherwise later would be a
@@ -217,9 +217,10 @@ the gate exists for. It is a weaker, different object, not a safer version of th
 ([`04-action-and-the-boundary.md`](./04-action-and-the-boundary.md)), but it is a different object:
 it selects which inbound evidence a cell weights, driven by something other than the sender's own
 rate of change, and its likely mechanism is the core's broadcast subspace or relay cells rather than
-a per-edge threshold. *Recurrent-state gating* — the LSTM-shaped escape hatch of
-[`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md) — is distinguished by **tier**: it sits inside the
-cell body's recurrence, not on the edge ([#38](https://github.com/NGL321/patchworks/issues/38)).
+a per-edge threshold. *Recurrent-state gating* — the two-rung escape hatch of
+[`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md) (*Known exposure*) — is distinguished by **tier**: it
+sits inside the cell body's recurrence, not on the edge. An earlier draft placed it on the edge stalk,
+which is not on that loop at all.
 
 ## Demonstrating it
 
