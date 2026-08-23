@@ -86,10 +86,13 @@ a few visual stages feeding association cortex.
 
 ### Why 150 and not 500
 
-The sandbox's *state* is roughly twenty-dimensional — three joints × 2, three pucks × 4. Its
-difficulty is concentrated in inverting the render and in contact dynamics. Enumerating
-micro-problems by intuition reaches about a hundred, dominated entirely by the vision tiling, and no
-amount of enumeration reaches a large interior.
+The sandbox's *state* is roughly twenty-dimensional — three joints × 2, three pucks × 4 — and
+enumerating micro-problems by intuition reaches about a hundred, dominated entirely by the vision
+tiling. **That framing is retired** by [#30](https://github.com/NGL321/patchworks/issues/30): the
+state is the answer key, and the agent is never given it. What the graph faces is 12,288 render
+numbers plus six proprioceptive and touch channels in, three torques out, with the twenty dimensions
+as something it must invent. Difficulty is concentrated in inverting the render and in contact
+dynamics.
 
 The framing answer is that pieces are not enumerable by intuition: `01-cell-and-sheaf.md` has a
 cell's piece as a **linear decomposition of a nonlinear global problem**, not a named subproblem, so
@@ -97,10 +100,24 @@ asking which five hundred things there are is like asking a decomposition to nam
 advance. That answer is true and is also exactly the kind of argument that lets a number pass
 unexamined, so it is not relied on alone.
 
-The substantive answer is a **falsification sweep, written into the build**: halve the core and
-re-run. If the acceptance demo is unaffected, the sandbox is not exercising the division thesis. That
-is a finding worth having either way, and it costs one run. Whether the sandbox is the right size of
-world at all is [#30](https://github.com/NGL321/patchworks/issues/30).
+The substantive answer is a **falsification sweep, written into the build**, in **two
+conditions**. #30 found the single-condition version confounded: it varied the core, which is not
+where the forced division lives.
+
+- **Halve the core.** Rebuild with L3–L7 at half their cell counts and re-run. If the acceptance demo
+  is unaffected, the core is oversized — a finding about *this topology*.
+- **Coarsen the tiling.** Rebuild the sensory base at 8×8 px patches, so a patch cell does see a
+  whole puck, and re-run. If the acceptance demo is unaffected, the division the 4×4 tiling was
+  chosen to force was decorative — a finding about *the division thesis*.
+
+Only the second tests the thesis this section is defending, because the 4×4 tiling is the thing
+deliberately built to make division unavoidable and "halve the core" leaves L0–L2 untouched. Both are
+findings worth having either way, and each costs one run.
+
+Whether the sandbox is the right *size* of world was #30's question, and it is answered there: by the
+measure that matters — **precedence depth**, the longest chain of sub-goals that must be reached in
+order — the sandbox is thin, deliberately so, and enriching it belongs to a second proof of concept
+rather than to this one.
 
 ## Connectivity
 

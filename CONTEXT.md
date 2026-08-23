@@ -370,3 +370,18 @@ prediction error can. Rises with abstraction, since private dimension does. Dist
 persistence (the same mechanism serving timescale) by what it is being used for, not by what
 it is.
 _Avoid_: hysteresis, latching, locking in, decision commitment
+
+**Arm**:
+The manipulator in the sandbox: one 3-link planar limb, and the agent's only body. Always the
+robot, never an experimental condition — a falsification sweep has **conditions**, not arms. The
+word stays singular for the PoC; a second arm is a PoC-2 object.
+_Avoid_: arm (as a branch of an experiment), limb, effector, manipulator (as a separate term)
+
+**Precedence depth**:
+Of a task: the length of the longest chain of sub-goals that must be reached *in order*, where a
+later one is unavailable until an earlier one is done. The measure of how much compositional
+structure a world actually contains, as distinct from how wide its observation is or how many
+numbers its state holds. Distinct from **Commitment**, which is the architecture's mechanism for
+holding to a route; precedence depth is a property of the world, and nothing in the graph
+represents it.
+_Avoid_: task complexity, horizon, difficulty, planning depth, commitment

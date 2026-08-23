@@ -120,10 +120,51 @@ pushes. The heaviest puck needs **more than 2 N at the tip** to break static fri
 that the arm and the puck sit in a static equilibrium, touching but not moving. Torque limits are
 sufficient for all three pucks.
 
+### Per-joint gearing: a timescale ladder in the body
+
+Joint damping is `0.8 / 0.5 / 0.3` and torque limits `3 / 2 / 1 N·m`, so the arm is heterogeneous in
+*strength*; all three motors currently run `gear="1"`, so it is not deliberately heterogeneous in
+*timescale*. It is very likely heterogeneous incidentally — the shoulder swings all three links and
+the wrist swings one — and nobody has measured the spread.
+
+The build therefore owes a measurement before it owes a change: impulse each joint, fit the decay,
+report the ratio of effective time constants. **If the incidental spread is already wide, the ladder
+is free and gearing is redundant.** If it is flat, gear the shoulder slow and strong and the wrist
+fast and weak, so that a task must traverse the ladder — a coarse reposition, then a fine adjustment,
+in that order.
+
+This is realism the sandbox currently lacks, not scaffolding: every real limb has shoulder inertia
+dwarfing wrist inertia. One constraint on it, and it is the one a sceptical reader will reach for
+first — **the ladder must not be aligned with the graph's levels by construction.** Three joint
+timescales must never be built to correspond to three levels of the core, or "recovered at the
+appropriate level" degenerates into a lookup. [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md)
+has the graph's timescales emerging from persistence; the world's job is to give that something to
+find, not to tell it what to find.
+
+Known exposure: this buys a **timescale ladder**, which is not the same object as precedence depth.
+The claim that traversing the ladder induces ordered sub-goals is plausible and unproven.
+
 ## The sampler
 
 A task is a **(layout, target puck, target zone)** triple. Layout is 3 puck poses in the spawn
 annulus; the goal is one of 3×3 puck-zone pairs.
+
+### Route-blocking layouts
+
+Left to itself the sampler makes one puck matter and leaves the other two as scenery that may or may
+not be in the way. That gives the task set a **precedence depth of 1**: every push is locally
+correctable, nothing must happen before anything else, and the pedestal — the one feature that could
+impose an order — was measured as a graze (37–41% of tasks have a straight puck→zone line anyway).
+
+So a fixed fraction of sampled layouts **place a non-target puck across the target's route**, where
+"across" is `prototypes/route-geometry`'s existing homotopy check applied to a puck instead of the
+pedestal. Clearing the blocker first is then forced, and the order is not recoverable after the fact:
+push the target into the blocker and the two are worse placed than they started. That is precedence
+depth 2, bought with a layout constraint — no new bodies, no physics change, no change to the action
+space, and no exposure to 3D.
+
+Deliberately modest. Depth 2 is not depth 8, and the sandbox does not pretend otherwise: see *What
+this sandbox does not exercise*, below.
 
 The **held-out slice** is defined along two axes at once, so generalisation is tested
 combinatorially and spatially:
@@ -177,5 +218,26 @@ privileged `info`) solves **15 of 48** sampled tasks within 60 s of sim time eac
 splits and all three pucks. That is a **lower bound**: it establishes that the geometry, torque
 limits, and friction admit the tasks the sampler generates. It is not a baseline, and no agent
 should be compared against it.
+
+**The same number read the other way, which is the less flattering and equally valid reading:** a
+controller with no model, no learning, no hierarchy and no planning takes 31% of the task set. So
+15/48 also bounds how much of this task set requires anything the architecture provides. A build
+session should meet that fact at the start rather than rediscover it, and the route-blocking layouts
+above exist partly to move it.
+
+## What this sandbox does not exercise
+
+Stated plainly, because the alternative is discovering it in the acceptance demo. This world is
+**thin in precedence depth** — 2 with route-blocking layouts, against a graph eight levels deep. The
+architecture is built for long-horizon compositional planning at multiple scales, and this sandbox
+does not contain a task that demands it. The risk that follows is real and accepted: the demo may
+succeed with a few cells doing the work.
+
+That is a deliberate scoping decision, not an oversight. **This proof of concept shows that the
+architecture functions; a second one shows that it functions well**, in a world enriched along axes
+this one declines — a second arm, articulated or more numerous objects, more links, higher render
+resolution, task breadth, and three dimensions. Those belong to that effort. What guards the claim
+here is not the world's richness but the two falsification conditions in `06-graph-topology.md` and
+the demo's obligation to exercise both of the human's hands at two latencies.
 
 The env runs at roughly **400 ticks/s** with rendering on a single laptop CPU core.
