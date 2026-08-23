@@ -59,8 +59,18 @@ Two radii are load-bearing and were both found by watching the thing fail:
 - **The pedestal at the centre is a real obstacle**, radius 0.08. The arm is singular at its own
   shoulder and has no leverage there; without the pedestal, a puck nudged toward the centre reaches
   a place where the push-line standoff point lies inside the base and no push can recover it. The
-  pedestal walls that region off. It also makes the workspace **non-convex**, which is a feature:
-  routing around it is a real subproblem.
+  pedestal walls that region off. It also makes the workspace **non-convex**.
+
+  The non-convexity matters, but **not** in the way first claimed. Measured over the sampler
+  (`prototypes/route-geometry`), the pedestal is a graze: 37–41% of tasks have a straight puck→zone
+  line that clips it, but going around costs a **median 4%** extra distance (max 17%), and the
+  failure the pedestal was added to fix — the standoff point inside the base — now fires on **1–2%**
+  of tasks. Routing the *puck* around it is real but shallow.
+
+  What is not shallow is what the pedestal does to the **arm**: links 1 and 2 collide with it, so the
+  paddle's reachable set is an **annulus** (inner 0.11, outer 0.49) rather than a disk. That is where
+  the workspace's topology actually bites, and it bites several times per task — see
+  [`04-action-and-the-boundary.md`](./04-action-and-the-boundary.md), *Route selection*.
 
 Pucks spawn in the annulus **0.15–0.36 m**, clear of each other, of the zones, and of the arm's
 current configuration.

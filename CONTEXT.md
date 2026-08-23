@@ -289,3 +289,24 @@ What is uniform across every cell: its interface and the algorithm it runs. Capa
 schedule may vary per cell; the contract may not. A relay cell is the degenerate instance —
 a cell whose inference is the identity.
 _Avoid_: cell type, node class
+
+**Route**:
+A path the world takes when the agent acts, visible only in hindsight. **Not an object in the
+architecture**: no cell holds one, nothing compares two, and there is no slot a route could
+occupy. What resembles a choice between routes is several cells disagreeing about the next step.
+_Avoid_: plan, policy, trajectory (as something stored), rollout
+
+**Route selection**:
+The resolution of that disagreement by the world moving — the only thing entitled to clear a
+motor edge. Closed-loop and one tick wide, never a comparison and never in advance. A blended
+prediction is not a decision but an unstable state the next tick's evidence destroys.
+_Avoid_: arbitration, decision, action selection, planning
+
+**Commitment**:
+The persistence of a route already being taken, and the reason selection is not re-litigated
+every tick. Identical to `H⁰` insulation: content in a cell's private features is exactly
+invariant under reconciliation, so a contrary neighbour belief cannot dislodge it and only
+prediction error can. Rises with abstraction, since private dimension does. Distinct from
+persistence (the same mechanism serving timescale) by what it is being used for, not by what
+it is.
+_Avoid_: hysteresis, latching, locking in, decision commitment

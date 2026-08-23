@@ -243,6 +243,128 @@ or of relay cells ([`06-graph-topology.md`](./06-graph-topology.md)) rather than
 threshold. Neither of those is established, so attention is unspecified here and stays in the map's
 fog.
 
+## Route selection
+
+Two routes reach the same goal. Reconciliation is one local descent step against a delayed
+neighbour belief — an averaging operation — and the mean of *go left* and *go right* is a route
+through the obstacle. This section says what the architecture does about that, and the short answer
+is that it never has two routes to average.
+
+### There is no route
+
+**Route multiplicity is never drive multiplicity.** A drive asserts *satisfied* and nothing else, so
+every route that would relieve it is equally satisfying to it; the drive cannot carry two. Nor does
+the graph hold a route anywhere else — nothing in this architecture stores a plan, compares plans,
+or has a slot a plan could sit in. What looks from outside like a choice between routes is, inside,
+several predicting cells holding incompatible predictions about **the next step**, which is ordinary
+edge disagreement between ordinary cells.
+
+**The world selects.** A blended prediction is not a decision; it is an unstable state. It still
+leaves by the motor edge, the arm still moves *somewhere*, and one tick later the sensory edges come
+back disagreeing with the blend. By [ADR-0003](../adr/0003-action-is-prediction-the-world-clears.md)
+the world is the only thing entitled to clear a motor edge, so the world is the only thing that
+resolves a tie. Selection is closed-loop and one tick wide.
+
+So the architecture does not lack plan comparison. **It declines to have a plan** — and having
+declined, has nothing left to compare. Behaviour can still look planned without a plan being stored
+anywhere; that is the bet, and it is made deliberately rather than conceded.
+
+### What makes a tie-break stick
+
+The world breaking ties every tick would be dithering, not commitment. Two things already in the
+spec stop that, and neither is built for this.
+
+**The folds.** `step` is piecewise linear and a cell occupies **one activation region at a time**
+([`05-timescales.md`](./05-timescales.md), *the regional Jacobian*). Region membership is genuinely
+discrete: there is no interpolating between two regions, only being in one. A tie broken is a region
+entered. This is not a clean latch — a cell's operating point moves it as much as its biases do
+([#41](https://github.com/NGL321/patchworks/issues/41)) — so it is offered as the reason a tie-break
+is not re-litigated from scratch every tick, not as a mechanism that guarantees one.
+
+**`H⁰` insulation is the hysteresis.** Reconciliation descends along `im δᵀ` while private features
+are `ker δ = (im δᵀ)^⊥`, so the private component of a node stalk is **exactly invariant** under
+reconciliation ([`05-timescales.md`](./05-timescales.md)). A commitment held in a cell's private
+features is therefore unreachable by a neighbour's contrary belief: **the losing route cannot
+re-assert through message passing at all.** Only the cell's own bias rule, driven by prediction
+error, can move it.
+
+Two consequences, both wanted:
+
+- **Commitment deepens with abstraction.** Private dimension is a gradient rising from 0 at the rim
+  to ~16 at the apex ([`06-graph-topology.md`](./06-graph-topology.md)), so deep cells commit hard
+  and rim cells stay fluid. Strategy persists; torque does not.
+- **A bad commitment is protected by the same mechanism.** Nothing distinguishes a well-chosen route
+  from a badly-chosen one, and only accumulated prediction error digs either out. This is the price
+  of getting hysteresis for free, and it is paid, not avoided.
+
+No new mechanism is introduced here. In particular, **gating on transport is not reached for** —
+[`05-timescales.md`](./05-timescales.md) specifies the change gate and does not build it, and route
+commitment is not a reason to.
+
+### The test: the workspace is an annulus
+
+The arm is anchored at the centre of its own workspace and **cannot fold through the pedestal**
+(`arena.xml`; links 1 and 2 collide with it). The paddle's reachable set is therefore an **annulus**,
+inner radius 0.11 (pedestal 0.08 + paddle 0.03), outer radius 0.49. An annulus is not simply
+connected: paths between two bearings fall into distinct classes, and there is no continuous
+deformation from one to another.
+
+This makes route selection **frequent and unavoidable** rather than occasional. Every repositioning
+of the paddle across the arena — which happens several times per task, whenever the arm must get
+behind a puck on the far side — is a choice of swing direction. It follows from the arm being
+anchored at the centre, not from the pedestal being an obstacle, and it would survive the pedestal's
+removal.
+
+**Falsification signature:** the arm **stalls mid-swing** — near-zero commanded torque with standing
+motor-side disagreement — instead of committing to a direction. The blend of swing-left and
+swing-right is *stay put*, so the failure is unmistakable and needs no instrumentation beyond the
+motor-side disagreement readout the demo already carries.
+
+A second, rarer case is the puck's own route around the pedestal. Measured over the sampler
+([`03-the-sandbox.md`](./03-the-sandbox.md), *The world*), it is genuine but shallow — a median 4%
+detour — and worth watching rather than testing.
+
+### Horizon
+
+Two questions travel together under "long-horizon planning" and separate cleanly here.
+
+**Horizon as duration** is a measurable quantity, not a hope. Plan depth is graph depth and
+deliberation time is ticks; how long a deep cell holds a commitment is the decay rate of its private
+component, and [#27](https://github.com/NGL321/patchworks/issues/27) measured a 7.7× spread in
+effective time constant across 150 cells. Too short a horizon is a body-construction defect with a
+knob, not an architectural gap.
+
+**Horizon as detour** — can the agent execute something that gets worse before it gets better? —
+dissolves rather than resolves. The drive asserts *satisfied* and supplies no direction; direction
+comes from the graph's own learned model of what satisfaction looks like. **"Worse" is not a
+quantity this agent computes.** If the model has learned that wrapping is what leads to satisfaction,
+the wrapping trajectory *is* the low-disagreement prediction and there is no detour needing
+justification. The detour problem is an artifact of imagining a distance-to-goal signal the
+architecture does not have.
+
+This is not free. It converts a planning problem into an **exploration** problem: a route the agent
+has never experienced is not merely unplanned, it is invisible. Handed to
+[#17](https://github.com/NGL321/patchworks/issues/17).
+
+The bet underneath, stated as a bet: that the taper's degrees of separation between abstract and
+concrete let general structure — *wrapping*, *routing around* — be learned at depth and reused,
+rather than each route being memorised whole. Nothing here proves that; it is the reason the
+architecture is shaped this way.
+
+### The escape hatch
+
+If the stall signature persists after the model has demonstrably learned the dynamics, what reopens
+is **not** explicit lookahead as new mechanism inside the graph. It is the **hippocampal faculty**
+already held in the map's fog and already located at the dome's apex — which turns out to have been
+the planner all along.
+
+It costs the one-algorithm claim **nothing**: it attaches as a boundary cell at the abstract rim,
+exactly as the drive does, and the graph cannot tell the difference between a prediction that came
+from a faculty and one that came from a neighbour. Its rollout is expected to be **retrieval, not
+simulation** — asking which abstract frames historically *followed* this one, rather than running
+candidates forward — which is what keeps ADR-0003 intact and what makes "must have experienced it"
+a property of the mechanism rather than an apology for it. Unspecified here; see the map's fog.
+
 ## Known exposure
 
 - **The APC bet.** *Action is prediction the world clears* is strong for reflexive control and
@@ -256,9 +378,13 @@ fog.
   rather than by acting. Bounded rather than eliminated: the sensory edges pull the other way, so the
   cell settles at a compromise, and that compromise is the prediction the motor rim must clear. Leaves
   an observable signature — sensory-side disagreement growing while the motor side stays quiet.
-- **No plan comparison.** Nothing in this architecture evaluates counterfactuals. The agent settles
-  into a route; it does not compare two. The candidate answer — several drives propagating from
-  different abstract regions, colliding, and reconciling — is genuinely promising and genuinely
-  unproven, and it is where explicit lookahead would be reopened if it fails. Its own ticket:
-  [route selection](https://github.com/NGL321/patchworks/issues/25). Not expected to bite in the
-  first testbed.
+- **Plan comparison is declined, not absent.** Nothing here evaluates counterfactuals because
+  nothing here holds a plan to evaluate (*Route selection*, above). What remains exposed is narrower
+  and sharper than "no lookahead": whether **`H⁰` insulation plus the world's tie-break** is enough
+  commitment in practice, when neither was designed for it. The annulus makes this bite in the
+  **first testbed**, several times per task — a correction to the earlier expectation that it would
+  not — and gives it an unmistakable signature. Escape hatch: the hippocampal faculty in the map's
+  fog, at no cost to the one-algorithm claim.
+- **A protected commitment is protected whether or not it is right.** `H⁰` insulation cannot tell a
+  good route from a bad one, and only prediction error dislodges either. Expected failure: an agent
+  that persists at a bad approach longer than a fresh look would warrant.
