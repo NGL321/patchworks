@@ -33,6 +33,14 @@ cell (three commanded, three efference).
 
 `n` is henceforth **the node stalk dimension of every predicting cell**.
 
+**Amended by [#36](https://github.com/NGL321/patchworks/issues/36): world-shaped is the *reason*, not
+the rule.** A **drive boundary cell** is written from outside the sheaf but not by the world, so
+nothing out there gives it a dimension. The rule is that a boundary cell is **exempt from `n`**; what
+sizes its stalk is whatever writes or reads it. For the world that is the world's shape. For the drive
+it is what the drive asserts, which is one number
+(`04-action-and-the-boundary.md`, *Valence, not specification*), and its edges are `m_e = 1` to match —
+a wider edge stalk cannot raise the rank of a map out of a one-dimensional stalk.
+
 **Every edge stalk in the graph remains ordinary.** The world touches node stalks only; it is not a
 cell, holds no restriction map, and there is no edge between the world and the graph. A patch cell
 reaches its neighbours by an ordinary linear masked restriction map, 48 → `m`.

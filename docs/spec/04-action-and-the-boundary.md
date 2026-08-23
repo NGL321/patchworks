@@ -92,7 +92,12 @@ clear is the body's refusal, and that is exactly the quantity a cell should lear
 
 ### The membership rule
 
-Everything between the world and a cell falls into exactly three categories:
+**This rule governs the world boundary.** It sorts what may sit between the *world* and a cell, and it
+says nothing about what attaches at any other rim — see *The internal rim*, below, which is a separate
+rule with a separate ban. The distinction was invisible until the drive boundary cell existed: written
+from outside, inbound, and not the world, it is on no path this rule describes.
+
+On the world path, everything between the world and a cell falls into exactly three categories:
 
 1. **The body** — the embodiment: whatever physically interacts with the world. Actuator limits,
    sensor formatting, the sandbox's own physics. Not ours to design; the graph models it across a
@@ -117,6 +122,38 @@ actuator boundary cell. Such a module earns its place only when motor variety ex
 torque control can carry, which is past this destination; it is held in the map's fog as the escape
 hatch if fine motor control proves beyond the graph.
 
+### The internal rim
+
+A fourth category, and the reason the rule above needed scoping:
+
+4. **An internal faculty** — something outside the sheaf that writes or reads a boundary cell at a rim
+   other than the sensorimotor one. It is not the world, not on the world's path, and not commanded by
+   the graph the way a subordinate executor is. The **drive boundary cell** (*Drives*, below) is the
+   first and, in this proof of concept, the only one; a limbic-analogue appetite and a
+   hippocampal-analogue memory are the fog items that would join it.
+
+Mechanically it needs nothing: it attaches as an ordinary boundary cell by ordinary edges, and the
+graph cannot tell a belief that came from a faculty from one that came from a neighbour. What it needs
+is a ban, and there are two:
+
+- **An internal faculty may not hold its own model of the world.** This is the graph's job, and the
+  whole point of the graph is that its model is answerable to the world through the sensorimotor rim. A
+  faculty carrying its own would be imposing a model from outside that nothing corrects — and two
+  models with no sheaf between them have no defined way to disagree, so there would be no mechanism by
+  which the graph could even discover the imposition. The drive obeys this trivially: it holds a
+  constant, not a model.
+- **An internal faculty reaches the world only through the graph.** Never directly. This is close to
+  implied by the word *internal*, but the two bans are distinct — a faculty could read only what the
+  graph gives it and still build a forward model over that — so both are stated. A hippocampal-analogue
+  reads abstract frames from core cells, never the render.
+
+Together these are the internal-rim counterpart of the narrow inbound-compression ban above, and they
+have the same shape: the graph's job stays in the graph.
+
+**Attention is not in this category.** Its likely mechanism is the semi-global reach of the core's
+broadcast subspace or of relay cells ([`06-graph-topology.md`](./06-graph-topology.md)), both of which
+are **in-graph** and therefore category 2.
+
 ## Abstraction
 
 **Abstraction is hop distance from the sensorimotor rim.** There is no level attribute on a cell, no
@@ -126,15 +163,16 @@ delay means it also sits in a longer loop and sees staler information.
 The measure is from the **sensorimotor** rim specifically, not from any boundary whatsoever.
 Boundary cells are alike *mechanically* — all are seams where something outside writes or reads a
 stalk — but they are not alike in kind. Sensory and motor boundaries are where the world touches
-the graph. Internal faculties (a hippocampal-analogue memory module) attach by the same mechanism at a
-**different rim**, and are not thereby concrete: they belong at greater abstraction, and attach
-adjacent to the abstract pole rather than next to the arm. The first such faculty is already built:
-a **drive boundary cell** at the core (*Drives*, below) is that rim, arriving earlier than expected.
+the graph. Internal faculties (a hippocampal-analogue memory module) attach by the same mechanism at
+the **internal rim** (*The internal rim*, above), and are not thereby concrete: they belong at greater
+abstraction, and attach adjacent to the abstract pole rather than next to the arm. The first such
+faculty is already built: a **drive boundary cell** at the apex (*Drives*, below) is that rim,
+arriving earlier than expected.
 
 Two things this makes mechanical rather than vague:
 
 - Where a drive attaches (*Drives*, below) becomes a question about hop count. It attaches at the
-  core, which is as far from the sensorimotor rim as the graph goes.
+  **apex**, which is as far from the sensorimotor rim as the graph goes.
 - The acceptance demo's "recovered at the appropriate level of the hierarchy" becomes falsifiable:
   you can measure how many hops from the sensorimotor rim the correction originated.
 
@@ -176,8 +214,10 @@ move.
 A **drive boundary cell** is written from outside the sheaf — by the human today, by an internal
 faculty later — and holds a standing assertion: *satisfied*. Like every boundary cell it runs no body
 and holds no chart ([ADR-0006](../adr/0006-boundary-cell-stalks-are-world-shaped.md)). Its **drive
-edges** run to a subset of **core** cells and are ordinary edges with ordinary masked linear
-restriction maps.
+edges** run to the **apex** — one edge to each of the eight L7 cells — and are ordinary edges with
+ordinary masked linear restriction maps. The apex is the most abstract place in the graph and the only
+part of the core with private dimension to spare; `06-graph-topology.md` (*Where the drive attaches*)
+records the arithmetic.
 
 Nothing is overridden. The assertion reaches those cells as ordinary disagreement, pulled by the
 ordinary reconciliation gain, and every cell it touches keeps its body and keeps inferring every tick.
@@ -200,7 +240,8 @@ is literally a motor edge attached deep** — the same object as a torque comman
 
 ### Valence, not specification
 
-The drive stalk is **near-scalar**. It asserts *satisfied* and nothing else. It never names a puck or a
+The drive stalk is **scalar** — one dimension, and its edges are `m_e = 1`. It asserts *satisfied* and
+nothing else. It never names a puck or a
 zone, because the render already does: the target zone lights up, and `retarget()` only changes what is
 seen ([`03-the-sandbox.md`](./03-the-sandbox.md)). The drive supplies the discomfort; the world supplies
 the content. Direction is absent from the signal and comes instead from the graph's own learned model
@@ -209,12 +250,32 @@ of what satisfaction looks like.
 Low bandwidth is the point. A wide drive channel would smuggle the task specification back in through
 the side door, after the sandbox worked to put it in the render.
 
+**The stalk's width and the edge's are one decision.** A restriction map out of a one-dimensional stalk
+has rank at most one, so a wider edge stalk carries nothing more — it only lets the drive assert *zero*
+in the surplus directions, which is an arbitrary constraint on a core cell expressed in content the
+drive does not have. Matching them is what makes "valence, not specification" exact rather than
+approximate.
+
+**Strength is fan-out, not width**, correcting
+[ADR-0009](../adr/0009-a-drive-is-a-motor-edge-attached-deep.md), which named mask width as the knob.
+Widening a drive edge would raise its share of a cell's pull and, by the same `γ / Σ_e m_e`
+normalisation, **turn down every other edge that cell has** — the drive making itself heard by making
+the world quieter, which is the wrong trade at any width. More attachment points spread that cost
+across cells rather than concentrating it, and never make one cell pay more than the minimum. The
+learned drive vector ADR-0009 holds in reserve is the move after that one, not before it.
+
 **One cell is one drive.** For this PoC there is exactly one — the task drive — with several drive
 edges into the core. Curiosity, fatigue, or any later drive arrives as an additional boundary cell,
 which is an ordinary structural-mask change and needs no new mechanism.
 
 ### What follows without being built
 
+- **The assertion stands because external writes are the tick's last word.** Reconciliation moves the
+  drive cell's node stalk like any other, and the write that follows the message-passing phase restores
+  it before it next speaks ([`02-tick-semantics.md`](./02-tick-semantics.md), *External writes*). So
+  disagreement on a drive edge is never reduced from the drive's side; only the core cell can move.
+  That is the motor-edge signature — *cleared by the world moving* — falling out of tick order rather
+  than being stipulated, and it is why the drive does not drift toward what the graph already believes.
 - **Release needs no detector.** The cell asserts *satisfied* forever. When the task is met, what is
   sensed agrees and disagreement falls to the floor; pressure vanishes with nothing released. `perturb()`
   knocks the puck out and the disagreement returns by itself. Nothing in the graph ever reads whether
@@ -291,7 +352,7 @@ error, can move it.
 Two consequences, both wanted:
 
 - **Commitment deepens with abstraction.** Private dimension is a gradient rising from 0 at the rim
-  to ~16 at the apex ([`06-graph-topology.md`](./06-graph-topology.md)), so deep cells commit hard
+  to ~15 at the apex ([`06-graph-topology.md`](./06-graph-topology.md)), so deep cells commit hard
   and rim cells stay fluid. Strategy persists; torque does not.
 - **A bad commitment is protected by the same mechanism.** Nothing distinguishes a well-chosen route
   from a badly-chosen one, and only accumulated prediction error digs either out. This is the price

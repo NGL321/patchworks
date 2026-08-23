@@ -157,9 +157,11 @@ _Avoid_: hub, router, passthrough node
 **Boundary cell**:
 A cell whose node stalk something outside the sheaf writes or reads directly — the seam between
 the graph and everything that is not the graph. Like a relay cell it performs no inference; unlike
-one, it is not fed by reconciliation alone. Its node stalk is **world-shaped**: it has whatever
-dimension the world gives it, not `n`. Its edge stalks are ordinary. Three kinds: sensory, actuator,
-and drive — the first two at the sensorimotor rim, the third at the core.
+one, it is not fed by reconciliation alone. It is **exempt from `n`**: its node stalk has whatever
+dimension the thing writing or reading it gives it — the world's shape at the sensorimotor rim, and at
+the internal rim whatever the faculty asserts. Its edge stalks are ordinary, and the outside write
+lands *after* the message-passing phase, so it is always the last word. Three kinds: sensory,
+actuator, and drive — the first two at the sensorimotor rim, the third at the internal rim.
 _Avoid_: input node, output node, sensor node, IO cell
 
 **Predicting cell**:
@@ -218,15 +220,17 @@ _Avoid_: reward, goal (reserve for the human-set drive), clamp, objective, utili
 
 **Drive boundary cell**:
 The boundary cell a drive is written into: it holds the assertion and nothing else, runs no body, and
-is read by nothing. Attached at the **core**, not the sensorimotor rim. One cell is one drive. Its
-stalk is near-scalar — it carries **valence, not specification**, because the render already says what
-is wanted.
+is read by nothing. Attached at the **apex**, the deepest core level, not the sensorimotor rim. One
+cell is one drive. Its stalk is **scalar** — it carries **valence, not specification**, because the
+render already says what is wanted — and how hard it pulls is set by how many cells it attaches to,
+never by widening the channel.
 _Avoid_: goal cell, reward node, limbic cell, clamp site
 
 **Drive edge**:
-An edge from a drive boundary cell to a core cell. A **motor edge** by the only test that sorts edges
-— disagreement on it is cleared by the world moving — differing from the actuator's only in being far
-from the rim, which is what makes it abstract action rather than a torque.
+An edge from a drive boundary cell to an apex cell, of mask width 1 to match the drive's scalar stalk.
+A **motor edge** by the only test that sorts edges — disagreement on it is cleared by the world moving
+— differing from the actuator's only in being far from the rim, which is what makes it abstract action
+rather than a torque.
 _Avoid_: goal edge, reward channel, top-down edge
 
 **Dark room problem**:
@@ -246,6 +250,14 @@ The region of the graph where the world touches it — the sensory and motor bou
 Abstraction is hop distance from this rim; internal faculties attach at other rims without being
 concrete.
 _Avoid_: input layer, periphery, level zero
+
+**Internal rim**:
+Where something outside the sheaf that is *not the world* attaches — the drive boundary cell today, a
+limbic-analogue appetite or a hippocampal-analogue memory later. Physically the **apex**, so a faculty
+is abstract by attachment point. What attaches here is an **internal faculty**, and it is barred from
+two things: holding its own model of the world, and reaching the world by any route but the graph.
+Attention is *not* one of these — its likely mechanism is in-graph.
+_Avoid_: abstract rim, top-down interface, internal boundary
 
 **Cell body**:
 The machinery a cell runs: one set of weights, shared by every cell and frozen. Distinct from the
