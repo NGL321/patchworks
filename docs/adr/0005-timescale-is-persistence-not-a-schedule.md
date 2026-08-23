@@ -27,11 +27,21 @@ each already committed to for other reasons:
   things.
 - **Decay rate.** The shared frozen body is one piecewise-linear map with per-cell fold offsets
   ([ADR-0004](./0004-linear-restriction-maps-assume-local-flatness.md)'s companion finding), so each
-  cell occupies a different activation region with its own local Jacobian. A cell's effective
-  timescale is its region's spectral radius, selected by its biases.
+  cell occupies a different activation region with its own local Jacobian.
+
+  *Amended by [#41](https://github.com/NGL321/patchworks/issues/41), correcting the sentence that
+  stood here:* the **regional spectrum is a per-tick quantity**, re-drawn as the cell's chart carries
+  it across folds, and [#27](https://github.com/NGL321/patchworks/issues/27) measured the operating
+  point contributing as much spread in `τ` as the biases do (7.3× against 7.7×). What the biases
+  select is therefore the **distribution** those draws come from; a cell's effective timescale is
+  that distribution's central tendency — a **mean rate, not a fixed rate**. The mechanism is
+  unaffected: a mean rate is still a rate, and the across-cell spread is real. It holds under one
+  condition, now stated in `05-timescales.md`: a cell's **region dwell** must be long against the
+  `τ` its region implies, for which the **fold margin** is the construction-time proxy.
 
 **Nothing in the architecture reads a cell's timescale.** It is observable from outside only, never
-an input to any computation and never a selection criterion.
+an input to any computation and never a selection criterion. Under the amendment above this is
+**structural rather than disciplinary** — a per-tick draw is not a value anything could branch on.
 
 **An explicit clock divisor is built first, as an instrument** — the rig that establishes the
 capability depends on timescale at all — and thereby becomes an already-validated fallback.
@@ -41,9 +51,16 @@ capability depends on timescale at all — and thereby becomes an already-valida
 - Slow-state capacity becomes a **construction quantity**, `dim H⁰ ≥ Σ_v max(0, n − Σ_{e∋v} m_e)`,
   so graph topology gains two hard constraints: abstract cells need bounded total mask width, and
   wide integration may have to be a separate cell from holding.
-- The body must be **constructed** for spread in its regional spectra, not assumed to have it. Whether
-  that is possible is open ([#27](https://github.com/NGL321/patchworks/issues/27)); a cheap sampling
-  check settles it before anything is built.
+- The body must be **constructed** for spread in its regional spectra, not assumed to have it.
+  [#27](https://github.com/NGL321/patchworks/issues/27) answered *constructible but coupled* — the
+  spread is available and narrowness supplies it, but the same global knob positions the distribution
+  against the stability boundary ([#42](https://github.com/NGL321/patchworks/issues/42)).
+- **`02-tick-semantics.md`'s `γ × floor <` fold margin bound is now a precondition of this decision,**
+  not only a reconciliation-stability check: the margin is what makes a cell's region — and therefore
+  its timescale — a well-defined object. It binds hardest at the apex, where the slow cells live.
+- **The go/no-go run's passing criterion is specified rather than left to the rig** (`05-timescales.md`):
+  `τ` in quantiles, measured over a driven trajectory with the operating point varying, with dwell
+  reported alongside and decay cross-checked against something other than an eigenvalue.
 - **The biases become over-subscribed** — three geometrically distinct jobs on one per-cell vector,
   the third being to preserve private directions through a frozen `encode`. First concrete argument
   for pulling per-cell adapters off the flex ladder early.

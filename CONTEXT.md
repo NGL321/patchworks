@@ -108,15 +108,34 @@ slowly-varying state as well as of its own sub-problem.
 _Avoid_: hidden features, internal state (reserve that for the chart), latent
 
 **Effective timescale**:
-How slowly a cell's content changes — set by how much private structure it holds and by the decay
-rate of the shared body in the activation region its biases select. A property measured from
-outside, never an input to any computation and never a criterion anything selects on.
+How slowly a cell's content changes — set by how much private structure it holds and by the
+*distribution* of regional spectra its biases select, not by any one of them. A mean rate rather
+than a fixed one, and well defined only while the cell's region dwell is long against it. A property
+measured from outside, never an input to any computation and never a criterion anything selects on —
+and under the distributional reading there is no constant for anything to read even in principle.
 _Avoid_: clock rate, update rate, level, tier, frequency
+
+**Regional spectrum**:
+The spectrum of the local Jacobian of whichever activation region of the shared body a cell occupies
+on a given tick. A per-tick quantity, re-drawn whenever the cell's chart carries it across a fold —
+never a cell attribute. What the biases set is the distribution these are drawn from, which is the
+cell's effective timescale.
+_Avoid_: the cell's spectrum, its Jacobian, decay rate (unqualified)
+
+**Region dwell**:
+How long a cell stays in one activation region of the shared body before its chart carries it across
+a fold. The timescale mechanism holds only where dwell is long against the `τ` that region implies;
+where dwell is short, a cell still decays at some average rate, but by averaging over unrelated
+regions rather than by the mechanism the spec claims. Bounded at construction by the fold margin,
+measured at runtime on a driven trajectory.
+_Avoid_: region residence, switching rate, region stability
 
 **Fold margin**:
 How far a cell sits from the nearest boundary of the activation region it occupies in the shared
-body. It bounds how much its operating point may be shifted before it lands in a region with a
-different decay rate — and therefore a different effective timescale.
+body. Two jobs: it bounds how much the cell's operating point may be shifted before it lands in a
+region with a different decay rate, and it is the construction-time proxy for region dwell — a cell
+with a small margin has no well-defined effective timescale at all. Falls as the body gets wider, the
+same axis along which spread is bought by narrowness.
 _Avoid_: slack, headroom, distance to boundary
 
 **Inference phase**:
