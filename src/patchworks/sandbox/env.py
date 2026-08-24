@@ -20,9 +20,10 @@ Three deviations from Gymnasium are the contract, not placeholders:
    demo's instrumentation only. Feeding it to the agent defeats the sandbox.
 
 Because there is no episode boundary to restart from, reproducibility comes
-from `snapshot()` / `restore()` of `mjSTATE_INTEGRATION` plus the task and the
-sampler's RNG. A restore is an experimenter's tool and is invisible from
-inside; it is not a reset, which is in-band and which the agent lives through.
+from snapshot and restore of `mjSTATE_INTEGRATION` plus the task and the
+sampler's RNG. That lives in `patchworks.sandbox.state`, off this class on
+purpose: a restore is an experimenter's tool and is invisible from inside,
+where everything here is in-band and the agent lives through it.
 """
 
 from __future__ import annotations
@@ -34,6 +35,8 @@ import gymnasium as gym
 import mujoco
 import numpy as np
 from gymnasium import spaces
+
+from patchworks.sandbox.state import STATE_SPEC
 
 ARENA_XML = os.path.join(os.path.dirname(os.path.abspath(__file__)), "arena.xml")
 
@@ -322,7 +325,7 @@ class PlanarPushSandbox(gym.Env):
         if self.task is None:
             raise RuntimeError(
                 "The world has not been arranged yet: call reset() before step(), "
-                "retarget() or restore()."
+                "retarget(), a snapshot, or a restore."
             )
         return self.task
 
@@ -411,8 +414,12 @@ class PlanarPushSandbox(gym.Env):
         # layout that intersects that pose starts the world inside a
         # penetration and the solver launches a puck across the arena. Place,
         # then check, then re-place.
-        before = np.empty(mujoco.mj_stateSize(self.model, self._STATE_SPEC))
-        mujoco.mj_getState(self.model, self.data, before, self._STATE_SPEC)
+        # Not a restore: this is the same engine constant, taken and put back
+        # inside one call to undo a rejected placement. `state.restore()` would
+        # be wrong here in both directions -- there may be no task yet to light
+        # a zone from, and nothing has happened for an experimenter to rewind.
+        before = np.empty(mujoco.mj_stateSize(self.model, STATE_SPEC))
+        mujoco.mj_getState(self.model, self.data, before, STATE_SPEC)
         previous_task = self.task
 
         given = options.get("task")
@@ -427,7 +434,7 @@ class PlanarPushSandbox(gym.Env):
             # silently. Put the world back the way it was found first, so that
             # a caller who catches this and moves the arm is not left standing
             # in the rejected layout.
-            mujoco.mj_setState(self.model, self.data, before, self._STATE_SPEC)
+            mujoco.mj_setState(self.model, self.data, before, STATE_SPEC)
             self.task = previous_task
             mujoco.mj_forward(self.model, self.data)
             raise RuntimeError(
@@ -436,9 +443,7 @@ class PlanarPushSandbox(gym.Env):
                 "annulus; move it, or pass options={'reset_arm': True}."
             )
 
-        self._light_goal_zone()
-        self._apply_friction_field()
-        mujoco.mj_forward(self.model, self.data)
+        self._rederive_from_state()
         return self._obs(), self._info()
 
     def _place(self, task: Task) -> None:
@@ -533,40 +538,23 @@ class PlanarPushSandbox(gym.Env):
         )
         self._light_goal_zone()
 
-    # -- snapshot and restore ---------------------------------------------------
-    # Continual learning has no episode boundary to restart from, so
-    # reproducibility comes from rewinding the whole universe instead. Name the
-    # engine constant, never an enumeration of fields: mjSTATE_INTEGRATION is
-    # the entire set of inputs to the forward dynamics, so it tracks the model,
-    # where an enumeration drifts silently the moment the arena gains a feature.
-    # The field the obvious enumeration omits is qacc_warmstart, and every
-    # restore here is a non-initial-state load, which is the case MuJoCo's docs
-    # flag. A restore is an experimenter's tool, invisible from inside; it is
-    # not a reset.
+    # -- what is derived from the state rather than part of it -------------------
 
-    _STATE_SPEC = mujoco.mjtState.mjSTATE_INTEGRATION
+    def _rederive_from_state(self) -> None:
+        """Recompute the two things a write to the state leaves stale.
 
-    def snapshot(self) -> dict:
-        """The full state: `mjSTATE_INTEGRATION`, plus what MuJoCo does not know about."""
-        physics = np.empty(mujoco.mj_stateSize(self.model, self._STATE_SPEC))
-        mujoco.mj_getState(self.model, self.data, physics, self._STATE_SPEC)
-        return {
-            "physics": physics,
-            "task": self.task,
-            "rng": self.np_random.bit_generator.state,
-        }
+        The goal light follows the task, and the friction field follows where
+        the pucks are. Neither is in `mjSTATE_INTEGRATION` and neither needs to
+        be -- a pure function of the state is restored along with it -- but
+        both have to be read back out of the state once something has written
+        to it. `step()` does that anyway; doing it here as well means a forward
+        taken before the next tick sees the world as it now is rather than as
+        it had wandered to.
 
-    def restore(self, state: dict) -> None:
-        """Rewind to a snapshot. The friction field follows, being a function of state."""
-        mujoco.mj_setState(self.model, self.data, state["physics"], self._STATE_SPEC)
-        self.task = state["task"]
-        self.np_random.bit_generator.state = state["rng"]
+        The two writers are `reset()`, just below the placement loop, and
+        `patchworks.sandbox.state.restore()`.
+        """
         self._light_goal_zone()
-        # The field is a pure function of puck position, so restoring the state
-        # restores it -- but only once something reads it back out of the
-        # position. step() does that anyway; doing it here as well means a
-        # forward taken between a restore and the next tick sees the friction
-        # of where the pucks now are rather than where they had wandered to.
         self._apply_friction_field()
         mujoco.mj_forward(self.model, self.data)
 
