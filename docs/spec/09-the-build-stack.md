@@ -41,15 +41,16 @@ On the development laptop (i7-8750H, CPU only), at the sizes fixed in
 The environment costs about what the whole agent costs, every tick. A framework difference of 2×
 therefore moves total wall-clock by well under a third of something that is not the bottleneck.
 
-**The second row replaces the third's body term with a measurement.** The stand-in was an
+**The cell-body row measures what the stand-in row below it estimated.** The stand-in was an
 order-of-magnitude figure taken before the body's hidden width was specified;
 [`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md)'s *The body's construction* has since sized each map
 at its own minimum, and `benchmarks/body_forward.py` times the real thing — one shared frozen body,
 per-cell biases with a `[cells, ·]` leading dimension, the whole population in a single batched
 `encode`/`step`/`decode` under `no_grad`. It costs **4% of `env.step()`**, and the cell count barely
 shows: 1 cell is 0.075 ms and 1500 cells 0.26 ms, so what is being timed at this size is mostly
-per-op overhead rather than arithmetic. The third row's estimate stands — the tick is more than the
-body, and reconciliation over ~698 edges is not measured here.
+per-op overhead rather than arithmetic. The two stand-in rows are kept rather than deleted, because
+neither is superseded outright — a tick is more than a body, and reconciliation over ~698 edges is
+not measured here.
 
 ## The locality guard
 
