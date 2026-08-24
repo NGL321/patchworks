@@ -18,6 +18,8 @@ from patchworks.sandbox import (
     N_PUCKS,
     BlockedAnnulusError,
     PlanarPushSandbox,
+    restore,
+    snapshot,
 )
 
 
@@ -51,13 +53,13 @@ def test_the_controller_carries_nothing_between_ticks():
     try:
         _, info = env.reset(seed=2, options={"reset_arm": True})
         policy = achievability.ScriptedPusher(env)
-        state = env.snapshot()
+        state = snapshot(env)
         first = policy(info)
 
         later = info
         for _ in range(20):
             _, _, _, _, later = env.step(policy(later))
-        env.restore(state)
+        restore(env, state)
 
         assert policy(info) == pytest.approx(first)
     finally:

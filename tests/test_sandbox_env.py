@@ -4,6 +4,7 @@
 Gymnasium contract, made continual*.
 """
 
+import mujoco
 import numpy as np
 import pytest
 
