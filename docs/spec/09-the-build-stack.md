@@ -62,12 +62,24 @@ edge. All of it is plain arrays by the time the phase ends.
 Both halves of the local learning rule then run as a **separate** phase, as a function of
 
 - that cell's own parameters — its biases and its incident restriction maps, the **adapting surface**, and
-- detached arrays: its chart, its node stalk, its per-edge disagreements.
+- detached arrays: the tick's state as the tick left it — its chart, its node stalk, the neighbour
+  contribution to each of its incident edges.
 
 Each cell's update builds a fresh, small graph — the closed backprop through the cell's own frozen
 forward path that `07-local-learning-rule.md` specifies for the bias rule, and the per-edge gradient plus
 gauge projection for the transport rule — and that graph dies at the end of the step. A neighbour's
 parameters are not merely severed from it; they are not in it.
+
+**What is detached is the state, not the quantity being descended on.** Each rule *recomputes* its own
+objective live in that cell's own parameters; a number carried over dead from the tick has no gradient
+in anything. The bias rule re-runs the cell's own frozen forward path so that prediction error is live
+in the biases, against a detached target. The transport rule recomputes the disagreement on each
+incident edge so that it is live in that cell's own map — and this is the one place where the sheaf
+differs from a feedforward chain in a way that matters here. Disagreement on an edge is a function of
+**both** of its maps, and each map belongs to a different cell's adapting surface. So a cell's transport
+objective contains a neighbour's *trainable parameter*, which a layer's loss in a feedforward network
+never does. **The neighbour's map is what has to enter detached**, and it is the only cross-cell
+parameter in the phase.
 
 **This still batches.** Because every coupling term enters as a detached constant, the cells' local
 graphs compose into one batched graph *with no cross-cell edges*. The gradient of the sum over cells is
@@ -91,6 +103,41 @@ happens: per-cell adapters (rung 1) and an unfrozen per-cell body (rung 3) are b
 heterogeneous bodies (rung 2) stay fixed. The one shape that would break it is a body both **shared and
 trainable**, which the ladder never reaches. If a later design arrives there anyway, this paragraph is
 what has to be re-argued, and `vmap(grad(·))` over per-cell parameters is the standard repair.
+
+#### Written as a function transform
+
+The phase is written with **`torch.func`**: each rule is a pure function whose parameters arrive as an
+explicit argument (`functional_call` replaces the module's ambient parameters), and the gradient is taken
+with `grad(·)` scoped by `argnums` to that cell's own adapting surface. The neighbour's map is an
+ordinary argument of that function and is not among the `argnums`, so it is not differentiated — not
+because it was severed, but because differentiation only ever traverses what was named.
+
+**The reason is the direction in which each idiom fails.** This guard exists at all because a leaked
+gradient is silent and flattering (§3). Under ambient autograd, the neighbour's map is a live parameter
+and a deleted `.detach()` produces an **extra** gradient: exactly the silent, flattering failure, visible
+only to the perturbation test. Under the transform, naming the wrong `argnums` produces a **missing**
+gradient — a cell that stops learning, which is loud and immediate. Same criterion as the rest of this
+section, applied to how the phase is written rather than to what it computes.
+
+It is cheap here for reasons that are specific to this design rather than general. The update is a plain
+local gradient step under a global learning-rate scalar
+([`07-local-learning-rule.md`](./07-local-learning-rule.md)), so there is no optimiser state to give up
+by receiving gradients as a pytree instead of on `.grad`. Batching is untouched: parameters keep their
+`[cells, ·]` leading dimension, the objective is a sum, and `grad` returns the same batched gradient the
+paragraph above describes — no `vmap` is needed, for the same reason ADR-0011 gives for not needing it in
+the first place. ADR-0010's gauge projection runs after the step, outside the transform. And
+`torch.func`'s documented constraint on in-place operations bites on the *tick*, where reconciliation
+edits the node stalk in place — which is §1's no-tape phase and is not transformed.
+
+**What it does and does not buy, stated precisely.** It closes **parameter reachability**, structurally,
+and it closes nothing else. That is worth having because parameter reachability is the one leak class
+§1 cannot cover — parameters live outside the tick, so a no-tape tick says nothing about them. It does
+*not* touch the shared-storage class in §3, where cells couple in place with a clean tape and no
+transform can see it. Two honest limits carry with it: the property is **inferred** from the
+pure-function contract and `argnums` rather than asserted anywhere in the documentation, and **no source
+was found using `torch.func` for locality** — this is the field's absence, not its endorsement. So the
+guarantee is enforced here too. It is simply enforced by construction on one class instead of by
+convention, and the standing test in §3 is what covers the rest.
 
 ### 3. The guarantee is tested, because a leak would flatter us
 
