@@ -154,7 +154,8 @@ annulus; the goal is one of 3×3 puck-zone pairs.
 Left to itself the sampler makes one puck matter and leaves the other two as scenery that may or may
 not be in the way. That gives the task set a **precedence depth of 1**: every push is locally
 correctable, nothing must happen before anything else, and the pedestal — the one feature that could
-impose an order — was measured as a graze (37–41% of tasks have a straight puck→zone line anyway).
+impose an order — was measured as a graze (59–63% of tasks have a straight puck→zone line anyway, and
+the rest detour a median 4%).
 
 So a fixed fraction of sampled layouts **place a non-target puck across the target's route**, where
 "across" is `prototypes/route-geometry`'s existing homotopy check applied to a puck instead of the
