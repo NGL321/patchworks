@@ -52,10 +52,11 @@ def time_forward(cells: int, shape: BodyShape, repeats: int = REPEATS) -> list[f
 
 
 def report(label: str, samples: list[float]) -> None:
+    p95 = sorted(samples)[min(int(0.95 * len(samples)), len(samples) - 1)]
     print(
         f"{label:<28} median {statistics.median(samples):6.3f} ms"
         f"   mean {statistics.fmean(samples):6.3f} ms"
-        f"   p95 {sorted(samples)[int(0.95 * len(samples))]:6.3f} ms"
+        f"   p95 {p95:6.3f} ms"
     )
 
 
