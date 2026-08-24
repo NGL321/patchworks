@@ -45,10 +45,21 @@ A **circular arena** bounded by a ring wall at radius 0.52 m, containing **three
 |---|---|---|---|
 | radius (m) | 0.035 | 0.045 | 0.055 |
 | mass (kg) | 0.05 | 0.10 | 0.20 |
+| μ | 0.20 | 0.30 | 0.45 |
+| centre of mass | central | **0.018 m off-centre** | central |
 | colour | red | green | blue |
 
 Pucks differ in size, mass, and friction, so *which* puck is being pushed changes what happens —
-the dynamics are not one model with a colour attached.
+the dynamics are not one model with a colour attached. **μ differs per puck, not just its product
+with mass**, which is what makes the difference survive the coasting phase: a free puck decelerates
+at `μg`, so a first draft in which all three shared `μ = 0.3` had all three decelerating identically
+and differing only at contact. Measured coast from 1.0 m/s is now **0.225 / 0.162 / 0.111 m**, a
+2.0× spread ([#21](https://github.com/NGL321/patchworks/issues/21)).
+
+**Puck 1's centre of mass is deliberately off-centre**, 0.018 m from the geometric centre of a
+0.045 m disc, placed by burying mass inside the cylinder so the top-down render is unchanged. This
+is what makes its orientation θ a real hidden variable rather than a decoupled integrator — see
+*Known exposure*, below.
 
 Two radii are load-bearing and were both found by watching the thing fail:
 
@@ -101,8 +112,25 @@ reached it is the scalar.
 ### Known exposure: what 64×64 does and does not resolve
 
 Each puck carries an orientation marker. **At 64×64 the marker is not resolvable**, so puck
-rotation is a genuine hidden variable — inferable only from contact dynamics, never read off. This
-is recorded as a consequence, not a decision: raising the resolution would change it.
+rotation is unreadable from the render. Unreadable is not the same as hidden: a variable that
+appears in no term of the equations of motion is not hidden, it is *absent*, and a predictor that
+ignores it loses nothing.
+
+That was the first draft's mistake. Pucks are cylinders and the marker geom has no collision, so θ
+was a pure integrator of ω, dynamically decoupled from everything the arm could do
+([#21](https://github.com/NGL321/patchworks/issues/21)). **Puck 1's off-centre centre of mass is
+the fix.** A contact through the rim now exerts a torque about a point that moves with θ, so θ
+feeds back into where the puck goes. Measured: the same push, delivered at eight different starting
+angles, spreads the puck's lateral deflection by **5.80 mm** on an 89 mm push; the two circular
+pucks spread by 0.06 mm and 0.02 mm, which is the numerical floor.
+
+The eccentric mass was chosen over a non-circular puck precisely because it does not touch the
+render. A non-circular puck presents a rotating silhouette, which would partly *un*-hide the
+variable it was introduced to hide. This route leaves the render, the observation contract, and the
+sampler untouched.
+
+One puck of three, not all three, so *which* puck is being pushed stays discriminating: the agent
+must learn that θ matters for the green one and not for the others.
 
 ### Dynamics exploration, not spatial exploration
 
@@ -113,11 +141,11 @@ by acting. An agent that has looked at this arena and never touched it knows alm
 predicts the next tick; the heaviest puck does not move at all below ~2 N at the tip (*Motor
 surface*), so even *whether a push works* is knowledge only action buys.
 
-The argument deliberately rests on mass and contact outcome alone.
-[#21](https://github.com/NGL321/patchworks/issues/21) has the hidden rotation and the per-puck
-friction difference both under revision — rotation is currently dynamically decoupled, and all three
-pucks share one μ — so neither is leaned on here. Whichever way that ticket lands, it adds epistemic
-pressure or leaves it unchanged; it cannot remove the pressure this section needs.
+The argument rests on three things the render does not carry, in descending order of confidence:
+**mass and contact outcome**, **per-puck μ** (which now survives the coasting phase, above), and
+**puck 1's orientation** (which now enters the equations of motion, above). The first alone would
+carry the section; [#21](https://github.com/NGL321/patchworks/issues/21) restored the other two
+after finding both weaker than the first draft claimed.
 
 That is the reading worth having. A model of where things are in one arena is memorisation of that
 arena; a model of what things do is the part that would survive being moved to another. Position is
@@ -149,10 +177,85 @@ question with a different owner: [`04-action-and-the-boundary.md`](./04-action-a
 Three torques, normalised to `[-1, 1]` and scaled to the per-joint limits. Control runs at **50 Hz**
 (physics at 500 Hz, 10 substeps per tick).
 
-Measured: a clean push moves a puck **0.12–0.17 m**, so a puck crosses the arena in two or three
-pushes. The heaviest puck needs **more than 2 N at the tip** to break static friction at all; below
-that the arm and the puck sit in a static equilibrium, touching but not moving. Torque limits are
-sufficient for all three pucks.
+Torque limits are sufficient for all three pucks. Two numbers a first draft quoted here were wrong,
+and [#21](https://github.com/NGL321/patchworks/issues/21) replaced both by measuring them.
+
+**Break-away force at the tip: 0.21 / 0.40 / 0.98 N.** The draft said the heaviest puck needed more
+than 2 N, which was out by a factor of three. At the joint the threshold is the frictionloss value
+exactly — `μmg`, 0.098 / 0.294 / 0.883 N — and the tip needs a little more than that because the
+contact and the damped arm absorb some of it.
+
+**Push travel is not a constant, and quoting one was the error.** The draft's "a clean push moves a
+puck 0.12–0.17 m" describes the top few percent, not the typical case: measured over the scripted
+pusher, median travel per push is **4 mm**, p90 **46 mm**, max **233 mm**. What is stable is the
+coast law — a free puck decelerates at `μg`, so travel is `v²/2μg` and the controller chooses `v`.
+Quote that, not an anecdote.
+
+**The world is not ballistic.** Peak puck speed under the scripted pusher is **151 mm/s median, 544
+mm/s maximum**, which sits inside the range the planar-pushing literature actually samples (Yu et
+al. top out at 500 mm/s) rather than above it. It is *not* quasi-static either — Bauza & Rodriguez
+put that breakdown at 50–80 mm/s — so none of the quasi-static apparatus applies here, and nothing
+in this spec reaches for it. Said plainly so nobody reaches for it later.
+
+### Friction is anisotropic, and this is accepted
+
+Table friction is joint frictionloss, and MuJoCo bounds each frictionloss row **element-wise**. With
+two independent slide joints the admissible force set is therefore `‖f‖∞ ≤ μmg` — a **square, not a
+disc** — so a puck sliding diagonally meets `√2` times the friction it meets along an axis, in a
+frame fixed to the world rather than to the puck. Measured, at all three pucks: a 45° coast is
+**26.9 / 28.5 / 29.1%** shorter than an axial one, matching `1/√2` to within a percent. With three
+independent rows (`x`, `y`, `r`) the limit *surface* is a box in wrench space, which lets a puck
+resist maximum translational and maximum torsional friction at once — physically impossible, and a
+worse approximation than the ellipsoid the literature already treats as a compromise.
+
+**Accepted, not fixed.** The alternative is abandoning joint frictionloss for contact with a
+supporting surface, and joint frictionloss is exactly what makes this world *planar by construction*
+— the commitment that keeps "dimensionality is a parameter" honest. The error is consistent, smooth,
+and learnable: it is a fact about this world the agent can model, not noise it must average over.
+Worth naming because it is real — Yu et al. measured 3/2 anisotropy in the worst of four real
+materials and called it significant — and because it is largest in coupled translation-plus-rotation,
+which is every off-centre push.
+
+### Sub-threshold holds do not creep
+
+A frictionloss constraint's position residual is identically zero, so it takes its impedance from
+`solimp[0]`, which defaults to 0.9 — and about a tenth of the load leaks through. Held below
+threshold, a puck therefore does not sit still: it creeps. Measured on the first draft, puck 2 held
+at 90% of its threshold for 60 s **drifted 159 mm**, twice a zone radius, at a steady 2.7 mm/s. That
+is enough to satisfy or unsatisfy a goal on its own, and enough to corrupt the acceptance demo's
+onset measurement.
+
+It is not a numerical artefact: it is invariant under a 4× smaller timestep, 200 solver iterations,
+the CG solver, and the implicit integrator, and responds to `solimp[0]` alone. The puck joints
+therefore set `solimpfriction` to 0.9999, which takes the same 60 s hold to **0.24 mm**. Static
+equilibrium below threshold is now a claim this spec can make.
+
+### The table is not uniform
+
+Repeated identical pushes in a rigid-body simulator are bit-identical. Real ones are not: Yu et al.
+measured 1.6–12.5% translation standard deviation over 2,000 repetitions, with at least three modes
+and clearly non-Gaussian. A world whose disagreement can be *fully* cleared is a weak proving ground
+for an architecture whose central claim is about disagreement that **never fully clears**
+([`CONTEXT.md`](../../CONTEXT.md)).
+
+So each puck's frictionloss is scaled by a **friction field**: a smooth, fixed function of the
+puck's position, mean 1 and range 0.75–1.25, standing in for the spatial variation in coefficient of
+friction that Yu et al. mapped across a real table. The same push at two places in the arena gives
+two different outcomes, and the difference is a property of the world rather than of a random seed.
+
+Two alternatives were rejected. **Resampling frictionloss at each `reset()`** would put a number
+into the model that `mjSTATE_INTEGRATION` does not cover, so restore would diverge silently — the
+exact failure mode [#22](https://github.com/NGL321/patchworks/issues/22) closed on. **Accepting the
+determinism** leaves the proving ground weak. A field is a pure function of state, so snapshot and
+restore stay bit-exact (verified: zero divergence over a replayed 100-tick tail), and it restores
+some spatial epistemic pressure as a side effect: where a puck *is* now changes what a push does.
+
+### Calibration note: paddle–puck friction
+
+The paddle–puck coefficient is 0.6, against Yu et al.'s measured ~0.25 for a steel pusher on their
+objects. A rubber-faced paddle is not steel, so 0.6 is not indefensible, but it biases contact
+toward sticking rather than sliding — and sticking is the regime that produced the clean pushes
+every number above was measured in. Recorded as a calibration choice, not a measurement.
 
 ### Per-joint gearing: a timescale ladder in the body
 
@@ -236,6 +339,9 @@ Because there is no episode boundary to restart from, reproducibility comes from
 **snapshot/restore** of the full state, consistent with
 [ADR-0001](../adr/0001-continual-learning-applies-to-the-adapting-surface.md). The state is
 **`mjSTATE_INTEGRATION`**, plus the task and the sampler's RNG, which MuJoCo does not know about.
+The friction field (*The table is not uniform*, above) writes to the model every tick and is
+deliberately **not** part of this state: it is a pure function of puck position, so restoring the
+state restores the field with it.
 
 Name the engine constant, never an enumeration of fields. MuJoCo defines `mjSTATE_INTEGRATION` as
 the entire set of inputs to the forward dynamics, so it tracks the model: an enumeration drifts the
