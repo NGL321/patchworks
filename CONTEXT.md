@@ -428,3 +428,10 @@ because it is a property of the graph — how far a correction had to travel bef
 settling or decay time would be a property of the body's mechanics. Reported per event; a
 difference in onset is what "recovered at a different level" means in time rather than in hops.
 _Avoid_: reaction time, settling time, response time, recovery time, latency (bare)
+
+**Demo surface**:
+What a human sees and touches while a run is happening: two windows, the encodings drawn in them,
+and the gestures bound to the hands. Display only — it reads privileged state on the same footing
+as `info` and no cell reads anything it computes, so switching it off changes no trajectory. Kept
+distinct from the acceptance demo, which is the protocol the surface displays.
+_Avoid_: the viewer, the visualisation, the UI, the demo (bare), instrumentation

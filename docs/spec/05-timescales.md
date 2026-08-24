@@ -428,8 +428,10 @@ watches the rim swing while deep private state barely moves.
 Cheap — the private component is the node-stalk directions masked out on every incident edge, known
 at construction, so it is a fixed projection computed per tick. Falsifiable live: if deep private
 state swings with the rim, the mechanism is not working and it is visible in the moment. This is a
-requirement on [#11](https://github.com/NGL321/patchworks/issues/11), which must expose the
-private/reconciled decomposition rather than raw stalk values.
+requirement on the demo surface, which exposes the private/reconciled decomposition rather than raw
+stalk values. It is drawn as its own panel — deliberately not folded into the dome's marks, so that
+it can disagree with the claim it tests: [`10-the-demo-surface.md`](./10-the-demo-surface.md), *The
+private-component panel*.
 
 This readout is the *depth* half of the demo's evidence; the other half is **onset latency**, and the
 protocol that fixes what passing means is

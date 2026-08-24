@@ -382,7 +382,9 @@ removal.
 **Falsification signature:** the arm **stalls mid-swing** — near-zero commanded torque with standing
 motor-side disagreement — instead of committing to a direction. The blend of swing-left and
 swing-right is *stay put*, so the failure is unmistakable and needs no instrumentation beyond the
-motor-side disagreement readout the demo already carries.
+motor-side disagreement readout the demo already carries — the actuator's commanded-outline against
+applied-fill bars in [`10-the-demo-surface.md`](./10-the-demo-surface.md), *The somatomotor strip*,
+where the signature is an outline near zero beside a disagreement bar that stands.
 
 A second, rarer case is the puck's own route around the pedestal. Measured over the sampler
 ([`03-the-sandbox.md`](./03-the-sandbox.md), *The world*), it is genuine but shallow — a median 4%
