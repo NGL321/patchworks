@@ -83,7 +83,7 @@ def main():
           f"   restored == snapshot: {np.allclose(restored, snap['qpos'][:3])}")
 
     # --- the sampler ------------------------------------------------------------
-    for split in ("train", "heldout"):
+    for split in ("train", "heldout_pair", "heldout_sector"):
         e = PlanarPushSandbox(split=split, seed=7)
         pairs = Counter()
         sector = 0
