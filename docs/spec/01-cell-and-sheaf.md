@@ -274,9 +274,28 @@ They are:
 - **Independent at the two ends of an edge.** Each cell learns its own map into the shared space. If
   they were tied, agreement would be definitional and disagreement could carry no information.
 
-Edge stalk dimension `m` is **determined by the mask**: the shared space is exactly large enough to
-hold the features that edge permits. `m` is therefore not an independent parameter and varies across
-edges — the sheaf Laplacian has no uniform block structure, which is accepted.
+Edge stalk dimension `m` is **fixed at construction by the edge's role**, and the mask constrains
+which node stalk directions may participate on that edge. The two are separate acts and must stay
+separate: **the mask selects** — structurally, once, closing and never re-opening — and **the map
+compresses**, densely and by learning, mixing every permitted direction into the `m`-dimensional
+shared space. `m` varies across edges, so the sheaf Laplacian has no uniform block structure, which
+is accepted.
+
+This sentence used to read that `m` was "determined by the mask", the shared space "exactly large
+enough to hold the features that edge permits", and `m` "therefore not an independent parameter".
+That is wrong and [#83](https://github.com/NGL321/patchworks/issues/83) corrected it:
+[`06-graph-topology.md`](./06-graph-topology.md) governs. Read literally, `m` would be the *count* of
+permitted features, so a patch cell's `m = 8` edge would permit 8 of its 48 stalk directions and the
+map would **select 8 and discard 40** — five-sixths of the patch thrown away down the only route that
+patch's information ever takes, which is not a compression and contradicts `06`'s "a patch cell's
+48 → 8 restriction *is* the compression of that patch". The dependency also runs backwards against
+`06`'s own treatment: boundary edges are *given* `m = 8` against the interior's 4 for a stated
+reason, and `m` is the first rung on [#14](https://github.com/NGL321/patchworks/issues/14)'s
+constraint ladder, priced to be widened. Both only make sense if `m` is chosen at construction.
+
+What a cell may transmit is its budget `Σ_e m_e`, so it must compress what matters into a reduced
+latent and **what will not fit is what stays private** — which is why the same budget appears in the
+`H⁰` bound below.
 
 **`m` is fixed at construction and never changes.** The sparsity pressure prunes *within* the mask —
 it drives weights to zero; it does not shrink the stalk. A stalk dimension that moved during a run

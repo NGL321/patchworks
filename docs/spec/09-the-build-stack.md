@@ -28,7 +28,7 @@ build leans on. The stack is **PyTorch**.
 ### Measured, not assumed
 
 On the development laptop (i7-8750H, CPU only), at the sizes fixed in
-[`06-graph-topology.md`](./06-graph-topology.md) — ~150 predicting cells, ~698 edges, `n = 32`,
+[`06-graph-topology.md`](./06-graph-topology.md) — 150 predicting cells, 682 edges, `n = 32`,
 `k = 12`:
 
 | | |
@@ -56,7 +56,7 @@ The row's `decode` width is 32, the rule `max{d_x + 1, d_y}` at `decode : ℝ¹�
 slip corrected in [#84](https://github.com/NGL321/patchworks/issues/84).
 
 The two stand-in rows are kept rather than deleted, because neither is superseded outright — a tick
-is more than a body, and reconciliation over ~698 edges is not measured here.
+is more than a body, and reconciliation over 682 edges is not measured here.
 
 ## The locality guard
 
