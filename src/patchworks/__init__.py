@@ -6,9 +6,11 @@ Built so far:
 
 * :mod:`patchworks.body` — the shared frozen cell body, `encode` / `step` /
   `decode`, and the per-cell biases that are its whole adapting surface.
+* :mod:`patchworks.sandbox` — the world the agent lives in, promoted from
+  prototypes/sandbox. Not imported here; import it directly.
 
-Nothing under prototypes/ is promoted here yet; later tickets bring
-prototypes/sandbox and prototypes/regional-spectra into this package.
+The rest of prototypes/ is not promoted yet; a later ticket brings
+prototypes/regional-spectra into this package.
 """
 
 from . import body

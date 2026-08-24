@@ -90,7 +90,8 @@ Two radii are load-bearing and were both found by watching the thing fail:
   [`04-action-and-the-boundary.md`](./04-action-and-the-boundary.md), *Route selection*.
 
 Pucks spawn in the annulus **0.15–0.36 m**, clear of each other, of the zones, and of the arm's
-current configuration.
+current configuration. "Clear of the zones" means **centres**, by construction — see *Two
+limitations of the sampler, on the record*, below.
 
 ## Sensory surface
 
@@ -400,6 +401,39 @@ silently restrict approach geometry for pair-holdout tasks. Recorded because the
 enough that moving a zone or widening the wedge would couple the two axes without anything
 announcing it.
 
+### Two limitations of the sampler, on the record
+
+Both were found while promoting the sampler into the package
+([#80](https://github.com/NGL321/patchworks/issues/80)), and both were **left as built**. The reason
+is the same in each case: either fix moves the spawn distribution that the **14 of 72** achievability
+figure (*Achievability*, below) was measured on, which means changing the sampler obliges
+re-measuring that number, and neither issue is worth that today. They are recorded here so the
+behaviour is explicit rather than latent in the code.
+
+**The split filter resamples the whole layout, so the sector condition leaks into distractor
+geometry.** When a drawn target fails its split condition, `sample_task()` redraws the *entire*
+layout, not just the target, so the condition selects over whole layouts. It reaches the other two
+pucks through the mutual-clearance constraint: the wedge is narrow enough that two pucks rarely fit
+in it at once (25 layouts in 3000 against a binomial 78, and never three), so forcing the target into
+the wedge pushes the distractors out of it. Measured over 600 draws per split, the fraction of
+non-target pucks lying in the wedge is **0.104** on `train` against **0.034** on `heldout_sector` —
+where the unconditioned rate is 0.098, so it is `heldout_sector` that is displaced.
+
+This is a **known confound**: a drop measured on `heldout_sector` would be partly attributable to a
+systematically emptier wedge rather than to the held-out target location alone. Nothing measures it
+today — the sector axis has no reader in this proof of concept, as above — so the confound is inert.
+The fix, when a reader exists, is to resample the **target only** and re-measure 14/72.
+
+**Puck/zone clearance is centre-based; puck/puck clearance is not.** A layout is accepted when every
+puck *centre* is more than `ZONE_RADIUS + 0.04` = 0.115 m from every zone centre, with the puck's own
+radius ignored, while the puck/puck test subtracts both radii before requiring a 0.03 m gap. So a
+0.055 m puck accepted at 0.115 m from a zone centre has its rim 0.06 m from that centre — inside the
+0.075 m disc. **"Clear of the zones" therefore means centres**, and that is deliberately inconsistent
+with what "clear of each other" means two lines earlier in the same predicate. `goal_satisfied`
+compares the target puck's centre to `ZONE_RADIUS` and is unaffected; what the inconsistency costs is
+that a puck may spawn with its rim already overlapping a zone's disc. Recorded rather than fixed,
+because making it explicit is the point.
+
 ## The Gymnasium contract, made continual
 
 The env is a literal `gymnasium.Env`, with three deliberate deviations. They are the contract, not
@@ -466,23 +500,45 @@ here because every one of them fails *quietly*, and a run corrupted quietly is i
 from the thing the agent is supposed to experience when `reset()` fires.
 
 **`check_env` fails exactly one check, and that is asserted, not tolerated.**
-`check_reset_seed_determinism` calls `reset(seed=123)` twice and requires the observations to match;
-here they do not, because `reset()` never resets the arm. The failure is correct — it is the first
-deviation, detected. The registration flag that would silence it, `EnvSpec.nondeterministic`, is
-documented as meaning the observation cannot be repeated from the same initial state, RNG state and
-actions, which is **false** of this env and is precisely what snapshot/restore delivers; setting it
-would assert something untrue about the physics in order to quiet a check about `reset()`. So the
-conformance test runs `check_env` and asserts that `check_reset_seed_determinism` is the **only**
-failure, by name. Every other check keeps its value, and a *second* failure — a space dtype
-drifting, a malformed `info` — breaks the build instead of being lost in a known-fails suite.
+`check_step_determinism` seeds a reset, steps, seeds the same reset again and requires the two
+trajectories to match; here they do not, because `reset()` never resets the arm, so the second
+seeded reset starts from wherever the first one's step left it. The failure is correct — it is the
+first deviation, detected. The registration flag that would silence it, `EnvSpec.nondeterministic`,
+is documented as meaning the observation cannot be repeated from the same initial state, RNG state
+and actions, which is **false** of this env and is precisely what snapshot/restore delivers; setting
+it would assert something untrue about the physics in order to quiet a check about `reset()`. So the
+conformance test runs `check_env` and asserts that `check_step_determinism` is the **only** failure,
+by name. Every other check keeps its value, and a *second* failure — a space dtype drifting, a
+malformed `info` — breaks the build instead of being lost in a known-fails suite.
 
-**A step limit is refused, not merely undocumented.** `make()` wraps in `TimeLimit` whenever
-`max_episode_steps` is passed or carried on the registered spec, and `TimeLimit` sets
-`truncated=True` — which every standard loop **resets on**, and a reset here is not a restart but an
-unannounced rearrangement of the world mid-trajectory. The registration therefore sets
-`max_episode_steps=None`, and the env **raises** if it finds a spec-level limit present rather than
-trusting that a caller read this paragraph. The reasoning is the snapshot list's: prefer the
-constraint that cannot drift to the sentence nobody rereads.
+The obvious candidate, `check_reset_seed_determinism`, **passes**, and it is worth saying why: it
+calls `reset(seed=123)`, `reset()`, `reset(seed=123)`, `reset()` with no step in between, so the arm
+is in the same configuration at both seeded resets and the deviation has nothing to deviate from.
+Only a check that *steps* between its seeded resets can see it. Measured on gymnasium 1.2.1 and
+1.3.0 ([#80](https://github.com/NGL321/patchworks/issues/80)); an earlier draft of this paragraph
+named `check_reset_seed_determinism`, and the argument it built is unchanged by the correction.
+
+**A step limit is refused wherever it can be seen, and pinned where it cannot.** `make()` wraps in
+`TimeLimit` whenever `max_episode_steps` is passed or carried on the registered spec, and
+`TimeLimit` sets `truncated=True` — which every standard loop **resets on**, and a reset here is not
+a restart but an unannounced rearrangement of the world mid-trajectory. The registration therefore
+sets `max_episode_steps=None`, and the env **raises** `SpecLimitError` if it finds a limit on **any
+registration of its entry point**, or on an `EnvSpec` later assigned to it, rather than trusting that
+a caller read this paragraph. The reasoning is the snapshot list's: prefer the constraint that cannot
+drift to the sentence nobody rereads.
+
+The registry scan is deliberately blunt: construction cannot tell *which* registration it is being
+made for, so one limited registration refuses **every** sandbox in the process, a correctly
+registered one included. That is the accepted cost, because the alternative is a limit that fires
+only sometimes — which is the drift the refusal exists to rule out. The error names the registration
+at fault.
+
+**A limit passed at the `make()` call site is the one path the env cannot refuse**, and it is
+recorded rather than claimed away. `gymnasium.make(id, max_episode_steps=n)` hands the unwrapped env
+a spec with `max_episode_steps=None` whatever it was asked for, then wraps `TimeLimit` around the
+outside, so nothing the env can read ever mentions the limit and construction has nothing to raise
+on. What that call site produces — a `TimeLimit` wrapper and a `truncated=True` on step *n* — is
+therefore pinned by a test instead, so the exposure is an asserted fact rather than an assumption.
 
 **Stock episode-shaped wrappers go inert, and should not be reached for.**
 `RecordEpisodeStatistics` fills its info key only under `if terminated or truncated:`, so across an
