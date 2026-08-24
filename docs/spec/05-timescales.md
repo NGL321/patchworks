@@ -431,6 +431,10 @@ state swings with the rim, the mechanism is not working and it is visible in the
 requirement on [#11](https://github.com/NGL321/patchworks/issues/11), which must expose the
 private/reconciled decomposition rather than raw stalk values.
 
+This readout is the *depth* half of the demo's evidence; the other half is **onset latency**, and the
+protocol that fixes what passing means is
+[`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md).
+
 Behaviour alone is **not** accepted as evidence — a purely reflexive controller produces the same
 footage.
 

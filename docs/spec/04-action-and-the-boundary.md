@@ -174,7 +174,8 @@ Two things this makes mechanical rather than vague:
 - Where a drive attaches (*Drives*, below) becomes a question about hop count. It attaches at the
   **apex**, which is as far from the sensorimotor rim as the graph goes.
 - The acceptance demo's "recovered at the appropriate level of the hierarchy" becomes falsifiable:
-  you can measure how many hops from the sensorimotor rim the correction originated.
+  you can measure how many hops from the sensorimotor rim the correction originated. What is measured,
+  and what counts as passing, is [`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md).
 
 What it does **not** give is differing update *rates* — `01-cell-and-sheaf.md` is explicit that
 depth buys horizon, not rate. Multiple timescales remain a real open question
