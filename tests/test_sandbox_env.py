@@ -4,7 +4,6 @@
 Gymnasium contract, made continual*.
 """
 
-import mujoco
 import numpy as np
 import pytest
 
@@ -24,6 +23,8 @@ from patchworks.sandbox import (
     Task,
     friction_scale,
     in_heldout_sector,
+    restore,
+    snapshot,
 )
 
 TORQUE_LIMIT = np.array([3.0, 2.0, 1.0])
@@ -105,10 +106,10 @@ def test_no_object_pose_reaches_the_agent(env):
     """
     xy = np.array([[0.0, -0.25], [-0.22, 0.10], [0.10, 0.30]])
     env.reset(seed=4, options={"reset_arm": True, "task": Task(xy, np.zeros(3), 0, 0)})
-    state = env.snapshot()
+    state = snapshot(env)
     untouched, *_ = env.step(ZERO)
 
-    env.restore(state)
+    restore(env, state)
     env.perturb(0, [0.32, -0.30])  # well clear of the arm, which lies along +x
     moved, *_ = env.step(ZERO)
 
@@ -131,10 +132,10 @@ def test_the_render_is_the_only_place_the_goal_appears(env):
     """A retarget changes the image and nothing else in the observation."""
     env.step(ZERO)
     before, *_ = env.step(ZERO)
-    snapshot = env.snapshot()
+    state = snapshot(env)
     other = next(z for z in range(3) if z != env.task.goal_zone)
     env.retarget(goal_zone=other)
-    env.restore(snapshot)
+    restore(env, state)
     env.retarget(goal_zone=other)
     after, *_ = env.step(ZERO)
     for key in ("qpos", "qvel", "touch"):
@@ -348,6 +349,8 @@ def test_calls_before_the_first_reset_say_what_is_missing():
         assert np.all(env.data.qvel == 0.0)
         with pytest.raises(RuntimeError, match="call reset\\(\\) before"):
             env.retarget(goal_zone=1)
+        with pytest.raises(RuntimeError, match="call reset\\(\\) before"):
+            snapshot(env)
     finally:
         env.close()
 
@@ -480,52 +483,6 @@ def test_retarget_changes_what_is_wanted_without_touching_the_world(env):
     env.retarget(goal_puck=puck, goal_zone=zone)
     assert (env.task.goal_puck, env.task.goal_zone) == (puck, zone)
     assert np.array_equal(np.stack([env.puck_pose(i) for i in range(N_PUCKS)]), poses)
-
-
-# -- snapshot and restore -------------------------------------------------------
-
-
-def test_the_snapshot_is_the_engine_constant_not_an_enumeration(env):
-    state = env.snapshot()
-    expected = mujoco.mj_stateSize(env.model, mujoco.mjtState.mjSTATE_INTEGRATION)
-    assert state["physics"].size == expected
-    assert set(state) == {"physics", "task", "rng"}
-
-
-def test_restore_replays_a_hundred_tick_tail_bit_exactly(env):
-    rng = np.random.default_rng(0)
-    actions = rng.uniform(-1, 1, (100, 3)).astype(np.float32)
-    state = env.snapshot()
-    first = [env.step(a)[0]["qpos"] for a in actions]
-    env.restore(state)
-    second = [env.step(a)[0]["qpos"] for a in actions]
-    assert all(np.array_equal(a, b) for a, b in zip(first, second))
-
-
-def test_restore_brings_the_friction_field_back_with_it(fast_env):
-    """The field is not part of the state because it does not need to be: it is
-    a pure function of puck position, so restoring the positions restores it."""
-    env = fast_env
-    xy = np.array([[0.0, -0.25], [-0.22, 0.10], [0.10, 0.30]])
-    env.reset(seed=1, options={"reset_arm": True, "task": Task(xy, np.zeros(3), 0, 0)})
-    state = env.snapshot()
-    before = env.model.dof_frictionloss.copy()
-
-    env.perturb(0, [0.30, -0.20])
-    env.step(ZERO)
-    assert not np.array_equal(env.model.dof_frictionloss, before)
-
-    env.restore(state)
-    assert np.array_equal(env.model.dof_frictionloss, before)
-
-
-def test_restore_rewinds_the_sampler_too(env):
-    state = env.snapshot()
-    first = env.sample_task()
-    env.restore(state)
-    second = env.sample_task()
-    assert np.array_equal(first.puck_xy, second.puck_xy)
-    assert first.pair == second.pair
 
 
 # -- the friction field ---------------------------------------------------------
