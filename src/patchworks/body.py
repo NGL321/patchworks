@@ -210,6 +210,18 @@ class CellBody(torch.nn.Module):
         biases: CellBiases,
     ) -> torch.Tensor:
         """One map: affine, ReLU, affine — batched over the leading cell dimension."""
+        if biases.shape != self.shape:
+            raise ValueError(
+                f"biases are for n={biases.shape.n}, k={biases.shape.k}; this body "
+                f"is n={self.shape.n}, k={self.shape.k}"
+            )
+        if biases.cells != x.shape[0]:
+            # Refused rather than broadcast: one bias vector spread over many
+            # cells is a population whose cells are all the same cell, which is
+            # the one thing the per-cell surface exists to prevent.
+            raise ValueError(
+                f"{x.shape[0]} cells passed to biases holding {biases.cells}"
+            )
         hidden_weight = getattr(self, f"{name}_hidden_weight")
         output_weight = getattr(self, f"{name}_output_weight")
         hidden_bias, output_bias = biases.of(name)

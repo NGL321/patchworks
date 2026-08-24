@@ -255,3 +255,15 @@ class TestBenchmark:
         samples = body_forward.time_forward(8, BodyShape(n=8, k=3), repeats=3)
         assert len(samples) == 3
         assert all(sample > 0 for sample in samples)
+
+
+class TestMismatchedSurfaces:
+    def test_biases_from_a_different_shape_are_refused(self, body):
+        other = CellBiases(BodyShape(n=64, k=8), CELLS)
+        with pytest.raises(ValueError, match="this body"):
+            body.step(torch.randn(CELLS, K), other)
+
+    def test_one_bias_vector_is_not_broadcast_over_a_population(self, shape, body):
+        single = CellBiases(shape, 1)
+        with pytest.raises(ValueError, match="cells"):
+            body.step(torch.randn(CELLS, K), single)
