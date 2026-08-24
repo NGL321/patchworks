@@ -7,25 +7,11 @@ code is the primary source behind them, not something to build on.
 
 ## Run it
 
-```bash
-python3.12 -m venv .venv-proto
-.venv-proto/bin/pip install 'mujoco==3.10.0' gymnasium numpy imageio
-```
+**Setup and every entry point live in the [repo README](../../README.md) and only there.** Two
+copies drifted apart once already; this file does not keep a second one.
 
-`mujoco` is pinned: newer releases ship no macOS **x86_64** wheels and try to build from source.
-
-```bash
-cd prototypes/sandbox
-
-../../.venv-proto/bin/python watch.py              # scripted pusher, live viewer
-../../.venv-proto/bin/python watch.py --babble     # motor babble instead
-../../.venv-proto/bin/python probe.py              # headless: shapes, reset semantics, sampler
-../../.venv-proto/bin/python achievable.py         # solve rate over sampled tasks
-../../.venv-proto/bin/python precedence_probe.py  # issue #60: the timescale ladder, and blocking
-```
-
-In the viewer, ctrl-drag a puck to perturb the world by hand, and press `r` to rearrange it without
-resetting the arm.
+`precedence_probe.py` is the newest of them — [#60](https://github.com/NGL321/patchworks/issues/60)'s
+timescale ladder and route-blocking constructions.
 
 ## What is a proposal and what is scaffolding
 
