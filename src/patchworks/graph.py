@@ -229,6 +229,11 @@ class DomeSpec:
                 "it has a level for each of them; got "
                 f"{len(self.somatomotor_sizes)} against {len(self.vision_sides)}"
             )
+        if min(self.somatomotor_sizes) < 1:
+            raise ValueError(
+                "every somatomotor level holds at least one cell, got "
+                f"{self.somatomotor_sizes}"
+            )
         if len(self.core_sizes) < 2:
             raise ValueError("the core needs at least two levels")
         if min(self.core_sizes) < 2:
@@ -264,56 +269,43 @@ def _covers(i: int, below: int, above: int, fan: int) -> tuple[int, ...]:
 def _lateral_fill(size: int, deficit: list[int]) -> tuple[list[tuple[int, int]], int]:
     """Sparse lateral edges within one core level, to a per-cell degree target.
 
-    Candidate pairs are enumerated by stride over the level's cyclic index —
-    `(i, i+1)`, then `(i, i+2)`, and so on — and accepted when both endpoints
-    are still short of the level's target degree. Index-generated, deterministic,
-    and no lattice: the core's laterals are a circulant fill, not a grid.
+    The cell furthest from its target is joined to the cells next-furthest from
+    theirs, and is then done; ties among equally-deficient partners go to the
+    nearest in the level's cyclic index, so a level's laterals stay local and no
+    lattice is implied. That is the Havel-Hakimi construction with the tie-break
+    spent on locality, and it realises **every** deficit sequence a simple graph
+    can carry — a greedy sweep in index order does not, and refusing a level it
+    merely failed to solve would refuse construction parameters that are fine.
 
-    The stride sweep is greedy and can strand a cell whose every partner is
-    already satisfied, so a repair pass follows it, pairing the cells furthest
-    from their target first. Returns the edges and how much degree the level is
-    still short — which the caller refuses to build on, because the guaranteed
-    private dimension the taper exists to produce is read straight off these
-    degrees.
+    Returns the edges and how much degree the level is still short, which is
+    non-zero only when no simple graph could have carried the sequence. The
+    caller refuses to build on a shortfall, because the guaranteed private
+    dimension the taper exists to produce is read straight off these degrees.
     """
     remaining = list(deficit)
-    taken: set[tuple[int, int]] = set()
     edges: list[tuple[int, int]] = []
-
-    def join(a: int, b: int) -> None:
-        pair = (min(a, b), max(a, b))
-        taken.add(pair)
-        edges.append(pair)
-        remaining[a] -= 1
-        remaining[b] -= 1
-
-    for stride in range(1, size // 2 + 1):
-        # Within a stride the cells furthest from their target are offered the
-        # edge first. Taking the level in plain index order instead lets an
-        # early cell spend a partner a later one had no other way to reach.
-        for i in sorted(range(size), key=lambda c: (-remaining[c], c)):
-            j = (i + stride) % size
-            if i == j or (min(i, j), max(i, j)) in taken:
-                continue
-            if remaining[i] > 0 and remaining[j] > 0:
-                join(i, j)
-
+    shortfall = 0
     while True:
-        short = sorted(
-            (i for i in range(size) if remaining[i] > 0),
-            key=lambda c: (-remaining[c], c),
-        )
-        if len(short) < 2:
-            break
-        head, rest = short[0], short[1:]
-        partner = next(
-            (c for c in rest if (min(head, c), max(head, c)) not in taken), None
-        )
-        if partner is None:
-            break
-        join(head, partner)
-
-    return edges, sum(remaining)
+        head = max(range(size), key=lambda c: (remaining[c], -c))
+        need = remaining[head]
+        if need == 0:
+            return edges, shortfall
+        # The head is spent in one step and never revisited, which is what keeps
+        # the construction free of parallel edges without tracking which pairs
+        # are taken.
+        remaining[head] = 0
+        partners = sorted(
+            (c for c in range(size) if c != head and remaining[c] > 0),
+            key=lambda c: (
+                -remaining[c],
+                min((c - head) % size, (head - c) % size),
+                c,
+            ),
+        )[:need]
+        for partner in partners:
+            edges.append((min(head, partner), max(head, partner)))
+            remaining[partner] -= 1
+        shortfall += need - len(partners)
 
 
 class _Builder:
@@ -501,18 +493,29 @@ def build_graph(spec: DomeSpec = DEFAULT_SPEC) -> "Dome":
         target = (
             spec.apex_degree if level_index == len(core_levels) - 1 else spec.core_degree
         )
-        deficit = [max(0, target - degree[cell]) for cell in level]
+        vertical = [degree[cell] for cell in level]
+        # A level can miss its target in either direction, and the guaranteed
+        # private dimension is read straight off these degrees — so both are
+        # refused rather than built and reported, which would leave the recorded
+        # gradient quietly untrue. Overshoot has no repair at all: lateral edges
+        # can be withheld but vertical ones follow from the taper, and no edge is
+        # ever removed.
+        if max(vertical) > target:
+            raise ValueError(
+                f"the core level of {len(level)} cells overshoots degree "
+                f"{target}: its cells already carry {vertical} vertical edges, "
+                "and no edge is ever removed."
+            )
+        deficit = [target - d for d in vertical]
         lateral, shortfall = _lateral_fill(len(level), deficit)
         # One cell may be a single edge short when the level's total deficit is
-        # odd, which no simple graph can absorb. More than that means these
-        # construction parameters cannot hold the level at its degree, and the
-        # private-dimension gradient would silently stop being what the record
-        # says it is — so it is refused rather than built and reported.
+        # odd, which no simple graph can absorb. Anything more means no simple
+        # graph carries this level's degrees at all.
         if shortfall > sum(deficit) % 2:
             raise ValueError(
                 f"the core level of {len(level)} cells cannot reach degree "
                 f"{target}: {shortfall} short. Its cells already carry "
-                f"{[degree[cell] for cell in level]} vertical edges."
+                f"{vertical} vertical edges."
             )
         for i, j in lateral:
             b.edge(level[i], level[j])
@@ -558,6 +561,12 @@ class Dome:
     _permitted: tuple[int, ...] = field(repr=False)
     """How many leading node stalk directions a cell exposes on its edges, by cell id."""
 
+    _private_mask: torch.Tensor = field(repr=False, compare=False)
+    """:attr:`private_mask`'s tensor, built once in :meth:`_assemble` from
+    :attr:`_permitted` and handed out only as a copy. Out of the dataclass's
+    comparison because a tensor has no truth value; the tuple beside it carries
+    the same fact and does compare."""
+
     @classmethod
     def _assemble(
         cls, spec: DomeSpec, cells: tuple[Cell, ...], edges: tuple[Edge, ...]
@@ -585,6 +594,10 @@ class Dome:
         permitted = [
             c.stalk if c.is_boundary else min(c.stalk, stalk_sums[c.id]) for c in cells
         ]
+        predicting = tuple(c.id for c in cells if not c.is_boundary)
+        mask = torch.ones((len(predicting), spec.n), dtype=torch.bool)
+        for row, cell_id in enumerate(predicting):
+            mask[row, : permitted[cell_id]] = False
         return cls(
             spec=spec,
             cells=cells,
@@ -592,9 +605,10 @@ class Dome:
             incident=tuple(tuple(ids) for ids in incident),
             degrees=tuple(len(ids) for ids in incident),
             stalk_sums=tuple(stalk_sums),
-            predicting=tuple(c.id for c in cells if not c.is_boundary),
+            predicting=predicting,
             boundary=tuple(c.id for c in cells if c.is_boundary),
             _permitted=tuple(permitted),
+            _private_mask=mask,
         )
 
     # -- runtime surface ---------------------------------------------------
@@ -626,15 +640,12 @@ class Dome:
         (`docs/spec/01-cell-and-sheaf.md`, *`H^0` is the private features*). Rows
         are indexed by :attr:`predicting`, not by cell id.
 
-        Built from :attr:`_permitted` on each read rather than held as a tensor,
-        so it is the same fact :meth:`restriction_mask` reports and the two can
-        never drift apart. The mask closes and never re-opens: writing into what
-        this returns changes nothing.
+        Built once at construction from the same :attr:`_permitted` that
+        :meth:`restriction_mask` reads, so the two cannot drift apart, and handed
+        out as a copy. The mask closes and never re-opens: writing into what this
+        returns changes nothing.
         """
-        mask = torch.ones((len(self.predicting), self.spec.n), dtype=torch.bool)
-        for row, cell_id in enumerate(self.predicting):
-            mask[row, : self._permitted[cell_id]] = False
-        return mask
+        return self._private_mask.clone()
 
     @property
     def private_projection(self) -> torch.Tensor:
@@ -645,12 +656,12 @@ class Dome:
         directions reconciliation cannot move — the cell's `H^0` component, which
         is what makes slow state and commitment possible at all.
         """
-        return self.private_mask.to(torch.float32)
+        return self._private_mask.to(torch.float32)
 
     @property
     def private_dimensions(self) -> torch.Tensor:
         """`[cells]` int over predicting cells: `max(0, n - sum_e m_e)`."""
-        return self.private_mask.sum(dim=-1)
+        return self._private_mask.sum(dim=-1)
 
     def neighbours(self, cell_id: int) -> tuple[int, ...]:
         return tuple(self.edges[e].other(cell_id) for e in self.incident[cell_id])

@@ -491,10 +491,38 @@ class TestConstruction:
 
     def test_a_core_level_that_cannot_hold_its_degree_is_refused(self):
         # Rather than built and reported: the guaranteed private dimension is
-        # read straight off these degrees, so a level that quietly falls short
-        # would make the recorded gradient stop being true with nothing saying so.
-        with pytest.raises(ValueError, match="cannot reach degree"):
+        # read straight off these degrees, so a level that quietly missed its
+        # target would make the recorded gradient stop being true with nothing
+        # saying so. It can miss in either direction, and both are refused.
+        with pytest.raises(ValueError, match="overshoots degree"):
             build_graph(DomeSpec(core_sizes=(2, 2)))
+        with pytest.raises(ValueError, match="cannot reach degree"):
+            build_graph(
+                DomeSpec(
+                    patch_grid=4,
+                    vision_sides=(2, 1),
+                    somatomotor_sizes=(2, 1),
+                    core_sizes=(2, 2),
+                )
+            )
+
+    @pytest.mark.parametrize(
+        "core_sizes",
+        [(16, 14, 12, 10, 8), (8, 7, 6, 5, 4), (20, 16, 12, 8, 4), (7, 5, 4, 3, 2)],
+    )
+    def test_every_core_that_builds_holds_its_degree_exactly(self, core_sizes):
+        # A level is realised when a simple graph can carry its degrees, not when
+        # a sweep in index order happens to find the pairing. These four all can.
+        built = build_graph(DomeSpec(core_sizes=core_sizes))
+        for level in range(3, APEX_LEVEL):
+            assert {built.degrees[i] for i in _by_level(built, level, "core")} == {6}
+        assert {
+            built.degrees[i] - 1 for i in _by_level(built, APEX_LEVEL, "core")
+        } == {4}
+
+    def test_an_empty_somatomotor_level_is_refused(self):
+        with pytest.raises(ValueError, match="at least one cell"):
+            DomeSpec(somatomotor_sizes=(0, 0))
 
     def test_the_column_runs_parallel_to_the_vision_lattices(self):
         with pytest.raises(ValueError, match="a level for each of them"):
