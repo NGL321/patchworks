@@ -58,9 +58,8 @@ what was built and timed. Whether the printed constant or the printed rule is th
 (patchworks#84). `decode` is not on the chart's round trip, so no fold-margin number in the record
 was computed at a `decode` width either way, and one hidden unit does not move a 0.13 ms reading.
 
-The two stand-in rows are kept rather than deleted, because
-neither is superseded outright — a tick is more than a body, and reconciliation over ~698 edges is
-not measured here.
+The two stand-in rows are kept rather than deleted, because neither is superseded outright — a tick
+is more than a body, and reconciliation over ~698 edges is not measured here.
 
 ## The locality guard
 
