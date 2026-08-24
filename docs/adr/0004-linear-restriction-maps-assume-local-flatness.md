@@ -41,6 +41,25 @@ piece; `n` is the room needed to talk about it with neighbours.**
   rate of change does *not* separate them: approximation error grows with displacement along the
   overlap, so both move together.
 
+  **Further amended by [#49](https://github.com/NGL321/patchworks/issues/49): a third cause, read
+  forwards rather than backwards.** A stalk too narrow to embed the piece it carries produces
+  **self-intersection** — two distinct situations at the same coordinates — and it surfaces as
+  persistent structured disagreement exactly like curvature does
+  ([ADR-0007](./0007-the-disagreement-floor-is-tolerated-not-represented.md) carries it as a static-floor
+  source; this clause carries the reading). It has a distinguishing test the other two lack — widen the
+  stalk and the residual falls — but that test is **not available on a running system**: `n`, `k` and `m`
+  are fixed at construction and the body is shared and frozen, so "widen" means rebuilding the graph and
+  training again. It is a comparison between two builds, not a diagnostic, and it is named here so nobody
+  reaches for it mid-run.
+
+  **So this cause is read forwards.** Its criterion is known before anything runs — an embedding is
+  generic once the coordinate count exceeds twice the piece's box-counting dimension — which makes
+  self-intersection **predictable at construction** rather than diagnosable afterwards, the same shape as
+  every other check in this design (`γ × floor <` fold margin, `dim H⁰ ≥ …`, `χ`). The practical
+  consequence is that a build satisfying the criterion may *drop* this cause from the reading and
+  disambiguate the remaining two by quiescent hold, and a build that does not satisfy it — which
+  `06-graph-topology.md` flags as possible at `m = 4` — knows *which edges* to suspect in advance.
+
 - **Linearity is what keeps this test readable.** A linear map has no constant term, so it cannot
   absorb a persistent offset in an edge stalk — and a curvature residual's constant part is exactly
   such an offset. Affine restriction maps would launder the signature away into a learned offset while

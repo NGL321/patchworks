@@ -22,7 +22,7 @@ N_TASKS = 24
 
 
 def main():
-    for split in ("train", "heldout"):
+    for split in ("train", "heldout_pair", "heldout_sector"):
         env = PlanarPushSandbox(split=split, seed=11, render_obs=False)
         policy = ScriptedPusher(env)
         obs, info = env.reset(seed=11)

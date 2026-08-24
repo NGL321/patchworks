@@ -142,14 +142,49 @@ The bound binds hardest at the apex, since `gain_v = γ / Σ_e m_e` and `Σ_e m_
 (`06-graph-topology.md`) — exactly where the slow cells are meant to live. Failing it there is not
 only a reconciliation-stability problem; it is the timescale claim itself failing.
 
-**Body width pulls both ways on this, and the two directions are the same axis.** Hanin & Rolnick
+**Body width sets the fold margin, and that trade is global rather than per-cell.** Hanin & Rolnick
 give mean distance to the nearest region boundary as scaling like `1/#neurons`, so a **wider body has
 a smaller fold margin** — while narrowness is also what supplies the dispersion (`β = Σ 1/n_j`,
 [#27](https://github.com/NGL321/patchworks/issues/27) §4). Wide: stable timescales, little spread.
-Narrow: real spread, margins that may not hold. The choice of where to sit on that axis belongs to
-the body's construction and is [#42](https://github.com/NGL321/patchworks/issues/42)'s, alongside
-the `σ_w²` coupling it already owns; recorded here because this section is what pays for a bad
-choice.
+Narrow: real spread, margins that may not hold. Recorded here because this section is what pays for a
+bad choice.
+
+**That choice is now made, and it was cheaper than the axis suggests.**
+[`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md)'s *The body's construction* sizes each map at its own
+minimum width — 45 / 13 / 33 for `encode` / `step` / `decode` — on the measurement that the wide end
+of the axis buys no spread to trade for the margin it costs (τ ratio 2.4 at `[128]`/`[32]` against 2.7
+at `[45]`/`[13]`, median fold margin 0.0067 against 0.019). The three maps are also **sized
+separately**, and the margin follows the narrowest map on the chart's round trip, so `encode` can meet
+a floor `step` never pays for.
+
+[#42](https://github.com/NGL321/patchworks/issues/42) is why that choice costs nothing per cell:
+**inside a fixed body a cell's decay rate and its fold margin are uncorrelated** — `corr(log ρ, log
+margin) = −0.006` over 20,000 bias draws, with the slowest 1% of cells holding the same median margin
+as the fastest 50%. Selecting a cell slow therefore does not cost that cell its region definition:
+the trade above is paid **once, in the body's widths**, and never again per cell.
+
+### What "stable" means here
+
+A cell is not unstable because some region it occupies has `ρ ≥ 1`. What has to contract is the
+**trajectory**: `λ = lim (1/T) log‖J_T ⋯ J_1‖ < 0`, averaged over the regions the cell actually
+visits. [#42](https://github.com/NGL321/patchworks/issues/42) measured 200 cells with biases fixed
+and the operating point resampled every tick — the *no-dwell* extreme, the fastest possible
+region-hopping — and found **none divergent** even where 19% of the regions drawn were expansive.
+The static count of cells past `ρ = 1` that [#27](https://github.com/NGL321/patchworks/issues/27)
+reported was counting **region draws, not cells**, and is retired.
+
+`max ρ < 1` survives, demoted. If no region a cell can occupy is expansive then no trajectory
+through them can diverge, whatever the dwell — so it is a **sufficient** condition: cheap,
+computable from the frozen body before anything is trained, and far stronger than necessary. It is
+what the *construction* checks; `λ` is what the go/no-go *measures*, once there is a trajectory to
+measure on.
+
+**This is also why spread and stability were never two knobs.** Both arms are the same function of
+region dwell. Where dwell is short, the spread averages away — the same cells whose per-region `τ`
+spans 7.7× realise a ratio of 1.7–3.5 — and expansive regions are harmless because nothing sits in
+them. Where dwell is long, the cell has a genuine timescale *and* a cell parked in an expansive
+region genuinely diverges. The fold margin is therefore doing a third job, alongside the two named
+above: it is what makes an expansive region dangerous.
 
 ### What being a distribution costs, and what it buys
 
@@ -175,36 +210,81 @@ problem and is what a shared piecewise-linear body with per-cell fold offsets ac
 
 ## What this requires elsewhere
 
-**A body whose regional spectra actually spread.** If the distribution of regional Jacobian spectral
-radii — across the bias settings cells occupy — is a spike, every cell lands in the same dynamic
-regime and nothing differentiates. Initialisation is a parameter of the body
-(`01-cell-and-sheaf.md`), and this is the first thing that freedom is spent on: the body is to be
-constructed for spread, not merely assumed to have it. Whether such a construction exists was
-[#27](https://github.com/NGL321/patchworks/issues/27), and the answer is **constructible but
-coupled**: the spread is available, narrowness supplies it, and the same global knob that buys it
-also positions the distribution against the stability boundary
-([#42](https://github.com/NGL321/patchworks/issues/42)).
+**A body whose regional spectra actually spread, and a construction that places them.** If the
+distribution of regional Jacobian spectral radii — across the bias settings cells occupy — is a
+spike, every cell lands in the same dynamic regime and nothing differentiates. Initialisation is a
+parameter of the body (`01-cell-and-sheaf.md`), and this is the first thing that freedom is spent
+on: the body is to be constructed for spread, not merely assumed to have it. Whether such a
+construction exists was [#27](https://github.com/NGL321/patchworks/issues/27) — *constructible but
+coupled* — and [#42](https://github.com/NGL321/patchworks/issues/42) took the coupling apart. The
+construction has four parts, and they are as much a constraint on the body as `n = 32` and `k = 12`:
+
+1. **`σ_w²` is set for containment, and never asked to buy spread.** It is a global, shared,
+   frozen quantity; using it to widen the `τ` distribution is what put a material fraction of
+   regions past `ρ = 1` in #27's sweep. Its only job is to keep the body's realised contraction
+   negative with margin.
+2. **The spread is imposed by selection, not by drawing.** Draw candidate bias vectors, measure the
+   timescale each one produces, and **keep a set whose timescales cover the target band** —
+   discarding the rest. Nothing is added to the architecture: no rate is stored, no parameter is
+   introduced, and a cell's rate is still whatever its region gives it, so
+   [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md) is untouched. What changes is
+   that the spread stops depending on what an iid draw happens to yield. Measured on the rig: taken
+   *as drawn*, 400 cells span a `τ` ratio of 4.5 with the boundary clear; **selected** from that
+   same distribution the reachable span is 16×, and 20,000 draws contain bias vectors whose regional
+   `τ` is ≥ 100 ticks with `ρ` still under one. Those candidates are *reachable*, not yet *usable*:
+   whether one holds up is a `λ` question, which is what the cap below is for.
+3. **The target is a range in ticks, derived from the acceptance demo's perturbation horizons** —
+   the shape chrono initialisation and S4D both use, where the range comes from the task rather
+   than from whatever the initialisation produced. The number is deliberately *not* fixed here: the
+   demo is still open ([#10](https://github.com/NGL321/patchworks/issues/10),
+   [#17](https://github.com/NGL321/patchworks/issues/17),
+   [#30](https://github.com/NGL321/patchworks/issues/30)) and is likely to grow as compositional
+   behaviour is asked for. What is fixed is the derivation: **the fastest band must resolve the
+   fastest perturbation the demo applies, and the slowest must outlast the longest one.**
+4. **The slow end is capped by measured contraction, not by a `ρ` ceiling.** The cap is the slowest
+   `τ` for which realised `λ` stays negative by a stated safety factor — a number the construction
+   run produces *per body*, not a constant written down here. The factor is not decorative: #27
+   measured a 2.6× one-tick non-normal amplification, and the slow-and-stable band is thin (of
+   20,000 draws at one candidate width, `ρ ∈ [0.98, 1)` holds 0.15% while `ρ ≥ 1` holds 0.53%), so
+   a cell placed at `ρ = 0.99` is one bias update from crossing.
+
+**Selected timescales are assigned by level, in overlapping bands.** The taper's gradient
+(`06-graph-topology.md`) is continuous, not two rates: adjacent levels overlap and only their
+distributions separate, exactly as *The taper's timescale gradient is a gradient in means* has it.
+Banding is a **construction choice and it costs a piece of evidence** — the correspondence between
+depth and timescale is now built rather than found, so it can no longer be cited as the mechanism
+working. What stays falsifiable is behavioural: recovery at the level matching the perturbation's
+horizon. It does not weaken ADR-0005's prohibition, which is about *runtime*: the placement happens
+once, at construction, and leaves no rate for anything to consult afterwards.
 
 **A cheap go/no-go before anything is built.** This is the falsification condition for
 [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md), so what counts as passing is
 specified here and does not drift with the rig. The run must establish three things:
 
-1. **Spread in realised decay across cells**, reported as **quantiles of `τ`** rather than moments of
-   `ρ`. `τ = −1/ln ρ` diverges as `ρ → 1`, so moments of the spread are dominated by the tail; a
-   quantile ratio is stable where a standard deviation is not.
+1. **Reachability of the target band**, reported as **acceptance rate per band** — what fraction of
+   drawn bias vectors land in each band of the target range. Spread itself is no longer a
+   falsifier, because under *selection* above the spread is constructed rather than observed; what
+   can still fail is the body being unable to *reach* a band at any sampling budget, which kills
+   the mechanism exactly as a spike would have. This arm is cheap and runs before anything is
+   trained. Where `τ` is reported it is reported as **quantiles** rather than moments: `τ = −1/ln ρ`
+   diverges as `ρ → 1`, so moments are dominated by the tail.
 2. **Measured over a driven trajectory, with the operating point varying as it will at runtime** —
    not at a frozen chart and stalk. A sweep that varies biases at a fixed operating point measures
    roughly half the phenomenon and attributes all of it to the biases. The same run reports **region
    dwell** per cell, which is what makes the `τ` it reports meaningful.
-3. **Decay cross-checked against something other than an eigenvalue.** The regional Jacobians are
+3. **Decay reported as realised contraction `λ`, not as an eigenvalue.** The regional Jacobians are
    non-normal, and `ρ < 1` is not sufficient for a bounded response (Yildiz, Jaeger & Kiebel 2012);
    `ρ` alone will mis-state the rate on the first ticks, which are the ticks reconciliation acts on.
+   `λ` is the stability object (*What "stable" means here*); `max ρ < 1` is the construction-time
+   sufficient check, and this run is where the sufficient check gives way to the measurement.
 
-If the `τ` distribution is a spike, this mechanism is dead and the afternoon that established it was
-well spent. If it is spread but dwell is short against `τ`, the mechanism is not dead but it is not
-this one either — see *The precondition* above.
+If no draw reaches the slow band, this mechanism is dead and the afternoon that established it was
+well spent. If the band is reachable but dwell is short against `τ`, the mechanism is not dead but
+it is not this one either — see *The precondition* above.
 
-The estimator is the rig's: `prototypes/regional-spectra/spread_pilot.py` holds the
+The estimator is the rig's: `prototypes/regional-spectra/spread_pilot.py` and its extension
+`selection_sweep.py` — the latter adding separate `encode`/`step` widths, the fold-margin column,
+the tail-reachability count and the trajectory `λ` estimator #42 decided on — hold the
 eigendecomposition, the seeds, the sample sizes (50 cells suffice), and the pseudospectral tooling
 for the non-normality gap. Two limits are structural rather than provisional, and the go/no-go is
 read as a **shape check** because of them: the body's widths, depth and activation are not yet fixed,
@@ -397,6 +477,16 @@ the cell passed through. It was never an eigenvalue, and it must not become one.
   section's mechanism; see *The change gate, pre-specified* above for its trigger, its shape, and
   what it costs. No longer open exposure: [#20](https://github.com/NGL321/patchworks/issues/20)
   settled it.
+- **The selected spread is an initialisation, and the biases drift off it.** The construction places
+  each cell's timescale in its level's band, but the biases *are* the adapting surface
+  ([ADR-0001](../adr/0001-continual-learning-applies-to-the-adapting-surface.md)) and the local rule
+  moves them every tick — [#33](https://github.com/NGL321/patchworks/issues/33) found it can leave a
+  mid-depth cell oscillating between activation regions under ambiguous evidence. So a band is where
+  a cell **started**, not where it stays. **Nothing re-selects**, and deliberately: re-selection
+  needs a rate to steer toward, which is exactly the runtime parameter ADR-0005 refuses. Recorded
+  rather than addressed, and self-announcing — the *Demonstrating it* readout is already a live
+  per-cell trace of `‖Δ(private component)‖`, so drift appears in an instrument that exists. This is
+  the first place to look if the timescale gradient degrades over a long run.
 - **A confidence gate is not a substitute.** Suppressing transmission when a belief is *uninformative*
   sparsifies the graph but decimates nothing in time — a confident, fast-changing cell still sends
   every tick. Recorded because the two gates are easy to conflate, and only one is a low-pass filter.

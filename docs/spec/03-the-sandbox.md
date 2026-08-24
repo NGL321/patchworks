@@ -156,7 +156,7 @@ demo's load-bearing measure is onset latency
 ([`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md)): ticks from the event to the first
 corrective torque, which needs the event to be perceivable at a known tick. From a hidden event the
 interval becomes event → search → discovery → correction, and search duration is a property of where
-a fovea happened to be pointing. It would swamp the two-to-four-hop difference the depth ordering
+a fovea happened to be pointing. It would swamp the one-to-four-hop difference the depth ordering
 rests on, and the teleported puck is the *intermediate* rung precisely because a displacement
 arrives through vision at ~4 hops.
 
@@ -293,7 +293,8 @@ annulus; the goal is one of 3×3 puck-zone pairs.
 Left to itself the sampler makes one puck matter and leaves the other two as scenery that may or may
 not be in the way. That gives the task set a **precedence depth of 1**: every push is locally
 correctable, nothing must happen before anything else, and the pedestal — the one feature that could
-impose an order — was measured as a graze (37–41% of tasks have a straight puck→zone line anyway).
+impose an order — was measured as a graze (59–63% of tasks have a straight puck→zone line anyway, and
+the rest detour a median 4%).
 
 So a fixed fraction of sampled layouts **place a non-target puck across the target's route**, where
 "across" is `prototypes/route-geometry`'s existing homotopy check applied to a puck instead of the
@@ -312,8 +313,25 @@ combinatorially and spatially:
 - **Sector**: training never places the *target* puck in the wedge between 30° and 75° at radius
   above 0.22.
 
-`split="train"` samples the complement of both; `split="heldout"` samples the union; `split="any"`
-ignores the distinction.
+`split="train"` samples the complement of both. `split="heldout_pair"` and `split="heldout_sector"`
+sample one axis each; `split="any"` ignores the distinction. **There is deliberately no value that
+returns the union.** The two axes are not the same kind of holdout: withholding two puck-zone pairs
+leaves every puck, zone and region seen and withholds only compounds, while withholding a sector
+removes a target-puck position outright. A single value spanning both would produce a number
+attributable to neither, and the value would get reached for precisely because it exists. Naming
+them separately costs a line in the sampler and makes the confound unconstructible.
+
+The sector axis has no reader in this proof of concept — nothing samples it, and the demo's
+compositional claim rides on the pair axis alone ([`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md),
+*The repeated runs*). It is kept rather than deleted because it is a clean handle for the second
+proof of concept, and kept *separate* so that effort inherits an axis rather than a union.
+
+**No zone lies inside the wedge, but not by much.** Zone centres sit at 90°, 210° and 330°; a zone's
+0.075 m radius at 0.30 m subtends about 14.5°, so `zone_0` spans roughly 75.5° to 104.5° — tangent
+to the wedge's upper edge with about half a degree to spare. The sector holdout therefore does not
+silently restrict approach geometry for pair-holdout tasks. Recorded because the margin is thin
+enough that moving a zone or widening the wedge would couple the two axes without anything
+announcing it.
 
 ## The Gymnasium contract, made continual
 
@@ -333,7 +351,14 @@ placeholders:
   connected architecture. This is *not* the same claim as "no episodes"; a bounded replay of a
   non-episodic recording would satisfy that and not this.
 - **Privileged truth lives in `info`** — puck poses, goal identity, goal distance, whether the goal
-  is satisfied. It is for logging and evaluation only. Feeding it to the agent defeats the sandbox.
+  is satisfied. It is for logging and for the acceptance demo's instrumentation only. Feeding it to
+  the agent defeats the sandbox. *Evaluation* here means the pre-registered readouts of
+  [`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md) and nothing else, which fixes `info`'s
+  three consumers: goal satisfaction as a **gate** on whether a trial is valid, puck poses to place
+  `perturb()` and to compute onset ground truth, and goal identity for `retarget()`. **Goal
+  satisfaction is a gate, never a score** — no rate is aggregated over trials, which is why the
+  absence of a scalar on which two runs could be compared is a property of this sandbox rather than
+  a gap in it.
 
 Because there is no episode boundary to restart from, reproducibility comes from
 **snapshot/restore** of the full state, consistent with
@@ -342,6 +367,14 @@ Because there is no episode boundary to restart from, reproducibility comes from
 The friction field (*The table is not uniform*, above) writes to the model every tick and is
 deliberately **not** part of this state: it is a pure function of puck position, so restoring the
 state restores the field with it.
+
+**A restore is not a reset**, and the two must not be read as the same operation wearing different
+names. `reset()` is **in-band**: it is part of normal operation, the agent lives through it, and it
+finds out by being wrong. A **restore** rewinds the whole universe, the agent's own adapting surface
+included, and is therefore invisible from inside — there is no tick at which a cell could observe
+one. It never appears in the env's contract; it is an experimenter's tool. That is what lets
+evaluation have a defined start without bending the reset-free contract, and it is the distinction
+[ADR-0001](../adr/0001-continual-learning-applies-to-the-adapting-surface.md) records.
 
 Name the engine constant, never an enumeration of fields. MuJoCo defines `mjSTATE_INTEGRATION` as
 the entire set of inputs to the forward dynamics, so it tracks the model: an enumeration drifts the
@@ -378,8 +411,8 @@ drifting, a malformed `info` — breaks the build instead of being lost in a kno
 
 **A step limit is refused, not merely undocumented.** `make()` wraps in `TimeLimit` whenever
 `max_episode_steps` is passed or carried on the registered spec, and `TimeLimit` sets
-`truncated=True` **and calls `reset()`** — which here is not a restart but an unannounced
-rearrangement of the world mid-trajectory. The registration therefore sets
+`truncated=True` — which every standard loop **resets on**, and a reset here is not a restart but an
+unannounced rearrangement of the world mid-trajectory. The registration therefore sets
 `max_episode_steps=None`, and the env **raises** if it finds a spec-level limit present rather than
 trusting that a caller read this paragraph. The reasoning is the snapshot list's: prefer the
 constraint that cannot drift to the sentence nobody rereads.
@@ -396,9 +429,13 @@ boundary-agnostic regime partly because their metrics stop being *computable* wi
 Continual World's forgetting measure and CORA's isolated forgetting both index by task boundary.
 Patchworks keeps the boundaries in `info`, so its metrics stay computable; the exposure is that no
 cited benchmark asks of its agents what this one asks, so there is no established metric shape to
-inherit and one must be defined outright. That definition is the evaluation protocol's job
-([#23](https://github.com/NGL321/patchworks/issues/23)), not this file's, and it is a debt rather
-than a defect.
+inherit and one must be defined outright.
+
+**The debt is now discharged, and smaller than it looked.** No metric shape is inherited because
+none is needed: the map rules baselines, benchmarks and degree of success out of scope, so nothing
+here aggregates. What had to be defined outright was not a metric but a **trial** — a defined start
+for the repeated runs the acceptance demo's latency ordering is computed over. That definition lives
+in [`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md), *The repeated runs*.
 
 ### The human's hand
 
