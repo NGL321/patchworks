@@ -44,9 +44,24 @@ each already committed to for other reasons:
   condition, now stated in `05-timescales.md`: a cell's **region dwell** must be long against the
   `τ` its region implies, for which the **fold margin** is the construction-time proxy.
 
+  *Its premise, recorded by [#49](https://github.com/NGL321/patchworks/issues/49):* all of this
+  presupposes a **piecewise-linear** body. Activation regions, folds, the regional spectrum and dwell
+  are objects only a piecewise-linear network has — under a smooth activation the Jacobian varies
+  continuously and none of them has a referent. The commitment (ReLU, and why the class rather than the
+  instance is what matters) is in `01-cell-and-sheaf.md`, *The body's construction*; it is noted here
+  because this is the decision that would fall if it were ever swapped away.
+
 **Nothing in the architecture reads a cell's timescale.** It is observable from outside only, never
 an input to any computation and never a selection criterion. Under the amendment above this is
 **structural rather than disciplinary** — a per-tick draw is not a value anything could branch on.
+
+*Sharpened by [#42](https://github.com/NGL321/patchworks/issues/42):* the prohibition is about
+**runtime**, and needs saying that way, because the body's construction now *does* select on
+timescale. Cells are built by drawing candidate bias vectors, measuring the timescale each produces,
+and keeping a set that covers a target band (`05-timescales.md`, *What this requires elsewhere*).
+That is a construction-time criterion applied once, from outside, leaving no stored rate behind; no
+cell, edge or rule can consult a timescale while the graph is running, which is the property this
+decision protects and the property the clock divisor has to be interchangeable with.
 
 **An explicit clock divisor is built first, as an instrument** — the rig that establishes the
 capability depends on timescale at all — and thereby becomes an already-validated fallback.
@@ -59,13 +74,22 @@ capability depends on timescale at all — and thereby becomes an already-valida
 - The body must be **constructed** for spread in its regional spectra, not assumed to have it.
   [#27](https://github.com/NGL321/patchworks/issues/27) answered *constructible but coupled* — the
   spread is available and narrowness supplies it, but the same global knob positions the distribution
-  against the stability boundary ([#42](https://github.com/NGL321/patchworks/issues/42)).
+  against the stability boundary. [#42](https://github.com/NGL321/patchworks/issues/42) resolved the
+  coupling: **`σ_w²` is set for containment only, and the spread is imposed by selecting bias vectors
+  rather than drawing them**, then assigned to levels in overlapping bands whose range is derived
+  from the demo's perturbation horizons. Spread and stability were never two knobs — both are
+  functions of region dwell — and the stability object is the trajectory's realised contraction `λ`,
+  with `max ρ < 1` demoted to a cheap sufficient check available before training. The cost recorded
+  with it: the depth↔timescale correspondence is now built rather than found, so only the
+  *behavioural* claim remains falsifiable.
 - **`02-tick-semantics.md`'s `γ × floor <` fold margin bound is now a precondition of this decision,**
   not only a reconciliation-stability check: the margin is what makes a cell's region — and therefore
   its timescale — a well-defined object. It binds hardest at the apex, where the slow cells live.
 - **The go/no-go run's passing criterion is specified rather than left to the rig** (`05-timescales.md`):
-  `τ` in quantiles, measured over a driven trajectory with the operating point varying, with dwell
-  reported alongside and decay cross-checked against something other than an eigenvalue.
+  reachability of the target band as an acceptance rate, measured over a driven trajectory with the
+  operating point varying, with dwell reported alongside and decay reported as realised `λ` rather
+  than an eigenvalue. Per #42 the first arm is *reachability*, not spread — spread is constructed
+  now, so it can no longer falsify anything; a body that cannot reach the slow band still can.
 - **The biases become over-subscribed** — three geometrically distinct jobs on one per-cell vector,
   the third being to preserve private directions through a frozen `encode`. First concrete argument
   for pulling per-cell adapters off the flex ladder early.

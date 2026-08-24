@@ -127,9 +127,36 @@ _Avoid_: hidden features, internal state (reserve that for the chart), latent
 How slowly a cell's content changes — set by how much private structure it holds and by the
 *distribution* of regional spectra its biases select, not by any one of them. A mean rate rather
 than a fixed one, and well defined only while the cell's region dwell is long against it. A property
-measured from outside, never an input to any computation and never a criterion anything selects on —
-and under the distributional reading there is no constant for anything to read even in principle.
+measured from outside, never an input to any computation and **never a criterion anything selects on
+at runtime** — though it is exactly the criterion the body's construction selects biases against,
+once, before the graph runs. Under the distributional reading there is no constant for a running
+cell to read even in principle.
 _Avoid_: clock rate, update rate, level, tier, frequency
+
+**Activation region**:
+One of the finitely many convex regions of chart values on which the shared cell body is exactly
+affine. The body's activation is piecewise-linear, which is what makes these regions exist at all; a
+**fold** is a boundary between two of them, and a cell crosses one when its chart moves far enough.
+Everything the timescale mechanism is built from is a property of the region a cell occupies, not of
+the cell — see *Regional spectrum*, *Region dwell*, *Fold margin*.
+_Avoid_: linear region, cell, piece (reserve that for the sub-problem), basin
+
+**Timescale band**:
+The range of effective timescales a level of the taper is built to hold. Cells are placed in one by
+construction — bias vectors are drawn, measured, and kept if they land in the band — and adjacent
+levels' bands **overlap**, so the taper's gradient is continuous and separates levels only as
+distributions. A band is where a cell started, not a property it has: nothing stores it, nothing
+re-selects, and the biases drift off it as they adapt.
+_Avoid_: tier, layer rate, timescale level, clock band
+
+**Realised contraction rate**:
+`λ`, the rate at which a cell's private content actually decays along the trajectory it walks —
+averaged over every activation region it visits, not read off any one of them. The stability object:
+a cell is unstable when `λ ≥ 0`, which is not the same as occupying a region whose spectral radius
+exceeds one. `max ρ < 1` over the regions a cell can reach is a *sufficient* condition for `λ < 0`,
+cheap enough to check before training and far stronger than necessary.
+_Avoid_: stability margin, spectral radius (for this object), Lyapunov exponent (unless the
+long-run limit is meant literally)
 
 **Regional spectrum**:
 The spectrum of the local Jacobian of whichever activation region of the shared body a cell occupies
@@ -148,10 +175,12 @@ _Avoid_: region residence, switching rate, region stability
 
 **Fold margin**:
 How far a cell sits from the nearest boundary of the activation region it occupies in the shared
-body. Two jobs: it bounds how much the cell's operating point may be shifted before it lands in a
-region with a different decay rate, and it is the construction-time proxy for region dwell — a cell
-with a small margin has no well-defined effective timescale at all. Falls as the body gets wider, the
-same axis along which spread is bought by narrowness.
+body. Three jobs: it bounds how much the cell's operating point may be shifted before it lands in a
+region with a different decay rate; it is the construction-time proxy for region dwell — a cell
+with a small margin has no well-defined effective timescale at all — and, third, it is what makes an
+expansive region dangerous rather than a harmless transient. Falls as the body gets wider, and is
+read from the narrowest map on the chart's round trip; that trade is global, paid once in the body's
+widths, and inside a fixed body a cell's margin is uncorrelated with its decay rate.
 _Avoid_: slack, headroom, distance to boundary
 
 **Inference phase**:
@@ -412,9 +441,10 @@ _Avoid_: task complexity, horizon, difficulty, planning depth, commitment
 **Acceptance demo**:
 The single live interaction the proof of concept is judged by: a human disturbs the agent mid-task
 and the agent recovers at the appropriate level of its hierarchy. One named protocol with fixed
-pass and fail conditions, settled before the run — not a category of demonstration and not a
-synonym for evaluation, which is the broader reporting contract over many trials.
-_Avoid_: the demo (bare), evaluation, benchmark, test run, showcase
+pass and fail conditions, settled before the run — not a category of demonstration. **Evaluation**
+is not a broader thing that contains it: the two are coextensive. The demo's pre-registered readouts
+are the whole of what "evaluation" names here, and nothing aggregates a score over runs.
+_Avoid_: the demo (bare), benchmark, test run, showcase
 
 **Onset latency**:
 Ticks from a disturbance to the first corrective torque. The demo's temporal measure, chosen
@@ -422,6 +452,21 @@ because it is a property of the graph — how far a correction had to travel bef
 settling or decay time would be a property of the body's mechanics. Reported per event; a
 difference in onset is what "recovered at a different level" means in time rather than in hops.
 _Avoid_: reaction time, settling time, response time, recovery time, latency (bare)
+
+**Trial**:
+One measured disturbance: a restore to a snapshot tick, one event fired, one onset latency recorded.
+The unit the demo's latency ordering is computed over, and the only unit there is — a world with no
+episodes has no other. A trial is *valid* or discarded on pre-registered grounds, never scored; goal
+satisfaction gates admission and contributes no number.
+_Avoid_: episode, run (bare), rollout, attempt, sample
+
+**Restore**:
+Rewinding the entire state — world, clock, and the agent's adapting surface — to a snapshot. Kept
+sharply distinct from `reset()`: a reset is in-band and the agent lives through it, while a restore
+is invisible from inside, since no cell survives it to notice. An experimenter's tool that appears
+nowhere in the env's contract, which is what lets evaluation have a defined start without weakening
+the reset-free commitment.
+_Avoid_: reset, restart, rollback, reload, checkpoint (as a verb)
 
 **Demo surface**:
 What a human sees and touches while a run is happening: two windows, the encodings drawn in them,

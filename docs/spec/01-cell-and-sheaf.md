@@ -179,6 +179,70 @@ constraints identical.
 in each cell are load-bearing. The freeze and the sharing are not. They are the top rung of the ladder,
 and dropping them costs no other part of the architecture.
 
+### The body's construction
+
+The three maps' *interface* dimensions are `n` and `k`, fixed above. Their *internal* width, their
+depth, and their activation were left open, and all three are spent by the same quantity — the **fold
+margin** [ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md) bounds and
+[`05-timescales.md`](./05-timescales.md) makes a precondition of persistence — so they are settled
+together here.
+
+**The activation is piecewise-linear; ReLU is the instance.** This is a premise several decisions were
+already resting on rather than a new choice, and it had never been written down. A piecewise-linear
+activation — ReLU, leaky ReLU, hard-tanh, maxout — is one built from straight segments, and every
+network built from them partitions its input space into finitely many **convex polytopes on each of
+which the whole map is exactly affine**. That partition *is* the object the timescale mechanism is
+made of: an *activation region* is one polytope, a *fold* a face between two, the *regional spectrum*
+the affine part inside one, *region dwell* how long a chart stays inside one, and the *fold margin*
+the distance to the nearest face. Under a smooth activation the Jacobian simply varies continuously
+everywhere: there are no regions to dwell in and no folds to cross, and
+[ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md)'s mechanism loses its referent
+rather than merely weakening. The class is what the mechanism requires; **ReLU is what the numbers
+below were computed for**, and a later swap within the class keeps every term intact but must
+re-derive them.
+
+**Each map's hidden width is its own minimum, `max{d_x + 1, d_y}`** — Park et al.'s exact floor for
+universal approximation by ReLU networks, below which Lu et al. find a phase transition rather than a
+degradation. Evaluated at `n = 32`, `k = 12`, that is **45** for `encode` (`ℝ³² × ℝ¹² → ℝ¹²`), **13**
+for `step` (`ℝ¹² → ℝ¹²`), and **33** for `decode` (`ℝ¹² → ℝ³²`). Written as the rule rather than as
+three constants because `n/k` and `k` are both rungs on the *Flex priority* ladder below: pull one and
+the widths re-derive themselves.
+
+**Sized *at* the floor, not above it.** The floor and the optimum turn out to be the same point, which
+is why this costs nothing to respect. Measured on
+[#42](https://github.com/NGL321/patchworks/issues/42)'s rig at `σ_w² = 1.2`, the median fold margin is
+**0.019** for `encode`/`step` at `[45]`/`[13]` against **0.0067** for a `[128]`/`[32]` body — while the
+spread the widths are sometimes imagined to buy is flat across the range (τ ratio 2.7 against 2.4).
+Wider bodies pay margin for nothing, exactly as Hanin & Rolnick's `1/#neurons` scaling predicts.
+Dropping `encode` *below* its floor buys nothing back either (44 measures 0.018, inside the noise), so
+the floor is free in both directions.
+
+**The margin is read from `encode` and `step` only.** The quantity ADR-0007 bounds is a property of the
+chart's own round trip, `d chart_{t+1} / d chart_t`, and `decode` is not on it — so a `decode` fold
+cannot move a cell's region, its dwell, or its timescale. It is still a fold: a cell crossing one has
+its *prediction* jump discontinuously. That arrives as prediction error and is the bias rule's food
+([`07-local-learning-rule.md`](./07-local-learning-rule.md)) — reducible model error, not a floor. The
+body has three maps and the margin has two, and that asymmetry is derived, not an oversight.
+
+**One hidden layer per map, and the reason is not that depth is useless.** With one hidden layer each
+per-cell bias translates its own fold and every fold stays a hyperplane — *The geometry* below reads
+this as one arrangement of folds, translated per cell. A second layer defines its folds in the first
+layer's activation space, so pulled back into the chart they are **bent** surfaces whose bends move
+when the first layer's biases move: the same bias budget would buy a strictly richer per-cell geometry,
+without unfreezing a single weight. Two things say not yet. It is measured expensive — `[45,45]`/`[13,13]`
+halves the median fold margin, to 0.0093 — and it lands a **fourth** geometric job on a bias vector
+*Known exposure* below already calls over-subscribed with three. So depth is what to reach for once the
+adapting surface is wider than biases (rung 1 of the ladder), not while it is only biases.
+
+**The floor is necessary, not sufficient, and the spec claims only the necessary half.** Park et al.'s
+bound is proved for width-bounded, *depth-unbounded* networks: it says no depth rescues a width below
+45, not that width 45 suffices at any given depth. A single hidden layer at the floor therefore sits on
+the bound without inheriting its guarantee. The PoC does not need the guarantee — nothing trains these
+weights, and what a frozen random body owes the design is a non-degenerate map with well-separated
+regions, not approximation of a specified target. What the floor is doing here is protecting the
+**pretraining swap-in** (*The cell body*, above), which is where an approximation claim would first be
+made, and buying at zero cost the one failure mode the literature says is abrupt.
+
 ## The sheaf
 
 ### Edge stalks carry belief

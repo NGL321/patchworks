@@ -97,7 +97,7 @@ class PlanarPushSandbox(gym.Env):
         seed: int | None = None,
         render_obs: bool = True,       # off only for headless evaluation; the agent needs it
     ):
-        assert split in ("train", "heldout", "any")
+        assert split in ("train", "heldout_pair", "heldout_sector", "any")
         self.split = split
         self.image_size = image_size
         self.frame_skip = frame_skip
@@ -191,8 +191,17 @@ class PlanarPushSandbox(gym.Env):
             xy, th = self._sample_layout()
             puck = int(self._rng.integers(N_PUCKS))
             zone = int(self._rng.integers(N_ZONES))
-            held = (puck, zone) in HELDOUT_PAIRS or _in_heldout_sector(xy[puck])
-            if self.split == "any" or held == (self.split == "heldout"):
+            held_pair = (puck, zone) in HELDOUT_PAIRS
+            held_sector = _in_heldout_sector(xy[puck])
+            if self.split == "any":
+                return Task(xy, th, puck, zone)
+            # the two axes stay separate: there is no value returning their union,
+            # because a draw from it is attributable to neither axis.
+            if self.split == "train" and not (held_pair or held_sector):
+                return Task(xy, th, puck, zone)
+            if self.split == "heldout_pair" and held_pair and not held_sector:
+                return Task(xy, th, puck, zone)
+            if self.split == "heldout_sector" and held_sector and not held_pair:
                 return Task(xy, th, puck, zone)
 
     def _sample_layout(self) -> tuple[np.ndarray, np.ndarray]:
