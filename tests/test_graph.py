@@ -12,7 +12,7 @@ than absorbed.
 """
 
 import dataclasses
-from collections import deque
+from collections import Counter, deque
 
 import pytest
 import torch
@@ -94,17 +94,14 @@ class TestThePopulations:
 
 class TestConnectivity:
     def test_edge_count(self, dome):
-        # Measured. The record says "roughly 698 edges"; the connectivity rules
-        # as written cannot place more than this without breaking the degree
-        # targets the private-dimension table depends on, and the record already
-        # carries the spread ("a ~663-edge count gives chi ~= +1096 against the
-        # ~698-edge count that gives ~980").
-        assert len(dome.edges) == 680
+        # Measured, and now what the record carries: the rounded ~698 was retired
+        # in favour of the built graph's own count.
+        assert len(dome.edges) == 682
 
     def test_mean_degree_is_about_seven(self, dome):
         mean = sum(dome.degrees[i] for i in dome.predicting) / len(dome.predicting)
         assert 6.5 <= mean <= 7.5
-        assert round(mean, 2) == 7.26
+        assert round(mean, 2) == 7.27
 
     def test_the_core_is_uniform_at_six_except_the_apex_at_four(self, dome):
         for level in range(3, APEX_LEVEL):
@@ -123,10 +120,21 @@ class TestConnectivity:
         }
         assert undriven == {4}
 
-    def test_every_boundary_cell_has_exactly_one_edge(self, dome):
-        # What the recorded L0 -> L1 cut capacity of 2,104 = 263 x 8 says.
-        sensorimotor = [i for i in dome.boundary if dome.cells[i].index.level == 0]
-        assert {dome.degrees[i] for i in sensorimotor} == {1}
+    def test_every_sensory_boundary_cell_has_one_edge_and_the_actuator_has_three(
+        self, dome
+    ):
+        # 2,120 = 262 sensory cells x 8, plus the actuator's one motor edge per
+        # joint x 8. The actuator is the single exception and it is a motor cell:
+        # one edge per joint is what makes every joint's reflex loop three ticks.
+        sensory = [
+            i
+            for i in dome.boundary
+            if dome.cells[i].index.level == 0
+            and dome.cells[i].kind is not CellKind.ACTUATOR
+        ]
+        assert {dome.degrees[i] for i in sensory} == {1}
+        actuator = next(c.id for c in dome.cells if c.kind is CellKind.ACTUATOR)
+        assert dome.degrees[actuator] == DEFAULT_SPEC.joints == 3
 
     def test_vision_lattices_are_four_neighbour(self, dome):
         for level, side in zip((1, 2), DEFAULT_SPEC.vision_sides):
@@ -206,15 +214,18 @@ class TestTheSomatomotorColumn:
             c.id for c in dome.cells if c.kind is CellKind.PROPRIOCEPTIVE
         ]
         paths = [_shortest_path(dome, p, actuator) for p in proprioceptive]
-        shortest = min(paths, key=len)
         # Proprioceptive boundary cell -> an L1 somatomotor cell -> actuator
-        # boundary cell. Three cells, so three ticks: a corrective twitch never
-        # waits on vision.
-        assert len(shortest) == 3
-        assert [dome.cells[i].index.level for i in shortest] == [0, 1, 0]
-        # Purely somatomotor: no cell on any of these paths is a vision cell.
+        # boundary cell. Three cells, so three ticks, and at **every** joint: a
+        # corrective twitch never waits on vision and never waits a tick longer
+        # at one joint than another.
+        assert len(paths) == DEFAULT_SPEC.joints == 3
         for path in paths:
+            assert len(path) == 3
+            assert [dome.cells[i].index.level for i in path] == [0, 1, 0]
+            # Purely somatomotor: no cell on any of these paths is a vision cell.
             assert all(dome.cells[i].index.column == "somatomotor" for i in path)
+        # And each joint reaches the rim through its own L1 cell.
+        assert len({path[1] for path in paths}) == 3
 
 
 class TestTheDrive:
@@ -269,7 +280,7 @@ class TestRecordedDiagnostics:
     def test_cut_capacities(self, dome):
         named = dict(dome.cut_capacities)
         assert named["render"] == 12_288
-        assert named["L0 -> L1"] == 2_104
+        assert named["L0 -> L1"] == 2_120
         assert named["L1 -> L2"] == 280
         assert named["L2 -> L3"] == 80
         # The whole sensory boundary reaches the core through eighty numbers a
@@ -279,10 +290,11 @@ class TestRecordedDiagnostics:
     def test_euler_characteristic(self, dome):
         chi = dome.euler_characteristic
         assert chi == len(dome.predicting) * 32 - sum(e.m for e in dome.edges)
-        # Measured. The record carries +980 against ~698 edges and +1096 against
-        # ~663; this graph's 680 edges put it between them, and what is
-        # load-bearing about chi is its invariance under learning, not its value.
-        assert chi == 1052
+        # Measured, and now what the record carries. The rounded +980 was
+        # retired; what is load-bearing about chi is its invariance under
+        # learning, not its value, and this lands inside the +980/+1096 band the
+        # record already owned.
+        assert chi == 1036
         assert 980 <= chi <= 1096
 
     def test_the_node_term_is_predicting_cells_and_the_edge_term_is_all_edges(
@@ -293,7 +305,7 @@ class TestRecordedDiagnostics:
             for e in dome.edges
             if dome.cells[e.u].kind.is_boundary or dome.cells[e.v].kind.is_boundary
         )
-        assert boundary_incident == 2_112  # 263 x 8 sensorimotor, 8 x 1 drive
+        assert boundary_incident == 2_128  # 265 x 8 sensorimotor, 8 x 1 drive
         # Dropping the boundary edges as well as the boundary nodes is the wrong
         # computation the record corrects; it would give roughly +3200.
         assert dome.euler_characteristic + boundary_incident > 3_000
@@ -328,6 +340,16 @@ class TestRecordedDiagnostics:
         rows = {dome.predicting.index(i) for i in _by_level(dome, 2, "somatomotor")}
         assert {int(dome.private_dimensions[r]) for r in rows} == {8, 12}
 
+    def test_the_whole_private_dimension_distribution(self, dome):
+        # The per-group table is a range table, so it can read unmoved while the
+        # cells behind it move. This pins every cell. It is what says the
+        # actuator's three motor edges left the gradient alone: the three L1
+        # somatomotor cells covering proprioception went from `sum m_e` 32 to 40
+        # and stayed at zero private dimension, where the record wants L1.
+        histogram = Counter(int(v) for v in dome.private_dimensions)
+        assert dict(sorted(histogram.items())) == {0: 82, 4: 4, 8: 54, 12: 2, 15: 8}
+        assert int(dome.private_dimensions.sum()) == 592
+
     def test_the_bound_is_met_with_equality_by_the_mask(self, dome):
         for row, cell_id in enumerate(dome.predicting):
             expected = max(0, 32 - dome.stalk_sums[cell_id])
@@ -337,8 +359,8 @@ class TestRecordedDiagnostics:
         text = dome.report()
         for fragment in (
             "150 predicting, 264 boundary",
-            "chi = +1052",
-            "12,288 -> 2,104 -> 280 -> 80",
+            "chi = +1036",
+            "12,288 -> 2,120 -> 280 -> 80",
             "guaranteed private dimension",
         ):
             assert fragment in text

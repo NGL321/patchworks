@@ -132,7 +132,15 @@ rather than to this one.
   attached *for* would not exist.
 - **Drive.** One edge from the drive boundary cell to each of the eight L7 cells — see *Where the
   drive attaches*, below.
-- **Mean degree ~7** across predicting cells; roughly 698 edges in total.
+- **Actuator.** One motor edge from the actuator boundary cell to the L1 somatomotor cell covering
+  **each** joint's proprioception — three, at `m = 8`. Every other sensorimotor boundary cell has
+  exactly one edge; the actuator is the single exception, and it is what makes the reflex loop three
+  ticks at every joint rather than at whichever one happened to share the actuator's L1 cell
+  ([#83](https://github.com/NGL321/patchworks/issues/83)).
+- **Mean degree 7.27** across predicting cells; **682 edges** in total. Both are measured from the
+  built graph ([#83](https://github.com/NGL321/patchworks/issues/83)) rather than estimated: the
+  earlier "~698" was an estimate, and the connectivity rules above cannot place that many without
+  raising core degrees, which would flatten the private-dimension table below.
 
 ### The core is uniform, and the integration/holding pair is held in reserve
 
@@ -217,10 +225,13 @@ and vision and proprioception do not share a cell until **L3, the first core lev
 
 Two consequences, both wanted:
 
-- **The reflex loop is three ticks and purely somatomotor.** Proprioceptive boundary cell → an L1
-  somatomotor cell → actuator boundary cell. `04-action-and-the-boundary.md` made the shortest
-  sensorimotor loop a design budget; here it is satisfied by construction rather than by hand-wiring,
-  and a corrective twitch never waits on vision.
+- **The reflex loop is three ticks and purely somatomotor, at every joint.** Proprioceptive boundary
+  cell → an L1 somatomotor cell → actuator boundary cell. `04-action-and-the-boundary.md` made the
+  shortest sensorimotor loop a design budget; here it is satisfied by construction rather than by
+  hand-wiring, and a corrective twitch never waits on vision. **At every joint** is what costs the
+  actuator its three edges (*Connectivity*, above): with one, only the joint sharing its L1 cell
+  reflexes in three ticks and the other two take four, which is a design budget met for one third of
+  the arm.
 - **Cross-modal binding is a function of depth.** "My tip is near the red thing" cannot be
   represented below L3, so a correction requiring visual context is at least four hops out and back.
 
@@ -353,9 +364,8 @@ Zero *guaranteed* private dimension is not zero private dimension: the bound is 
 learned rank-deficiency enlarges `H⁰` past it. What the gradient says is that near the rim a cell's
 privacy is contingent on learning, and deep it is structural.
 
-`χ = Σ_v n − Σ_e m_e` over predicting cells is approximately **+980**. The eight drive edges move it
-by 8, which is inside the rounding on every other number here; the drive's cost is local to the apex
-cells, not to the diagnostic.
+`χ = Σ_v n − Σ_e m_e` over predicting cells is **+1036**, measured from the built graph. The eight
+drive edges move it by 8; the drive's cost is local to the apex cells, not to the diagnostic.
 
 **`χ` restricts the node sum only. Every edge in the graph still counts.** The node term runs over
 predicting cells alone — including boundary cells swamps it, 256 cells × 48 dimensions of nominally
@@ -366,10 +376,12 @@ The rule was previously stated as "computed over predicting cells only", which l
 computation: dropping boundary edges as well as boundary nodes gives χ ≈ +3200, three times the figure
 this section carries. This is a correction to the diagnostic as recorded in `01-cell-and-sheaf.md`.
 
-The value is edge-count sensitive and is not a target: recomputed independently from the connectivity
-rules above, a ~663-edge count gives χ ≈ +1096 against the ~698-edge count that gives ~980. The spread
-is the rounding on "roughly 698 edges", and it does not matter, because what is load-bearing about `χ`
-is its **invariance under learning**, not its value.
+The value is edge-count sensitive and is not a target. This section used to carry ~980 against a
+~698-edge estimate and note that a ~663-edge count would give ~+1096 — a spread it owned in advance
+and declared not to matter. The built graph's 682 edges land inside that band at **+1036**, so the
+estimates are simply retired in favour of the measurement
+([#83](https://github.com/NGL321/patchworks/issues/83)). Nothing is contradicted, because what is
+load-bearing about `χ` is its **invariance under learning**, not its value.
 
 ## Sparsity is a property of the maps, not of the graph
 
@@ -435,7 +447,7 @@ the finding — it is a reason not to let it borrow the authority of the cited m
   in the one unit the field uses.
 
   The quantitative form is the **per-tick capacity of each cut**, which is this section's own best
-  evidence: `12,288 → 2,104 → 280 → 80`. The entire sensory boundary reaches the core through
+  evidence: `12,288 → 2,120 → 280 → 80`. The entire sensory boundary reaches the core through
   **eighty numbers per tick**, a 154:1 squeeze at a single cut, while the two farthest predicting
   cells are only ~9 hops apart. Both readings live in that number and the tension is owned rather
   than resolved by choosing a favourable metric.
@@ -594,7 +606,7 @@ measure, and `n` being a global constant means no predicting cell can be dimensi
   argument for pulling per-cell adapters off
   [#14](https://github.com/NGL321/patchworks/issues/14)'s constraint ladder early.
 - **The taper is the real bottleneck**, and *distance is not a separate thing from it*: the cut
-  capacities run `12,288 → 2,104 → 280 → 80`, so the whole sensory boundary reaches the core through
+  capacities run `12,288 → 2,120 → 280 → 80`, so the whole sensory boundary reaches the core through
   eighty numbers per tick. In the literature's own units that single narrow cut **is** the high
   effective resistance between distant cells, which is why this document no longer argues that reach
   and squeeze are different problems (*Broadcast subspaces*, above). Nothing here fixes it; the relays

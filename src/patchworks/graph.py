@@ -29,8 +29,7 @@ Three commitments are structural here rather than configurable.
 
 Where the record leaves a construction rule open, this module chooses one and
 says so at the point of choice. Those points are the somatomotor column's
-internal wiring, the touch cell's stalk dimension, and the index order that puts
-the actuator in the same L1 cell as a joint's proprioception.
+internal wiring and the touch cell's stalk dimension.
 """
 
 from __future__ import annotations
@@ -365,30 +364,36 @@ def build_graph(spec: DomeSpec = DEFAULT_SPEC) -> "Dome":
                 CellKind.PATCH, spec.patch_stalk, CellIndex(0, "vision", (r, c))
             )
 
-    # The somatomotor cluster, in one index order. The actuator sits at the head
-    # of it, which is what puts it in the same L1 cell as the first joint's
-    # proprioception and makes the reflex loop three ticks by construction
-    # rather than by hand-wiring. The order is a construction-layout choice the
-    # record leaves open; it is made here to satisfy a requirement the record
-    # does state.
-    somato_l0: list[int] = [
-        b.cell(CellKind.ACTUATOR, spec.actuator_stalk, CellIndex(0, "somatomotor", (0,)))
-    ]
+    # The somatomotor cluster. The sensors tile the column's index two to a
+    # joint, and are covered from L1 like everything else. The actuator is not
+    # tiled: it takes one edge to the L1 cell covering *each* joint's
+    # proprioception, so a corrective twitch at any joint is three ticks and
+    # never four. That is the reflex loop `06-graph-topology.md` specifies,
+    # satisfied by a rule over the joints rather than by an index order chosen to
+    # make one joint lucky.
+    somato_sensors: list[int] = []
+    proprioceptive: list[int] = []
     for j in range(spec.joints):
-        somato_l0.append(
+        proprioceptive.append(
             b.cell(
                 CellKind.PROPRIOCEPTIVE,
                 spec.proprioceptive_stalk,
-                CellIndex(0, "somatomotor", (2 * j + 1,)),
+                CellIndex(0, "somatomotor", (2 * j,)),
             )
         )
-        somato_l0.append(
+        somato_sensors.append(proprioceptive[-1])
+        somato_sensors.append(
             b.cell(
                 CellKind.TOUCH,
                 spec.touch_stalk,
-                CellIndex(0, "somatomotor", (2 * j + 2,)),
+                CellIndex(0, "somatomotor", (2 * j + 1,)),
             )
         )
+    actuator = b.cell(
+        CellKind.ACTUATOR,
+        spec.actuator_stalk,
+        CellIndex(0, "somatomotor", (2 * spec.joints,)),
+    )
 
     # -- L1 and L2, the vision lattices and the parallel somatomotor column --
     vision_levels: list[dict[tuple[int, int], int]] = []
@@ -430,13 +435,20 @@ def build_graph(spec: DomeSpec = DEFAULT_SPEC) -> "Dome":
     )
 
     # -- Vertical: the block covered below, the cell covering above ---------
-    # Each L0, L1 and L2 cell has exactly one up-edge. That is what the recorded
-    # cut capacities say: 263 x 8, 70 x 4, 20 x 4.
+    # Every sensory boundary cell has exactly one up-edge, and every L1 and L2
+    # cell has exactly one. The actuator is the single exception, and it is a
+    # motor cell: it has one per joint.
     for (r, c), patch in patch_ids.items():
         b.edge(patch, vision_levels[0][(r // 2, c // 2)])
-    for p, cell in enumerate(somato_l0):
-        (target,) = _covers(p, len(somato_l0), len(somato_levels[0]), fan=1)
-        b.edge(cell, somato_levels[0][target])
+    covering: dict[int, int] = {}
+    for p, cell in enumerate(somato_sensors):
+        (target,) = _covers(p, len(somato_sensors), len(somato_levels[0]), fan=1)
+        covering[cell] = somato_levels[0][target]
+        b.edge(cell, covering[cell])
+    # Deduplicated because two joints share an L1 cell on a column too narrow to
+    # give them one each, and no pair of cells is ever joined twice.
+    for target in dict.fromkeys(covering[cell] for cell in proprioceptive):
+        b.edge(actuator, target)
 
     for below, above in zip(vision_levels, vision_levels[1:]):
         for (r, c), cell in below.items():

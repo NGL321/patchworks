@@ -97,7 +97,7 @@ shape of the language.
   because it corrects this ADR's own framing of the trade-off, and because two limits ride with it: the
   property is inferred from the pure-function contract rather than documented, and no source was found
   using these transforms for locality. One argument for adopting it was raised and **did not survive**:
-  that hand-placed detaches would not scale to ~698 edges. They would — the maps are one batched
+  that hand-placed detaches would not scale to the graph's 682 edges. They would — the maps are one batched
   parameter store, so the neighbour side is a single gathered `.detach()`, collapsing the same way this
   ADR's own shared-frozen-body argument collapses JAX's `vmap` advantage. What decided it instead was the
   failure direction: a wrong `argnums` yields a *missing* gradient, where a missing `.detach()` yields an
