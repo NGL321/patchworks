@@ -272,8 +272,8 @@ drifting, a malformed `info` — breaks the build instead of being lost in a kno
 
 **A step limit is refused, not merely undocumented.** `make()` wraps in `TimeLimit` whenever
 `max_episode_steps` is passed or carried on the registered spec, and `TimeLimit` sets
-`truncated=True` **and calls `reset()`** — which here is not a restart but an unannounced
-rearrangement of the world mid-trajectory. The registration therefore sets
+`truncated=True` — which every standard loop **resets on**, and a reset here is not a restart but an
+unannounced rearrangement of the world mid-trajectory. The registration therefore sets
 `max_episode_steps=None`, and the env **raises** if it finds a spec-level limit present rather than
 trusting that a caller read this paragraph. The reasoning is the snapshot list's: prefer the
 constraint that cannot drift to the sentence nobody rereads.
