@@ -159,6 +159,7 @@ The same world now lives in the `patchworks` package, as a literal `gymnasium.En
 python3.12 -m venv .venv
 .venv/bin/pip install -e '.[dev]'
 .venv/bin/pytest                                   # the world, held against the spec
+.venv/bin/python -m patchworks                     # the dome, and what construction records
 ```
 
 <sub>These instructions live here and only here. `prototypes/sandbox/README.md` describes what the
@@ -173,6 +174,7 @@ files in that directory are and what broke while building them; it does not repe
 | [`docs/research/`](docs/research/) | The citation passes, including the ones that found defects. |
 | [`CONTEXT.md`](CONTEXT.md) | The vocabulary. Narrow senses, deliberately. |
 | [`src/patchworks/sandbox/`](src/patchworks/sandbox/) | The world, as a `gymnasium.Env`. |
+| [`src/patchworks/graph.py`](src/patchworks/graph.py) | The dome: construction, the structural masks, and the diagnostics it records. |
 | [`prototypes/sandbox/`](prototypes/sandbox/) | The throwaway it was promoted from, and the probes that measured it. |
 | [Issue #1](https://github.com/NGL321/patchworks/issues/1) | The map every one of those decisions was made on. |
 
