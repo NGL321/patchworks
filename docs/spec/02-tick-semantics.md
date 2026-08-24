@@ -96,6 +96,13 @@ point selects the cell's activation region and therefore its effective timescale
 > `γ × floor` must stay below the cell's **fold margin** — its distance to the nearest activation
 > boundary.
 
+**This bound is not only a stability side-condition.** The fold margin is also what makes "the cell's
+region" a well-defined object, and therefore what makes the cell's timescale one — a cell with a
+small margin re-draws its regional spectrum every tick
+([`05-timescales.md`](./05-timescales.md), *The precondition: region dwell against `τ`*). Relaxing
+`γ` past this bound because reconciliation feels slow does not merely risk drifting the operating
+point; it costs the mechanism ADR-0005 rests on.
+
 Because `Σ_e m_e` **falls with depth** (`06-graph-topology.md`, *Private dimension is a gradient*),
 `gain_v` is largest at the apex, and this bound binds hardest exactly where timescale matters most.
 It is a construction-time check, run per cell across the taper and folded into

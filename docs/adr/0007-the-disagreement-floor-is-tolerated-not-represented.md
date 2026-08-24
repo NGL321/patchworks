@@ -62,6 +62,16 @@ descent step needs a gain regardless. It is now specified in `02-tick-semantics.
 checked at construction. Because `Σ_e m_e` falls with depth, the gain is largest at the apex and the
 bound **binds hardest exactly where timescale matters most**.
 
+*Amended by [#41](https://github.com/NGL321/patchworks/issues/41): the fold margin has a second job,
+and it is structural.* This ADR framed the margin as protecting the operating point *from the floor*.
+Since a cell's regional spectrum is re-drawn every tick as its chart moves
+([ADR-0005](./0005-timescale-is-persistence-not-a-schedule.md), amended), the margin is also what
+makes "the cell's region" a well-defined object at all: it is the construction-time proxy for
+**region dwell**, so a cell with a small margin has no well-defined timescale even at zero floor.
+The bound is unchanged and the check is the same check — but it is now a precondition of the
+timescale claim as well as a stability condition, and `02-tick-semantics.md` says so at the point
+where a build would be tempted to relax `γ`.
+
 ### The learning rule tolerates the floor; it does not subtract it
 
 The rule may never take zero residual as its target. It learns on *change* in residual, or on
