@@ -224,18 +224,27 @@ fog, not exercised here.
 
 A restriction map's overall magnitude is **not identified by the transport rule's objective**. The rule
 learns on disagreement relative to the restricted beliefs' own current magnitudes
-([`07-local-learning-rule.md`](./07-local-learning-rule.md)), which is invariant under `F ↦ αF`, and the
-sparsity pressure is an L1 on the normalised map, which is blind to magnitude too. Nothing in the rule
-has an opinion about it. Left free, it drifts — and the direction it drifts is toward `F = 0`, where
-every edge agrees perfectly, the sheaf couples nothing, and the only error signal the architecture has
-is gone.
+([`07-local-learning-rule.md`](./07-local-learning-rule.md)), which is invariant under scaling both of
+an edge's maps together, and the sparsity pressure is an L1 on the normalised map, which is blind to
+magnitude too. Nothing in the rule has an opinion about it.
+
+Left free, an edge's joint scale **grows**. For a scale-invariant parameter the gradient is always
+perpendicular to it, so `‖F_{u◁e}‖_F² + ‖F_{v◁e}‖_F²` is non-decreasing at every step and strictly
+increasing whenever anything is learned (Arora, Li & Lyu, Lemma 2.4; Salimans & Kingma report the same).
+The failure that produces is not the collapsed sheaf but **maps that stop moving** — a vanishing
+effective step size, with every norm-based reading healthy. In the other direction — one end of an edge
+up and the other down — the objective points *away* from collapse: the relative disagreement lies in
+`[0, 1]` and sending either map to zero sends it to `1`, its worst value.
 
 So the magnitude is fixed rather than learned. Fixing it removes a free parameter; it does not cap a
 learned one.
 
-- **Interior maps** carry a band: `‖F‖_F ∈ [1/ρ, ρ]`, with `ρ = 2` fixed at construction. Within the
-  band nothing acts. The band leaves each cell's scale its own — a cell's node stalk is its own metric
-  space in **basis and scale** — while bounding how far two ends of an edge may differ.
+- **Interior maps** carry a band: `‖F‖_F ∈ [1/ρ, ρ]`, with `ρ = 2` fixed at construction. The two ends
+  do different jobs. The **upper** face is the working constraint — the joint scale grows into it, so
+  the larger end of every interior edge rides `‖F‖_F = ρ` — and what the band actually leaves free is an
+  **edge's scale ratio**, which is how a cell's node stalk stays its own metric space in **basis and
+  scale**. The **lower** bound is a guardrail against arithmetic and the residual asymmetry; nothing in
+  the objective drives toward it.
 - **Boundary-cell maps** carry the exact gauge, `‖F‖_F = 1`. A boundary cell runs no body and its stalk
   is world-shaped ([ADR-0006](../adr/0006-boundary-cell-stalks-are-world-shaped.md)), so it has no
   metric individuality to protect; unit conversion is the environment contract's job, not the sheaf's.
@@ -244,11 +253,21 @@ Enforced by **projection** after each transport step. The norm is Frobenius, not
 difference matters: a spectral gauge pins only the largest singular value, leaving every other direction
 free to shrink at no cost, so it would exclude `F = 0` and leave `F → rank 1` open. A Frobenius gauge
 pins the budget across all directions, so rank concentration buys per-direction gain and pays for it
-elsewhere. **No rank floor is imposed** — learned rank-deficiency is wanted, and its degenerate limit is
-instrumented rather than forbidden (*Known exposure*).
+elsewhere — though **whether that is a price or a reward depends on the objective**, and here it is a
+weak price at best: matching a neighbour on any single tick needs only that tick's direction, and the
+L1 on the normalised map is minimised, at fixed Frobenius norm, by the sparsest map. What resists
+concentration is that a map serves the whole distribution of stalk states, not one draw.
 
-The cost: an edge's representable scale ratio is bounded by `ρ²` times the range rank concentration
-affords. Genuine mismatch beyond that is irreducible, and joins the static floor in
+**No rank floor is imposed** — learned rank-deficiency is wanted, and its degenerate limit is
+instrumented rather than forbidden (*Known exposure*). With the price weak, that instrument is what
+says which regime the maps are in, and it carries the argument alone.
+
+A map's **norm is not a diagnostic**: the upper face binds continuously, so an interior edge's larger
+end reads `ρ` whether learning is healthy or frozen.
+
+The bound, which is the band's real content rather than an incidental cost: an edge's representable
+scale ratio is `ρ²` times the range rank concentration affords. Genuine mismatch beyond that is
+irreducible, and joins the static floor in
 [ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md).
 
 See [ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md); settled in
