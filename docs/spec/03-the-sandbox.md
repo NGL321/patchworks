@@ -234,8 +234,66 @@ placeholders:
   is satisfied. It is for logging and evaluation only. Feeding it to the agent defeats the sandbox.
 
 Because there is no episode boundary to restart from, reproducibility comes from
-**snapshot/restore** of the full state (`qpos`, `qvel`, `ctrl`, clock, task, RNG), consistent with
-[ADR-0001](../adr/0001-continual-learning-applies-to-the-adapting-surface.md).
+**snapshot/restore** of the full state, consistent with
+[ADR-0001](../adr/0001-continual-learning-applies-to-the-adapting-surface.md). The state is
+**`mjSTATE_INTEGRATION`**, plus the task and the sampler's RNG, which MuJoCo does not know about.
+
+Name the engine constant, never an enumeration of fields. MuJoCo defines `mjSTATE_INTEGRATION` as
+the entire set of inputs to the forward dynamics, so it tracks the model: an enumeration drifts the
+moment the arena gains a feature, and it drifts silently, as a trajectory that diverges rather than
+an error. The field the obvious enumeration omits is **`qacc_warmstart`**, and MuJoCo's docs flag
+exactly this case — warmstarts matter for reproducibility "when loading a non-initial state (since
+the initial state is always cold-started)", with differences accumulating exponentially under
+time-stepping. **Every restore here is a non-initial-state load**, because there is no episode
+boundary; the load-bearing case is the only case.
+
+Three fields the constant covers are inert in *this* arena and are the reason to name it anyway:
+`act` is empty (the actuators are direct-drive `motor`), and `qfrc_applied` / `xfrc_applied` are
+zero only because `perturb()` teleports a puck by writing `qpos`. Implement that hand as an applied
+force instead and the force becomes state — a change to the human's hand would silently break
+restore, in a file nobody would think to reread.
+
+### What the deviations cost in the ecosystem
+
+The three deviations are the contract, and they are honoured against Gymnasium rather than by it.
+Each of the following is a place where stock tooling assumes episodes and gets none. They are named
+here because every one of them fails *quietly*, and a run corrupted quietly is indistinguishable
+from the thing the agent is supposed to experience when `reset()` fires.
+
+**`check_env` fails exactly one check, and that is asserted, not tolerated.**
+`check_reset_seed_determinism` calls `reset(seed=123)` twice and requires the observations to match;
+here they do not, because `reset()` never resets the arm. The failure is correct — it is the first
+deviation, detected. The registration flag that would silence it, `EnvSpec.nondeterministic`, is
+documented as meaning the observation cannot be repeated from the same initial state, RNG state and
+actions, which is **false** of this env and is precisely what snapshot/restore delivers; setting it
+would assert something untrue about the physics in order to quiet a check about `reset()`. So the
+conformance test runs `check_env` and asserts that `check_reset_seed_determinism` is the **only**
+failure, by name. Every other check keeps its value, and a *second* failure — a space dtype
+drifting, a malformed `info` — breaks the build instead of being lost in a known-fails suite.
+
+**A step limit is refused, not merely undocumented.** `make()` wraps in `TimeLimit` whenever
+`max_episode_steps` is passed or carried on the registered spec, and `TimeLimit` sets
+`truncated=True` — which every standard loop **resets on**, and a reset here is not a restart but an
+unannounced rearrangement of the world mid-trajectory. The registration therefore sets
+`max_episode_steps=None`, and the env **raises** if it finds a spec-level limit present rather than
+trusting that a caller read this paragraph. The reasoning is the snapshot list's: prefer the
+constraint that cannot drift to the sentence nobody rereads.
+
+**Stock episode-shaped wrappers go inert, and should not be reached for.**
+`RecordEpisodeStatistics` fills its info key only under `if terminated or truncated:`, so across an
+entire run it emits nothing at all. Under `VectorEnv`, with both flags pinned `False`, every
+`AutoresetMode` is `DISABLED` in effect: a loop expecting sub-envs to hand back fresh initial states
+periodically receives none, no error is raised, and each sub-env quietly runs one infinite
+trajectory. Neither is a defect to fix — both are what "no episodes" means downstream.
+
+**Known exposure: no metric shape is inherited.** Continual-RL benchmarks avoid the
+boundary-agnostic regime partly because their metrics stop being *computable* without boundaries —
+Continual World's forgetting measure and CORA's isolated forgetting both index by task boundary.
+Patchworks keeps the boundaries in `info`, so its metrics stay computable; the exposure is that no
+cited benchmark asks of its agents what this one asks, so there is no established metric shape to
+inherit and one must be defined outright. That definition is the evaluation protocol's job
+([#23](https://github.com/NGL321/patchworks/issues/23)), not this file's, and it is a debt rather
+than a defect.
 
 ### The human's hand
 
