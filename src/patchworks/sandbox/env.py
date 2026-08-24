@@ -343,7 +343,17 @@ class PlanarPushSandbox(gym.Env):
     # -- the sampler ------------------------------------------------------------
 
     def sample_task(self) -> Task:
-        """Draw a (layout, target puck, target zone) triple from this env's split."""
+        """Draw a (layout, target puck, target zone) triple from this env's split.
+
+        Known limitation, deliberate: a target that fails its split condition
+        costs the *whole* layout, so the condition selects over whole layouts
+        and reaches the distractors through the clearance constraint -- the
+        held-out wedge is systematically emptier of them (0.034 against 0.104).
+        Recorded in `docs/spec/03-the-sandbox.md`, *Two limitations of the
+        sampler, on the record*, and left as built there: resampling the target
+        alone would move the spawn distribution the 14/72 achievability figure
+        was measured on.
+        """
         while True:
             xy, theta = self._sample_layout()
             puck = int(self.np_random.integers(N_PUCKS))
@@ -360,7 +370,15 @@ class PlanarPushSandbox(gym.Env):
                 return Task(xy, theta, puck, zone)
 
     def _sample_layout(self) -> tuple[np.ndarray, np.ndarray]:
-        """Three puck poses in the spawn annulus, clear of each other and of the zones."""
+        """Three puck poses in the spawn annulus, clear of each other and of the zones.
+
+        "Clear of the zones" means **centres**: the zone test below ignores the
+        puck's radius, which the puck/puck test does not. Deliberately
+        inconsistent and left as built, for the same reason as above;
+        `goal_satisfied` is a centre test too, so it is unaffected. See
+        `docs/spec/03-the-sandbox.md`, *Two limitations of the sampler, on the
+        record*.
+        """
         radius = self.puck_radius
         while True:
             angle = self.np_random.uniform(0, 2 * np.pi, N_PUCKS)

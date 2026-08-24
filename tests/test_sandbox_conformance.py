@@ -8,17 +8,16 @@ cost is asserted rather than tolerated: `check_env` must fail exactly one check,
 by name, and a second failure breaks the build instead of being lost in a
 known-fails suite.
 
-**Which check is named differs from the spec, and the difference is measured.**
-The spec names `check_reset_seed_determinism`, reasoning that it "calls
-`reset(seed=123)` twice and requires the observations to match; here they do
-not, because `reset()` does not reset the arm". Against Gymnasium 1.x that
-check never steps the env between its two seeded resets, so the arm is in the
-*same* configuration for both and the deviation it is supposed to detect cannot
-fire there -- it passes. The check that does step between its seeded resets is
-`check_step_determinism`, and that is the one that fails, for exactly the
-reason the spec gives. The deviation detected is still the first one; only the
-name of the check that catches it is different. Recorded here because the
-spec's paragraph needs the same correction.
+**Which check is named was corrected in the spec, and the correction is
+measured.** An earlier draft named `check_reset_seed_determinism`, reasoning
+that it "calls `reset(seed=123)` twice and requires the observations to match;
+here they do not, because `reset()` does not reset the arm". Against Gymnasium
+1.x that check never steps the env between its two seeded resets, so the arm is
+in the *same* configuration for both and the deviation it is supposed to detect
+cannot fire there -- it passes. The check that does step between its seeded
+resets is `check_step_determinism`, and that is the one that fails, for exactly
+the reason the spec gives. The deviation detected is still the first one; only
+the name of the check that catches it is different.
 """
 
 import gymnasium
