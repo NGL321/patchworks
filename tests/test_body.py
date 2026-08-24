@@ -196,6 +196,13 @@ class TestForwardPath:
         # exactly affine is the object the timescale mechanism is made of.
         # Read in float64: the finite differences below cancel away most of a
         # float32 mantissa, and the claim is exactness, not closeness.
+        #
+        # The tolerance was measured, not guessed. At this seed the smallest
+        # |preactivation| over all 1950 hidden units is 1.7e-3, so a 1e-6 nudge
+        # cannot carry any cell across a fold, and the observed float64 slack
+        # was ~3.5e-15. torch is pinned exactly, so this is deterministic --
+        # but a torch bump or a BLAS swap could shift the slack, and the fix
+        # then is to re-measure the margin rather than to loosen atol.
         generator = torch.Generator().manual_seed(23)
         body = CellBody(shape, generator=generator, dtype=torch.float64)
         biases = CellBiases(shape, CELLS, generator=generator, dtype=torch.float64)
