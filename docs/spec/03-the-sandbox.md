@@ -27,6 +27,12 @@ A **3-link planar arm**, torque-controlled, mounted at the centre of the arena.
 | length (m) | 0.20 | 0.16 | 0.10 |
 | torque limit (N·m) | 3.0 | 2.0 | 1.0 |
 | joint range (rad) | ±π | ±2.6 | ±2.6 |
+| damping | 0.8 | 0.5 | 0.3 |
+| armature (rotor inertia) | 0.12 | 0.02 | 0.002 |
+| passive decay τ (ms) | 184 | 80 | 10 |
+
+The armature column is the arm's **timescale ladder** and is doing deliberate work — see
+*A timescale ladder in the body*, below.
 
 Reach is 0.46 m to the tip site; the tip is a **rounded paddle** (a cylinder of radius 0.03), so
 the arm's outer extent is 0.49 m. The paddle is the only part of the body intended to meet the
@@ -257,54 +263,115 @@ objects. A rubber-faced paddle is not steel, so 0.6 is not indefensible, but it 
 toward sticking rather than sliding — and sticking is the regime that produced the clean pushes
 every number above was measured in. Recorded as a calibration choice, not a measurement.
 
-### Per-joint gearing: a timescale ladder in the body
+### A timescale ladder in the body: rotor inertia, not gearing
 
 Joint damping is `0.8 / 0.5 / 0.3` and torque limits `3 / 2 / 1 N·m`, so the arm is heterogeneous in
-*strength*; all three motors currently run `gear="1"`, so it is not deliberately heterogeneous in
-*timescale*. It is very likely heterogeneous incidentally — the shoulder swings all three links and
-the wrist swings one — and nobody has measured the spread.
+*strength*. It was not deliberately heterogeneous in *timescale*, and the measurement this section
+used to owe has now been taken ([#60](https://github.com/NGL321/patchworks/issues/60),
+`prototypes/sandbox/precedence_probe.py`).
 
-The build therefore owes a measurement before it owes a change: impulse each joint, fit the decay,
-report the ratio of effective time constants. **If the incidental spread is already wide, the ladder
-is free and gearing is redundant.** If it is flat, gear the shoulder slow and strong and the wrist
-fast and weak, so that a task must traverse the ladder — a coarse reposition, then a fine adjustment,
-in that order.
+**The incidental spread was not wide.** Impulsing each joint and fitting the decay of `|qvel|` gave
+time constants of **85 / 79 / 44 ms** — a **1.95x** ladder, and the spread *within* a single joint
+across arm configurations was larger than the spread between joints (j1 varies 5.4x from folded to
+extended). Driven response was flatter still: time to sweep 0.5 rad from rest at full control was
+**182 / 158 / 188 ms**, a 1.19x spread, because `ctrlrange 3 / 2 / 1` was already cancelling the
+inertia difference. The ladder was not free, and the arm was closer to deliberately *homogeneous*
+than anyone had assumed.
 
-This is realism the sandbox currently lacks, not scaffolding: every real limb has shoulder inertia
-dwarfing wrist inertia. One constraint on it, and it is the one a sceptical reader will reach for
-first — **the ladder must not be aligned with the graph's levels by construction.** Three joint
-timescales must never be built to correspond to three levels of the core, or "recovered at the
-appropriate level" degenerates into a lookup. [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md)
-has the graph's timescales emerging from persistence; the world's job is to give that something to
-find, not to tell it what to find. The acceptance demo respects the same constraint from the other
-side, by measuring onset rather than decay
+**`gear` is the wrong knob, and this is the substantive correction.** `gear` multiplies control into
+joint torque; it does not appear in the passive `M / b` decay at all — measured directly, τ(j0) is
+57.4 ms at `gear="1"` and 57.4 ms at `gear="4"`. On the driven side it moves speed and strength
+*together*, so a shoulder geared down to be slow is also weak: at `gear (0.4, 1, 3)` the
+worst-direction tip force falls to **2.61 N**, against the >2 N a heavy puck needs to move at all.
+"Shoulder slow and strong" is not reachable through gearing, and the version of this section that
+proposed it was proposing something the actuator model cannot do.
+
+**`armature` reaches it, and reaches it alone.** Rotor inertia enters the decay and not the statics,
+so it buys timescale at no cost in force. `armature="0.12" / "0.02" / "0.002"` on `j0 / j1 / j2`,
+with `gear` and `ctrlrange` untouched:
+
+|                        | j0     | j1     | j2     | ladder    |
+| ---------------------- | ------ | ------ | ------ | --------- |
+| passive decay τ        | 184 ms | 80 ms  | 10 ms  | **17.9x** |
+| driven sweep, 0.5 rad  | 278 ms | 178 ms | 160 ms | 1.7x      |
+
+Torque limits stay `3 / 2 / 1 N·m`, worst-direction tip force stays **6.53 N**, and the shoulder is
+now both the slowest joint and the strongest — the ladder the sandbox wanted. Gear compensation
+turned out to be unnecessary: armature is absent from the statics, so nothing needed restoring. The
+new ladder also dominates configuration dependence rather than hiding under it (j0 now varies 1.14x
+across poses, against a 17.9x ladder). The scripted controller solves **14 of 72** sampled tasks
+after the change against **16 of 72** before it on the same seeds — two tasks, inside the noise of a
+controller this weak.
+
+Which quantity moved matters. It is the **passive decay** that spreads 17.9x; the driven sweep
+spreads only 1.7x, because full torque against a heavier rotor is still full torque. That is the
+right one to have moved — [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md) makes
+timescale *persistence*, and passive decay is persistence measured in the world — but it is a
+narrower thing than "the arm is slow at the shoulder", and the spec should not be read as claiming
+the wider one.
+
+This is realism the sandbox lacked, not scaffolding: every real limb has shoulder inertia dwarfing
+wrist inertia. One constraint on it, and it is the one a sceptical reader will reach for first —
+**the ladder must not be aligned with the graph's levels by construction.** Three joint timescales
+must never be built to correspond to three levels of the core, or "recovered at the appropriate
+level" degenerates into a lookup. Two things keep that honest here: the rungs are deliberately
+uneven (2.3x from j0 to j1, 7.8x from j1 to j2, against a core whose depth is eight), and a cell's
+timescale is a distribution rather than a constant
+([#41](https://github.com/NGL321/patchworks/issues/41)), so there is no constant for a joint to be
+matched against. ADR-0005 has the graph's timescales emerging from persistence; the world's job is
+to give that something to find, not to tell it what to find. The acceptance demo respects the same
+constraint from the other side, by measuring onset rather than decay
 ([`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md)).
 
-Known exposure: this buys a **timescale ladder**, which is not the same object as precedence depth.
-The claim that traversing the ladder induces ordered sub-goals is plausible and unproven.
+Known exposure, unchanged by the measurement: this buys a **timescale ladder**, which is not the
+same object as precedence depth — and precedence depth is now the thing this sandbox does not have
+at all (next section). The claim that traversing the ladder induces ordered sub-goals is plausible
+and unproven.
 
 ## The sampler
 
 A task is a **(layout, target puck, target zone)** triple. Layout is 3 puck poses in the spawn
 annulus; the goal is one of 3×3 puck-zone pairs.
 
-### Route-blocking layouts
+### Route-blocking layouts: proposed, measured, dropped
 
 Left to itself the sampler makes one puck matter and leaves the other two as scenery that may or may
 not be in the way. That gives the task set a **precedence depth of 1**: every push is locally
-correctable, nothing must happen before anything else, and the pedestal — the one feature that could
-impose an order — was measured as a graze (59–63% of tasks have a straight puck→zone line anyway, and
-the rest detour a median 4%).
+correctable, and nothing must happen before anything else. The proposal
+([#30](https://github.com/NGL321/patchworks/issues/30)) was to buy depth 2 with a layout constraint —
+a fixed fraction of layouts placing a non-target puck across the target's route, so that clearing
+the blocker first is forced. No new bodies, no physics change, no change to the action space.
 
-So a fixed fraction of sampled layouts **place a non-target puck across the target's route**, where
-"across" is `prototypes/route-geometry`'s existing homotopy check applied to a puck instead of the
-pedestal. Clearing the blocker first is then forced, and the order is not recoverable after the fact:
-push the target into the blocker and the two are worse placed than they started. That is precedence
-depth 2, bought with a layout constraint — no new bodies, no physics change, no change to the action
-space, and no exposure to 3D.
+**It was built, measured, and it does not work.** The test is paired: the *same* layout run twice,
+once with the blocker in the corridor and once with that same blocker displaced out of it, so the
+only difference is the blocker's position ([#60](https://github.com/NGL321/patchworks/issues/60),
+`prototypes/sandbox/precedence_probe.py`). Five constructions, 136 pairs, 60 s of sim each:
 
-Deliberately modest. Depth 2 is not depth 8, and the sandbox does not pretend otherwise: see *What
-this sandbox does not exercise*, below.
+| construction | blocked | blocker moved aside |
+| --- | --- | --- |
+| straight-route clip, overlap depth > 0.5 | 6/32 | 6/32 |
+| clip, light blocker (puck 0) / heavy blocker (puck 2) | 6/20 / 4/20 | 6/20 / 3/20 |
+| blocker on the paddle's **standoff point** | 5/20 / 5/20 | 5/20 / 4/20 |
+| **pocket**: target jammed on the pedestal, blocker sealing the short way round | 2/12 / 1/12 | 0/12 / 1/12 |
+| pooled | **29/136** | **25/136** |
+
+Null in every construction, and if anything tilted the wrong way. It is not that the blocker gets
+swept aside — the heavy puck moves a median of 39 mm across a whole run in the corridor case.
+
+**The reason is structural, and it is the useful part of the finding: nothing in this arena is
+concave, so no puck can be pinned.** The pedestal is a convex cylinder and a puck jammed against it
+slides around it (median displacement 169 mm in the pocket construction, *more* than in open
+space); the ring wall lies outside the spawn annulus and off every puck→zone route. Every blocker is
+therefore displaceable, and a straight-line route that a blocker clips was never the route anything
+actually followed — the corridor is ~0.09 m wide in an arena with room to go around. Making blocking
+real needs a **concave feature** — a recess in the wall, an L-shaped obstacle — which is new geometry,
+which is enrichment, which this map has ruled out of scope.
+
+Two measurements are kept because a later effort will want them: **16.9%** of `train` layouts already
+clip the target's route by accident, and forcing the condition by rejection sampling costs a mean of
+**6 draws**. The mechanism is cheap. It is just inert.
+
+Precedence depth therefore stays at **1**, and *What this sandbox does not exercise*, below, says so.
 
 The **held-out slice** is defined along two axes at once, so generalisation is tested
 combinatorially and spatially:
@@ -459,31 +526,36 @@ way it reports everything else and no new observation path exists.
 
 Recovery from that impulse is read as **onset latency** — ticks to the first corrective torque — and
 never as a decay or settling time. A settling time here would be a joint's mechanical time constant,
-which is precisely what *Per-joint gearing* above is building a deliberate spread in; reading
+which is precisely what *A timescale ladder in the body* above builds a deliberate spread in;
+reading
 recovery off that ladder is what the non-alignment constraint forbids. See
 [`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md) for the protocol.
 
 ## Achievability
 
 A deliberately dumb scripted controller (Jacobian-transpose reaching, no learning, reading the
-privileged `info`) solves **15 of 48** sampled tasks within 60 s of sim time each, across both
-splits and all three pucks — **12 of 48** after [#21](https://github.com/NGL321/patchworks/issues/21)
-raised puck 2's μ by half and made puck 1 eccentric. Both readings below use the current number;
-the change is three tasks out of forty-eight, which is inside the noise of a controller this weak,
-and the world is as solvable as it was. That is a **lower bound**: it establishes that the geometry, torque
+privileged `info`) solves **14 of 72** sampled tasks within 60 s of sim time each, across all three
+splits and all three pucks. That is a **lower bound**: it establishes that the geometry, torque
 limits, and friction admit the tasks the sampler generates. It is not a baseline, and no agent
 should be compared against it.
 
+The number has been re-measured twice as the world changed, and has not really moved:
+[#21](https://github.com/NGL321/patchworks/issues/21)'s puck changes took it from 15/48 to 12/48
+over the two splits that then existed, and [#60](https://github.com/NGL321/patchworks/issues/60)'s
+armature ladder gives 14/72 against 16/72 on the same seeds. Each change is two or three tasks out
+of the set, inside the noise of a controller this weak, and the world is as solvable as it was.
+
 **The same number read the other way, which is the less flattering and equally valid reading:** a
-controller with no model, no learning, no hierarchy and no planning takes 25% of the task set. So
-12/48 also bounds how much of this task set requires anything the architecture provides. A build
-session should meet that fact at the start rather than rediscover it, and the route-blocking layouts
-above exist partly to move it.
+controller with no model, no learning, no hierarchy and no planning takes about 20% of the task set.
+So it also bounds how much of this task set requires anything the architecture provides. A build
+session should meet that fact at the start rather than rediscover it. Route-blocking layouts were
+meant to move it and were measured not to (above), so nothing in this sandbox moves it.
 
 ## What this sandbox does not exercise
 
 Stated plainly, because the alternative is discovering it in the acceptance demo. This world is
-**thin in precedence depth** — 2 with route-blocking layouts, against a graph eight levels deep. The
+**thin in precedence depth** — **1**, against a graph eight levels deep, and the one mechanism
+proposed to raise it was built and measured inert (*Route-blocking layouts*, above). The
 architecture is built for long-horizon compositional planning at multiple scales, and this sandbox
 does not contain a task that demands it. The risk that follows is real and accepted: the demo may
 succeed with a few cells doing the work.
