@@ -34,21 +34,31 @@ On the development laptop (i7-8750H, CPU only), at the sizes fixed in
 | | |
 | --- | --- |
 | `env.step()` — physics + the 64×64 render | **3.18 ms** |
-| cell body, forward, all 150 cells (torch, at the specified widths) | **0.13 ms** |
+| cell body, forward, all 150 cells (torch, widths 45 / 13 / 32) | **0.13 ms** |
 | agent tick, forward (numpy stand-in, body width 128) | **1.04 ms** |
 | agent tick, with gradients (×3 estimate) | **~3 ms** |
 
 The environment costs about what the whole agent costs, every tick. A framework difference of 2×
 therefore moves total wall-clock by well under a third of something that is not the bottleneck.
 
-**The cell-body row measures what the stand-in row below it estimated.** The stand-in was an
+**The cell-body row measures the body term the stand-in row below it estimated** — the body alone,
+not a tick, which is why it is so much the smaller of the two. The stand-in was an
 order-of-magnitude figure taken before the body's hidden width was specified;
 [`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md)'s *The body's construction* has since sized each map
 at its own minimum, and `benchmarks/body_forward.py` times the real thing — one shared frozen body,
 per-cell biases with a `[cells, ·]` leading dimension, the whole population in a single batched
 `encode`/`step`/`decode` under `no_grad`. It costs **4% of `env.step()`**, and the cell count barely
 shows: 1 cell is 0.075 ms and 1500 cells 0.26 ms, so what is being timed at this size is mostly
-per-op overhead rather than arithmetic. The two stand-in rows are kept rather than deleted, because
+per-op overhead rather than arithmetic.
+
+**One width in that row is unsettled**, and the measurement does not depend on it.
+[`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md) states the rule `max{d_x + 1, d_y}` and prints
+45 / 13 / **33** beside it, but the rule at `decode : ℝ¹² → ℝ³²` gives `max(13, 32) = 32`, which is
+what was built and timed. Whether the printed constant or the printed rule is the slip is open
+(patchworks#84). `decode` is not on the chart's round trip, so no fold-margin number in the record
+was computed at a `decode` width either way, and one hidden unit does not move a 0.13 ms reading.
+
+The two stand-in rows are kept rather than deleted, because
 neither is superseded outright — a tick is more than a body, and reconciliation over ~698 edges is
 not measured here.
 

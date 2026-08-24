@@ -11,4 +11,8 @@ Nothing under prototypes/ is promoted here yet; later tickets bring
 prototypes/sandbox and prototypes/regional-spectra into this package.
 """
 
+from . import body
+
+__all__ = ["body"]
+
 __version__ = "0.0.0"

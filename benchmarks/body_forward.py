@@ -14,6 +14,7 @@ the measured path runs under `torch.no_grad()`, which is how it runs for real.
 
 from __future__ import annotations
 
+import math
 import platform
 import statistics
 import subprocess
@@ -52,7 +53,9 @@ def time_forward(cells: int, shape: BodyShape, repeats: int = REPEATS) -> list[f
 
 
 def report(label: str, samples: list[float]) -> None:
-    p95 = sorted(samples)[min(int(0.95 * len(samples)), len(samples) - 1)]
+    # Nearest rank: the smallest sample at or above the 95th percentile. int()
+    # alone lands one short of it, and cannot overrun the list either way.
+    p95 = sorted(samples)[math.ceil(0.95 * len(samples)) - 1]
     print(
         f"{label:<28} median {statistics.median(samples):6.3f} ms"
         f"   mean {statistics.fmean(samples):6.3f} ms"
