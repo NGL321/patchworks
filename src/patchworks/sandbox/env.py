@@ -423,10 +423,9 @@ class PlanarPushSandbox(gym.Env):
 
     def _light_goal_zone(self) -> None:
         """The goal is perception, not a scalar: the target zone changes colour."""
+        goal_zone = self._require_task().goal_zone
         for z, sid in enumerate(self._zone_sid):
-            self.model.site_rgba[sid] = (
-                ZONE_LIT_RGBA if z == self.task.goal_zone else ZONE_DIM_RGBA
-            )
+            self.model.site_rgba[sid] = ZONE_LIT_RGBA if z == goal_zone else ZONE_DIM_RGBA
 
     # -- the tick ---------------------------------------------------------------
 
