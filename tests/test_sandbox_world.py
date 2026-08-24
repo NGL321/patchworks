@@ -226,3 +226,14 @@ def test_no_zone_lies_inside_the_held_out_wedge(model):
 
 def test_the_control_rate_is_fifty_hertz(model):
     assert model.opt.timestep == pytest.approx(0.002)
+
+
+def test_the_touch_sensors_are_the_whole_sensor_block(model):
+    """The observation resolves them by name, but a fourth sensor would still
+    be a fourth number nobody declared a home for."""
+    assert model.nsensor == 3
+    for i in range(3):
+        sid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SENSOR, f"t{i}")
+        assert sid != -1
+        assert model.sensor_type[sid] == mujoco.mjtSensor.mjSENS_TOUCH
+        assert model.sensor_dim[sid] == 1

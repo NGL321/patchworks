@@ -140,6 +140,12 @@ class SpecLimitError(RuntimeError):
     """
 
 
+def _check_index(value: int, limit: int, what: str) -> int:
+    if not 0 <= value < limit:
+        raise ValueError(f"{what} must be in range(0, {limit}), got {value}")
+    return value
+
+
 def _refuse_step_limit(env_spec) -> None:
     if env_spec is not None and getattr(env_spec, "max_episode_steps", None) is not None:
         raise SpecLimitError(
@@ -221,6 +227,10 @@ class PlanarPushSandbox(gym.Env):
             [self.model.dof_frictionloss[a : a + 3].copy() for a in self._puck_dofadr]
         )
 
+        self._touch_adr = [
+            self.model.sensor_adr[name2id(self.model, obj.mjOBJ_SENSOR, f"t{i}")]
+            for i in range(len(ARM_JOINTS))
+        ]
         self._zone_sid = [name2id(self.model, obj.mjOBJ_SITE, f"zone_{i}") for i in range(N_ZONES)]
         self._arm_gid = [
             name2id(self.model, obj.mjOBJ_GEOM, n)
@@ -299,7 +309,7 @@ class PlanarPushSandbox(gym.Env):
         return {
             "qpos": self.data.qpos[self._arm_qadr].astype(np.float32),
             "qvel": self.data.qvel[self._arm_dofadr].astype(np.float32),
-            "touch": np.asarray(self.data.sensordata[: len(ARM_JOINTS)], dtype=np.float32),
+            "touch": self.data.sensordata[self._touch_adr].astype(np.float32),
             "image": image,
         }
 
@@ -383,6 +393,10 @@ class PlanarPushSandbox(gym.Env):
         # layout that intersects that pose starts the world inside a
         # penetration and the solver launches a puck across the arena. Place,
         # then check, then re-place.
+        before = np.empty(mujoco.mj_stateSize(self.model, self._STATE_SPEC))
+        mujoco.mj_getState(self.model, self.data, before, self._STATE_SPEC)
+        previous_task = self.task
+
         given = options.get("task")
         for _ in range(PLACEMENT_ATTEMPTS):
             self.task = given or self.sample_task()
@@ -392,8 +406,12 @@ class PlanarPushSandbox(gym.Env):
         else:
             # Falling through would hand back the last, penetrating layout --
             # exactly the failure the loop exists to prevent, delivered
-            # silently. An arm parked across the annulus is the way to get
-            # here, and moving it is the caller's answer.
+            # silently. Put the world back the way it was found first, so that
+            # a caller who catches this and moves the arm is not left standing
+            # in the rejected layout.
+            mujoco.mj_setState(self.model, self.data, before, self._STATE_SPEC)
+            self.task = previous_task
+            mujoco.mj_forward(self.model, self.data)
             raise RuntimeError(
                 f"No layout clear of the arm in {PLACEMENT_ATTEMPTS} draws. The arm is "
                 "not reset by reset(), so its current pose is blocking the spawn "
@@ -437,6 +455,9 @@ class PlanarPushSandbox(gym.Env):
             self.model.dof_frictionloss[dof : dof + 3] = self._friction_nominal[i] * scale
 
     def step(self, action):
+        # Before anything moves: reset() never resets the arm or the clock, so
+        # a tick taken by mistake cannot be taken back.
+        self._require_task()
         self._apply_friction_field()
         torque = np.clip(np.asarray(action, dtype=np.float64), -1.0, 1.0) * self._torque_limit
         self.data.ctrl[:] = torque
@@ -462,6 +483,7 @@ class PlanarPushSandbox(gym.Env):
         proprioception reports it the way it reports everything else and no new
         observation path exists.
         """
+        _check_index(joint, len(ARM_JOINTS), "joint")
         mujoco.mj_forward(self.model, self.data)
         applied = np.zeros((1, self.model.nv))
         applied[0, self._arm_dofadr[joint]] = impulse
@@ -472,6 +494,7 @@ class PlanarPushSandbox(gym.Env):
 
     def perturb(self, puck: int, xy, theta: float | None = None) -> None:
         """Teleport a puck mid-task."""
+        _check_index(puck, N_PUCKS, "puck")
         a = self._puck_qadr[puck]
         self.data.qpos[a : a + 2] = np.asarray(xy, dtype=np.float64)
         if theta is not None:
@@ -487,8 +510,8 @@ class PlanarPushSandbox(gym.Env):
         self.task = Task(
             task.puck_xy,
             task.puck_theta,
-            task.goal_puck if goal_puck is None else goal_puck,
-            task.goal_zone if goal_zone is None else goal_zone,
+            task.goal_puck if goal_puck is None else _check_index(goal_puck, N_PUCKS, "goal_puck"),
+            task.goal_zone if goal_zone is None else _check_index(goal_zone, N_ZONES, "goal_zone"),
         )
         self._light_goal_zone()
 

@@ -57,6 +57,7 @@ def test_the_observation_contract(env):
     assert obs["qpos"].shape == (3,) and obs["qpos"].dtype == np.float32
     assert obs["qvel"].shape == (3,) and obs["qvel"].dtype == np.float32
     assert obs["touch"].shape == (3,) and obs["touch"].dtype == np.float32
+    assert np.array_equal(obs["touch"], env.data.sensordata[env._touch_adr])
     assert obs["image"].shape == (IMAGE_SIZE, IMAGE_SIZE, 3)
     assert obs["image"].dtype == np.uint8
     assert obs in env.observation_space
@@ -278,9 +279,16 @@ def test_reset_raises_rather_than_hand_back_a_penetrating_layout(fast_env):
     env = fast_env
     env.reset(seed=0, options={"reset_arm": True})
     # a layout that must intersect the arm: every draw is rejected
+    poses = np.stack([env.puck_pose(i) for i in range(N_PUCKS)])
+    task = env.task
+
     env._pucks_touching_arm = lambda: True
     with pytest.raises(RuntimeError, match="clear of the arm"):
         env.reset()
+
+    # the world is as it was found, not standing in the layout that was refused
+    assert np.array_equal(np.stack([env.puck_pose(i) for i in range(N_PUCKS)]), poses)
+    assert env.task is task
 
 
 def test_calls_before_the_first_reset_say_what_is_missing():
@@ -288,6 +296,11 @@ def test_calls_before_the_first_reset_say_what_is_missing():
     try:
         with pytest.raises(RuntimeError, match="call reset\\(\\) before"):
             env.step(ZERO)
+        # and the refused tick did not happen: reset() cannot take one back,
+        # since it resets neither the arm nor the clock
+        assert env.data.time == 0.0
+        assert np.all(env.data.ctrl == 0.0)
+        assert np.all(env.data.qvel == 0.0)
         with pytest.raises(RuntimeError, match="call reset\\(\\) before"):
             env.retarget(goal_zone=1)
     finally:
@@ -340,6 +353,21 @@ def test_the_arm_is_disturbed_by_an_impulse_never_by_a_teleport(env):
     env.disturb_arm(0, 0.05)
     assert np.array_equal(env.data.qpos[env._arm_qadr], qpos)
     assert np.any(env.data.qvel[env._arm_dofadr] != 0.0)
+
+
+def test_the_hands_refuse_an_index_that_is_not_a_puck_or_a_joint(env):
+    """A negative index wrapped silently: retarget(goal_zone=-1) dimmed every
+    zone -- taking the goal out of the only channel the agent has -- while
+    info went on measuring the distance to the last one."""
+    for bad in (-1, N_PUCKS):
+        with pytest.raises(ValueError, match="range"):
+            env.retarget(goal_zone=bad)
+        with pytest.raises(ValueError, match="range"):
+            env.retarget(goal_puck=bad)
+        with pytest.raises(ValueError, match="range"):
+            env.perturb(bad, [0.2, 0.2])
+        with pytest.raises(ValueError, match="range"):
+            env.disturb_arm(bad, 0.01)
 
 
 def test_perturb_teleports_a_puck(env):
