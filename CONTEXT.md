@@ -306,6 +306,14 @@ task, watched from a standstill, is a low-error state. The reason drives exist. 
 architecture answers by construction, never one it hopes to outgrow.
 _Avoid_: exploration problem, motivation problem, the boredom problem
 
+**Dynamics exploration**:
+Acting on the world to learn what it does — a puck's mass, the outcome of a contact — as opposed to
+moving in order to see where things are. The sense in which the sandbox
+must be explored to be modelled: its whole arena is visible every frame, so position is given away
+and only dynamics has to be earned. A model of where things are in one arena is memorisation of that
+arena.
+_Avoid_: spatial exploration, search, epistemic action, information gathering
+
 **Efference copy**:
 What an actuator boundary cell writes back after the world has read it: the command as actually
 applied, post-clip and post-saturation. Makes a motor edge carry ordinary disagreement rather than
