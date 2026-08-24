@@ -238,3 +238,20 @@ class TestBatchedExecution:
             out, prediction = body(torch.randn(cells, K), torch.randn(cells, N), biases)
             assert out.shape == (cells, K)
             assert prediction.shape == (cells, N)
+
+
+class TestBenchmark:
+    """`benchmarks/body_forward.py` is the reported wall time's provenance.
+
+    Timings are not asserted -- a wall-clock threshold in CI measures the
+    runner, not the body. What is asserted is that the script still runs
+    against the current API, so the number in `09-the-build-stack.md` keeps a
+    reproduction.
+    """
+
+    def test_the_benchmark_still_runs(self):
+        import body_forward
+
+        samples = body_forward.time_forward(8, BodyShape(n=8, k=3), repeats=3)
+        assert len(samples) == 3
+        assert all(sample > 0 for sample in samples)
