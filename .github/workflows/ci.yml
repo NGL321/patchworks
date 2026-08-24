@@ -34,4 +34,9 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Run tests
+        # The sandbox's observation is a 64x64 render, so the suite needs a GL
+        # context. osmesa is the software one, and libosmesa6 is installed
+        # above; the runner has no display and no GPU.
+        env:
+          MUJOCO_GL: osmesa
         run: pytest

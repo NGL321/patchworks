@@ -37,6 +37,9 @@ from gymnasium import spaces
 
 ARENA_XML = os.path.join(os.path.dirname(os.path.abspath(__file__)), "arena.xml")
 
+ENV_ID = "Patchworks/PlanarPushSandbox-v0"
+ENTRY_POINT = "patchworks.sandbox.env:PlanarPushSandbox"
+
 N_PUCKS = 3
 N_ZONES = 3
 ARM_JOINTS = ("j0", "j1", "j2")
@@ -124,6 +127,17 @@ class SpecLimitError(RuntimeError):
     """
 
 
+def _refuse_step_limit(env_spec) -> None:
+    if env_spec is not None and getattr(env_spec, "max_episode_steps", None) is not None:
+        raise SpecLimitError(
+            f"{getattr(env_spec, 'id', env_spec)} carries max_episode_steps="
+            f"{env_spec.max_episode_steps}. gymnasium.make() would wrap this env in "
+            "TimeLimit, whose truncated=True every standard loop resets on -- and a "
+            "reset here rearranges the world mid-trajectory rather than restarting "
+            "anything. Register the sandbox with max_episode_steps=None."
+        )
+
+
 class PlanarPushSandbox(gym.Env):
     """The sandbox, as a literal `gymnasium.Env`.
 
@@ -152,6 +166,8 @@ class PlanarPushSandbox(gym.Env):
             raise ValueError(f"split must be one of {SPLITS}, got {split!r}")
         if render_mode is not None and render_mode not in self.metadata["render_modes"]:
             raise ValueError(f"unsupported render_mode {render_mode!r}")
+
+        self._refuse_registered_step_limit()
 
         self._spec = None
         self.split = split
@@ -183,7 +199,6 @@ class PlanarPushSandbox(gym.Env):
         )
 
         self._zone_sid = [name2id(self.model, obj.mjOBJ_SITE, f"zone_{i}") for i in range(N_ZONES)]
-        self._tip_sid = name2id(self.model, obj.mjOBJ_SITE, "tip")
         self._arm_gid = [
             name2id(self.model, obj.mjOBJ_GEOM, n)
             for n in ("g_link0", "g_link1", "g_link2", "g_tip")
@@ -209,20 +224,26 @@ class PlanarPushSandbox(gym.Env):
 
     # -- the refused step limit -------------------------------------------------
 
+    @staticmethod
+    def _refuse_registered_step_limit() -> None:
+        """Refuse at construction, before a TimeLimit can be wrapped around us.
+
+        `gymnasium.make()` rebuilds the unwrapped env's spec with
+        `max_episode_steps=None` whatever the registration said, and applies
+        TimeLimit outside, so the limit is invisible from in here once the env
+        exists. The registry is where it is still visible.
+        """
+        for env_spec in gym.registry.values():
+            if env_spec.entry_point in (ENTRY_POINT, PlanarPushSandbox):
+                _refuse_step_limit(env_spec)
+
     @property
     def spec(self):
         return self._spec
 
     @spec.setter
     def spec(self, value) -> None:
-        if value is not None and getattr(value, "max_episode_steps", None) is not None:
-            raise SpecLimitError(
-                "This env refuses a spec-level max_episode_steps "
-                f"({value.max_episode_steps}): gymnasium.make() would wrap it in "
-                "TimeLimit, whose truncated=True every standard loop resets on -- "
-                "and a reset here rearranges the world mid-trajectory rather than "
-                "restarting anything. Register with max_episode_steps=None."
-            )
+        _refuse_step_limit(value)
         self._spec = value
 
     # -- observation ------------------------------------------------------------

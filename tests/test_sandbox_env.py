@@ -1,0 +1,404 @@
+"""The sandbox's contract: what a tick gives, what it takes, and what it keeps.
+
+`docs/spec/03-the-sandbox.md`, *Sensory surface*, *Motor surface*, and *The
+Gymnasium contract, made continual*.
+"""
+
+import mujoco
+import numpy as np
+import pytest
+
+from patchworks.sandbox import (
+    CONTROL_HZ,
+    FRAME_SKIP,
+    HELDOUT_PAIRS,
+    IMAGE_SIZE,
+    N_PUCKS,
+    SPAWN_R,
+    SPLITS,
+    ZONE_RADIUS,
+    ZONE_XY,
+    PlanarPushSandbox,
+    Task,
+    friction_scale,
+    in_heldout_sector,
+)
+
+TORQUE_LIMIT = np.array([3.0, 2.0, 1.0])
+ZERO = np.zeros(3, np.float32)
+
+
+@pytest.fixture
+def env():
+    e = PlanarPushSandbox(split="train")
+    e.reset(seed=7, options={"reset_arm": True})
+    yield e
+    e.close()
+
+
+@pytest.fixture
+def fast_env():
+    """Physics only. The agent needs the render; a 60 s probe does not."""
+    e = PlanarPushSandbox(split="any", render_obs=False)
+    yield e
+    e.close()
+
+
+# -- the sensory surface --------------------------------------------------------
+
+
+def test_the_observation_contract(env):
+    obs, *_ = env.step(ZERO)
+
+    # Nothing here names a plane: these name joints and a camera. Going 3D adds
+    # joints and turns gravity on; it does not rename anything in this dict.
+    assert set(obs) == {"qpos", "qvel", "touch", "image"}
+
+    assert obs["qpos"].shape == (3,) and obs["qpos"].dtype == np.float32
+    assert obs["qvel"].shape == (3,) and obs["qvel"].dtype == np.float32
+    assert obs["touch"].shape == (3,) and obs["touch"].dtype == np.float32
+    assert obs["image"].shape == (IMAGE_SIZE, IMAGE_SIZE, 3)
+    assert obs["image"].dtype == np.uint8
+    assert obs in env.observation_space
+
+
+def test_no_object_pose_reaches_the_agent(env):
+    """Everything about the world arrives through the render, unlabelled: the
+    agent must learn that the coloured blobs are objects.
+
+    Move a puck somewhere the arm cannot feel, and the image is the only thing
+    in the observation that knows.
+    """
+    xy = np.array([[0.0, -0.25], [-0.22, 0.10], [0.10, 0.30]])
+    env.reset(seed=4, options={"reset_arm": True, "task": Task(xy, np.zeros(3), 0, 0)})
+    state = env.snapshot()
+    untouched, *_ = env.step(ZERO)
+
+    env.restore(state)
+    env.perturb(0, [0.32, -0.30])  # well clear of the arm, which lies along +x
+    moved, *_ = env.step(ZERO)
+
+    for key in ("qpos", "qvel", "touch"):
+        assert np.array_equal(untouched[key], moved[key])
+    assert not np.array_equal(untouched["image"], moved["image"])
+
+
+def test_the_goal_reaches_the_agent_as_perception(env):
+    """The target zone lights up in the render. There is no goal vector, no
+    task id, and no reward, so retargeting is just a change in appearance."""
+    before = env.step(ZERO)[0]["image"].astype(int)
+    other = next(z for z in range(3) if z != env.task.goal_zone)
+    env.retarget(goal_zone=other)
+    after = env.step(ZERO)[0]["image"].astype(int)
+    assert np.abs(before - after).sum() > 0
+
+
+def test_the_render_is_the_only_place_the_goal_appears(env):
+    """A retarget changes the image and nothing else in the observation."""
+    env.step(ZERO)
+    before, *_ = env.step(ZERO)
+    snapshot = env.snapshot()
+    other = next(z for z in range(3) if z != env.task.goal_zone)
+    env.retarget(goal_zone=other)
+    env.restore(snapshot)
+    env.retarget(goal_zone=other)
+    after, *_ = env.step(ZERO)
+    for key in ("qpos", "qvel", "touch"):
+        assert np.array_equal(before[key], after[key])
+
+
+# -- the motor surface ----------------------------------------------------------
+
+
+def test_the_action_contract(env):
+    assert env.action_space.shape == (3,)
+    assert np.all(env.action_space.low == -1.0)
+    assert np.all(env.action_space.high == 1.0)
+
+
+def test_actions_are_normalised_to_the_per_joint_torque_limits(env):
+    env.step(np.ones(3, np.float32))
+    assert env.data.ctrl == pytest.approx(TORQUE_LIMIT)
+    env.step(-np.ones(3, np.float32))
+    assert env.data.ctrl == pytest.approx(-TORQUE_LIMIT)
+
+
+def test_actions_outside_the_box_are_clipped(env):
+    env.step(np.array([5.0, -5.0, 5.0], np.float32))
+    assert env.data.ctrl == pytest.approx(TORQUE_LIMIT * [1, -1, 1])
+
+
+def test_control_runs_at_fifty_hertz_over_ten_substeps(env):
+    assert env.frame_skip == FRAME_SKIP
+    before = env.data.time
+    env.step(ZERO)
+    assert env.data.time - before == pytest.approx(1.0 / CONTROL_HZ)
+    assert env.model.opt.timestep * FRAME_SKIP == pytest.approx(1.0 / CONTROL_HZ)
+
+
+# -- the three deviations -------------------------------------------------------
+
+
+def test_there_is_no_reward_channel_and_no_episode(env):
+    for _ in range(20):
+        _, reward, terminated, truncated, _ = env.step(env.action_space.sample())
+        assert reward == 0.0
+        assert terminated is False
+        assert truncated is False
+
+
+def test_reset_rearranges_the_world_and_never_resets_the_agent(env):
+    for _ in range(30):
+        env.step(np.array([0.4, -0.3, 0.2], np.float32))
+    qpos = env.data.qpos[env._arm_qadr].copy()
+    qvel = env.data.qvel[env._arm_dofadr].copy()
+    time_before = env.data.time
+    poses = np.stack([env.puck_pose(i) for i in range(N_PUCKS)])
+
+    env.reset()
+
+    assert np.array_equal(env.data.qpos[env._arm_qadr], qpos)
+    assert np.array_equal(env.data.qvel[env._arm_dofadr], qvel)
+    assert env.data.time == time_before, "physics time is monotonic across the run"
+    assert not np.allclose(np.stack([env.puck_pose(i) for i in range(N_PUCKS)]), poses)
+
+
+def test_nothing_in_the_observation_announces_a_reset(env):
+    """The agent finds out the world changed the way it finds out anything
+    else: its predictions stop working."""
+    before, *_ = env.step(ZERO)
+    after, _ = env.reset()
+    assert set(before) == set(after)
+    for key in ("qpos", "qvel", "touch"):
+        assert np.array_equal(before[key], after[key])
+
+
+def test_reset_arm_is_available_for_setup(env):
+    for _ in range(30):
+        env.step(np.array([0.5, 0.5, -0.5], np.float32))
+    assert np.any(env.data.qpos[env._arm_qadr] != 0.0)
+    env.reset(options={"reset_arm": True})
+    assert np.all(env.data.qpos[env._arm_qadr] == 0.0)
+    assert np.all(env.data.qvel[env._arm_dofadr] == 0.0)
+
+
+def test_info_is_privileged_and_carries_exactly_the_spec_s_four_things(env):
+    _, _, _, _, info = env.step(ZERO)
+    assert set(info) == {
+        "puck_pose",
+        "goal_puck",
+        "goal_zone",
+        "goal_distance",
+        "goal_satisfied",
+    }
+    assert info["puck_pose"].shape == (N_PUCKS, 3)
+    assert info["goal_puck"] in range(N_PUCKS)
+    assert info["goal_zone"] in range(3)
+    expected = np.linalg.norm(
+        info["puck_pose"][info["goal_puck"], :2] - ZONE_XY[info["goal_zone"]]
+    )
+    assert info["goal_distance"] == pytest.approx(expected)
+    assert isinstance(info["goal_satisfied"], bool)
+
+
+def test_goal_satisfaction_is_a_gate_on_zone_radius(env):
+    env.perturb(env.task.goal_puck, ZONE_XY[env.task.goal_zone])
+    _, _, _, _, info = env.step(ZERO)
+    assert info["goal_distance"] < ZONE_RADIUS
+    assert info["goal_satisfied"] is True
+
+
+# -- the sampler ----------------------------------------------------------------
+
+
+def test_layouts_land_in_the_spawn_annulus_clear_of_each_other(env):
+    for _ in range(20):
+        _, info = env.reset()
+        xy = info["puck_pose"][:, :2]
+        r = np.linalg.norm(xy, axis=1)
+        assert np.all((r >= SPAWN_R[0] - 1e-9) & (r <= SPAWN_R[1] + 1e-9))
+        for i in range(N_PUCKS):
+            for j in range(i + 1, N_PUCKS):
+                gap = np.linalg.norm(xy[i] - xy[j]) - env.puck_radius[i] - env.puck_radius[j]
+                assert gap > 0.03
+
+
+def test_the_held_out_slice_is_two_axes_that_never_merge():
+    assert set(SPLITS) == {"train", "heldout_pair", "heldout_sector", "any"}
+    for split, holds in (
+        ("train", lambda p, s: not p and not s),
+        ("heldout_pair", lambda p, s: p and not s),
+        ("heldout_sector", lambda p, s: s and not p),
+    ):
+        e = PlanarPushSandbox(split=split, render_obs=False)
+        e.reset(seed=3, options={"reset_arm": True})
+        for _ in range(8):
+            task = e.sample_task()
+            pair = task.pair in HELDOUT_PAIRS
+            sector = in_heldout_sector(task.puck_xy[task.goal_puck])
+            assert holds(pair, sector), f"{split} drew pair={pair} sector={sector}"
+        e.close()
+
+
+def test_a_layout_never_starts_inside_the_arm(env):
+    """The arm is never reset, so a layout that intersects its pose starts the
+    world inside a penetration and the solver launches a puck across the arena."""
+    for _ in range(20):
+        env.step(np.array([0.6, 0.4, -0.4], np.float32))
+    for _ in range(10):
+        env.reset()
+        assert not env._pucks_touching_arm()
+
+
+# -- the human's hand -----------------------------------------------------------
+
+
+def test_the_arm_is_disturbed_by_an_impulse_never_by_a_teleport(env):
+    """Displacing qpos would have the world rewrite the arm's configuration,
+    which is the one thing this env never does."""
+    qpos = env.data.qpos[env._arm_qadr].copy()
+    env.disturb_arm(0, 0.05)
+    assert np.array_equal(env.data.qpos[env._arm_qadr], qpos)
+    assert np.any(env.data.qvel[env._arm_dofadr] != 0.0)
+
+
+def test_perturb_teleports_a_puck(env):
+    target = np.array([0.10, -0.28])
+    env.perturb(1, target)
+    assert env.puck_pose(1)[:2] == pytest.approx(target)
+    dof = env._puck_dofadr[1]
+    assert np.all(env.data.qvel[dof : dof + 3] == 0.0)
+
+
+def test_retarget_changes_what_is_wanted_without_touching_the_world(env):
+    poses = np.stack([env.puck_pose(i) for i in range(N_PUCKS)])
+    puck = (env.task.goal_puck + 1) % N_PUCKS
+    zone = (env.task.goal_zone + 1) % 3
+    env.retarget(goal_puck=puck, goal_zone=zone)
+    assert (env.task.goal_puck, env.task.goal_zone) == (puck, zone)
+    assert np.array_equal(np.stack([env.puck_pose(i) for i in range(N_PUCKS)]), poses)
+
+
+# -- snapshot and restore -------------------------------------------------------
+
+
+def test_the_snapshot_is_the_engine_constant_not_an_enumeration(env):
+    state = env.snapshot()
+    expected = mujoco.mj_stateSize(env.model, mujoco.mjtState.mjSTATE_INTEGRATION)
+    assert state["physics"].size == expected
+    assert set(state) == {"physics", "task", "rng"}
+
+
+def test_restore_replays_a_hundred_tick_tail_bit_exactly(env):
+    rng = np.random.default_rng(0)
+    actions = rng.uniform(-1, 1, (100, 3)).astype(np.float32)
+    state = env.snapshot()
+    first = [env.step(a)[0]["qpos"] for a in actions]
+    env.restore(state)
+    second = [env.step(a)[0]["qpos"] for a in actions]
+    assert all(np.array_equal(a, b) for a, b in zip(first, second))
+
+
+def test_restore_rewinds_the_sampler_too(env):
+    state = env.snapshot()
+    first = env.sample_task()
+    env.restore(state)
+    second = env.sample_task()
+    assert np.array_equal(first.puck_xy, second.puck_xy)
+    assert first.pair == second.pair
+
+
+# -- the friction field ---------------------------------------------------------
+
+
+def test_the_friction_field_has_mean_one_and_range_three_quarters_to_five_fourths():
+    grid = np.linspace(-0.52, 0.52, 301)
+    xs, ys = np.meshgrid(grid, grid)
+    inside = xs**2 + ys**2 <= 0.52**2
+    values = np.array([friction_scale((x, y)) for x, y in zip(xs[inside], ys[inside])])
+    assert values.mean() == pytest.approx(1.0, abs=0.01)
+    assert values.min() >= 0.75
+    assert values.max() <= 1.25
+    # and it uses the range it is given, rather than hugging the mean
+    assert values.min() < 0.80 and values.max() > 1.20
+
+
+def test_the_friction_field_is_a_pure_function_of_puck_position(fast_env):
+    """Not a random draw: resampling per reset() would put a number into the
+    model that mjSTATE_INTEGRATION does not cover, so restore would diverge."""
+    env = fast_env
+    xy = np.array([[0.20, 0.10], [-0.18, -0.22], [0.05, 0.30]])
+    env.reset(seed=2, options={"reset_arm": True, "task": Task(xy, np.zeros(3), 0, 0)})
+    env.step(ZERO)
+    seen = [env.model.dof_frictionloss[d : d + 3].copy() for d in env._puck_dofadr]
+    for i, values in enumerate(seen):
+        assert values == pytest.approx(env._friction_nominal[i] * friction_scale(xy[i]))
+
+    # the same position gives the same scale, anywhere in the run
+    env.perturb(0, [0.40, -0.30])
+    env.step(ZERO)
+    env.perturb(0, xy[0])
+    env.step(ZERO)
+    assert env.model.dof_frictionloss[env._puck_dofadr[0] : env._puck_dofadr[0] + 3] == (
+        pytest.approx(seen[0])
+    )
+
+
+def test_the_same_push_at_two_places_gives_two_outcomes(fast_env):
+    """Repeated identical pushes in a rigid-body simulator are bit-identical;
+    the field is what makes this world's not be."""
+    env = fast_env
+    travelled = []
+    for centre in ([0.18, 0.06], [-0.06, -0.30]):
+        xy = np.array([centre, [0.30, 0.25], [-0.30, 0.20]])
+        env.reset(seed=5, options={"reset_arm": True, "task": Task(xy, np.zeros(3), 0, 0)})
+        dof = env._puck_dofadr[0]
+        env.data.qfrc_applied[dof] = 0.15
+        start = env.puck_pose(0)[:2].copy()
+        for _ in range(50):
+            env.step(ZERO)
+        env.data.qfrc_applied[dof] = 0.0
+        travelled.append(float(np.linalg.norm(env.puck_pose(0)[:2] - start)))
+    assert abs(travelled[0] - travelled[1]) > 1e-3
+
+
+# -- static equilibrium below threshold -----------------------------------------
+
+
+@pytest.mark.parametrize("puck", range(N_PUCKS))
+def test_a_sixty_second_sub_threshold_hold_drifts_under_a_millimetre(fast_env, puck):
+    """A frictionloss constraint takes its impedance from solimp[0]; at the
+    default 0.9 a puck held at 90% of its break-away threshold crept 159 mm
+    over 60 s. solimpfriction at 0.9999 is what makes static equilibrium below
+    threshold a claim this sandbox can make."""
+    env = fast_env
+    # keep every puck off the +x ray the reset arm lies along
+    xy = np.array([[0.0, -0.25], [-0.22, 0.10], [0.10, 0.30]])
+    env.reset(seed=1, options={"reset_arm": True, "task": Task(xy, np.zeros(3), puck, 0)})
+    assert env.data.ncon == 0
+
+    env._apply_friction_field()
+    dof = env._puck_dofadr[puck]
+    env.data.qfrc_applied[dof] = 0.9 * env.model.dof_frictionloss[dof]
+
+    start = env.puck_pose(puck)[:2].copy()
+    for _ in range(int(60.0 * CONTROL_HZ)):
+        env.step(ZERO)
+    drift = float(np.linalg.norm(env.puck_pose(puck)[:2] - start))
+    assert drift < 1e-3, f"puck {puck} drifted {drift * 1000:.3f} mm"
+
+
+@pytest.mark.parametrize("puck", range(N_PUCKS))
+def test_the_break_away_threshold_at_the_joint_is_the_frictionloss_value(fast_env, puck):
+    """Above it the puck moves, which is what makes the hold above a claim
+    about the threshold rather than about a stuck solver."""
+    env = fast_env
+    xy = np.array([[0.0, -0.25], [-0.22, 0.10], [0.10, 0.30]])
+    env.reset(seed=1, options={"reset_arm": True, "task": Task(xy, np.zeros(3), puck, 0)})
+    env._apply_friction_field()
+    dof = env._puck_dofadr[puck]
+    env.data.qfrc_applied[dof] = 1.5 * env.model.dof_frictionloss[dof]
+    start = env.puck_pose(puck)[:2].copy()
+    for _ in range(int(1.0 * CONTROL_HZ)):
+        env.step(ZERO)
+    assert float(np.linalg.norm(env.puck_pose(puck)[:2] - start)) > 0.05

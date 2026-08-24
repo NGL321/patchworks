@@ -12,6 +12,8 @@ from gymnasium.envs.registration import register, registry
 from patchworks.sandbox.env import (
     ARENA_XML,
     CONTROL_HZ,
+    ENTRY_POINT,
+    ENV_ID,
     FRAME_SKIP,
     HELDOUT_PAIRS,
     HELDOUT_SECTOR,
@@ -30,18 +32,13 @@ from patchworks.sandbox.env import (
     in_heldout_sector,
 )
 
-ENV_ID = "Patchworks/PlanarPushSandbox-v0"
-
 if ENV_ID not in registry:
-    register(
-        id=ENV_ID,
-        entry_point="patchworks.sandbox.env:PlanarPushSandbox",
-        max_episode_steps=None,
-    )
+    register(id=ENV_ID, entry_point=ENTRY_POINT, max_episode_steps=None)
 
 __all__ = [
     "ARENA_XML",
     "CONTROL_HZ",
+    "ENTRY_POINT",
     "ENV_ID",
     "FRAME_SKIP",
     "HELDOUT_PAIRS",

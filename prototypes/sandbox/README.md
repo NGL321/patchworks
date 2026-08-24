@@ -13,6 +13,12 @@ copies drifted apart once already; this file does not keep a second one.
 `precedence_probe.py` is the newest of them — [#60](https://github.com/NGL321/patchworks/issues/60)'s
 timescale ladder and route-blocking constructions.
 
+**`arena.xml` and `sandbox_env.py` have been promoted** into
+[`src/patchworks/sandbox/`](../../src/patchworks/sandbox/), which is the live world now
+([#80](https://github.com/NGL321/patchworks/issues/80)). The copies here stay because the probes
+below import them and because they are the evidence the spec's numbers were measured on; edit the
+package, not these.
+
 ## What is a proposal and what is scaffolding
 
 - `arena.xml` and `sandbox_env.py` — **the proposal.** Geometry, observation and action contracts,
