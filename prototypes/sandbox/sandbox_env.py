@@ -42,6 +42,25 @@ SPAWN_R = (0.15, 0.36)                     # annulus: pedestal at 0.08, ring wal
 ZONE_XY = np.array([[0.0, 0.30], [-0.26, -0.15], [0.26, -0.15]])
 ZONE_RADIUS = 0.075
 
+# --- the table is not uniform --------------------------------------------------
+# Issue #21. Real tables have spatially varying friction (Yu et al. map the DCoF
+# across their surface); this one did not, which made repeated identical pushes
+# bit-identical and gave the agent a world whose disagreement could be fully
+# cleared. The field below is a pure function of puck position, so snapshot and
+# restore stay exact — resampling per reset() would have put a number into the
+# model that mjSTATE_INTEGRATION does not cover, and broken restore silently.
+FRICTION_FIELD_AMP = (0.15, 0.10)          # +/- 25% about the nominal mu*m*g
+
+
+def friction_scale(xy: np.ndarray) -> float:
+    """Multiplier on a puck's frictionloss at position `xy`. Mean 1, range 0.75-1.25."""
+    x, y = float(xy[0]), float(xy[1])
+    a, b = FRICTION_FIELD_AMP
+    return (1.0
+            + a * np.sin(2 * np.pi * x / 0.31 + 0.7) * np.cos(2 * np.pi * y / 0.37)
+            + b * np.sin(2 * np.pi * (x + y) / 0.53))
+
+
 ZONE_DIM_RGBA = np.array([0.35, 0.35, 0.35, 0.35])
 ZONE_LIT_RGBA = np.array([1.00, 0.85, 0.10, 0.85])
 
@@ -105,6 +124,14 @@ class PlanarPushSandbox(gym.Env):
         gid = lambda n: mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, n)
         self._link_gid = [gid(n) for n in ("g_link0", "g_link1", "g_link2", "g_tip")]
         self._puck_gid = [gid(f"g_puck_{i}") for i in range(N_PUCKS)]
+
+        # nominal frictionloss, before the spatial field scales it
+        self._puck_dofadr = [
+            self.model.jnt_dofadr[
+                mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, f"p{i}_x")]
+            for i in range(N_PUCKS)]
+        self._friction_nominal = np.array(
+            [self.model.dof_frictionloss[a:a + 3].copy() for a in self._puck_dofadr])
 
         n_j = len(self._jid)
         self.observation_space = spaces.Dict({
@@ -233,7 +260,14 @@ class PlanarPushSandbox(gym.Env):
 
     # -- the tick ---------------------------------------------------------------
 
+    def _apply_friction_field(self) -> None:
+        """Scale each puck's frictionloss by the table's local roughness."""
+        for i, dof in enumerate(self._puck_dofadr):
+            scale = friction_scale(self.data.qpos[self._puck_qadr[i]:self._puck_qadr[i] + 2])
+            self.model.dof_frictionloss[dof:dof + 3] = self._friction_nominal[i] * scale
+
     def step(self, action):
+        self._apply_friction_field()
         a = np.clip(np.asarray(action, dtype=np.float64), -1.0, 1.0)
         self.data.ctrl[:] = a * self._ctrl_scale
         mujoco.mj_step(self.model, self.data, nstep=self.frame_skip)

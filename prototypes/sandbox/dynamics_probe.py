@@ -25,7 +25,7 @@ FAR = np.array([[0.30, 0.0], [0.0, 0.30], [-0.30, 0.0]])   # apart, clear of the
 
 
 def fresh(armature: bool, contact: bool = False):
-    """Model with the puck dofs' armature optionally zeroed. Contact is off by
+    """Model with the puck dofs' armature forced to the pre-#21 value or to zero. Contact is off by
     default: tests 2-5 drive the puck joints directly, so the arm and the walls
     are only a source of collisions that would corrupt the measurement."""
     m = mujoco.MjModel.from_xml_path(XML)
@@ -35,8 +35,9 @@ def fresh(armature: bool, contact: bool = False):
     for i in PUCKS:
         for ax in "xyr":
             j = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, f"p{i}_{ax}")
-            if not armature:
-                m.dof_armature[m.jnt_dofadr[j]] = 0.0
+            # the class now sets armature="0"; put the old value back to keep the
+            # before/after comparison meaningful after the fix landed
+            m.dof_armature[m.jnt_dofadr[j]] = 0.01 if armature else 0.0
     # park the arm out of the way and spread the pucks
     d.qpos[:3] = [np.pi / 2, 1.2, 1.2]
     for i in PUCKS:
@@ -398,6 +399,69 @@ def q10_regime():
           f"  max {t[:, 1].max():.3f}")
 
 
+# ------------------- 11. is theta load-bearing now? (the eccentric puck, #21)
+def q11_theta_matters():
+    """Same push, different starting theta. A circular puck cannot care; puck 1 must."""
+    print("\n=== 11. does the outcome depend on the puck's hidden theta? ==========")
+    for i in PUCKS:
+        m, d = fresh(False, contact=True)
+        ends = []
+        for th in np.linspace(0, 2 * np.pi, 8, endpoint=False):
+            a = qadr(m, i)
+            for k in PUCKS:
+                d.qpos[qadr(m, k):qadr(m, k) + 2] = [-0.38, 0.22 - 0.44 * k]
+                d.qvel[dofs(m, k)] = 0
+            d.qpos[a:a + 2] = [0.22, 0.0]
+            d.qpos[a + 2] = th
+            r = m.geom_size[mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, f"g_puck_{i}")][0]
+            ik(m, d, (0.22 - r - 0.030 - 0.0005, 0.0))
+            d.qvel[:] = 0
+            mujoco.mj_forward(m, d)
+            x0 = d.qpos[a:a + 2].copy()
+            LIM = np.array([3.0, 2.0, 1.0])
+            tip = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_SITE, "tip")
+            jac, jacr = np.zeros((3, m.nv)), np.zeros((3, m.nv))
+            for step in range(int(4.0 / m.opt.timestep)):
+                mujoco.mj_jacSite(m, d, jac, jacr, tip)
+                f = 3.0 if step * m.opt.timestep < 0.4 else 0.0
+                d.ctrl[:] = np.clip(jac[:2, :3].T @ np.array([f, 0.0]), -LIM, LIM)
+                mujoco.mj_step(m, d)
+            ends.append(d.qpos[a:a + 2] - x0)
+        e = np.array(ends)
+        lat = e[:, 1]
+        print(f"    puck {i}: lateral deflection across 8 start angles "
+              f"[{1000 * lat.min():+7.2f}, {1000 * lat.max():+7.2f}] mm  "
+              f"spread {1000 * (lat.max() - lat.min()):6.2f} mm   "
+              f"travel {1000 * e[:, 0].mean():.1f} mm")
+
+
+# ---------------------- 12. does the friction field survive snapshot / restore?
+def q12_restore_exact():
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from sandbox_env import PlanarPushSandbox
+    print("\n=== 12. snapshot / restore with a position-dependent friction field ==")
+    env = PlanarPushSandbox(split="any", seed=3, render_obs=False)
+    env.reset(seed=3)
+    rng = np.random.default_rng(7)
+    plan = rng.uniform(-1, 1, (200, 3))
+    for a in plan[:100]:
+        env.step(a)
+    n = mujoco.mj_stateSize(env.model, mujoco.mjtState.mjSTATE_INTEGRATION)
+    snap = np.zeros(n)
+    mujoco.mj_getState(env.model, env.data, snap, mujoco.mjtState.mjSTATE_INTEGRATION)
+    for a in plan[100:]:
+        env.step(a)
+    first = env.data.qpos.copy()
+    mujoco.mj_setState(env.model, env.data, snap, mujoco.mjtState.mjSTATE_INTEGRATION)
+    for a in plan[100:]:
+        env.step(a)
+    err = float(np.abs(env.data.qpos - first).max())
+    print(f"    max |qpos| divergence over a replayed 100-tick tail: {err:.3e} "
+          f"({'exact' if err == 0.0 else 'NOT EXACT'})")
+    env.close()
+
+
 if __name__ == "__main__":
     q1_armature()
     q2_coast()
@@ -409,3 +473,5 @@ if __name__ == "__main__":
     q8_tip_threshold()
     q9_push_distance()
     q10_regime()
+    q11_theta_matters()
+    q12_restore_exact()
