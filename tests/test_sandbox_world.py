@@ -9,7 +9,15 @@ import mujoco
 import numpy as np
 import pytest
 
-from patchworks.sandbox import ARENA_XML, N_PUCKS, N_ZONES, ZONE_RADIUS, ZONE_XY
+from patchworks.sandbox import (
+    ARENA_XML,
+    HELDOUT_SECTOR,
+    N_PUCKS,
+    N_ZONES,
+    ZONE_RADIUS,
+    ZONE_XY,
+    in_heldout_sector,
+)
 
 G = 9.81  # table friction is modelled as joint frictionloss, mu*m*g
 
@@ -215,13 +223,24 @@ def test_the_zones_match_the_spec(model):
         assert angle == pytest.approx(ZONE_ANGLES_DEG[z], abs=0.5)
 
 
-def test_no_zone_lies_inside_the_held_out_wedge(model):
-    """Zone 0 is tangent to the wedge's upper edge with about half a degree to
-    spare, so the sector holdout does not silently restrict approach geometry
-    for pair-holdout tasks."""
+def test_no_zone_centre_lies_inside_the_held_out_wedge(model):
+    """The sector holdout withholds a target-puck position; it must not also
+    withhold a place to push a puck *to*, or the two axes couple.
+
+    No zone centre is in the wedge, and zone 0 -- the only one anywhere near it
+    -- is tangent to the wedge's upper edge with about half a degree to spare,
+    so the holdout does not silently restrict approach geometry for
+    pair-holdout tasks either. The margin is read off the wedge constant rather
+    than a transcribed 75 degrees, because widening the wedge is exactly the
+    change the spec says would couple the axes with nothing announcing it."""
+    upper_edge = np.rad2deg(HELDOUT_SECTOR[1])
+    for z in range(N_ZONES):
+        sid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, f"zone_{z}")
+        assert not in_heldout_sector(model.site_pos[sid][:2])
+
     half_width = np.rad2deg(np.arcsin(ZONE_RADIUS / 0.30))
-    lower = ZONE_ANGLES_DEG[0] - half_width
-    assert 75.0 < lower < 76.0
+    clearance = (ZONE_ANGLES_DEG[0] - half_width) - upper_edge
+    assert 0.0 < clearance < 1.0
 
 
 def test_the_control_rate_is_fifty_hertz(model):

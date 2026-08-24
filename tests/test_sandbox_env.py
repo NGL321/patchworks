@@ -14,10 +14,12 @@ from patchworks.sandbox import (
     IMAGE_SIZE,
     HELDOUT_PAIRS,
     N_PUCKS,
+    N_ZONES,
     SPAWN_R,
     SPLITS,
     ZONE_RADIUS,
     ZONE_XY,
+    BlockedAnnulusError,
     PlanarPushSandbox,
     Task,
     friction_scale,
@@ -243,7 +245,13 @@ def test_goal_satisfaction_is_a_gate_on_zone_radius(env):
 # -- the sampler ----------------------------------------------------------------
 
 
-def test_layouts_land_in_the_spawn_annulus_clear_of_each_other(env):
+def test_layouts_land_in_the_spawn_annulus_clear_of_each_other_and_of_the_zones(env):
+    """Clear of each other subtracts both radii; clear of the zones means
+    **centres**, with the puck's own radius ignored. The two are deliberately
+    inconsistent -- see `docs/spec/03-the-sandbox.md`, *Two limitations of the
+    sampler, on the record* -- so a puck may spawn with its rim already
+    overlapping a zone's disc. Asserted as built, because it is recorded as
+    built."""
     for _ in range(20):
         _, info = env.reset()
         xy = info["puck_pose"][:, :2]
@@ -253,23 +261,58 @@ def test_layouts_land_in_the_spawn_annulus_clear_of_each_other(env):
             for j in range(i + 1, N_PUCKS):
                 gap = np.linalg.norm(xy[i] - xy[j]) - env.puck_radius[i] - env.puck_radius[j]
                 assert gap > 0.03
+            for z in range(N_ZONES):
+                assert np.linalg.norm(xy[i] - ZONE_XY[z]) > ZONE_RADIUS + 0.04
+
+
+def _split_signatures(split: str, draws: int, seed: int = 3) -> set[tuple[bool, bool]]:
+    """Which `(held-out pair, held-out sector)` combinations `split` draws."""
+    e = PlanarPushSandbox(split=split, render_obs=False)
+    try:
+        e.reset(seed=seed, options={"reset_arm": True})
+        tasks = [e.sample_task() for _ in range(draws)]
+    finally:
+        e.close()
+    return {
+        (task.pair in HELDOUT_PAIRS, in_heldout_sector(task.puck_xy[task.goal_puck]))
+        for task in tasks
+    }
 
 
 def test_the_held_out_slice_is_two_axes_that_never_merge():
     assert set(SPLITS) == {"train", "heldout_pair", "heldout_sector", "any"}
-    for split, holds in (
-        ("train", lambda p, s: not p and not s),
-        ("heldout_pair", lambda p, s: p and not s),
-        ("heldout_sector", lambda p, s: s and not p),
+    for split, expected in (
+        ("train", {(False, False)}),
+        ("heldout_pair", {(True, False)}),
+        ("heldout_sector", {(False, True)}),
     ):
-        e = PlanarPushSandbox(split=split, render_obs=False)
-        e.reset(seed=3, options={"reset_arm": True})
-        for _ in range(8):
-            task = e.sample_task()
-            pair = task.pair in HELDOUT_PAIRS
-            sector = in_heldout_sector(task.puck_xy[task.goal_puck])
-            assert holds(pair, sector), f"{split} drew pair={pair} sector={sector}"
-        e.close()
+        assert _split_signatures(split, draws=8) == expected, split
+
+
+def test_no_split_value_returns_the_union_of_the_two_axes():
+    """A union value would draw tasks held out on *either* axis, mixed, and the
+    number it produced would be attributable to neither: withholding two pairs
+    leaves every puck, zone and region seen and withholds only compounds, while
+    withholding a sector removes a target-puck position outright.
+
+    So each of the three named splits withholds on **at most one** axis over
+    all its draws -- a value that withheld on both, whether by mixing the two
+    signatures or by drawing tasks held out on both at once, is what does not
+    exist. `any` is the whole space rather than the union: it draws tasks held
+    out on neither axis, which no union value could. Naming the axes separately
+    is what makes the confound unconstructible; this is that, asserted."""
+    for split in SPLITS:
+        signatures = _split_signatures(split, draws=40)
+        if split == "any":
+            assert (False, False) in signatures
+            continue
+        axes = {
+            name
+            for flags in signatures
+            for name, held in zip(("pair", "sector"), flags)
+            if held
+        }
+        assert len(axes) <= 1, f"{split} withholds on both axes: {axes}"
 
 
 def test_reset_raises_rather_than_hand_back_a_penetrating_layout(fast_env):
@@ -283,7 +326,9 @@ def test_reset_raises_rather_than_hand_back_a_penetrating_layout(fast_env):
     task = env.task
 
     env._pucks_touching_arm = lambda: True
-    with pytest.raises(RuntimeError, match="clear of the arm"):
+    # Named, not merely a RuntimeError: a caller looping over tasks has to tell
+    # "move the arm" apart from "the env is broken" without matching a message.
+    with pytest.raises(BlockedAnnulusError, match="clear of the arm"):
         env.reset()
 
     # the world is as it was found, not standing in the layout that was refused
@@ -348,11 +393,37 @@ def test_a_layout_never_starts_inside_the_arm(env):
 
 def test_the_arm_is_disturbed_by_an_impulse_never_by_a_teleport(env):
     """Displacing qpos would have the world rewrite the arm's configuration,
-    which is the one thing this env never does."""
+    which is the one thing this env never does. What lands instead is an
+    impulse: the change in momentum is the impulse, at the named joint and
+    nowhere else, so proprioception reports it the way it reports everything
+    else and no new observation path exists."""
     qpos = env.data.qpos[env._arm_qadr].copy()
-    env.disturb_arm(0, 0.05)
+    qvel = env.data.qvel.copy()
+
+    env.disturb_arm(1, 0.05)
+
     assert np.array_equal(env.data.qpos[env._arm_qadr], qpos)
-    assert np.any(env.data.qvel[env._arm_dofadr] != 0.0)
+    momentum = np.zeros(env.model.nv)
+    mujoco.mj_mulM(env.model, env.data, momentum, env.data.qvel - qvel)
+    expected = np.zeros(env.model.nv)
+    expected[env._arm_dofadr[1]] = 0.05
+    assert momentum == pytest.approx(expected, abs=1e-9)
+
+
+def test_the_three_hands_are_callable_headlessly(fast_env):
+    """The live viewer binds them to ctrl-drags, but the acceptance demo's
+    instrumentation drives them from a script and may have no GL context."""
+    env = fast_env
+    env.reset(seed=4, options={"reset_arm": True})
+
+    env.disturb_arm(0, 0.02)
+    env.perturb(1, [0.18, -0.22])
+    env.retarget(goal_puck=1, goal_zone=2)
+    env.step(ZERO)
+
+    assert env._renderer is None
+    assert env.puck_pose(1)[:2] == pytest.approx([0.18, -0.22], abs=1e-3)
+    assert (env.task.goal_puck, env.task.goal_zone) == (1, 2)
 
 
 def test_the_hands_refuse_an_index_that_is_not_a_puck_or_a_joint(env):
@@ -370,12 +441,21 @@ def test_the_hands_refuse_an_index_that_is_not_a_puck_or_a_joint(env):
             env.disturb_arm(bad, 0.01)
 
 
-def test_perturb_teleports_a_puck(env):
+def test_perturb_teleports_a_puck_by_writing_qpos(env):
+    """And leaves the applied-force fields zero, which is not decoration.
+
+    `qfrc_applied` and `xfrc_applied` are inert in this arena *only* because
+    this hand teleports. Implemented as an applied force instead, the force
+    would become state -- and a snapshot that enumerated fields rather than
+    naming `mjSTATE_INTEGRATION` would drop it, silently, in a file nobody
+    would think to reread."""
     target = np.array([0.10, -0.28])
     env.perturb(1, target)
     assert env.puck_pose(1)[:2] == pytest.approx(target)
     dof = env._puck_dofadr[1]
     assert np.all(env.data.qvel[dof : dof + 3] == 0.0)
+    assert np.all(env.data.qfrc_applied == 0.0)
+    assert np.all(env.data.xfrc_applied == 0.0)
 
 
 def test_perturb_brings_the_friction_field_with_the_puck(fast_env):

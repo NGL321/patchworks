@@ -159,6 +159,7 @@ The same world now lives in the `patchworks` package, as a literal `gymnasium.En
 python3.12 -m venv .venv
 .venv/bin/pip install -e '.[dev]'
 .venv/bin/pytest                                   # the world, held against the spec
+.venv/bin/python benchmarks/achievability.py       # the scripted lower bound: 14 of 72, in ~3-4 min
 ```
 
 <sub>These instructions live here and only here. `prototypes/sandbox/README.md` describes what the
