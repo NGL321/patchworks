@@ -278,8 +278,8 @@ architecture answers by construction, never one it hopes to outgrow.
 _Avoid_: exploration problem, motivation problem, the boredom problem
 
 **Dynamics exploration**:
-Acting on the world to learn what it does — mass, friction, contact outcome, a puck's unresolvable
-rotation — as opposed to moving in order to see where things are. The sense in which the sandbox
+Acting on the world to learn what it does — a puck's mass, the outcome of a contact — as opposed to
+moving in order to see where things are. The sense in which the sandbox
 must be explored to be modelled: its whole arena is visible every frame, so position is given away
 and only dynamics has to be earned. A model of where things are in one arena is memorisation of that
 arena.

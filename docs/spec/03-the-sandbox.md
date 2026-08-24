@@ -108,10 +108,16 @@ is recorded as a consequence, not a decision: raising the resolution would chang
 
 The whole arena is visible in every frame, so **spatial** exploration is not forced — and that is a
 decision, not a leftover. The destination's *a sandbox it must explore to model* is honoured by
-**dynamics exploration**: mass, friction, contact outcome and the hidden rotation are nowhere in the
-render and are recoverable only by acting. An agent that has looked at this arena and never touched
-it knows almost nothing that predicts the next tick; the heaviest puck does not move at all below
-~2 N at the tip (*Motor surface*), so even *whether a push works* is knowledge only action buys.
+**dynamics exploration**: mass and contact outcome are nowhere in the render and are recoverable only
+by acting. An agent that has looked at this arena and never touched it knows almost nothing that
+predicts the next tick; the heaviest puck does not move at all below ~2 N at the tip (*Motor
+surface*), so even *whether a push works* is knowledge only action buys.
+
+The argument deliberately rests on mass and contact outcome alone.
+[#21](https://github.com/NGL321/patchworks/issues/21) has the hidden rotation and the per-puck
+friction difference both under revision — rotation is currently dynamically decoupled, and all three
+pucks share one μ — so neither is leaned on here. Whichever way that ticket lands, it adds epistemic
+pressure or leaves it unchanged; it cannot remove the pressure this section needs.
 
 That is the reading worth having. A model of where things are in one arena is memorisation of that
 arena; a model of what things do is the part that would survive being moved to another. Position is
