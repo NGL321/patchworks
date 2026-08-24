@@ -18,6 +18,12 @@ across the graph. The two candidate frameworks hold that constraint very differe
   `.detach()` at an edge stalk backprops one cell's error into a neighbour. The guarantee, if it exists
   at all, is a *discipline*.
 
+That second bullet was drawn too tightly, and [#66](https://github.com/NGL321/patchworks/issues/66)
+corrected it after the fact: `torch.func` reaches the same structural property *inside* PyTorch, since
+its transforms differentiate with respect to explicitly named arguments of a pure function. The
+asymmetry is real but narrower than stated here — it is the difference between a guarantee that holds
+globally and one that holds inside a chosen idiom. See *Alternatives considered*.
+
 That asymmetry is sharpened by the failure mode: a leaked gradient does not crash and does not look
 like a bug. It makes the agent perform **better**. It looks like the thesis being right.
 
@@ -45,7 +51,11 @@ language. The full mechanism is specified in
    adapting surface plus detached arrays, building a fresh small graph that dies at the end of the step.
    A neighbour's parameters are not severed from that graph; they are not in it. Because every coupling
    term enters detached, the cells' graphs still compose into one batched graph with no cross-cell edges,
-   so the gradient of the sum is exactly the per-cell local gradient and batching survives.
+   so the gradient of the sum is exactly the per-cell local gradient and batching survives. **The phase
+   is written as a `torch.func` transform** ([#66](https://github.com/NGL321/patchworks/issues/66)): each
+   rule is a pure function, parameters arrive explicitly, and `grad` is scoped by `argnums` to the cell's
+   own adapting surface — so the neighbour's restriction map, the phase's only cross-cell parameter, is
+   undifferentiated by construction rather than by a remembered `.detach()`.
 3. **The guarantee is tested.** An always-on assertion that nothing leaving the tick has a `grad_fn`,
    and a standing **perturbation test**: perturb one cell's parameters, assert no other cell's update
    changes.
@@ -59,13 +69,19 @@ shape of the language.
 - **The guarantee weakens from "impossible" to "caught".** This is the real cost, stated plainly. A
   future contributor can delete a `no_grad` decorator; in JAX there would have been nothing to delete.
   The perturbation test is what makes that a caught regression rather than a silent one, and it is
-  therefore not optional scaffolding — it is the load-bearing half of this decision.
+  therefore not optional scaffolding — it is the load-bearing half of this decision. **#66 narrowed this
+  cost without removing it.** One leak class — a neighbour's parameter being reachable — is back to
+  "impossible" under the transform, and it is the class the no-tape tick could never have covered, since
+  parameters live outside the tick. Everything else still reads exactly as above, including the
+  shared-storage class the tape cannot see, so the test stays load-bearing.
 - **The thesis' central claim becomes falsifiable in CI**, which it was not before. This is a gain JAX
   would not have supplied on its own: a structural guarantee is not a *test*, and nothing about JAX
   would have caught a locality violation introduced deliberately in a rewritten update rule.
 - **The ecosystem is available** — `torch.func` supplies `grad` / `vmap` / `jacrev` for the
   regional-Jacobian and effective-rank diagnostics the spec keeps calling for, and debugging into a live
-  tick stays ordinary.
+  tick stays ordinary. Since #66 the same library is load-bearing in Decision (2) rather than only in the
+  diagnostics, which is a point in favour of the stack this ADR chose: the guard and the instruments are
+  the same tool.
 - **The environment stays framework-agnostic.** Classic MuJoCo, host loop, numpy at the boundary; the
   sandbox and `03-the-sandbox.md` survive unchanged if this decision is ever reversed.
 - **Reversal is bounded.** The tick mathematics is framework-agnostic; what a reversal would have to
@@ -73,8 +89,25 @@ shape of the language.
 
 ## Alternatives considered
 
+- **`torch.func` + `functional_call`** — a PyTorch-native structural guard, **not considered when this
+  ADR was written and since adopted** ([#66](https://github.com/NGL321/patchworks/issues/66), from the
+  citation pass [#62](https://github.com/NGL321/patchworks/issues/62)). Composable function transforms
+  scoped by `argnums` give, inside PyTorch, the property *Context* above attributes to JAX alone. It
+  changes how Decision (2) is written and nothing else. Recorded here rather than silently absorbed
+  because it corrects this ADR's own framing of the trade-off, and because two limits ride with it: the
+  property is inferred from the pure-function contract rather than documented, and no source was found
+  using these transforms for locality. One argument for adopting it was raised and **did not survive**:
+  that hand-placed detaches would not scale to ~698 edges. They would — the maps are one batched
+  parameter store, so the neighbour side is a single gathered `.detach()`, collapsing the same way this
+  ADR's own shared-frozen-body argument collapses JAX's `vmap` advantage. What decided it instead was the
+  failure direction: a wrong `argnums` yields a *missing* gradient, where a missing `.detach()` yields an
+  *extra* one, and this ADR exists because the extra one is silent and flattering.
 - **JAX.** Rejected on the balance above, not on its merits — the structural guarantee is real, and it
-  is the one axis where JAX is straightforwardly better. Against it: an ecosystem cost paid on every
+  remains the one axis where JAX is better, though **by less than this ADR first claimed**: #66 found the
+  same property available in PyTorch inside a chosen idiom, so what JAX supplies uniquely is that the
+  property holds *globally*, with no ambient tape to step outside of. That is a narrower advantage than
+  "straightforwardly better", and it argues for the decision rather than against it. Against it: an
+  ecosystem cost paid on every
   remaining section of the build, two of its three technical advantages already dissolved by the shared
   frozen body and the host-side environment, and a performance advantage the measurement does not
   support. The same argument the spec already makes for classic MuJoCo over MJX — prefer the
