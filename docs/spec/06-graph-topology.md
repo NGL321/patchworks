@@ -33,8 +33,9 @@ The shape is a **taper from a two-dimensional boundary sheet to a deep core**:
   touch, and actuator boundary cells attached as a cluster at one region of it.
 - **Levels inward** are successively coarser lattices, each connected locally to the level below and
   laterally within itself.
-- **The apex** is a small deep core. This is `04-action-and-the-boundary.md`'s "different rim":
-  internal faculties — a limbic-analogue reward, a hippocampal-analogue memory — attach here.
+- **The apex** is a small deep core. This is `04-action-and-the-boundary.md`'s **internal rim**:
+  internal faculties attach here — the drive boundary cell already does, and a limbic-analogue
+  appetite or hippocampal-analogue memory would.
 
 Everything handed down by `04-action-and-the-boundary.md` survives: one boundary set with depth away
 from it, sensorimotor edges close together, internal faculties abstract by attachment point,
@@ -71,7 +72,8 @@ is thereafter used only for plotting.
 | **L1** | 8×8 vision lattice, each over a 2×2 block of patches; ~6 somatomotor | 70 |
 | **L2** | 4×4 vision; ~4 somatomotor | 20 |
 | **L3–L7** | core, five levels of ~16 / 14 / 12 / 10 / 8 | 60 |
-| | **total** | **~150 predicting, ~263 boundary** |
+| **internal rim** | 1 drive boundary cell, attached at L7 | — (1 boundary cell, no body) |
+| | **total** | **~150 predicting, ~264 boundary** |
 
 Every count is a **construction parameter**, not a constant of the architecture.
 
@@ -106,7 +108,9 @@ world at all is [#30](https://github.com/NGL321/patchworks/issues/30).
   it above. On the vision lattices this is a 2×2 block.
 - **Lateral.** Four-neighbour within each vision lattice; sparse within the core.
 - **Core.** Uniform degree ~6, no lattice.
-- **Mean degree ~7** across predicting cells; roughly 690 edges in total.
+- **Drive.** One edge from the drive boundary cell to each of the eight L7 cells — see *Where the
+  drive attaches*, below.
+- **Mean degree ~7** across predicting cells; roughly 698 edges in total.
 
 ### The core is uniform, and the integration/holding pair is held in reserve
 
@@ -123,6 +127,55 @@ state failing to appear in deep cells. If it does, the pair is a construction-pa
 Worth noting because it is the obvious objection: the pair would introduce no cell *types*. Degree is
 topology, not contract. An integrator and a holder run the identical frozen body under the identical
 contract, and `01-cell-and-sheaf.md`'s uniformity is untouched either way.
+
+### Where the drive attaches
+
+[ADR-0009](../adr/0009-a-drive-is-a-motor-edge-attached-deep.md) puts a **drive boundary cell** at the
+core and left its attachment set open — "a subset of core cells", deliberately unchosen. It is chosen
+here, because it is a structural-mask question and this is where the mask is fixed.
+
+**The drive attaches at the apex level, entire: one edge to each of the eight L7 cells.** A rule, not a
+hand-pick — the same standard the rest of this document holds itself to, and the reason no cell is
+singled out.
+
+Three things recommend the apex over any other core level:
+
+- **It is the most abstract place there is.** Abstraction is hop distance from the sensorimotor rim
+  (`04-action-and-the-boundary.md`), and ADR-0009 makes abstract action *literally a motor edge
+  attached deep*. The apex is as deep as the graph goes.
+- **It is where the slack is.** Guaranteed private dimension runs ~8 through L3–L6 and ~16 at L7. A
+  drive edge spends private dimension at the cell it lands on, and the apex has roughly twice as much
+  to spend as anywhere else in the core.
+- **It leaves the gradient intact.** Attaching to every core cell would flatten the private-dimension
+  gradient across the whole core, which is the thing the taper supplies for free (*Private dimension is
+  a gradient*, below) and which `05-timescales.md` depends on.
+
+**Drive edges are `m_e = 1`, and the drive cell's node stalk is 1-dimensional.** These are one
+decision, not two. A restriction map out of a `d`-dimensional stalk has rank at most `d`, so an
+`m_e` wider than the stalk cannot widen the channel — it only lets the drive assert **zero** in the
+surplus directions, which is an arbitrary constraint on a core cell expressed in content the drive does
+not have. Matching them makes the drive edge a clean scalar channel and makes *valence, not
+specification* exact rather than approximate.
+
+**Strength is fan-out, not width.** ADR-0009 recorded mask width as the strength knob; that is
+corrected here. A drive edge's share of a cell's reconciliation pull is `m_e / Σ_e m_e`, so at the apex
+one edge is worth about **6%**. Widening the edge raises that share but also **dilutes every other edge
+the cell has**, by the same `1/Σ_e m_e` normalisation — at `m_e = 4` the drive would be turning down
+the apex's ability to hear the rest of the graph by 20% in order to be heard itself, which is not
+behaviour a strength knob should have. Fan-out is not free either — each new attachment point costs
+*that* cell one dimension of privacy and the same ~6% dilution — but it **spreads** the cost across
+cells instead of concentrating it, and it never makes any single cell pay more than the minimum. If the
+drive proves too weak, the response is **more attachment points**, and only after that the learned
+drive vector ADR-0009 holds as its escape hatch.
+
+The cost is one dimension of privacy at each apex cell: `Σ_e m_e` goes 16 → 17 and guaranteed private
+dimension 16 → 15. This is not free — [#25](https://github.com/NGL321/patchworks/issues/25) cashes the
+apex's private dimension as the substrate of **commitment** — but it is the cheapest place in the core
+to take it from, and the gradient still peaks at the apex.
+
+[ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md)'s
+`γ × floor <` fold margin bound gets **slacker**, not tighter: the per-cell gain is
+`γ / Σ_e m_e`, so an extra edge lowers it. The apex check is about 6% easier to satisfy than before.
 
 ### The somatomotor column, and where the modalities meet
 
@@ -158,9 +211,11 @@ hand-specified wiring for something that should follow from position.
 | chart, `k` | 12 |
 | typical interior edge stalk, `m` | 4 |
 | boundary edge stalk, `m` | 8 |
+| drive edge stalk, `m` | 1 |
 | sensory patch | 4×4 px RGB → node stalk **48** |
 | proprioceptive cell | node stalk **2** (angle, velocity) |
 | actuator cell | node stalk **6** (3 commanded, 3 efference) |
+| drive cell | node stalk **1** |
 
 **Boundary cells are exempt from `n`. Their node stalk is the world's shape.**
 
@@ -186,6 +241,13 @@ Boundary edges are given `m = 8` against the interior's 4 for a specific reason:
 are the only route that patch's information ever takes, unlike an interior cell, which is reachable
 many ways.
 
+**The drive edge is the exception, and in the other direction.** It is a boundary edge at `m = 1`,
+because the argument above is about *bandwidth the world needs* and the drive is not the world: it
+asserts one number, and an edge stalk wider than its stalk carries nothing extra (*Where the drive
+attaches*). The drive cell is likewise exempt from `n` without being world-shaped — nothing outside
+gives it a dimension, so its stalk is sized by what it asserts. See
+[ADR-0006](../adr/0006-boundary-cell-stalks-are-world-shaped.md).
+
 ### Tiling granularity
 
 4×4 pixel patches, 16×16 = 256 sensory boundary cells. The arena is 1.04 m across 64 px, so pucks are
@@ -209,9 +271,9 @@ map would be squeezing 192 → 8 in a single linear step.
 | L1 vision | 4×8 + 4×4 + 4 = 52 | 0 |
 | L2 vision | 4×4 + 4×4 + 4 = 36 | 0 |
 | L3–L6 core | ~24 | ~8 |
-| L7 apex | ~16 | ~16 |
+| L7 apex | ~16 + 1 drive edge = 17 | **15** |
 
-**Guaranteed private dimension is zero at the rim and rises to about sixteen at the apex.** Slow state
+**Guaranteed private dimension is zero at the rim and rises to about fifteen at the apex.** Slow state
 lives deep by construction, which is precisely the gradient `05-timescales.md` wanted and did not have
 a mechanism for. It is not designed here; it falls out of the taper, because rim-adjacent cells are
 necessarily high-degree — an L1 vision cell must read four patches — and depth reduces degree.
@@ -220,7 +282,9 @@ Zero *guaranteed* private dimension is not zero private dimension: the bound is 
 learned rank-deficiency enlarges `H⁰` past it. What the gradient says is that near the rim a cell's
 privacy is contingent on learning, and deep it is structural.
 
-`χ = Σ_v n − Σ_e m_e` over predicting cells is approximately **+1000**.
+`χ = Σ_v n − Σ_e m_e` over predicting cells is approximately **+980**. The eight drive edges move it
+by 8, which is inside the rounding on every other number here; the drive's cost is local to the apex
+cells, not to the diagnostic.
 
 **`χ` must be computed over predicting cells only.** Including boundary cells swamps it — 256 cells ×
 48 dimensions of nominally private state that the world overwrites every tick and no cell holds. This
@@ -323,8 +387,9 @@ Two residual costs, both smaller than performance costs:
   zero. Recorded as a measurement requirement.
 - **A raised energy floor** slightly compresses signal-to-noise for the local learning rule
   ([#5](https://github.com/NGL321/patchworks/issues/5)), largely absorbed if thresholds are derived
-  relative to an edge's own recent scale — which [#20](https://github.com/NGL321/patchworks/issues/20)
-  already requires of the change gate.
+  relative to an edge's own scale rather than set absolutely — which the change gate also requires,
+  though it takes that scale from the restricted belief's *current* magnitude rather than from a
+  running average ([`05-timescales.md`](./05-timescales.md), *The change gate, pre-specified*).
 
 This softens half of the wheel critique recorded in `01-cell-and-sheaf.md`. Its load-bearing
 objections survive intact — a rim-adjacent hub collapses the diameter and destroys the abstraction
@@ -352,5 +417,5 @@ measure, and `n` being a global constant means no predicting cell can be dimensi
   contribute nothing measurable, the dome's main justification is gone.
 - **The taper is the real bottleneck**, not distance: 12,288 numbers at the base reaching ~60 core
   cells of dimension 32. Nothing in this document fixes that, and no relay would.
-- **Vision dominates the boundary.** 256 of 263 boundary cells are visual. If the acceptance demo
+- **Vision dominates the boundary.** 256 of 264 boundary cells are visual. If the acceptance demo
   turns out to rest on proprioception, the graph is built around the wrong modality.

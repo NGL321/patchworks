@@ -7,7 +7,9 @@ Terms used here are defined in [`CONTEXT.md`](../../CONTEXT.md).
 
 ## Two phases, run every tick
 
-Every tick is exactly two phases, run in this order:
+Every tick is exactly two phases, run in this order. Whatever is outside the sheaf writes its boundary
+cells after the second of them (*External writes*, below); that is an ordering, not a phase, and
+nothing in the graph computes during it.
 
 1. **Inference phase.** Every cell, simultaneously and independently, runs its forward path —
    `encode` fuses its persisted chart with the node stalk the previous message-passing phase
@@ -19,10 +21,33 @@ Every tick is exactly two phases, run in this order:
    result edits the node stalk only, never the chart (per `01-cell-and-sheaf.md`).
 
 The node stalk an inference phase reads is always exactly what the prior message-passing phase
-deposited — sensory and motor edges are not a distinct input channel, and neither would a future
-top-down module be: any external edge, concrete or abstract, enters and leaves through the same
-message-passing phase as any other, so nothing about this contract needs to change to
-accommodate one.
+deposited, or what an external write left on top of it (*External writes*, below) — sensory and
+motor edges are not a distinct input channel, and neither would a future top-down module be: any
+external edge, concrete or abstract, enters and leaves through the same message-passing phase as
+any other, so nothing about this contract needs to change to accommodate one.
+
+## External writes
+
+**Whatever is outside the sheaf writes its boundary cells after the message-passing phase, as the last
+word in a tick.** The world writes the sensory patch cells and the actuator's efference components; the
+drive is written by the human, and later by an internal faculty
+([`04-action-and-the-boundary.md`](./04-action-and-the-boundary.md)).
+
+This is not a third phase. Nothing in the graph computes during it and no cell reads another; it is a
+statement about **ordering**, and the ordering is what matters. Reconciliation is free to edit any node
+stalk, including a boundary cell's, and an external write simply lands afterward and wins.
+
+Two things fall out, neither of which needed machinery:
+
+- **A standing assertion actually stands.** A drive boundary cell is the first cell where reconciliation
+  and an outside write want the same components. Without the ordering, eight apex cells disagreeing with
+  the drive would erode it every tick and ADR-0009's *the assertion stands forever* would be false.
+  With it, disagreement on a drive edge can only ever be reduced by the cell moving — which is exactly
+  what makes a drive edge a motor edge.
+- **The motor pathway is untouched.** The actuator boundary cell's three *commanded* components are
+  written by nobody outside, so reconciliation fills them and the world reads them — which is how a
+  command reaches the arm at all. A blanket "boundary stalks are not reconciled" rule would have severed
+  this; the ordering rule needs no such exemption, and no per-component bookkeeping.
 
 ## Delay
 
@@ -75,7 +100,9 @@ Because `Σ_e m_e` **falls with depth** (`06-graph-topology.md`, *Private dimens
 `gain_v` is largest at the apex, and this bound binds hardest exactly where timescale matters most.
 It is a construction-time check, run per cell across the taper and folded into
 [#27](https://github.com/NGL321/patchworks/issues/27)'s bias-sampling rig — same sweep, same
-afternoon. If the apex fails it, `γ` is capped globally by the tightest cell; paying that price
+afternoon. The drive edges into the apex (`06-graph-topology.md`, *Where the drive attaches*) make
+this **slacker** rather than tighter — an extra incident edge lowers `gain_v` — but by about 6%, which
+is not enough to lean on. If the apex fails it, `γ` is capped globally by the tightest cell; paying that price
 everywhere costs only some reconciliation speed at the rim, which is the cheapest thing in the system
 to give up.
 

@@ -56,11 +56,37 @@ exempt and carry world-shaped node stalks
 and the arithmetic that sets them, are in
 [`06-graph-topology.md`](./06-graph-topology.md): `n = 32`, `k = 12`.
 
-`n` is fixed on a canonical-microcircuit
-rationale: a cortical column has an efficient size, and cells are the analogue. The *degree* of
-compression (`n/k`) is a hyperparameter; the spec commits to `k < n` and nothing more. That a useful
-`k` turns out to be much smaller than `n` is a finding the proof-of-concept reports, not a number
-fixed here.
+**Why `n` is uniform.** Underneath the choice is a bet: that different sub-problems are solvable in a
+shared solution space and a shared inferential geometry, provided each cell's metric space is
+configured so that distances between its features reflect a locally linear problem. The bet bears
+hardest on the **private** features, which are constructed rather than passed — nothing outside the
+cell ever sees them, so nothing outside the cell can compensate for a badly-shaped one. It is the same
+bet *The cell body* makes about the machinery, seen from the side of the dimension: shared machinery
+and a shared width stand or fall together, since a body driven by cells of differing width is not the
+same object twice.
+
+A uniform `n` is what makes that bet **checkable**. Every construction diagnostic — `χ`, and the
+private-dimension bound `dim H⁰ ≥ Σ_v max(0, n − Σ_{e∋v} m_e)` — is then comparable across cells, so
+a difference between two cells is attributable to topology alone. That is load-bearing downstream:
+[`06-graph-topology.md`](./06-graph-topology.md) reads the private-dimension gradient off the taper,
+and [`05-timescales.md`](./05-timescales.md) builds the timescale gradient on that. Let `n` vary
+per cell and the gradient is confounded with a per-cell width choice, and no cross-cell diagnostic
+means much on its own. The plainer version of the same point: with one width there are no intra- or
+inter-cell dimension effects to disentangle, and only network dynamics are left to explain a result.
+Batched execution wants few operator shapes anyway, which supports uniformity without being the reason
+for it — batching would tolerate a handful of groups; the diagnostics would not.
+
+No biological claim is doing any work here. An earlier draft fixed `n` on a canonical-microcircuit
+rationale — a cortical column has an efficient size, and cells are the analogue — and the literature
+does not support it: the column is widely held not to be a discrete, uniformly sized unit, no source
+claims it has an efficient size, and the canonical microcircuit offered in its place is deliberately
+defined without a spatial boundary, so it cannot license a dimension at all. What survives of that
+biology supports *uniform contract*, not uniform width, and is cited where it belongs under
+*Uniformity* below. See `docs/research/016-cell-contract-citations.md`.
+
+The *degree* of compression (`n/k`) is a hyperparameter; the spec commits to `k < n` and nothing
+more. That a useful `k` turns out to be much smaller than `n` is a finding the proof-of-concept
+reports, not a number fixed here.
 
 ### What a cell predicts
 
@@ -87,6 +113,12 @@ cell body does not adapt at all; see *The cell body* below.
 Cells are **uniform in contract**: same interface, same algorithm, same `n`, same `k`. A cell's
 individuality is not in its machinery but in **what its features mean**, which is fixed entirely by
 its restriction maps and biases. It is compatible with every cell running identical machinery.
+
+This is the one place in the cell contract where the neuroscience genuinely warrants something.
+Harris & Shepherd's "themes and variations" — a basic circuit pattern repeated across neocortical
+areas, with area- and species-specific modifications — is evidence for exactly this shape: uniform
+machinery carrying per-cell specialisation. It is evidence for a uniform **contract**, and not for a
+uniform **dimension**; what fixes `n` is argued under *The cell*, on other grounds entirely.
 
 **A cell's own metric space is its node stalk**, and the basis of that space is fixed by its
 restriction maps. Not the chart: the chart is shared machinery (see *The cell body*), and every cell
@@ -163,7 +195,10 @@ They are:
 - **Linear.** All nonlinearity lives inside the cell. This keeps the cellular-sheaf formalism real —
   a genuine sheaf Laplacian, disagreement as Dirichlet energy, cheap reconciliation — and avoids
   turning reconciliation into a nested optimisation. Linearity is also a **geometric commitment**,
-  not only an efficiency one: it assumes each overlap is locally flat. See
+  not only an efficiency one: it assumes each overlap is locally flat. And it is load-bearing a third
+  time, which is easy to miss: the identification of predictive-coding error with the sheaf coboundary
+  is *derived for linear networks*, so under nonlinear restriction maps "disagreement and prediction
+  error are the same quantity" would stop being **true**, not merely become expensive to compute. See
   [ADR-0004](../adr/0004-linear-restriction-maps-assume-local-flatness.md) and *The geometry* below.
 - **Learned**, under a sparsity pressure. This is the local-neuroplasticity analogue: pruning within
   what structure permits.
@@ -192,9 +227,31 @@ reads that sum; it only ever sees its own edges' terms. Predictive coding's erro
 inconsistency are **the same quantity**, not two objects that need relating.
 
 Agreement is **penalised, not enforced.** Reconciliation runs exactly one local descent step on
-disagreement per tick (see [`02-tick-semantics.md`](./02-tick-semantics.md)) and never clears it. A
-hard projection onto the consistent subspace would zero out the quantity the architecture runs on,
-and would drag a global solve into a system whose thesis is locality.
+disagreement per tick (see [`02-tick-semantics.md`](./02-tick-semantics.md)) and never clears it.
+
+**Locality is not what rules enforcement out.** It would be convenient to say that driving
+disagreement to zero requires a global solve, and it is not true: Hansen & Ghrist enforce `L_F x = 0`
+exactly by Lagrangian saddle-point dynamics in which every node uses only quantities computed from its
+own incident edges. Exact enforcement is reachable by graph-local means — asymptotically, over many
+rounds, rather than as a one-shot projection, but reachable. It is declined for two other reasons.
+First, it needs a **dual variable per edge**: per-edge state with its own dynamics, which is the same
+object and the same objection as the per-edge baseline
+[ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md) rejects. Second, and
+sufficient on its own, it would drive to zero the quantity the whole architecture runs on.
+
+Worth noting what that leaves. In Hansen & Ghrist's formulation the Dirichlet-energy penalty is not
+the enforcer at all — it is present only to improve stability and convergence, "leaving the minimum
+and minimizer undisturbed" — and the dual variables do the enforcing. **Patchworks keeps the
+stabiliser and discards the enforcer.** Its one descent step per tick *is* a graph-local dynamic that
+would approach agreement asymptotically; it simply never arrives, because the world keeps moving and
+the floor below is always there.
+
+This is a separate rejection from
+[ADR-0002](../adr/0002-message-passing-is-one-step-not-a-solve.md)'s, and does not disturb it. That
+decision rules out iterating *within a tick*, on the ground that any legitimate stopping rule needs a
+read of disagreement across the graph. Nothing above touches that argument: local dynamics that flow
+without stopping have no stopping rule to globalise, and asking them whether they have converged yet
+would reintroduce exactly the global aggregate ADR-0002 excludes.
 
 Residual disagreement divides in two, and only one half is a signal:
 
@@ -234,6 +291,24 @@ Two consequences:
   removes no frequency content, so a deep cell has the same input bandwidth as one at the rim and is
   merely looking at older data. Depth alone does not produce slowly-integrating cells. Where they do
   come from is `05-timescales.md` — persistence in the private features, not a schedule.
+
+Delay has a **second axis**, and the spec claims the favourable side of it deliberately rather than by
+accident. The frequency argument above is about time; the other axis is what a delayed value has *not
+yet been mixed with*. DRew, the one piece of work that tunes this parameter directly, describes the
+trade both ways: a larger delay means features arrive before repeated message passing has smoothed
+them, and a smaller delay means a node also leverages the structure around its neighbour. Every
+Patchworks edge carries delay one, which is strictly more delayed than standard message passing, so
+what arrives is less pre-smoothed — wanted, since disagreement is the only error signal and smoothing
+is what erodes it. (How far that erosion can go on its own is a separate question, open at
+[patchworks#37](https://github.com/NGL321/patchworks/issues/37), not settled here.)
+
+The cost, stated so that a later failure can be traced back here: a cell sees less of its neighbour's
+neighbourhood already mixed in. That too is wanted, and for a reason the spec has already committed
+to — edge predictions are the shadow of the temporal prediction, never independent heads, precisely so
+that a cell does not learn to model its neighbours instead of its own piece. Transport is a real
+channel with its own structure, and predicting what will arrive is the modelling work, not a
+redundancy to be smoothed away. If the recomposition the taper depends on ever proves to be
+under-mixed, this is the trade to revisit.
 
 ## The geometry
 
@@ -367,8 +442,43 @@ the chain rule are canonical. It is **not** available as the shape of the local 
 Recorded, not pre-emptively solved.
 
 - **Recurrent failure modes.** Persistent chart plus stalk feedback makes each cell an RNN, with the
-  attendant risks. The known escape hatch is a designated pass-through subset of the edge stalk
-  carrying state across the recurrence — an LSTM-shaped fix. Not built until the problem is observed.
+  attendant risks — and [`05-timescales.md`](./05-timescales.md) raises the stakes, since slow state
+  now *depends* on the recurrence holding content for hundreds of ticks. The fix, if it is ever
+  needed, is a two-rung ladder, and neither rung is built.
+
+  **Rung one: a protected linear channel through `step`** — a designated subspace of the chart that
+  `step` passes with unit gain, ungated. It is an LSTM constant-error carousel and not a gate. It
+  costs no parameters and breaks no freeze, because it is a **construction** choice about the shared
+  body, of the same kind as its initialisation, rather than per-cell adaptation. Per-cell variation
+  keeps arriving where it already does, through the biases. Note that this rung does the *whole* of
+  the job Patchworks actually has: the carousel was invented to preserve gradients through
+  backpropagation-through-time, and there is no BPTT here — the bias rule is a single local gradient
+  step through one tick of the cell's own frozen forward path
+  ([`07-local-learning-rule.md`](./07-local-learning-rule.md)). What transfers is the forward job,
+  holding activation content across many ticks, and that is exactly what an ungated channel does.
+
+  **Rung two: a learned gate on `encode`'s fusion** — the GGNN-shaped fix, a small gate deciding per
+  tick how much incoming evidence to admit against how much of the persisted chart to keep. **This is
+  the first thing to reach for if rung one proves insufficient**, and the trigger is the one thing
+  rung one structurally cannot do: **clear a channel deliberately.** An ungated channel holds
+  unconditionally; it cannot flush stale content on decisive evidence. Its price is steep and should
+  be paid knowingly — a gate is per-cell parameters that are neither biases nor restriction maps, so a
+  **third parameter group**, and [ADR-0008](../adr/0008-the-local-rule-splits-by-parameter-not-by-cell.md)
+  splits the local rule *by* parameter group, meaning a third learning rule with its own signal; or
+  else part of the body comes unfrozen.
+
+  One correction, and one object the wrong version was hiding. This entry previously named the escape
+  hatch on the **edge stalk**, which is the wrong tier: the recurrence is `chart(t) → chart(t+1)` through `step`, and the edge
+  stalk is not on that loop — its contents reach the chart a tick later, via reconciliation and
+  `encode`. A pass-through subset of the edge stalk is a skip on the *spatial* path. And such a subset
+  would be a different object worth naming separately: an edge-stalk direction that always passes
+  through is a direction on which disagreement is meant to be small — a hand-placed `H⁰`-like channel
+  the architecture deliberately never learns from, not a fix for the recurrence.
+
+  Rung one's real limitation is not new. It cannot clear a channel, which means it protects a bad
+  commitment exactly as well as a good one — the same price
+  [`04-action-and-the-boundary.md`](./04-action-and-the-boundary.md) already accepts for `H⁰`
+  insulation, appearing a second time one tier down.
 - **The shared frozen body is a bet, and it has a first experiment.** Nothing in the literature
   demonstrates its sufficiency, because no prior system trains a frozen-body-plus-thin-surface
   architecture by cell-local rules alone — that conjunction *is* the thesis, so the demonstration is the
@@ -396,4 +506,10 @@ Recorded, not pre-emptively solved.
   flex and is now the last: widening `k` weakens the low-dimensional claim, which is more load-bearing
   than uniform machinery is.
 
-  **`n` is deliberately absent from this list.** It is fixed and intended to stay fixed.
+  **`n` is deliberately absent from this list.** It is fixed and intended to stay fixed. The reason is
+  the one given under *The cell contract* — uniform width is what makes every construction diagnostic
+  comparable across cells — and unlike the biological rationale it replaces, it names its own cost: a
+  per-cell `n` confounds the private-dimension gradient with a per-cell width choice, so the timescale
+  gradient built on that gradient stops being attributable to topology, and cross-cell diagnostics
+  stop meaning much individually. Anyone reaching for `n` anyway is trading away the project's
+  measurement apparatus, not just its uniformity.

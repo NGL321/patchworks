@@ -47,7 +47,8 @@ overridden and nothing is clamped.
 A **drive boundary cell** is written from outside the sheaf — by the human today, by an internal
 faculty later — and holds a standing assertion. Like every other boundary cell it runs no body and
 holds no chart ([ADR-0006](./0006-boundary-cell-stalks-are-world-shaped.md)). Its **drive edges** run
-to a subset of core cells and are ordinary edges with ordinary masked linear restriction maps. The
+to a subset of core cells — fixed by [#36](https://github.com/NGL321/patchworks/issues/36) as the
+**apex level, entire** — and are ordinary edges with ordinary masked linear restriction maps. The
 assertion reaches those cells as ordinary disagreement, pulled with the ordinary reconciliation gain
 `γ / Σ_e m_e`. Every core cell it touches keeps its body and keeps inferring every tick.
 
@@ -66,8 +67,9 @@ abstraction is hop distance from the sensorimotor rim (`04-action-and-the-bounda
 **abstract action literally a motor edge attached deep** — the same object as a torque command, further
 from the rim.
 
-**The drive stalk carries valence, not specification.** It is near-scalar: it asserts *satisfied*, and
-nothing else. It never says which puck or which zone, because the render already does
+**The drive stalk carries valence, not specification.** It is near-scalar — fixed by #36 as literally
+one dimension, with `m_e = 1` on its edges to match. It asserts *satisfied*, and nothing else. It
+never says which puck or which zone, because the render already does
 (`03-the-sandbox.md`: the target zone lights up, and `retarget()` only changes what is seen). The drive
 supplies the discomfort; the world supplies the content. Direction is not in the signal — it comes from
 the graph's own learned model of what satisfaction looks like.
@@ -86,8 +88,19 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
 - **The internal-drive transfer is a no-op.** Replacing the human writing the cell with a limbic-analogue
   faculty writing it changes nothing else — same cell, same edges, same rim. The map's fog item for
   intrinsic reward acquires its attachment point, and it is this object.
-- **Strength is not a new axis.** How hard a drive pulls is set by things that already exist: the drive
-  edges' mask width `m_e`, and the existing per-cell gain. There is no new "how hard to clamp" parameter.
+- **Strength is not a new axis.** How hard a drive pulls is set by things that already exist. There is
+  no new "how hard to clamp" parameter.
+
+  **Amended by [#36](https://github.com/NGL321/patchworks/issues/36): the knob is fan-out, not mask
+  width.** This ADR named `m_e` and the gain. `m_e` turns out not to be usable. A restriction map out
+  of a `d`-dimensional stalk has rank at most `d`, so with a scalar drive stalk an `m_e` above 1
+  carries nothing extra — it only lets the drive assert *zero* in the surplus directions, an arbitrary
+  constraint on a core cell in content the drive does not have. Worse, the per-cell gain is
+  `γ / Σ_e m_e`, so widening a drive edge **turns down every other edge that cell has**: the drive
+  making itself heard by making the world quieter. The usable knob is the **number of attachment
+  points** — not free either, since each new one costs that cell a dimension of privacy and the same
+  dilution, but it spreads the cost instead of concentrating it and never makes one cell pay more than
+  the minimum. The learned drive vector below remains the move after that one.
 - **Multiple simultaneous drives compose by reconciliation**, the same way several cells driving one
   actuator do (ADR-0003). Genuinely incompatible drives are standing disagreement, which is a fourth
   source alongside static, lag, and settling
@@ -100,7 +113,17 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
   and to isolate whether the drive edge is doing the work. The same status ADR-0005 gives the clock
   divisor. Instrument, never mechanism.
 - **Graph topology gains one cell and its mask entries** — a revision against `06-graph-topology.md`,
-  small because it is an ordinary boundary cell, not a new category.
+  small because it is an ordinary boundary cell, not a new category. **Done in
+  [#36](https://github.com/NGL321/patchworks/issues/36):** the drive attaches at the **apex level,
+  entire** — one edge to each of the eight L7 cells — with a **scalar** stalk and `m_e = 1`. The apex is
+  the most abstract place in the graph and the only part of the core with private dimension to spare;
+  the cost is one dimension of privacy per apex cell (16 → 15) and 8 off `χ`.
+- **The assertion needs the tick to be ordered.** ADR-0009 has the drive standing forever, which is only
+  true if reconciliation cannot erode it. #36 settled this without an exemption: external writes land
+  **after** the message-passing phase, as the tick's last word
+  (`02-tick-semantics.md`, *External writes*). Reconciliation moves the drive stalk and the write
+  restores it before it next speaks, so a drive edge's disagreement can only ever fall by the *cell*
+  moving — the motor-edge property of this ADR, derived rather than stipulated.
 
 ## Known exposure
 

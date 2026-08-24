@@ -194,8 +194,22 @@ manufactures lag floor.** `05-timescales.md` calls it "positive feedback on exac
 which cuts both ways — positive feedback on differentiation is positive feedback on the floor. The
 quiescent hold is the instrument that catches it: a gated graph held still should still drain to zero.
 
-Not a veto. [#20](https://github.com/NGL321/patchworks/issues/20)'s question is narrowed from *how to
-gate* to *whether the gate is ever reached for, and on what observed trigger*.
+Not a veto. [#20](https://github.com/NGL321/patchworks/issues/20)'s question was narrowed from *how
+to gate* to *whether the gate is ever reached for, and on what observed trigger*, and **it settled
+there: the gate is specified and not built**, with its trigger, its outbound-only attachment, its
+stateless threshold and its boundary exemptions written into
+[`05-timescales.md`](../spec/05-timescales.md) (*The change gate, pre-specified*).
+
+Two consequences land back here. First, the threshold `05-timescales.md` required to be *derived*
+cannot be derived from a running average of the edge's recent scale: that is an auxiliary per-edge
+variable with a hand-set time constant, which is the same object, and the same objection, as the
+per-edge baseline this decision rejects above. The gate uses a locally stateless criterion instead,
+relative to the restricted belief's own current magnitude. Second, the register of easily-conflated
+objects this section opens is now **four**, not three — gain, persistence, the change gate, and
+**recurrent-state gating**, which is distinguished from the change gate by *tier*: it sits inside the
+cell body's recurrence, not on the edge. Its shape is settled and its two rungs — an ungated protected
+channel through `step`, and behind it a learned gate on `encode`'s fusion — are specified in
+[`01-cell-and-sheaf.md`](../spec/01-cell-and-sheaf.md) (*Known exposure*). Neither is built.
 
 See [patchworks#28](https://github.com/NGL321/patchworks/issues/28) and
 [patchworks#33](https://github.com/NGL321/patchworks/issues/33).

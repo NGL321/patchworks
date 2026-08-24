@@ -157,9 +157,11 @@ _Avoid_: hub, router, passthrough node
 **Boundary cell**:
 A cell whose node stalk something outside the sheaf writes or reads directly — the seam between
 the graph and everything that is not the graph. Like a relay cell it performs no inference; unlike
-one, it is not fed by reconciliation alone. Its node stalk is **world-shaped**: it has whatever
-dimension the world gives it, not `n`. Its edge stalks are ordinary. Three kinds: sensory, actuator,
-and drive — the first two at the sensorimotor rim, the third at the core.
+one, it is not fed by reconciliation alone. It is **exempt from `n`**: its node stalk has whatever
+dimension the thing writing or reading it gives it — the world's shape at the sensorimotor rim, and at
+the internal rim whatever the faculty asserts. Its edge stalks are ordinary, and the outside write
+lands *after* the message-passing phase, so it is always the last word. Three kinds: sensory,
+actuator, and drive — the first two at the sensorimotor rim, the third at the internal rim.
 _Avoid_: input node, output node, sensor node, IO cell
 
 **Predicting cell**:
@@ -218,15 +220,17 @@ _Avoid_: reward, goal (reserve for the human-set drive), clamp, objective, utili
 
 **Drive boundary cell**:
 The boundary cell a drive is written into: it holds the assertion and nothing else, runs no body, and
-is read by nothing. Attached at the **core**, not the sensorimotor rim. One cell is one drive. Its
-stalk is near-scalar — it carries **valence, not specification**, because the render already says what
-is wanted.
+is read by nothing. Attached at the **apex**, the deepest core level, not the sensorimotor rim. One
+cell is one drive. Its stalk is **scalar** — it carries **valence, not specification**, because the
+render already says what is wanted — and how hard it pulls is set by how many cells it attaches to,
+never by widening the channel.
 _Avoid_: goal cell, reward node, limbic cell, clamp site
 
 **Drive edge**:
-An edge from a drive boundary cell to a core cell. A **motor edge** by the only test that sorts edges
-— disagreement on it is cleared by the world moving — differing from the actuator's only in being far
-from the rim, which is what makes it abstract action rather than a torque.
+An edge from a drive boundary cell to an apex cell, of mask width 1 to match the drive's scalar stalk.
+A **motor edge** by the only test that sorts edges — disagreement on it is cleared by the world moving
+— differing from the actuator's only in being far from the rim, which is what makes it abstract action
+rather than a torque.
 _Avoid_: goal edge, reward channel, top-down edge
 
 **Dark room problem**:
@@ -246,6 +250,14 @@ The region of the graph where the world touches it — the sensory and motor bou
 Abstraction is hop distance from this rim; internal faculties attach at other rims without being
 concrete.
 _Avoid_: input layer, periphery, level zero
+
+**Internal rim**:
+Where something outside the sheaf that is *not the world* attaches — the drive boundary cell today, a
+limbic-analogue appetite or a hippocampal-analogue memory later. Physically the **apex**, so a faculty
+is abstract by attachment point. What attaches here is an **internal faculty**, and it is barred from
+two things: holding its own model of the world, and reaching the world by any route but the graph.
+Attention is *not* one of these — its likely mechanism is in-graph.
+_Avoid_: abstract rim, top-down interface, internal boundary
 
 **Cell body**:
 The machinery a cell runs: one set of weights, shared by every cell and frozen. Distinct from the
@@ -275,8 +287,47 @@ the basis a neighbour's features become comparable in — never inference. Never
 neighbour's raw node stalk.
 _Avoid_: restriction rule, map rule
 
+**Change gate**:
+A specified-but-unbuilt amplifier of timescale differentiation: an interior edge holds its
+previous transmitted value rather than broadcasting a fresh one when the sender's restricted
+belief has not moved, so transmission rate tracks content rate. Outbound only, adds no state,
+and exempt on every boundary edge. Distinct from the reconciliation gain (stability of one
+descent step), from persistence (commitment), from attention (inbound, differently driven), and
+from recurrent-state gating (inside the body, not on the edge).
+_Avoid_: gate (unqualified), confidence gate, attention
+
+**Recurrent-state gating**:
+The tier, not a mechanism: anything controlling what the chart carries across `step`. Two members,
+neither built. The **protected channel** is an ungated subspace the chart passes with unit gain — a
+construction choice about the shared body, costing no parameters and breaking no freeze, and the one
+to reach for first. Behind it sits a **learned gate** on `encode`'s fusion, reached for only if
+deliberate clearing proves necessary, and priced at a third parameter group and therefore a third
+learning rule. Distinct from the change gate by tier: inside the body's recurrence, not on the edge.
+_Avoid_: gate (unqualified), change gate, LSTM hatch, edge-stalk pass-through
+
 **Cell contract**:
 What is uniform across every cell: its interface and the algorithm it runs. Capacity and
 schedule may vary per cell; the contract may not. A relay cell is the degenerate instance —
 a cell whose inference is the identity.
 _Avoid_: cell type, node class
+
+**Route**:
+A path the world takes when the agent acts, visible only in hindsight. **Not an object in the
+architecture**: no cell holds one, nothing compares two, and there is no slot a route could
+occupy. What resembles a choice between routes is several cells disagreeing about the next step.
+_Avoid_: plan, policy, trajectory (as something stored), rollout
+
+**Route selection**:
+The resolution of that disagreement by the world moving — the only thing entitled to clear a
+motor edge. Closed-loop and one tick wide, never a comparison and never in advance. A blended
+prediction is not a decision but an unstable state the next tick's evidence destroys.
+_Avoid_: arbitration, decision, action selection, planning
+
+**Commitment**:
+The persistence of a route already being taken, and the reason selection is not re-litigated
+every tick. Identical to `H⁰` insulation: content in a cell's private features is exactly
+invariant under reconciliation, so a contrary neighbour belief cannot dislodge it and only
+prediction error can. Rises with abstraction, since private dimension does. Distinct from
+persistence (the same mechanism serving timescale) by what it is being used for, not by what
+it is.
+_Avoid_: hysteresis, latching, locking in, decision commitment

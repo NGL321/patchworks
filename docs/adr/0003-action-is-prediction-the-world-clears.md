@@ -32,6 +32,15 @@ give.
 - The generative/action-selection opposition of the literature survives as a *path* through the
   graph (sensory rim → centre → motor rim, abstraction rising then falling), not as two objects.
 
+*Amended by [route selection](https://github.com/NGL321/patchworks/issues/25).* The consequence above
+reads as a cost reluctantly accepted; it is a **position**. The architecture has no counterfactual
+evaluation because it has **no plan to evaluate** — route multiplicity is never drive multiplicity,
+and what would elsewhere be a choice between routes is here several cells disagreeing about the next
+step, resolved by the only thing entitled to clear a motor edge: the world moving. Commitment is not
+missing either; it is `H⁰` insulation, which makes a losing route structurally unable to re-assert
+through message passing. See [`04-action-and-the-boundary.md`](../spec/04-action-and-the-boundary.md),
+*Route selection*. The claim is unchanged; what changes is that it is no longer an apology.
+
 *Amended by [ADR-0009](./0009-a-drive-is-a-motor-edge-attached-deep.md).* The sensory/motor split
 above is exhaustive over the *world's* edges but not over the graph's: a **drive edge** is written from
 outside and cleared by the world moving, which makes it a motor edge attached far from the rim rather
