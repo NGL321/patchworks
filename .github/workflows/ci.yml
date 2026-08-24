@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    # ubuntu-latest is the stable, always-available GitHub-hosted runner.
+    # The torch/mujoco/numpy pins in pyproject.toml are justified by wheel
+    # availability on the development laptop (Intel x86_64 macOS --
+    # docs/spec/09-the-build-stack.md, "The compute target"), which stays a
+    # manual, correctness-only check on that machine; GitHub's hosted
+    # Intel-macOS runner images have been in flux, so CI does not pin to one
+    # here rather than risk breaking on a retired or renamed label.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+          cache-dependency-path: pyproject.toml
+
+      - name: Install mujoco's runtime GL libraries
+        run: sudo apt-get update && sudo apt-get install -y libgl1 libosmesa6
+
+      - name: Install patchworks
+        run: pip install -e ".[dev]"
+
+      - name: Run tests
+        run: pytest

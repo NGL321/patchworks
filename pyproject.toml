@@ -1,0 +1,35 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "patchworks"
+version = "0.0.0"
+description = "An embodied graph architecture in which many small predictors, each working in its own metric space, are reconciled into a coherent model of a world none of them sees whole."
+readme = "README.md"
+requires-python = ">=3.10,<3.13"
+license = { file = "LICENSE" }
+dependencies = [
+    # Pinned per docs/spec/09-the-build-stack.md, "The compute target": the
+    # development laptop (Intel x86_64 macOS, CPU only) is a correctness-only
+    # target on pinned wheels. These caps are wheel availability on that
+    # laptop, not preference -- if a newer release is ever needed, the laptop
+    # stops being the reference machine rather than the pin moving.
+    "torch==2.2.2",
+    "mujoco==3.10.0",
+    # torch==2.2.2's macOS wheel is built against NumPy 1.x; importing it
+    # under NumPy 2.x fails (ABI mismatch). Capped for the same
+    # correctness-only reason as the two pins above.
+    "numpy<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/patchworks"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
