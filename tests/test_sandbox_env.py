@@ -11,8 +11,8 @@ import pytest
 from patchworks.sandbox import (
     CONTROL_HZ,
     FRAME_SKIP,
-    HELDOUT_PAIRS,
     IMAGE_SIZE,
+    HELDOUT_PAIRS,
     N_PUCKS,
     SPAWN_R,
     SPLITS,
@@ -60,6 +60,37 @@ def test_the_observation_contract(env):
     assert obs["image"].shape == (IMAGE_SIZE, IMAGE_SIZE, 3)
     assert obs["image"].dtype == np.uint8
     assert obs in env.observation_space
+
+
+def test_every_observation_stays_inside_the_declared_space(env):
+    """A MuJoCo joint limit is a soft constraint, so the arm overshoots the
+    arena's joint ranges; a qpos bound taken from them would be a promise the
+    physics does not keep. Hammer the arm against its limits and check."""
+    env.action_space.seed(0)
+    for _ in range(400):
+        obs, *_ = env.step(env.action_space.sample())
+        assert obs in env.observation_space
+    for _ in range(400):
+        obs, *_ = env.step(np.ones(3, np.float32))
+        assert obs in env.observation_space
+
+
+def test_render_is_not_blanked_by_the_headless_flag():
+    """`render_obs=False` is about the observation. A recorder asking for
+    frames should get frames, not an all-black video."""
+    env = PlanarPushSandbox(render_mode="rgb_array", render_obs=False)
+    try:
+        obs, _ = env.reset(seed=0, options={"reset_arm": True})
+        assert not obs["image"].any()
+        frame = env.render()
+        assert frame.shape == (IMAGE_SIZE, IMAGE_SIZE, 3)
+        assert frame.any()
+    finally:
+        env.close()
+
+
+def test_render_returns_nothing_without_a_render_mode(env):
+    assert env.render() is None
 
 
 def test_no_object_pose_reaches_the_agent(env):
@@ -297,6 +328,23 @@ def test_restore_replays_a_hundred_tick_tail_bit_exactly(env):
     env.restore(state)
     second = [env.step(a)[0]["qpos"] for a in actions]
     assert all(np.array_equal(a, b) for a, b in zip(first, second))
+
+
+def test_restore_brings_the_friction_field_back_with_it(fast_env):
+    """The field is not part of the state because it does not need to be: it is
+    a pure function of puck position, so restoring the positions restores it."""
+    env = fast_env
+    xy = np.array([[0.0, -0.25], [-0.22, 0.10], [0.10, 0.30]])
+    env.reset(seed=1, options={"reset_arm": True, "task": Task(xy, np.zeros(3), 0, 0)})
+    state = env.snapshot()
+    before = env.model.dof_frictionloss.copy()
+
+    env.perturb(0, [0.30, -0.20])
+    env.step(ZERO)
+    assert not np.array_equal(env.model.dof_frictionloss, before)
+
+    env.restore(state)
+    assert np.array_equal(env.model.dof_frictionloss, before)
 
 
 def test_restore_rewinds_the_sampler_too(env):

@@ -138,6 +138,28 @@ def test_the_env_refuses_a_registration_carrying_a_step_limit():
         del gymnasium.registry[limited]
 
 
+def test_a_call_level_step_limit_is_the_one_path_the_env_cannot_see():
+    """Known exposure, asserted so it is a recorded fact rather than an
+    assumption. `gymnasium.make(id, max_episode_steps=n)` hands the unwrapped
+    env a spec with `max_episode_steps=None` whatever it was asked for and
+    wraps TimeLimit around the outside afterwards, so nothing the env can read
+    ever mentions the limit. It is refused at the registration and at the spec;
+    at the call site, only this test says so."""
+    env = gymnasium.make(ENV_ID, max_episode_steps=3, render_obs=False)
+    try:
+        assert env.unwrapped.spec.max_episode_steps is None
+        assert any(isinstance(e, gymnasium.wrappers.TimeLimit) for e in _wrappers(env))
+        env.reset(seed=0, options={"reset_arm": True})
+        action = env.action_space.sample()
+        truncations = [env.step(action)[3] for _ in range(3)]
+        assert truncations == [False, False, True], (
+            "TimeLimit truncates, which every standard loop resets on -- register "
+            "with max_episode_steps=None and do not pass one to make()."
+        )
+    finally:
+        env.close()
+
+
 def test_the_env_refuses_a_spec_carrying_a_step_limit_assigned_to_it():
     env = PlanarPushSandbox(render_obs=False)
     try:

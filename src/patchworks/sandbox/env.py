@@ -101,7 +101,9 @@ def in_heldout_sector(xy) -> bool:
     return HELDOUT_SECTOR[0] <= angle <= HELDOUT_SECTOR[1]
 
 
-@dataclass(frozen=True)
+# eq=False because two fields are arrays: the generated __eq__ would raise
+# rather than compare, and the generated __hash__ would raise rather than hash.
+@dataclass(frozen=True, eq=False)
 class Task:
     """One sampled arrangement of the world plus what is wanted of it."""
 
@@ -118,12 +120,19 @@ class Task:
 class SpecLimitError(RuntimeError):
     """Raised when a spec-level `max_episode_steps` is attached to this env.
 
-    `make()` wraps in `TimeLimit` whenever `max_episode_steps` is passed or
-    carried on the registered spec, and `TimeLimit` sets `truncated=True` --
-    which every standard loop resets on, and a reset here is not a restart but
-    an unannounced rearrangement of the world mid-trajectory. The limit is
-    therefore refused rather than merely undocumented: prefer the constraint
-    that cannot drift to the sentence nobody rereads.
+    `TimeLimit` sets `truncated=True`, which every standard loop resets on,
+    and a reset here is not a restart but an unannounced rearrangement of the
+    world mid-trajectory. A limit is therefore refused rather than merely
+    undocumented: prefer the constraint that cannot drift to the sentence
+    nobody rereads.
+
+    What is refused is a limit on a *spec*: one carried by a registration this
+    env is the entry point of, or one on an `EnvSpec` assigned to the env.
+    `gymnasium.make(id, max_episode_steps=n)` is a fourth path and cannot be
+    reached from in here -- `make()` hands the unwrapped env a spec with
+    `max_episode_steps=None` whatever it was asked for, and wraps `TimeLimit`
+    around the outside afterwards, so nothing the env can read ever mentions
+    the limit. `tests/test_sandbox_conformance.py` records that exposure.
     """
 
 
@@ -161,6 +170,7 @@ class PlanarPushSandbox(gym.Env):
 
         `render_obs=False` blanks the observation's image for headless probes
         that only want the physics; the agent needs it, so it defaults on.
+        `render()` is unaffected by it.
         """
         if split not in SPLITS:
             raise ValueError(f"split must be one of {SPLITS}, got {split!r}")
@@ -206,12 +216,17 @@ class PlanarPushSandbox(gym.Env):
         self._puck_gid = [name2id(self.model, obj.mjOBJ_GEOM, f"g_puck_{i}") for i in range(N_PUCKS)]
         self.puck_radius = self.model.geom_size[self._puck_gid, 0].copy()
 
-        # The joint limits come from the model rather than being restated here,
-        # so the space cannot drift from the arena.
-        arm_range = self.model.jnt_range[self._arm_jid].astype(np.float32)
+        # qpos is unbounded rather than held to the arena's joint ranges. A
+        # MuJoCo joint limit is a soft constraint, so the arm overshoots it --
+        # measured at up to 0.028 rad under a uniform-random policy -- and
+        # disturb_arm() takes an impulse of any size, so no finite bound is one
+        # the physics honours. A bound a consumer would clip against and be
+        # wrong is worse than no bound; the spec's joint ranges are asserted
+        # against the arena in tests/test_sandbox_world.py, where they are a
+        # fact about the body rather than a promise about an observation.
         self.observation_space = spaces.Dict(
             {
-                "qpos": spaces.Box(arm_range[:, 0], arm_range[:, 1], dtype=np.float32),
+                "qpos": spaces.Box(-np.inf, np.inf, (len(ARM_JOINTS),), np.float32),
                 "qvel": spaces.Box(-np.inf, np.inf, (len(ARM_JOINTS),), np.float32),
                 "touch": spaces.Box(0.0, np.inf, (len(ARM_JOINTS),), np.float32),
                 "image": spaces.Box(0, 255, (image_size, image_size, 3), np.uint8),
@@ -248,18 +263,21 @@ class PlanarPushSandbox(gym.Env):
 
     # -- observation ------------------------------------------------------------
 
-    def _render_image(self) -> np.ndarray:
-        if not self.render_obs:
-            return np.zeros((self.image_size, self.image_size, 3), np.uint8)
+    def _camera_image(self) -> np.ndarray:
         self._renderer.update_scene(self.data, camera="topdown")
         return self._renderer.render()
 
     def _obs(self) -> dict:
+        image = (
+            self._camera_image()
+            if self.render_obs
+            else np.zeros((self.image_size, self.image_size, 3), np.uint8)
+        )
         return {
             "qpos": self.data.qpos[self._arm_qadr].astype(np.float32),
             "qvel": self.data.qvel[self._arm_dofadr].astype(np.float32),
             "touch": np.asarray(self.data.sensordata[: len(ARM_JOINTS)], dtype=np.float32),
-            "image": self._render_image(),
+            "image": image,
         }
 
     def puck_pose(self, i: int) -> np.ndarray:
@@ -342,6 +360,7 @@ class PlanarPushSandbox(gym.Env):
                 break
 
         self._light_goal_zone()
+        self._apply_friction_field()
         mujoco.mj_forward(self.model, self.data)
         return self._obs(), self._info()
 
@@ -386,7 +405,11 @@ class PlanarPushSandbox(gym.Env):
         return self._obs(), 0.0, False, False, self._info()
 
     def render(self):
-        return self._render_image()
+        """The top-down camera, independent of whether the observation carries it."""
+        if self.render_mode is None:
+            gym.logger.warn("render() was called with no render_mode set; returning None.")
+            return None
+        return self._camera_image()
 
     # -- the human's hand -------------------------------------------------------
 
@@ -457,6 +480,12 @@ class PlanarPushSandbox(gym.Env):
         self.task = state["task"]
         self.np_random.bit_generator.state = state["rng"]
         self._light_goal_zone()
+        # The field is a pure function of puck position, so restoring the state
+        # restores it -- but only once something reads it back out of the
+        # position. step() does that anyway; doing it here as well means a
+        # forward taken between a restore and the next tick sees the friction
+        # of where the pucks now are rather than where they had wandered to.
+        self._apply_friction_field()
         mujoco.mj_forward(self.model, self.data)
 
     def close(self):
