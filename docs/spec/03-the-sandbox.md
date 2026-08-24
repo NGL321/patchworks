@@ -47,7 +47,7 @@ A **circular arena** bounded by a ring wall at radius 0.52 m, containing **three
 | mass (kg) | 0.05 | 0.10 | 0.20 |
 | colour | red | green | blue |
 
-Pucks differ in size, mass, and friction, so *which* puck is being pushed changes what happens —
+Pucks differ in size and mass, so *which* puck is being pushed changes what happens —
 the dynamics are not one model with a colour attached.
 
 Two radii are load-bearing and were both found by watching the thing fail:
@@ -128,7 +128,7 @@ demo's load-bearing measure is onset latency
 ([`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md)): ticks from the event to the first
 corrective torque, which needs the event to be perceivable at a known tick. From a hidden event the
 interval becomes event → search → discovery → correction, and search duration is a property of where
-a fovea happened to be pointing. It would swamp the two-to-four-hop difference the depth ordering
+a fovea happened to be pointing. It would swamp the one-to-four-hop difference the depth ordering
 rests on, and the teleported puck is the *intermediate* rung precisely because a displacement
 arrives through vision at ~4 hops.
 
