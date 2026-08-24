@@ -133,6 +133,14 @@ once, before the graph runs. Under the distributional reading there is no consta
 cell to read even in principle.
 _Avoid_: clock rate, update rate, level, tier, frequency
 
+**Activation region**:
+One of the finitely many convex regions of chart values on which the shared cell body is exactly
+affine. The body's activation is piecewise-linear, which is what makes these regions exist at all; a
+**fold** is a boundary between two of them, and a cell crosses one when its chart moves far enough.
+Everything the timescale mechanism is built from is a property of the region a cell occupies, not of
+the cell — see *Regional spectrum*, *Region dwell*, *Fold margin*.
+_Avoid_: linear region, cell, piece (reserve that for the sub-problem), basin
+
 **Timescale band**:
 The range of effective timescales a level of the taper is built to hold. Cells are placed in one by
 construction — bias vectors are drawn, measured, and kept if they land in the band — and adjacent

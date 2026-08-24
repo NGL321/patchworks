@@ -44,6 +44,13 @@ each already committed to for other reasons:
   condition, now stated in `05-timescales.md`: a cell's **region dwell** must be long against the
   `τ` its region implies, for which the **fold margin** is the construction-time proxy.
 
+  *Its premise, recorded by [#49](https://github.com/NGL321/patchworks/issues/49):* all of this
+  presupposes a **piecewise-linear** body. Activation regions, folds, the regional spectrum and dwell
+  are objects only a piecewise-linear network has — under a smooth activation the Jacobian varies
+  continuously and none of them has a referent. The commitment (ReLU, and why the class rather than the
+  instance is what matters) is in `01-cell-and-sheaf.md`, *The body's construction*; it is noted here
+  because this is the decision that would fall if it were ever swapped away.
+
 **Nothing in the architecture reads a cell's timescale.** It is observable from outside only, never
 an input to any computation and never a selection criterion. Under the amendment above this is
 **structural rather than disciplinary** — a per-tick draw is not a value anything could branch on.

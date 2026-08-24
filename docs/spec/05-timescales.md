@@ -145,20 +145,23 @@ only a reconciliation-stability problem; it is the timescale claim itself failin
 **Body width sets the fold margin, and that trade is global rather than per-cell.** Hanin & Rolnick
 give mean distance to the nearest region boundary as scaling like `1/#neurons`, so a **wider body has
 a smaller fold margin** — while narrowness is also what supplies the dispersion (`β = Σ 1/n_j`,
-[#27](https://github.com/NGL321/patchworks/issues/27) §4). Wide: well-defined regions, little spread.
-Narrow: real spread, margins that may not hold.
+[#27](https://github.com/NGL321/patchworks/issues/27) §4). Wide: stable timescales, little spread.
+Narrow: real spread, margins that may not hold. Recorded here because this section is what pays for a
+bad choice.
 
-[#42](https://github.com/NGL321/patchworks/issues/42) measured two things that narrow this
-considerably. First, **inside a fixed body a cell's decay rate and its fold margin are
-uncorrelated** — `corr(log ρ, log margin) = −0.006` over 20,000 bias draws, with the slowest 1% of
-cells holding the same median margin as the fastest 50%. Selecting a cell slow therefore does not
-cost that cell its region definition: the trade above is paid **once, in the body's widths**, and
-never again per cell. Second, `encode` and `step` are separate maps with separate widths, and the
-margin follows the **narrower** of the two — an `encode` of 45 and a `step` of 13 clear the minimum
-widths [#49](https://github.com/NGL321/patchworks/issues/49) weighs while holding roughly four times
-the fold margin of a `[64,64]` body. The widths are that ticket's to fix; what this section owns is
-the constraint that the margin is read from the **narrowest map on the chart's round trip**, not from
-the body's total size.
+**That choice is now made, and it was cheaper than the axis suggests.**
+[`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md)'s *The body's construction* sizes each map at its own
+minimum width — 45 / 13 / 33 for `encode` / `step` / `decode` — on the measurement that the wide end
+of the axis buys no spread to trade for the margin it costs (τ ratio 2.4 at `[128]`/`[32]` against 2.7
+at `[45]`/`[13]`, median fold margin 0.0067 against 0.019). The three maps are also **sized
+separately**, and the margin follows the narrowest map on the chart's round trip, so `encode` can meet
+a floor `step` never pays for.
+
+[#42](https://github.com/NGL321/patchworks/issues/42) is why that choice costs nothing per cell:
+**inside a fixed body a cell's decay rate and its fold margin are uncorrelated** — `corr(log ρ, log
+margin) = −0.006` over 20,000 bias draws, with the slowest 1% of cells holding the same median margin
+as the fastest 50%. Selecting a cell slow therefore does not cost that cell its region definition:
+the trade above is paid **once, in the body's widths**, and never again per cell.
 
 ### What "stable" means here
 
