@@ -24,8 +24,8 @@ than configurable:
   referent, so the activation is not a hyperparameter of this module.
 * **Each map's hidden width is its own minimum, `max{d_x + 1, d_y}`.** Written
   as a rule (:func:`hidden_width`) rather than three constants, because `n/k`
-  and `k` are both rungs on the flex ladder. See :func:`hidden_width` for one
-  place the record's rule and the record's printed constants disagree.
+  and `k` are both rungs on the flex ladder. At `n = 32`, `k = 12` it gives
+  45 / 13 / 32.
 * **One hidden layer per map.** A second layer is measured expensive (it halves
   the median fold margin) and lands a fourth geometric job on a bias vector
   already over-subscribed with three.
@@ -72,21 +72,8 @@ def hidden_width(d_x: int, d_y: int) -> int:
     The body is sized *at* the floor: wider bodies pay fold margin for nothing,
     and dropping below buys nothing back.
 
-    **Open, escalated with ticket #84.** The rule and the constants the record
-    prints beside it disagree for `decode`. `01-cell-and-sheaf.md`,
-    `05-timescales.md` and `docs/research/032-dimensioning-small-predictors.md`
-    all print 45 / 13 / **33** at `n = 32`, `k = 12`, but
-    `max{d_x + 1, d_y}` at `decode : R^12 -> R^32` is `max(13, 32) = 32`.
-    `encode` and `step` are unaffected -- their `d_x + 1` dominates either way,
-    so only `decode` distinguishes the two readings. This implements the rule,
-    because the spec says it is the rule and not the constants that is written
-    down ("Written as the rule rather than three constants"), because Park
-    et al.'s theorem is quoted verbatim in the research pass and cannot move,
-    and because 33 would put `decode` one *above* its floor, which *Sized at
-    the floor, not above it* refuses. Nothing measured changes either way: the
-    fold margin is read from `encode` and `step` only, so no number in the
-    record was computed at a `decode` width. Awaiting a decision on whether the
-    printed 33 or the printed rule is the error.
+    At `n = 32`, `k = 12` the rule gives 45 / 13 / **32**; the record briefly
+    printed 33 for `decode`, an arithmetic slip corrected in ticket #84.
     """
     if d_x < 1 or d_y < 1:
         raise ValueError(f"map dimensions must be positive, got {d_x} -> {d_y}")
@@ -102,8 +89,7 @@ class BodyShape:
     low-dimensional requirement — a shape invariant no training story may
     violate — and is checked here rather than assumed.
 
-    At the proof of concept's `n = 32`, `k = 12` the widths are 45 / 13 / 32 --
-    see :func:`hidden_width` for the open question about the last of those.
+    At the proof of concept's `n = 32`, `k = 12` the widths are 45 / 13 / 32.
     """
 
     n: int
@@ -130,11 +116,7 @@ class BodyShape:
 
     @property
     def decode_width(self) -> int:
-        """Hidden width of `decode`, `R^k -> R^n`. 32 at n=32, k=12.
-
-        The one width where the record's rule and its printed constant differ;
-        :func:`hidden_width` states the open question.
-        """
+        """Hidden width of `decode`, `R^k -> R^n`. 32 at n=32, k=12."""
         return hidden_width(self.k, self.n)
 
 

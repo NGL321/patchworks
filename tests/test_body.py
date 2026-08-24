@@ -39,11 +39,8 @@ class TestWidths:
 
     def test_poc_widths(self, shape):
         # encode: R^32 x R^12 -> R^12, step: R^12 -> R^12, decode: R^12 -> R^32.
-        #
-        # ESCALATED (ticket #84): the record prints 45 / 13 / 33 here, but
-        # `max{d_x + 1, d_y}` at decode is max(13, 32) = 32. The rule is
-        # implemented, not the printed constant -- see patchworks.body.hidden_width
-        # for why, and revisit this assertion when the record is settled.
+        # The record briefly printed 33 for decode; max(13, 32) = 32 and #84
+        # corrected the slip.
         assert (shape.encode_width, shape.step_width, shape.decode_width) == (45, 13, 32)
 
     def test_widths_rederive_from_the_rule_when_n_and_k_move(self):

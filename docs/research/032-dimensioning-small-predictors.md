@@ -70,11 +70,22 @@ and `k` are the *interface* dimensions of the cell — the input and output of `
 `decode` — not their internal width. Where it does bite is a quantity `01-cell-and-sheaf.md` leaves
 open: the shared frozen cell body's hidden layers. For `encode : ℝ³² × ℝ¹² → ℝ¹²`, Park et al. gives
 `w_min = max(45, 12) = 45`; for `step : ℝ¹² → ℝ¹²`, `w_min = 13`; for `decode : ℝ¹² → ℝ³²`,
-`w_min = 33`. **A cell body whose hidden layers are narrower than ~45 is provably not a universal
-approximator of its own encoder**, and Lu et al.'s phase transition says the failure is abrupt, not
-graceful. The spec fixes no hidden width, so this constrains an undetermined parameter rather than
-contradicting a committed one — but it is a floor that should be written down before the body is
-built.
+`w_min = max(13, 32) = 32`. **A cell body whose hidden layers are narrower than ~45 is provably not
+a universal approximator of its own encoder**, and Lu et al.'s phase transition says the failure is
+abrupt, not graceful. The spec fixes no hidden width, so this constrains an undetermined parameter
+rather than contradicting a committed one — but it is a floor that should be written down before the
+body is built.
+
+> **Corrected — this pass first wrote `w_min = 33` for `decode`.** An arithmetic slip: the `+1` was
+> applied to whichever term won, where Park et al. put it on the `d_x` term alone. `encode` (45) and
+> `step` (13) are cases where `d_x + 1` wins and are unaffected; `decode` is the one map where the
+> `d_y` term wins, and the one that came out one too high — at exactly `d_y + 1`. The 33 reached
+> [`01-cell-and-sheaf.md`](../spec/01-cell-and-sheaf.md) and
+> [`05-timescales.md`](../spec/05-timescales.md) by way of
+> [#49](https://github.com/NGL321/patchworks/issues/49) and was ruled back to 32 in
+> [#84](https://github.com/NGL321/patchworks/issues/84). Nothing measured moved with it: `decode` is
+> off the chart's round trip, so no fold margin in the record was computed at a `decode` width. The
+> line above and the recommendation below now read 32.
 
 Lu et al. also record that "there exist classes of wide networks which cannot be realized by any
 narrow network whose depth is no more than a polynomial bound" — depth does not buy back width.
@@ -244,7 +255,7 @@ which Duan et al. supplies verbatim. The criterion is what the spec needed.
 ## Revision tickets recommended (not created)
 
 1. **Record a minimum hidden width for the shared cell body.** Park et al.'s `max{d_x+1, d_y}` gives
-   `w_min = 45` for `encode`, `33` for `decode`, `13` for `step`, and Lu et al. show the failure at
+   `w_min = 45` for `encode`, `32` for `decode`, `13` for `step`, and Lu et al. show the failure at
    sub-minimum width is a phase transition rather than a degradation. `01-cell-and-sheaf.md` leaves
    the body's hidden width unspecified; this is a free, provable floor that belongs in the spec
    before the body is built. Does not touch `n` or `k`.

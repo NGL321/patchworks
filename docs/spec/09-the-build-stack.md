@@ -51,12 +51,9 @@ per-cell biases with a `[cells, ·]` leading dimension, the whole population in 
 shows: 1 cell is 0.075 ms and 1500 cells 0.26 ms, so what is being timed at this size is mostly
 per-op overhead rather than arithmetic.
 
-**One width in that row is unsettled**, and the measurement does not depend on it.
-[`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md) states the rule `max{d_x + 1, d_y}` and prints
-45 / 13 / **33** beside it, but the rule at `decode : ℝ¹² → ℝ³²` gives `max(13, 32) = 32`, which is
-what was built and timed. Whether the printed constant or the printed rule is the slip is open
-(patchworks#84). `decode` is not on the chart's round trip, so no fold-margin number in the record
-was computed at a `decode` width either way, and one hidden unit does not move a 0.13 ms reading.
+The row's `decode` width is 32, the rule `max{d_x + 1, d_y}` at `decode : ℝ¹² → ℝ³²`.
+[`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md) briefly printed 33 beside that rule, an arithmetic
+slip corrected in [#84](https://github.com/NGL321/patchworks/issues/84).
 
 The two stand-in rows are kept rather than deleted, because neither is superseded outright — a tick
 is more than a body, and reconciliation over ~698 edges is not measured here.
