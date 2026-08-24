@@ -56,9 +56,9 @@ out and back, and a drive asserted at the apex further still. Measuring onset ma
 ordering a claim about the graph at every rung.
 
 It also keeps the demo clear of the ladder in the body.
-[`03-the-sandbox.md`](./03-the-sandbox.md)'s *Per-joint gearing* deliberately gives the arm
-heterogeneous joint timescales, under the constraint that they must not align with the graph's
-levels. A demo that read recovery off a joint's decay would be reporting a mechanical time constant
+[`03-the-sandbox.md`](./03-the-sandbox.md)'s *A timescale ladder in the body* deliberately gives the
+arm heterogeneous joint timescales — a 17.9x spread in passive decay, bought with rotor inertia —
+under the constraint that they must not align with the graph's levels. A demo that read recovery off a joint's decay would be reporting a mechanical time constant
 and calling it a hierarchy. Onset cannot be supplied by the joint's mechanics, so it cannot be
 confused for them.
 
@@ -76,8 +76,9 @@ Fixed **before** the live run, so that no result is narrated after the fact.
 The latency claim is confined to the two hands, and the confinement is deliberate on two counts.
 It is what [#30](https://github.com/NGL321/patchworks/issues/30) handed down. And the arm nudge's
 onset — reported, and expected near three ticks — is left out of the load-bearing claim so that the
-shallow rung cannot be attacked as a mechanical artefact even if the gearing measurement comes back
-wide.
+shallow rung cannot be attacked as a mechanical artefact. That guard has since earned its keep: the
+ladder measurement did come back wide, at 17.9x
+([#60](https://github.com/NGL321/patchworks/issues/60)).
 
 Nothing sharper than non-overlapping IQRs is claimed, because nothing sharper is available. A cell's
 timescale is a distribution and the taper's gradient is a gradient in **means**, with adjacent depths
@@ -171,18 +172,20 @@ fixed window, the trial records the ceiling. Failures leave the distribution now
 that is its whole job; no success rate is computed, over splits or otherwise. The map rules degree
 of success out of scope, and the two orderings above are the entire result.
 
-## Two secondary runs
+## One secondary run
 
-Both run, both reported, whichever way they come out. Suppressing either would make the demo a
-highlight reel.
+Run and reported whichever way it comes out. Suppressing it would make the demo a highlight reel.
 
 - **Crossing.** The headline, with `perturb()` placing the puck across the arena so that repositioning
   forces a swing-direction choice through the annulus
   ([#25](https://github.com/NGL321/patchworks/issues/25)). This is where the stall signature lives,
   and it bites in this testbed rather than a later one.
-- **Blocked.** The headline, in a **route-blocking layout** — a non-target puck across the target's
-  route, precedence depth 2 ([`03-the-sandbox.md`](./03-the-sandbox.md), *Route-blocking layouts*).
-  Perturbation recovery and a forced ordering in the same run.
+
+A third run — the headline in a **route-blocking layout**, for perturbation recovery and a forced
+ordering together — was specified here and is **withdrawn**. Route-blocking layouts were built and
+measured inert ([#60](https://github.com/NGL321/patchworks/issues/60);
+[`03-the-sandbox.md`](./03-the-sandbox.md), *Route-blocking layouts*), so the run would have
+reported a forced ordering that the world does not impose.
 
 ## What this demo does not show
 
@@ -198,6 +201,9 @@ what guards the claim there is the falsification sweep, not this protocol.
 - **Structural damage** — knocking over a half-built result. Nothing is built in this world. Its
   nearest translation is teleporting the target puck back out of its zone, which is event 2 wearing a
   hat: mechanically identical, and to a viewer a repeat rather than a new claim.
-- **A hand-made detour** — teleporting a non-target puck into the path mid-task. Bought instead by
-  *Route-blocking layouts*, and bought better: a teleported blocker announces itself, a sampled one
-  was always there, and the sampled version is what the *Blocked* run above already exercises.
+- **A hand-made detour** — teleporting a non-target puck into the path mid-task. Originally ruled out
+  as redundant against *Route-blocking layouts*; now ruled out on the stronger ground that killed
+  those. A blocker does not obstruct anything in this arena — nothing here is concave, so every
+  blocker is displaceable and the straight route was never the route
+  ([#60](https://github.com/NGL321/patchworks/issues/60)). A teleported one would be theatre, and
+  would announce itself besides.

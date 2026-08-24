@@ -21,6 +21,7 @@ cd prototypes/sandbox
 ../../.venv-proto/bin/python watch.py --babble     # motor babble instead
 ../../.venv-proto/bin/python probe.py              # headless: shapes, reset semantics, sampler
 ../../.venv-proto/bin/python achievable.py         # solve rate over sampled tasks
+../../.venv-proto/bin/python precedence_probe.py  # issue #60: the timescale ladder, and blocking
 ```
 
 In the viewer, ctrl-drag a puck to perturb the world by hand, and press `r` to rearrange it without
@@ -33,7 +34,9 @@ resetting the arm.
 - `watch.py`'s `ScriptedPusher` — **scaffolding.** A weak hand-written controller that reads the
   privileged `info` no agent may see. It exists only to show the tasks are physically achievable.
   It is not a baseline.
-- `probe.py`, `achievable.py` — **evidence.** The runs that produced the numbers in the spec.
+- `probe.py`, `achievable.py`, `precedence_probe.py` — **evidence.** The runs that produced the
+  numbers in the spec. `precedence_probe.py` takes a section argument (`a`, `b`, `b4`, `b6`, `b7`,
+  `b8`) because the paired runs are minutes each.
 
 ## What broke on the way
 
@@ -55,5 +58,12 @@ Kept because each one is a fact about the world, and each was invisible until th
 7. **A fixed approach waypoint is a trap.** The controller parked on it, the geometry stopped
    changing, and the arm sat still commanding zero torque forever. The approach has to sweep a
    bearing around the puck.
-8. **Push too gently and nothing moves ever again.** The arm and puck settle into a static
+8. **`gear` cannot make a joint slow.** It multiplies control into torque and is absent from the
+   passive `M/b` decay entirely, so gearing a joint down to be slow only makes it weak. `armature`
+   is the knob that buys timescale, and it costs nothing in force because rotor inertia is not in
+   the statics (#60).
+9. **Nothing in this arena is concave, so no puck can be pinned.** Every attempt to force a task
+   ordering by putting a blocker in the way measured null — a puck jammed against the pedestal
+   slides around it, and the straight puck→zone route was never the route anything followed (#60).
+10. **Push too gently and nothing moves ever again.** The arm and puck settle into a static
    equilibrium, touching but not moving. The heaviest puck needs >2 N at the tip.
