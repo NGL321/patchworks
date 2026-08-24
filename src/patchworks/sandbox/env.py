@@ -50,6 +50,10 @@ CONTROL_HZ = 50.0
 
 IMAGE_SIZE = 64
 
+#: How many layouts reset() will draw before giving up on finding one clear of
+#: the arm, whose pose it is not allowed to change.
+PLACEMENT_ATTEMPTS = 64
+
 # --- the sampler's space -------------------------------------------------------
 # The held-out slice is defined along two axes at once, and the two are kept
 # separate: there is deliberately no split value returning their union, because
@@ -188,8 +192,17 @@ class PlanarPushSandbox(gym.Env):
 
         self.model = mujoco.MjModel.from_xml_path(ARENA_XML)
         self.data = mujoco.MjData(self.model)
-        self._renderer = mujoco.Renderer(self.model, image_size, image_size)
+        # The renderer needs a GL context, which a headless probe may not have,
+        # so it is built on the first frame anyone actually asks for.
+        self._renderer = None
         self._closed = False
+        # frame_skip is a knob, so the advertised frame rate follows it rather
+        # than the default -- a recorder would otherwise encode the run at the
+        # wrong speed.
+        self.metadata = {
+            **self.metadata,
+            "render_fps": round(1.0 / (self.model.opt.timestep * frame_skip)),
+        }
 
         self.task: Task | None = None
 
@@ -247,6 +260,14 @@ class PlanarPushSandbox(gym.Env):
         `max_episode_steps=None` whatever the registration said, and applies
         TimeLimit outside, so the limit is invisible from in here once the env
         exists. The registry is where it is still visible.
+
+        Every registration of this entry point is checked, not only the one
+        being constructed, because construction cannot tell which one it is
+        for. That is blunt -- one limited registration refuses every sandbox in
+        the process, including a correctly registered one -- and deliberately
+        so: the alternative is a limit that fires only sometimes, which is the
+        drift this refusal exists to rule out. The error names the registration
+        at fault.
         """
         for env_spec in gym.registry.values():
             if env_spec.entry_point in (ENTRY_POINT, PlanarPushSandbox):
@@ -264,6 +285,8 @@ class PlanarPushSandbox(gym.Env):
     # -- observation ------------------------------------------------------------
 
     def _camera_image(self) -> np.ndarray:
+        if self._renderer is None:
+            self._renderer = mujoco.Renderer(self.model, self.image_size, self.image_size)
         self._renderer.update_scene(self.data, camera="topdown")
         return self._renderer.render()
 
@@ -285,10 +308,18 @@ class PlanarPushSandbox(gym.Env):
         a = self._puck_qadr[i]
         return np.array(self.data.qpos[a : a + 3])
 
+    def _require_task(self) -> Task:
+        if self.task is None:
+            raise RuntimeError(
+                "The world has not been arranged yet: call reset() before step(), "
+                "retarget() or restore()."
+            )
+        return self.task
+
     def _info(self) -> dict:
         """Privileged truth. For logging and the acceptance demo, never for the agent."""
         poses = np.stack([self.puck_pose(i) for i in range(N_PUCKS)])
-        task = self.task
+        task = self._require_task()
         distance = float(np.linalg.norm(poses[task.goal_puck, :2] - ZONE_XY[task.goal_zone]))
         return {
             "puck_pose": poses,
@@ -353,11 +384,21 @@ class PlanarPushSandbox(gym.Env):
         # penetration and the solver launches a puck across the arena. Place,
         # then check, then re-place.
         given = options.get("task")
-        for _ in range(64):
+        for _ in range(PLACEMENT_ATTEMPTS):
             self.task = given or self.sample_task()
             self._place(self.task)
             if given is not None or not self._pucks_touching_arm():
                 break
+        else:
+            # Falling through would hand back the last, penetrating layout --
+            # exactly the failure the loop exists to prevent, delivered
+            # silently. An arm parked across the annulus is the way to get
+            # here, and moving it is the caller's answer.
+            raise RuntimeError(
+                f"No layout clear of the arm in {PLACEMENT_ATTEMPTS} draws. The arm is "
+                "not reset by reset(), so its current pose is blocking the spawn "
+                "annulus; move it, or pass options={'reset_arm': True}."
+            )
 
         self._light_goal_zone()
         self._apply_friction_field()
@@ -438,11 +479,12 @@ class PlanarPushSandbox(gym.Env):
             self.data.qpos[a + 2] = theta
         dof = self._puck_dofadr[puck]
         self.data.qvel[dof : dof + 3] = 0.0
+        self._apply_friction_field()
         mujoco.mj_forward(self.model, self.data)
 
     def retarget(self, goal_puck: int | None = None, goal_zone: int | None = None) -> None:
         """Change what is wanted without touching the world."""
-        task = self.task
+        task = self._require_task()
         self.task = Task(
             task.puck_xy,
             task.puck_theta,
@@ -490,5 +532,6 @@ class PlanarPushSandbox(gym.Env):
 
     def close(self):
         if not self._closed:
-            self._renderer.close()
+            if self._renderer is not None:
+                self._renderer.close()
             self._closed = True

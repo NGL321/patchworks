@@ -271,6 +271,55 @@ def test_the_held_out_slice_is_two_axes_that_never_merge():
         e.close()
 
 
+def test_reset_raises_rather_than_hand_back_a_penetrating_layout(fast_env):
+    """Falling through the rejection loop would deliver the exact failure the
+    loop exists to prevent, silently. The arm is not reset by reset(), so a
+    pose blocking the annulus is the caller's to move."""
+    env = fast_env
+    env.reset(seed=0, options={"reset_arm": True})
+    # a layout that must intersect the arm: every draw is rejected
+    env._pucks_touching_arm = lambda: True
+    with pytest.raises(RuntimeError, match="clear of the arm"):
+        env.reset()
+
+
+def test_calls_before_the_first_reset_say_what_is_missing():
+    env = PlanarPushSandbox(render_obs=False)
+    try:
+        with pytest.raises(RuntimeError, match="call reset\\(\\) before"):
+            env.step(ZERO)
+        with pytest.raises(RuntimeError, match="call reset\\(\\) before"):
+            env.retarget(goal_zone=1)
+    finally:
+        env.close()
+
+
+def test_the_advertised_frame_rate_follows_frame_skip():
+    """frame_skip is a knob; a recorder trusting stale metadata encodes the run
+    at the wrong speed."""
+    env = PlanarPushSandbox(render_obs=False)
+    fast = PlanarPushSandbox(frame_skip=5, render_obs=False)
+    try:
+        assert env.metadata["render_fps"] == CONTROL_HZ
+        assert fast.metadata["render_fps"] == 2 * CONTROL_HZ
+        assert fast.metadata["render_modes"] == env.metadata["render_modes"]
+    finally:
+        env.close()
+        fast.close()
+
+
+def test_a_headless_env_never_builds_a_renderer():
+    """The renderer needs a GL context a physics-only probe may not have."""
+    env = PlanarPushSandbox(render_obs=False)
+    try:
+        env.reset(seed=0, options={"reset_arm": True})
+        for _ in range(5):
+            env.step(ZERO)
+        assert env._renderer is None
+    finally:
+        env.close()
+
+
 def test_a_layout_never_starts_inside_the_arm(env):
     """The arm is never reset, so a layout that intersects its pose starts the
     world inside a penetration and the solver launches a puck across the arena."""
@@ -299,6 +348,21 @@ def test_perturb_teleports_a_puck(env):
     assert env.puck_pose(1)[:2] == pytest.approx(target)
     dof = env._puck_dofadr[1]
     assert np.all(env.data.qvel[dof : dof + 3] == 0.0)
+
+
+def test_perturb_brings_the_friction_field_with_the_puck(fast_env):
+    """The third path that moves a puck, and the field is a function of where
+    a puck is -- a read taken before the next tick must not be of where it was."""
+    env = fast_env
+    xy = np.array([[0.0, -0.25], [-0.22, 0.10], [0.10, 0.30]])
+    env.reset(seed=1, options={"reset_arm": True, "task": Task(xy, np.zeros(3), 0, 0)})
+    dof = env._puck_dofadr[0]
+
+    env.perturb(0, [0.40, -0.30])
+    nominal = env._friction_nominal[0]
+    assert env.model.dof_frictionloss[dof : dof + 3] == pytest.approx(
+        nominal * friction_scale([0.40, -0.30])
+    )
 
 
 def test_retarget_changes_what_is_wanted_without_touching_the_world(env):
