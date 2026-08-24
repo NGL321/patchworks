@@ -104,11 +104,39 @@ Each puck carries an orientation marker. **At 64×64 the marker is not resolvabl
 rotation is a genuine hidden variable — inferable only from contact dynamics, never read off. This
 is recorded as a consequence, not a decision: raising the resolution would change it.
 
-More generally, the whole arena is visible in every frame, so **spatial** exploration is not
-forced. The epistemic pressure in this world is over **dynamics** — mass, friction, contact
-outcome, and the hidden rotation — not over where things are. If the acceptance demo needs
-exploration for *position*, the sensory surface has to change (a tip-mounted short-range sensor
-was the runner-up design, and would restore it).
+### Dynamics exploration, not spatial exploration
+
+The whole arena is visible in every frame, so **spatial** exploration is not forced — and that is a
+decision, not a leftover. The destination's *a sandbox it must explore to model* is honoured by
+**dynamics exploration**: mass, friction, contact outcome and the hidden rotation are nowhere in the
+render and are recoverable only by acting. An agent that has looked at this arena and never touched
+it knows almost nothing that predicts the next tick; the heaviest puck does not move at all below
+~2 N at the tip (*Motor surface*), so even *whether a push works* is knowledge only action buys.
+
+That is the reading worth having. A model of where things are in one arena is memorisation of that
+arena; a model of what things do is the part that would survive being moved to another. Position is
+the cheaper variable, and it is the one this world gives away.
+
+**Hiding position would not raise the difficulty — it would break the instrument.** The acceptance
+demo's load-bearing measure is onset latency
+([`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md)): ticks from the event to the first
+corrective torque, which needs the event to be perceivable at a known tick. From a hidden event the
+interval becomes event → search → discovery → correction, and search duration is a property of where
+a fovea happened to be pointing. It would swamp the two-to-four-hop difference the depth ordering
+rests on, and the teleported puck is the *intermediate* rung precisely because a displacement
+arrives through vision at ~4 hops.
+
+So the runner-up sensory surface — a short-range sensor rigidly attached to the arm tip, exploration
+becoming a sweep of the fovea over the workspace — is **out of scope** rather than deferred: it is a
+different world, and it belongs to the second PoC with the rest of the enrichment
+[#30](https://github.com/NGL321/patchworks/issues/30) ruled out. Raising the render resolution is
+ruled out in the same place and points the wrong way regardless — it would *remove* this world's one
+hidden variable rather than add pressure. Occluders are rejected on the onset-latency argument
+above.
+
+Exploration in the other sense — acting somewhere the agent has no model of at all — is a different
+question with a different owner: [`04-action-and-the-boundary.md`](./04-action-and-the-boundary.md),
+*Route selection*.
 
 ## Motor surface
 

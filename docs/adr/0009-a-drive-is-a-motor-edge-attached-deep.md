@@ -179,6 +179,15 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
   learn, so early in training a drive edge is noise. This is the same cost every sensory edge already
   pays and the architecture accepts everywhere else, but the drive edge is the one place where paying
   it delays the behaviour the demo exists to show.
+
+  This exposure carries a second job it was not filed with. The PoC's whole account of exploration is
+  that an unconverged model emits near-arbitrary torques and sharpens where it acted
+  (`04-action-and-the-boundary.md`, *Route selection*), so the window in which the drive edge is noise
+  is the *same* window that account depends on: the agent has to keep moving through it. **No motion
+  at all is therefore both failures at once**, and only one response addresses it — a **curiosity
+  drive**, an ordinary drive boundary cell at the internal rim, which is the fog item and not a rung
+  on the ladder above. Widening the task drive does not reach it, and neither does attaching it more
+  widely.
 - **Hallucinating satisfaction.** A core cell can reduce disagreement by *believing* the task is met
   rather than by acting — the failure GLean documents for goal-conditioned forward models
   (`docs/research/018-sandbox-citations.md`). Under a drive edge it is bounded rather than eliminated:

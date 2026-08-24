@@ -409,8 +409,26 @@ justification. The detour problem is an artifact of imagining a distance-to-goal
 architecture does not have.
 
 This is not free. It converts a planning problem into an **exploration** problem: a route the agent
-has never experienced is not merely unplanned, it is invisible. Handed to
-[#17](https://github.com/NGL321/patchworks/issues/17).
+has never experienced is not merely unplanned, it is invisible.
+
+Nothing in the PoC deliberately answers that, and that is a position rather than an omission
+([#17](https://github.com/NGL321/patchworks/issues/17)). Early in training the model is poor
+everywhere, so the torques the graph emits are near-arbitrary and the arm visits configurations it
+has no model of; the model then sharpens where it acted. **Exploration here is a consequence of not
+yet having a model, not a mechanism** — which makes it self-extinguishing, and means the dark room is
+not avoided so much as arrived at late. The bet is that late is enough: that discomfort under a
+standing drive keeps the arm moving through the window in which the model is still poor, and that the
+routes worth having get visited inside it.
+
+The bet is instrumented rather than hoped at. A drive that produces *no* motion at all is
+[ADR-0009](../adr/0009-a-drive-is-a-motor-edge-attached-deep.md)'s *Bootstrapping* exposure and not
+its scalar-width one, and it is this bet failing; the response is the **curiosity drive** held in
+fog, which enters as an ordinary drive boundary cell at the internal rim and needs no new channel and
+no change to anything here. Note what is *not* claimed: this says nothing about whether an agent with
+a converged model will visit a route it has never taken. It will not, and by then it has no term that
+would make it want to. This is the dynamics-exploration argument's limit, stated where it bites —
+[`03-the-sandbox.md`](./03-the-sandbox.md), *Dynamics exploration, not spatial exploration*, covers
+the other half.
 
 The bet underneath, stated as a bet: that the taper's degrees of separation between abstract and
 concrete let general structure — *wrapping*, *routing around* — be learned at depth and reused,
