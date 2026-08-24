@@ -127,8 +127,10 @@ _Avoid_: hidden features, internal state (reserve that for the chart), latent
 How slowly a cell's content changes — set by how much private structure it holds and by the
 *distribution* of regional spectra its biases select, not by any one of them. A mean rate rather
 than a fixed one, and well defined only while the cell's region dwell is long against it. A property
-measured from outside, never an input to any computation and never a criterion anything selects on —
-and under the distributional reading there is no constant for anything to read even in principle.
+measured from outside, never an input to any computation and **never a criterion anything selects on
+at runtime** — though it is exactly the criterion the body's construction selects biases against,
+once, before the graph runs. Under the distributional reading there is no constant for a running
+cell to read even in principle.
 _Avoid_: clock rate, update rate, level, tier, frequency
 
 **Activation region**:
@@ -138,6 +140,23 @@ affine. The body's activation is piecewise-linear, which is what makes these reg
 Everything the timescale mechanism is built from is a property of the region a cell occupies, not of
 the cell — see *Regional spectrum*, *Region dwell*, *Fold margin*.
 _Avoid_: linear region, cell, piece (reserve that for the sub-problem), basin
+
+**Timescale band**:
+The range of effective timescales a level of the taper is built to hold. Cells are placed in one by
+construction — bias vectors are drawn, measured, and kept if they land in the band — and adjacent
+levels' bands **overlap**, so the taper's gradient is continuous and separates levels only as
+distributions. A band is where a cell started, not a property it has: nothing stores it, nothing
+re-selects, and the biases drift off it as they adapt.
+_Avoid_: tier, layer rate, timescale level, clock band
+
+**Realised contraction rate**:
+`λ`, the rate at which a cell's private content actually decays along the trajectory it walks —
+averaged over every activation region it visits, not read off any one of them. The stability object:
+a cell is unstable when `λ ≥ 0`, which is not the same as occupying a region whose spectral radius
+exceeds one. `max ρ < 1` over the regions a cell can reach is a *sufficient* condition for `λ < 0`,
+cheap enough to check before training and far stronger than necessary.
+_Avoid_: stability margin, spectral radius (for this object), Lyapunov exponent (unless the
+long-run limit is meant literally)
 
 **Regional spectrum**:
 The spectrum of the local Jacobian of whichever activation region of the shared body a cell occupies
@@ -156,10 +175,12 @@ _Avoid_: region residence, switching rate, region stability
 
 **Fold margin**:
 How far a cell sits from the nearest boundary of the activation region it occupies in the shared
-body. Two jobs: it bounds how much the cell's operating point may be shifted before it lands in a
-region with a different decay rate, and it is the construction-time proxy for region dwell — a cell
-with a small margin has no well-defined effective timescale at all. Falls as the body gets wider, the
-same axis along which spread is bought by narrowness.
+body. Three jobs: it bounds how much the cell's operating point may be shifted before it lands in a
+region with a different decay rate; it is the construction-time proxy for region dwell — a cell
+with a small margin has no well-defined effective timescale at all — and, third, it is what makes an
+expansive region dangerous rather than a harmless transient. Falls as the body gets wider, and is
+read from the narrowest map on the chart's round trip; that trade is global, paid once in the body's
+widths, and inside a fixed body a cell's margin is uncorrelated with its decay rate.
 _Avoid_: slack, headroom, distance to boundary
 
 **Inference phase**:
