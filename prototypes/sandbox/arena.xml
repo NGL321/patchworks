@@ -25,6 +25,16 @@
     </default>
     <default class="puck">
       <geom type="cylinder" contype="1" conaffinity="1"/>
+      <!-- #21: the classless <joint armature="0.01"/> above was reaching the puck
+           joints, inflating rotational inertia 55-426x and mass 5-20%. A puck is a
+           free body, not a geared motor: it has no rotor. Note the joints must
+           say class="puck" themselves: the class was only ever on the geoms, which
+           is how the classless default reached the joints in the first place.
+           Second, frictionloss is a soft constraint whose position residual is
+           identically zero, so the default impedance 0.9 leaked ~2.7 mm/s under a
+           sub-threshold hold - 159 mm over 60 s, twice a zone radius. Stiffening
+           the friction constraint alone costs nothing elsewhere. -->
+      <joint armature="0" solimpfriction="0.9999 0.9999 0.001 0.5 2"/>
     </default>
     <default class="wall">
       <geom type="box" rgba="0.18 0.19 0.22 1" contype="1" conaffinity="1"/>
@@ -111,27 +121,38 @@
 
     <!-- ================= the world: three sliding pucks ================= -->
     <body name="puck_0" pos="0 0 0">
-      <joint name="p0_x" type="slide" axis="1 0 0" damping="0.02" frictionloss="0.147"/>
-      <joint name="p0_y" type="slide" axis="0 1 0" damping="0.02" frictionloss="0.147"/>
-      <joint name="p0_r" type="hinge" axis="0 0 1" damping="0.002" frictionloss="0.004"/>
+      <!-- mu = 0.20 -->
+      <joint name="p0_x" class="puck" type="slide" axis="1 0 0" damping="0.02" frictionloss="0.098"/>
+      <joint name="p0_y" class="puck" type="slide" axis="0 1 0" damping="0.02" frictionloss="0.098"/>
+      <joint name="p0_r" class="puck" type="hinge" axis="0 0 1" damping="0.002" frictionloss="0.0023"/>
       <geom class="puck" name="g_puck_0" size="0.035 0.022" mass="0.05" rgba="0.85 0.20 0.20 1"/>
       <geom type="box" pos="0.018 0 0.023" size="0.014 0.005 0.001" rgba="0.35 0.05 0.05 1"
             contype="0" conaffinity="0"/>
     </body>
 
     <body name="puck_1" pos="0 0 0">
-      <joint name="p1_x" type="slide" axis="1 0 0" damping="0.02" frictionloss="0.294"/>
-      <joint name="p1_y" type="slide" axis="0 1 0" damping="0.02" frictionloss="0.294"/>
-      <joint name="p1_r" type="hinge" axis="0 0 1" damping="0.003" frictionloss="0.011"/>
-      <geom class="puck" name="g_puck_1" size="0.045 0.022" mass="0.10" rgba="0.20 0.65 0.30 1"/>
+      <!-- mu = 0.30 -->
+      <joint name="p1_x" class="puck" type="slide" axis="1 0 0" damping="0.02" frictionloss="0.294"/>
+      <joint name="p1_y" class="puck" type="slide" axis="0 1 0" damping="0.02" frictionloss="0.294"/>
+      <joint name="p1_r" class="puck" type="hinge" axis="0 0 1" damping="0.003" frictionloss="0.011"/>
+      <geom class="puck" name="g_puck_1" size="0.045 0.022" mass="0.055" rgba="0.20 0.65 0.30 1"/>
+      <!-- #21: the eccentric puck. 0.03 kg buried at x = 0.04 puts the centre of
+           mass 0.012 m off the geometric centre, so a contact through the rim
+           exerts a torque that depends on theta, and theta feeds back into where
+           the puck goes. Rotation stops being a decoupled integrator and becomes
+           a hidden variable worth inferring. Invisible: it sits inside the solid
+           cylinder, so the top-down render is unchanged. -->
+      <geom type="sphere" name="g_puck_1_cm" pos="0.04 0 0" size="0.004" mass="0.045"
+            rgba="0.20 0.65 0.30 1" contype="0" conaffinity="0"/>
       <geom type="box" pos="0.024 0 0.023" size="0.018 0.005 0.001" rgba="0.05 0.25 0.10 1"
             contype="0" conaffinity="0"/>
     </body>
 
     <body name="puck_2" pos="0 0 0">
-      <joint name="p2_x" type="slide" axis="1 0 0" damping="0.02" frictionloss="0.589"/>
-      <joint name="p2_y" type="slide" axis="0 1 0" damping="0.02" frictionloss="0.589"/>
-      <joint name="p2_r" type="hinge" axis="0 0 1" damping="0.004" frictionloss="0.028"/>
+      <!-- mu = 0.45 -->
+      <joint name="p2_x" class="puck" type="slide" axis="1 0 0" damping="0.02" frictionloss="0.883"/>
+      <joint name="p2_y" class="puck" type="slide" axis="0 1 0" damping="0.02" frictionloss="0.883"/>
+      <joint name="p2_r" class="puck" type="hinge" axis="0 0 1" damping="0.004" frictionloss="0.042"/>
       <geom class="puck" name="g_puck_2" size="0.055 0.022" mass="0.20" rgba="0.25 0.35 0.85 1"/>
       <geom type="box" pos="0.030 0 0.023" size="0.022 0.005 0.001" rgba="0.05 0.10 0.30 1"
             contype="0" conaffinity="0"/>

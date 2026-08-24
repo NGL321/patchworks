@@ -307,7 +307,8 @@ architecture answers by construction, never one it hopes to outgrow.
 _Avoid_: exploration problem, motivation problem, the boredom problem
 
 **Dynamics exploration**:
-Acting on the world to learn what it does — a puck's mass, the outcome of a contact — as opposed to
+Acting on the world to learn what it does — a puck's mass, its friction, the outcome of a contact,
+the orientation of the **eccentric puck** — as opposed to
 moving in order to see where things are. The sense in which the sandbox
 must be explored to be modelled: its whole arena is visible every frame, so position is given away
 and only dynamics has to be earned. A model of where things are in one arena is memorisation of that
@@ -413,6 +414,20 @@ The manipulator in the sandbox: one 3-link planar limb, and the agent's only bod
 robot, never an experimental condition — a falsification sweep has **conditions**, not arms. The
 word stays singular for the PoC; a second arm is a PoC-2 object.
 _Avoid_: arm (as a branch of an experiment), limb, effector, manipulator (as a separate term)
+
+**Friction field**:
+The fixed, smooth spatial variation in the sandbox's table friction: a puck's frictionloss scaled by
+a function of where the puck is. A property of the world, not a random draw — so the same push at
+two places gives two outcomes while snapshot and restore stay bit-exact. The reason repeated
+identical pushes in this world are not identical.
+_Avoid_: friction noise, roughness map, stochastic friction, domain randomisation
+
+**Eccentric puck**:
+Puck 1, whose centre of mass is deliberately offset from its geometric centre. The one object in the
+sandbox whose orientation appears in its own equations of motion, which is what makes rotation a
+hidden variable worth inferring rather than a decoupled integrator. The eccentricity is invisible in
+the render by construction.
+_Avoid_: asymmetric puck, weighted puck, the odd puck, off-balance puck
 
 **Precedence depth**:
 Of a task: the length of the longest chain of sub-goals that must be reached *in order*, where a
