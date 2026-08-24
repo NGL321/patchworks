@@ -44,9 +44,19 @@ primitive actions. That is **ratio in latency**. Planning needs **ratio in commi
 abstract level standing behind one decision across many steps — and a deep cell still revises its
 belief every tick. It revises it about stale evidence.
 
-Secondary: a loop of length `L` with unit delay has slow resonant modes on the order of `2L` ticks.
-At the sandbox's 50 Hz and a graph of diameter ~12 that is ~0.5 s — an order of magnitude short of
-task duration, not steerable, and an artifact rather than a mechanism.
+Secondary, and corrected: delay-coupled loops **do** produce slow rhythms at second scale, and they
+**are** steerable. An earlier draft wrote them off as `~2L`-tick resonances — ~0.5 s at the sandbox's
+50 Hz — which is the wrong object as well as the wrong magnitude. The slowness lives in the relative
+*phase* of units still firing near their intrinsic rate, and its period is set by **coupling
+strength** ([#29](https://github.com/NGL321/patchworks/issues/29)).
+
+The route is closed here anyway, on ground already in the record: **the coupling gain is `γ`, and `γ`
+is spoken for.** [`02-tick-semantics.md`](./02-tick-semantics.md) fixes it as `gain_v = γ / Σ_e m_e`
+under the bound `γ × floor <` fold margin,
+[ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md) records that it is
+explicitly *not* a timescale knob, and *The precondition* below makes that same margin what gives
+this section's own mechanism a well-defined region to run in. Buying depth-slowness by raising `γ`
+would spend the thing persistence runs on.
 
 ## The mechanism: persistence in the private features
 
@@ -74,6 +84,14 @@ features are for: holding a slowly-varying variable *is* an abstract cell's sub-
 
 The bound `dim H⁰ ≥ Σ_v max(0, n − Σ_{e∋v} m_e)` makes the capacity for slow state a **construction
 quantity**, set by the masks and enlarged by sparsity.
+
+The design move is a step out from published work rather than a leap: neural sheaf diffusion
+engineers `dim ker(Δ_F)` deliberately so that information survives what would otherwise be
+oversmoothing, making stalk width the construction quantity that governs how much survives —
+structurally this bound. What is unprecedented is the *use*. There the kernel is the space a
+diffusion converges to as `t → ∞`; here it is state that persists tick to tick under the cell's own
+dynamics, and that second half has no analogue in a formalism with no per-node recurrence in it
+([#29](https://github.com/NGL321/patchworks/issues/29)).
 
 ### Persistence under the cell's own dynamics: the regional Jacobian
 
@@ -217,6 +235,15 @@ This ordering is what makes failure cheap. If the persistence mechanism does not
 divisor is already built and already validated against the same demo, so the system still works —
 it is only less interesting.
 
+**The instrument is the prior art's own mechanism.** Active predictive coding's `T1`/`T2` — the
+source of this section's goal — *is* a fixed clock divisor, and in APC it is the **mechanism**, not
+an instrument; Rao's own paper names the fixed count a limitation and defers termination functions to
+future work ([#29](https://github.com/NGL321/patchworks/issues/29),
+[#43](https://github.com/NGL321/patchworks/issues/43)). This spec takes APC's goal, declines its
+mechanism, and then builds that mechanism as the rig it measures against. So switching the divisor
+off and asking whether persistence reproduces the behaviour is a comparison **against APC**, not
+against nothing.
+
 **Nothing in the architecture reads a cell's timescale.** It is observable from outside and is never
 an input to any computation, never a cell attribute another mechanism branches on, never a selection
 criterion. A drive attaches by hop distance
@@ -350,6 +377,14 @@ the cell passed through. It was never an eigenvalue, and it must not become one.
   the standing offset a floor leaves on the reconciled component shifts the cell's operating point,
   which is where this section's decay rate comes from. That is bounded by the reconciliation gain
   ([`02-tick-semantics.md`](./02-tick-semantics.md)), whose bound binds hardest at the apex.
+- **An unbidden slow rhythm, from the graph's own cycles.** Every edge carries unit delay and
+  `06-graph-topology.md` commits to lateral edges, so the dome is a delay-coupled network in exactly
+  the sense *Depth does not supply it* concedes — a slow phase-difference rhythm may appear whether
+  or not it is wanted, and it would be a second source of slowness this spec does not own. Already
+  instrumented, though, and not by luck: a coupling phenomenon lives in the **reconciled** component
+  (`im δᵀ`) and this section's mechanism lives in the **private** one (`ker δ`), which are orthogonal
+  by construction. The *Demonstrating it* readout is a fixed projection computed per tick, so it
+  separates the two with no new instrument.
 - **Change-gated transport is specified and not built.** It is the named amplifier of this
   section's mechanism; see *The change gate, pre-specified* above for its trigger, its shape, and
   what it costs. No longer open exposure: [#20](https://github.com/NGL321/patchworks/issues/20)

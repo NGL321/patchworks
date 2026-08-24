@@ -26,9 +26,19 @@ that computes and compares information gain **per candidate policy, before actin
 
 That second resolution is architecturally unavailable here: ADR-0003 refuses counterfactual evaluation
 outright. A drive lands squarely on the **first** horn — it is a prior, written from outside, asserting
-a world the agent should expect to inhabit. The resolution this ADR reaches for is the one with a
-primary source *and* the only one compatible with the rest of the design, which is a happier
-coincidence than it had any right to be.
+a world the agent should expect to inhabit.
+
+That is a stronger position than it first reads as. The burden the priors route usually carries is
+explaining where world-expecting priors *come from* without appealing to epistemic value, which is why
+its defenders reach for evolution and neurodevelopment. Patchworks writes the prior in from outside, so
+it never incurs that burden. Someone has already walked the horn without the epistemic summand: Baltieri
+& Buckley (2019) derive PID control as active inference with the setpoint as a prior, full stop, and no
+information-gain or expected-free-energy term anywhere in the formulation. Its scope is narrow — one
+regulated variable, a linear model, no hierarchy — so it proves the horn is walkable, not that it scales
+to a ~150-cell graph. And Sun & Firestone's sharpest objection, that optimism only escapes the dark room
+by smuggling desires back in, turns on predictive processing's claim that prediction is the *only*
+state. Patchworks never made that claim: the desire is declared, as a motor edge, in the open. See
+`docs/research/045-drives-citations.md`.
 
 The working proposal inherited from [ADR-0003](./0003-action-is-prediction-the-world-clears.md) was a
 **clamp**: pin a chosen cell's node stalk to a goal value, overriding what the message-passing phase
@@ -130,8 +140,41 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
 - **One dimension of standing disagreement steering a 150-cell graph is unproven.** Low bandwidth is
   deliberate — a wide drive channel would smuggle the task specification back in through the side door,
   after `03-the-sandbox.md` worked to put it in the render — but whether a scalar suffices to
-  differentiate behaviour across the taper is exactly the thing most likely to need widening. The
-  escape hatch is a small learned drive vector, at the cost of the one-cell-one-drive reading.
+  differentiate behaviour across the taper is exactly the thing most likely to need widening.
+  Confirmed real by `docs/research/045-drives-citations.md`: nothing found runs a single scalar as the
+  sole directional drive of a large graph, biology runs four distinct diffuse scalars with four
+  distinct jobs (Doya 2002), and the nearest comparable object — FeUdal's directional goal — is a
+  vector, "the dimensionality of the embedding vectors, w, … set as k = 16" (Vezhnevets et al. 2017).
+  Abel et al. (2021) prove a scalar cannot express some task specifications, which lands softer here
+  because the drive is not the specification: the render is. What survives is the width question, and
+  it is now pre-costed.
+
+  **Trigger.** Task-invariant behaviour: the arm's trajectory the same across tasks differing only in
+  the render, while the drive edge's disagreement is non-trivial. The mechanism-level confirmation is
+  an undifferentiated apex — the eight apex node stalks moving near-identically under drive. A drive
+  that produces no motion at all is **not** this failure; that is *Bootstrapping* below, and a wider
+  channel does not fix it.
+
+  **The hatch, in rungs.** (1) **More attachment points** — the strength knob already named above, and
+  the cheapest thing to try. (2) **A second drive cell** with a distinct job, which is the reading the
+  biology actually supports: Doya's answer to needing more directional influence is another diffuse
+  scalar channel, not a wider one. Near-empty in this PoC, where there is one task and so nothing for a
+  second drive to *be* — it is real for an internal-rim faculty later. (3) **A learned drive vector at
+  `k ≈ 16`**, the attested width, at the cost of the one-cell-one-drive reading. The rungs are ordered
+  by price, and only (3) changes the design's shape.
+- **A derived account of curiosity is forfeited — inside the graph.** Expected free energy's epistemic
+  term is what makes long-horizon agents intrinsically novelty-seeking, and Seth, Millidge, Buckley &
+  Tschantz (2020) insist it "arise[s] naturally out of the mathematical formalism, instead of being
+  bolted on." It is an expectation over futures under candidate policies, and
+  [ADR-0003](./0003-action-is-prediction-the-world-clears.md) has no counterfactual evaluation, so it
+  is not computable in the sheaf. Exploration is not thereby lost: curiosity enters as an ordinary
+  drive boundary cell like any other, and what is written from outside is never *what a drive means* —
+  the transport rule learns that, as it does for every edge — but only whether and how hard it is
+  written. What the graph cannot do is *become* novelty-seeking on its own. If that is ever derived
+  rather than asserted, it is derived at the **internal rim**, in a faculty, and arrives here as an
+  ordinary drive. Live multiplicity among apex cells is not the missing evaluation: they disagree about
+  the *actual* next step, not about candidate futures (`04-action-and-the-boundary.md`, *Route
+  selection*).
 - **Bootstrapping.** The drive's meaning arrives through a restriction map the transport rule must
   learn, so early in training a drive edge is noise. This is the same cost every sensory edge already
   pays and the architecture accepts everywhere else, but the drive edge is the one place where paying

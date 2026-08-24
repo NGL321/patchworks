@@ -234,8 +234,11 @@ _Avoid_: output edge, efferent edge, action channel, command
 A standing assertion, written from outside the sheaf, that some state of affairs holds — so that while
 it does not, the graph carries disagreement it can only clear by acting. What keeps an unsolved task
 uncomfortable, and therefore the answer to the dark room problem. A goal is the particular drive a
-human sets; curiosity and any later appetite are others.
-_Avoid_: reward, goal (reserve for the human-set drive), clamp, objective, utility
+human sets; curiosity and any later appetite are others. Not the Hullian drive: no deficit state, no
+reduction, no satiation — the disagreement falls away because the world agrees, not because anything is
+discharged.
+_Avoid_: reward, goal (reserve for the human-set drive), clamp, objective, utility, drive reduction,
+tension
 
 **Drive boundary cell**:
 The boundary cell a drive is written into: it holds the assertion and nothing else, runs no body, and

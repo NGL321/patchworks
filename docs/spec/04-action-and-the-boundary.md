@@ -288,7 +288,9 @@ which is an ordinary structural-mask change and needs no new mechanism.
   still facing a blank wall, and the destination requires an agent that explores a workspace nothing
   rewarded it for visiting — so this is not waved away as emergent. Whatever eventually supplies
   curiosity enters as **another drive boundary cell**, not as a new channel and not as a second error
-  signal.
+  signal. It has to enter that way: the epistemic term that would otherwise derive novelty-seeking is
+  an expectation over candidate futures, so ADR-0003 makes it **architecturally unavailable**, not
+  merely unchosen (ADR-0009, *Known exposure*).
 - **Several drives compose by reconciliation**, exactly as several cells driving one actuator do.
   Incompatible drives are standing disagreement, a fourth source alongside static, lag, and settling
   ([ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md)) — tolerated, not
@@ -433,8 +435,13 @@ a property of the mechanism rather than an apology for it. Unspecified here; see
   sweep through this section and its dependents is pre-accepted.
 - **A scalar drive steering a 150-cell graph is unproven.** Low bandwidth is deliberate, but whether
   one dimension of standing disagreement can differentiate behaviour across the whole taper is the
-  thing most likely to need widening. Escape hatch: a small learned drive vector, at the cost of the
-  one-cell-one-drive reading (ADR-0009).
+  thing most likely to need widening. **Trigger:** task-invariant behaviour — the arm's trajectory the
+  same across tasks that differ only in the render, while the drive edge's disagreement is non-trivial.
+  Confirmed, if wanted, by an undifferentiated apex: the eight apex node stalks moving near-identically
+  under drive. A drive that produces *no* motion is not this failure — that is bootstrapping, and
+  widening the channel is the wrong fix. **Escape hatch, in rungs** (ADR-0009): more attachment points,
+  then a second drive cell, then a learned drive vector at `k ≈ 16`, the attested width for a
+  directional goal in a learned latent space.
 - **Hallucinating satisfaction.** A core cell can reduce disagreement by *believing* the task is met
   rather than by acting. Bounded rather than eliminated: the sensory edges pull the other way, so the
   cell settles at a compromise, and that compromise is the prediction the motor rim must clear. Leaves
