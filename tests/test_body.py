@@ -256,6 +256,57 @@ class TestMismatchedSurfaces:
             body.step(torch.randn(CELLS, K), single)
 
 
+class TestSubset:
+    """What selection keeps (ticket #85): a population holding a subset of rows."""
+
+    def test_the_kept_rows_are_the_ones_asked_for_in_that_order(self, shape, biases):
+        index = torch.tensor([7, 3, 3, 0])
+        kept = biases.subset(index)
+        assert kept.cells == 4
+        for name in ("encode", "step", "decode"):
+            for role in range(2):
+                assert torch.equal(
+                    kept.of(name)[role], biases.of(name)[role][index]
+                )
+
+    def test_keeping_nothing_is_representable(self, biases):
+        # A band no draw reached keeps nothing, which is a result rather than a
+        # misuse -- even though a population of zero cells cannot be drawn.
+        kept = biases.subset(torch.tensor([], dtype=torch.long))
+        assert kept.cells == 0
+
+    def test_the_kept_set_is_detached_from_the_draw_it_came_from(self, biases):
+        kept = biases.subset(torch.tensor([1]))
+        with torch.no_grad():
+            kept.encode_hidden_bias.add_(1.0)
+        assert not torch.equal(kept.encode_hidden_bias[0], biases.encode_hidden_bias[1])
+
+    def test_keeping_a_set_does_not_advance_the_global_rng(self, biases):
+        # Selection keeps however many candidates a band happened to offer, so a
+        # draw made on the global generator here would shift every later draw by
+        # an amount that depends on the result -- inside a construction whose
+        # contract is that it reproduces from its seed.
+        torch.manual_seed(0)
+        before = torch.rand(1)
+        torch.manual_seed(0)
+        biases.subset(torch.tensor([0, 2, 5]))
+        assert torch.equal(torch.rand(1), before)
+
+    def test_an_index_that_is_not_one_dimensional_is_refused(self, biases):
+        with pytest.raises(ValueError, match=r"index must be \[cells\]"):
+            biases.subset(torch.tensor([[0, 1]]))
+
+    def test_a_mask_is_refused_rather_than_half_understood(self, biases):
+        # Selection works in masks, so passing one here is the natural slip; it
+        # would give a population whose `cells` was the mask's length rather
+        # than its count, and only a downstream shape check would notice.
+        mask = torch.zeros(CELLS, dtype=torch.bool)
+        mask[:3] = True
+        with pytest.raises(ValueError, match="not mask them"):
+            biases.subset(mask)
+        assert biases.subset(mask.nonzero(as_tuple=False).flatten()).cells == 3
+
+
 class TestBenchmark:
     """`benchmarks/body_forward.py` is the reported wall time's provenance.
 
