@@ -35,6 +35,7 @@ On the development laptop (i7-8750H, CPU only), at the sizes fixed in
 | --- | --- |
 | `env.step()` — physics + the 64×64 render | **3.18 ms** |
 | cell body, forward, all 150 cells (torch, widths 45 / 13 / 32) | **0.13 ms** |
+| agent tick, forward (torch, both phases and the external write) | **0.92 ms** |
 | agent tick, forward (numpy stand-in, body width 128) | **1.04 ms** |
 | agent tick, with gradients (×3 estimate) | **~3 ms** |
 
@@ -55,8 +56,35 @@ The row's `decode` width is 32, the rule `max{d_x + 1, d_y}` at `decode : ℝ¹�
 [`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md) briefly printed 33 beside that rule, an arithmetic
 slip corrected in [#84](https://github.com/NGL321/patchworks/issues/84).
 
-The two stand-in rows are kept rather than deleted, because neither is superseded outright — a tick
-is more than a body, and reconciliation over 682 edges is not measured here.
+**The forward-tick row is now measured too**, by `benchmarks/agent_tick.py`
+([#86](https://github.com/NGL321/patchworks/issues/86)) — both phases and both halves of the world
+seam, over the real dome, on the same machine and in the same run as the `env.step()` beside it,
+which is what makes the ratio rather than the absolute figure the thing to read. At **0.92 ms**
+against a 3.37 ms `env.step()` in that run it is **a little over a quarter of the environment**, so
+the paragraph above holds with the stand-in removed from under it.
+
+Inside that figure, the two ratios that hold across every run rather than only the quiet one: the
+**two phases are about four fifths** of the tick — the world seam, a read and a write of index
+traffic with no arithmetic in it, is the rest — and the **message-passing phase costs about two and
+a half times the inference phase**. That is the expected shape: 682 edges against 150 cells. It
+stays bounded by construction — one restriction and one reconcile per edge endpoint, no round count
+and no convergence check ([ADR-0002](../adr/0002-message-passing-is-one-step-not-a-solve.md)) — and
+it is two batched `bmm`s over 1364 edge endpoints rather than a loop, which is what keeps it there.
+The script prints the four-way split; it is not repeated here, because only the ratios above survive
+a busy laptop.
+
+**Reproduce it on an idle machine.** The tick's figure is the only one on this table that moves with
+what else the laptop is doing: torch runs the population over all six threads, and `env.step()` —
+single-threaded physics plus a render — barely notices contention that costs the tick a factor of
+three. Under a load average of 6 the same script reports the tick at 3.4 ms against an `env.step()`
+that has *fallen* to 3.0 ms, which is a measurement of the machine rather than of either. The row
+above was taken with the laptop otherwise idle.
+
+The numpy stand-in is kept beside it rather than deleted: it was an order-of-magnitude guess at a
+body width of 128, and landing within about 15% of the measured figure is worth leaving on the
+record. The **with-gradients** row is still an estimate — nothing trains yet, and the real cost
+is [#88](https://github.com/NGL321/patchworks/issues/88)'s and
+[#89](https://github.com/NGL321/patchworks/issues/89)'s to measure.
 
 ## The locality guard
 
