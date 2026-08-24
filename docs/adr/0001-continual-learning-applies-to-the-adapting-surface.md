@@ -16,6 +16,27 @@ We therefore narrow it rather than abandon either. Continual learning governs th
 fixed basis, and does not count as frozen weights. The **adapting surface** — biases and restriction
 maps — never freezes, so continual learning holds where it does work.
 
+## A restore is not a reset
+
+Snapshot/restore was introduced here as the *reproducibility* mechanism that replaces a freeze
+toggle. [patchworks#23](https://github.com/NGL321/patchworks/issues/23) gave it a second job — a
+defined start for the acceptance demo's repeated trials — and that job only holds if restore and
+`reset()` are kept apart as different kinds of operation.
+
+`reset()` is **in-band**. It rearranges the world, the agent lives through it, physics time runs on,
+and nothing announces it; the agent finds out the way it finds out anything, by being wrong. A
+**restore** rewinds the entire state including the adapting surface, so there is no tick at which any
+cell could observe one. It never appears in the env's contract and is not an operation the agent is
+subject to — it is an experimenter's tool.
+
+That is what lets evaluation have a defined start without weakening the reset-free contract. Every
+reset-free system in the cited literature reintroduces a start distribution for evaluation
+specifically; the distinction above is how Patchworks does the same thing without an in-band reset
+the agent could learn to anticipate. It is also why the protocol in
+[`08-the-acceptance-demo.md`](../spec/08-the-acceptance-demo.md) can restore mid-run without that
+being a train-then-deploy split arriving through the back door: nothing is frozen, and nothing inside
+the graph is aware.
+
 ## Consequences
 
 - A future reader encountering a frozen body alongside "weights never freeze" needs this ADR; the

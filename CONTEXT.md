@@ -397,9 +397,10 @@ _Avoid_: task complexity, horizon, difficulty, planning depth, commitment
 **Acceptance demo**:
 The single live interaction the proof of concept is judged by: a human disturbs the agent mid-task
 and the agent recovers at the appropriate level of its hierarchy. One named protocol with fixed
-pass and fail conditions, settled before the run — not a category of demonstration and not a
-synonym for evaluation, which is the broader reporting contract over many trials.
-_Avoid_: the demo (bare), evaluation, benchmark, test run, showcase
+pass and fail conditions, settled before the run — not a category of demonstration. **Evaluation**
+is not a broader thing that contains it: the two are coextensive. The demo's pre-registered readouts
+are the whole of what "evaluation" names here, and nothing aggregates a score over runs.
+_Avoid_: the demo (bare), benchmark, test run, showcase
 
 **Onset latency**:
 Ticks from a disturbance to the first corrective torque. The demo's temporal measure, chosen
@@ -407,6 +408,21 @@ because it is a property of the graph — how far a correction had to travel bef
 settling or decay time would be a property of the body's mechanics. Reported per event; a
 difference in onset is what "recovered at a different level" means in time rather than in hops.
 _Avoid_: reaction time, settling time, response time, recovery time, latency (bare)
+
+**Trial**:
+One measured disturbance: a restore to a snapshot tick, one event fired, one onset latency recorded.
+The unit the demo's latency ordering is computed over, and the only unit there is — a world with no
+episodes has no other. A trial is *valid* or discarded on pre-registered grounds, never scored; goal
+satisfaction gates admission and contributes no number.
+_Avoid_: episode, run (bare), rollout, attempt, sample
+
+**Restore**:
+Rewinding the entire state — world, clock, and the agent's adapting surface — to a snapshot. Kept
+sharply distinct from `reset()`: a reset is in-band and the agent lives through it, while a restore
+is invisible from inside, since no cell survives it to notice. An experimenter's tool that appears
+nowhere in the env's contract, which is what lets evaluation have a defined start without weakening
+the reset-free commitment.
+_Avoid_: reset, restart, rollback, reload, checkpoint (as a verb)
 
 **Demo surface**:
 What a human sees and touches while a run is happening: two windows, the encodings drawn in them,

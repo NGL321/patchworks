@@ -71,8 +71,7 @@ Fixed **before** the live run, so that no result is narrated after the fact.
 - **Depth ordering.** For each event, the private-component trace falls with hop distance, and the
   three events order: the arm nudge shallowest, the puck teleport intermediate, the retarget deepest.
 - **Latency ordering.** `perturb` and `retarget` onset latencies have **non-overlapping interquartile
-  ranges** over N repeated runs. N and the seeds belong to
-  [The evaluation protocol](https://github.com/NGL321/patchworks/issues/23).
+  ranges** over the 40 paired trials specified in *The repeated runs*, below.
 
 The latency claim is confined to the two hands, and the confinement is deliberate on two counts.
 It is what [#30](https://github.com/NGL321/patchworks/issues/30) handed down. And the arm nudge's
@@ -107,6 +106,70 @@ Three near-misses are named in advance, because each of them produces convincing
   the demo** — the scalar valence channel is what failed. Labelled as such wherever it is reported,
   and it has its own ladder of responses in
   [ADR-0009](../adr/0009-a-drive-is-a-motor-edge-attached-deep.md).
+
+## The repeated runs
+
+*The live run demonstrates, the repeated runs establish.* This section fixes what a repeat **is**,
+because in a world with no episodes it is not obvious, and because a trial definition chosen after
+the data exists is the thing pre-registration exists to prevent.
+
+**A trial starts from a restore, not a reset.** There is no episode boundary to start from and
+`reset()` deliberately never touches the agent, so the only defined start available is
+`03-the-sandbox.md`'s snapshot/restore — which is not a reset in disguise: it rewinds the agent's
+adapting surface along with the world and is invisible from inside. The cited reset-free literature
+all reintroduces a start distribution for evaluation specifically and says so; this is that move,
+made without an in-band reset the agent could learn to anticipate.
+
+**Structure: 40 snapshots down one continual run, three events at each.** The snapshot ticks are
+spaced across the run rather than clustered, and at each one the state is restored three times — once
+for `disturb_arm`, once for `perturb`, once for `retarget`.
+
+The pairing is the load-bearing part. Weights never freeze, so an agent sampled for one hand and
+then for the other is not the same agent, and the drift between the two sample sets could
+**manufacture the very latency ordering being claimed**. Paired at each snapshot, both hands see an
+identical agent at an identical moment, and any ordering between them can only come from depth. The
+arm nudge rides along free on the same restore; it is reported, not claimed on, for the reason given
+above.
+
+**What varies, and why it has to.** MuJoCo is deterministic, so a fixed snapshot with a fixed event
+yields a single number rather than a distribution. Spread comes from two sources deliberately, and
+both belong in it: the **agent's drift** across the 40 snapshot points, and the **event's
+parameters** — where `perturb()` teleports the puck to, which held-out pair `retarget()` names.
+
+An interval was rejected here. Firing events down one continuous run without restoring is more
+faithful to the reset-free contract, but the agent adapts to being poked: onset latency shrinks
+across repeats and the IQR ends up measuring learning rather than depth.
+
+**Retarget names a held-out pair.** The event draws from the **pair** axis of
+[`03-the-sandbox.md`](./03-the-sandbox.md)'s held-out slice, which is what gives that slice a reader
+at all and puts the compositional claim inside the pre-registered pass rather than beside it. The
+pair axis specifically: it withholds compounds while leaving every puck, zone and region seen, so a
+recovery there is attributable to composition and not to a position the agent has never been shown.
+The sector axis stays out of the load-bearing claim for exactly that reason.
+
+**Two seeds, fixed before the run**: the snapshot schedule (the 40 tick indices) and a per-trial
+event seed. Reproducibility of a trial once started is snapshot/restore's job, not a seed's.
+
+### What disqualifies a snapshot
+
+Pre-registered, because discarding trials after the fact is narration.
+
+- **Satisfied at the snapshot tick.** The goal is already met, so there is no task to be mid-way
+  through.
+- **Not engaged.** No torque directed at the target puck in the preceding K ticks, K fixed in
+  advance.
+
+**A stalled agent is a valid trial and its latency counts.** Stall is a *predicted* failure with a
+known cause — #25's annulus signature, the blend of left and right being *stay put* — and
+disqualifying it would quietly delete the demo's most likely honest negative. It is named in *Pass
+and fail* as a near-miss precisely so it can be recognised, not so it can be dropped.
+
+For the same reason there is a **ceiling, not a discard**: if no corrective torque arrives within a
+fixed window, the trial records the ceiling. Failures leave the distribution nowhere.
+
+**Nothing here is aggregated into a score.** Goal satisfaction gates whether a trial is valid and
+that is its whole job; no success rate is computed, over splits or otherwise. The map rules degree
+of success out of scope, and the two orderings above are the entire result.
 
 ## Two secondary runs
 
