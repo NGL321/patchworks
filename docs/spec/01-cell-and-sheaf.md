@@ -204,7 +204,7 @@ re-derive them.
 **Each map's hidden width is its own minimum, `max{d_x + 1, d_y}`** — Park et al.'s exact floor for
 universal approximation by ReLU networks, below which Lu et al. find a phase transition rather than a
 degradation. Evaluated at `n = 32`, `k = 12`, that is **45** for `encode` (`ℝ³² × ℝ¹² → ℝ¹²`), **13**
-for `step` (`ℝ¹² → ℝ¹²`), and **33** for `decode` (`ℝ¹² → ℝ³²`). Written as the rule rather than as
+for `step` (`ℝ¹² → ℝ¹²`), and **32** for `decode` (`ℝ¹² → ℝ³²`). Written as the rule rather than as
 three constants because `n/k` and `k` are both rungs on the *Flex priority* ladder below: pull one and
 the widths re-derive themselves.
 

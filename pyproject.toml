@@ -33,3 +33,6 @@ packages = ["src/patchworks"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# benchmarks/ holds scripts rather than a package; on the path so the suite can
+# smoke-test them and they do not rot silently against the code they measure.
+pythonpath = ["benchmarks"]

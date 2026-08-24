@@ -151,7 +151,7 @@ bad choice.
 
 **That choice is now made, and it was cheaper than the axis suggests.**
 [`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md)'s *The body's construction* sizes each map at its own
-minimum width — 45 / 13 / 33 for `encode` / `step` / `decode` — on the measurement that the wide end
+minimum width — 45 / 13 / 32 for `encode` / `step` / `decode` — on the measurement that the wide end
 of the axis buys no spread to trade for the margin it costs (τ ratio 2.4 at `[128]`/`[32]` against 2.7
 at `[45]`/`[13]`, median fold margin 0.0067 against 0.019). The three maps are also **sized
 separately**, and the margin follows the narrowest map on the chart's round trip, so `encode` can meet
