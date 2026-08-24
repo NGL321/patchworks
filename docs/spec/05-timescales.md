@@ -192,9 +192,11 @@ clock divisor and the persistence mechanism stay interchangeable for the same re
 mechanism can tell them apart.
 
 **The taper's timescale gradient is a gradient in means.** `06-graph-topology.md`'s private-dimension
-gradient (0 at the rim, ~16 at the apex) supplies a timescale gradient, and that gradient is now
-distributional: cells adjacent in depth overlap on any single tick, and only their distributions
-separate. The demo's sharpest falsifiable form — two different depths responding to two different
+gradient (0 at the rim, ~8 through L3–L6, 15 at the apex) supplies a timescale gradient, and that
+gradient is now distributional: cells adjacent in depth overlap on any single tick, and only their
+distributions separate. Note it is a **step rather than a ramp** — degree falls at the apex and
+nowhere else in the core — so the structural gradient was never graded through the core either, and
+these two facts blunt the same over-reading from different directions. The demo's sharpest falsifiable form — two different depths responding to two different
 perturbations (arm-only ~1 hop, puck-moving ~4) — is a behavioural claim over many ticks and is
 untouched.
 
