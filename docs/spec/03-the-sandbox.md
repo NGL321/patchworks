@@ -601,6 +601,19 @@ over the two splits that then existed, and [#60](https://github.com/NGL321/patch
 armature ladder gives 14/72 against 16/72 on the same seeds. Each change is two or three tasks out
 of the set, inside the noise of a controller this weak, and the world is as solvable as it was.
 
+The run lives at **`benchmarks/achievability.py`**, and it is where 72 comes from: 24 tasks from
+each of `train`, `heldout_pair` and `heldout_sector`, with `any` excluded because it ignores the
+split distinction and its tasks would be attributable to no split. Re-run against the packaged env
+([#82](https://github.com/NGL321/patchworks/issues/82)) it returns **14 of 72** on the prototype's
+seed, so nothing moved in the move.
+
+Two details of the measurement, recorded with the number because they belong to it. A solve is the
+goal **held for half a second**, not the first satisfied tick: `goal_satisfied` is instantaneous,
+and a puck skidding across a zone has not been put in it. And the arm is not reset between tasks —
+the run is one continual trajectory, as everything here is — so it can end a task standing where the
+next layout has to go, which `reset()` refuses to place one inside. The run then moves it and says
+how many times it had to, rather than averaging that in quietly; over these 72 tasks, never.
+
 **The same number read the other way, which is the less flattering and equally valid reading:** a
 controller with no model, no learning, no hierarchy and no planning takes about 20% of the task set.
 So it also bounds how much of this task set requires anything the architecture provides. A build

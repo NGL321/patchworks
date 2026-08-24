@@ -140,6 +140,16 @@ class SpecLimitError(RuntimeError):
     """
 
 
+class BlockedAnnulusError(RuntimeError):
+    """Raised when the arm is standing where every drawn layout has to go.
+
+    `reset()` never resets the arm, so its pose is the caller's to move --
+    which is a different thing from the env being broken, and a caller looping
+    over tasks needs to tell the two apart without matching on a message.
+    A `RuntimeError` still, because that is what it was before it had a name.
+    """
+
+
 def _check_index(value: int, limit: int, what: str) -> int:
     if not 0 <= value < limit:
         raise ValueError(f"{what} must be in range(0, {limit}), got {value}")
@@ -430,7 +440,7 @@ class PlanarPushSandbox(gym.Env):
             mujoco.mj_setState(self.model, self.data, before, self._STATE_SPEC)
             self.task = previous_task
             mujoco.mj_forward(self.model, self.data)
-            raise RuntimeError(
+            raise BlockedAnnulusError(
                 f"No layout clear of the arm in {PLACEMENT_ATTEMPTS} draws. The arm is "
                 "not reset by reset(), so its current pose is blocking the spawn "
                 "annulus; move it, or pass options={'reset_arm': True}."
