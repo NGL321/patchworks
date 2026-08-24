@@ -1,0 +1,188 @@
+<!--
+  The sandbox's arena. See docs/spec/03-the-sandbox.md; every number here was
+  chosen by building the thing and watching it, so they are transcribed rather
+  than re-derived.
+
+  Planar by construction, not by a floor + gravity trick:
+    * gravity is zero
+    * every joint is either a hinge about z or a slide in x/y
+    * every geom sits at z = 0
+  Table friction is modelled as joint frictionloss, not as contact with a floor.
+  Going 3D is therefore removing constraints (adding joints), not porting an engine.
+-->
+<mujoco model="patchworks-planar-sandbox">
+  <compiler angle="radian" autolimits="true"/>
+  <option timestep="0.002" gravity="0 0 0" integrator="implicitfast"/>
+
+  <visual>
+    <global offwidth="640" offheight="640"/>
+    <headlight ambient="0.6 0.6 0.6" diffuse="0.4 0.4 0.4"/>
+  </visual>
+
+  <default>
+    <geom friction="0.6 0.005 0.0001" solref="0.008 1" density="500"/>
+    <!-- #60: rotor inertia is the timescale knob, not `gear`. gear multiplies
+         ctrl -> joint torque and is absent from the passive M/b decay entirely, so
+         it cannot make a joint slow without also making it weak. armature can:
+         0.12 / 0.02 / 0.002 buys the 17.9x passive-decay ladder (184 / 80 / 10 ms)
+         with the torque limits, and therefore the tip force, untouched. -->
+    <joint armature="0.01"/>
+    <default class="link">
+      <geom type="capsule" size="0.022" rgba="0.30 0.32 0.38 1"/>
+    </default>
+    <default class="puck">
+      <geom type="cylinder" contype="1" conaffinity="1"/>
+      <!-- #21: the classless <joint armature="0.01"/> above was reaching the puck
+           joints, inflating rotational inertia 55-426x and mass 5-20%. A puck is a
+           free body, not a geared motor: it has no rotor. Note the joints must
+           say class="puck" themselves: the class was only ever on the geoms, which
+           is how the classless default reached the joints in the first place.
+           Second, frictionloss is a soft constraint whose position residual is
+           identically zero, so the default impedance 0.9 leaked ~2.7 mm/s under a
+           sub-threshold hold - 159 mm over 60 s, twice a zone radius. Stiffening
+           the friction constraint alone costs nothing elsewhere. -->
+      <joint armature="0" solimpfriction="0.9999 0.9999 0.001 0.5 2"/>
+    </default>
+    <default class="wall">
+      <geom type="box" rgba="0.18 0.19 0.22 1" contype="1" conaffinity="1"/>
+    </default>
+    <default class="zone">
+      <!-- visual only: zones mark goals, they do not push anything -->
+      <site type="cylinder" size="0.075 0.001" rgba="0.35 0.35 0.35 0.35"/>
+    </default>
+  </default>
+
+  <worldbody>
+    <!-- backdrop for the top-down render -->
+    <geom name="table" type="cylinder" pos="0 0 -0.03" size="0.52 0.02"
+          rgba="0.86 0.85 0.82 1" contype="0" conaffinity="0"/>
+
+    <camera name="topdown" pos="0 0 1.4" euler="0 0 0" fovy="42"/>
+
+    <!-- arena boundary: a ring INSIDE the arm's reach, so no puck can be
+         pushed somewhere the arm cannot follow it. The arm's outer extent is
+         0.49, so the ring at 0.52 is never touched by the arm itself, while a
+         puck pinned against it still has its centre inside the workspace. -->
+    <geom class="wall" name="wall_00" pos="0.5200 0.0000 0" euler="0 0 1.5708" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_01" pos="0.5070 0.1157 0" euler="0 0 1.7952" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_02" pos="0.4685 0.2256 0" euler="0 0 2.0196" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_03" pos="0.4066 0.3242 0" euler="0 0 2.2440" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_04" pos="0.3242 0.4066 0" euler="0 0 2.4684" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_05" pos="0.2256 0.4685 0" euler="0 0 2.6928" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_06" pos="0.1157 0.5070 0" euler="0 0 2.9172" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_07" pos="0.0000 0.5200 0" euler="0 0 3.1416" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_08" pos="-0.1157 0.5070 0" euler="0 0 3.3660" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_09" pos="-0.2256 0.4685 0" euler="0 0 3.5904" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_10" pos="-0.3242 0.4066 0" euler="0 0 3.8148" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_11" pos="-0.4066 0.3242 0" euler="0 0 4.0392" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_12" pos="-0.4685 0.2256 0" euler="0 0 4.2636" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_13" pos="-0.5070 0.1157 0" euler="0 0 4.4880" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_14" pos="-0.5200 0.0000 0" euler="0 0 4.7124" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_15" pos="-0.5070 -0.1157 0" euler="0 0 4.9368" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_16" pos="-0.4685 -0.2256 0" euler="0 0 5.1612" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_17" pos="-0.4066 -0.3242 0" euler="0 0 5.3856" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_18" pos="-0.3242 -0.4066 0" euler="0 0 5.6100" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_19" pos="-0.2256 -0.4685 0" euler="0 0 5.8344" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_20" pos="-0.1157 -0.5070 0" euler="0 0 6.0588" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_21" pos="-0.0000 -0.5200 0" euler="0 0 6.2832" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_22" pos="0.1157 -0.5070 0" euler="0 0 6.5076" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_23" pos="0.2256 -0.4685 0" euler="0 0 6.7320" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_24" pos="0.3242 -0.4066 0" euler="0 0 6.9564" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_25" pos="0.4066 -0.3242 0" euler="0 0 7.1808" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_26" pos="0.4685 -0.2256 0" euler="0 0 7.4052" size="0.0666 0.02 0.04"/>
+    <geom class="wall" name="wall_27" pos="0.5070 -0.1157 0" euler="0 0 7.6296" size="0.0666 0.02 0.04"/>
+
+    <!-- target zones: fixed positions, one of them is lit up as the goal -->
+    <site class="zone" name="zone_0" pos="0.0 0.3 0"/>
+    <site class="zone" name="zone_1" pos="-0.26 -0.15 0"/>
+    <site class="zone" name="zone_2" pos="0.26 -0.15 0"/>
+
+    <!-- ================= the body: 3-link planar arm, torque control ================= -->
+    <body name="base" pos="0 0 0">
+      <!-- the pedestal is a real obstacle: it walls off the shoulder, where the arm is
+           singular and has no leverage. Without it, a puck nudged toward the centre
+           lands in a region no push can recover it from. -->
+      <geom name="g_pedestal" type="cylinder" size="0.08 0.022" rgba="0.22 0.23 0.27 1"/>
+
+      <body name="link0" pos="0 0 0">
+        <joint name="j0" type="hinge" axis="0 0 1" damping="0.8" armature="0.12" range="-3.1416 3.1416"/>
+        <geom class="link" name="g_link0" fromto="0 0 0  0.20 0 0"/>
+        <site name="touch0" type="capsule" fromto="0 0 0  0.20 0 0" size="0.030" rgba="0 0 0 0"/>
+
+        <body name="link1" pos="0.20 0 0">
+          <joint name="j1" type="hinge" axis="0 0 1" damping="0.5" armature="0.02" range="-2.6 2.6"/>
+          <geom class="link" name="g_link1" fromto="0 0 0  0.16 0 0" size="0.020"/>
+          <site name="touch1" type="capsule" fromto="0 0 0  0.16 0 0" size="0.028" rgba="0 0 0 0"/>
+
+          <body name="link2" pos="0.16 0 0">
+            <joint name="j2" type="hinge" axis="0 0 1" damping="0.3" armature="0.002" range="-2.6 2.6"/>
+            <geom class="link" name="g_link2" fromto="0 0 0  0.10 0 0" size="0.018"/>
+            <!-- rounded paddle: the only thing that meets the world -->
+            <geom name="g_tip" type="cylinder" pos="0.10 0 0" size="0.030 0.022" rgba="0.85 0.55 0.15 1"/>
+            <site name="touch2" type="capsule" fromto="0 0 0  0.10 0 0" size="0.040" rgba="0 0 0 0"/>
+            <site name="tip" pos="0.10 0 0" size="0.008" rgba="1 1 1 0"/>
+          </body>
+        </body>
+      </body>
+    </body>
+
+    <!-- ================= the world: three sliding pucks ================= -->
+    <body name="puck_0" pos="0 0 0">
+      <!-- mu = 0.20 -->
+      <joint name="p0_x" class="puck" type="slide" axis="1 0 0" damping="0.02" frictionloss="0.098"/>
+      <joint name="p0_y" class="puck" type="slide" axis="0 1 0" damping="0.02" frictionloss="0.098"/>
+      <joint name="p0_r" class="puck" type="hinge" axis="0 0 1" damping="0.002" frictionloss="0.0023"/>
+      <geom class="puck" name="g_puck_0" size="0.035 0.022" mass="0.05" rgba="0.85 0.20 0.20 1"/>
+      <geom type="box" pos="0.018 0 0.023" size="0.014 0.005 0.001" rgba="0.35 0.05 0.05 1"
+            contype="0" conaffinity="0"/>
+    </body>
+
+    <body name="puck_1" pos="0 0 0">
+      <!-- mu = 0.30 -->
+      <joint name="p1_x" class="puck" type="slide" axis="1 0 0" damping="0.02" frictionloss="0.294"/>
+      <joint name="p1_y" class="puck" type="slide" axis="0 1 0" damping="0.02" frictionloss="0.294"/>
+      <joint name="p1_r" class="puck" type="hinge" axis="0 0 1" damping="0.003" frictionloss="0.011"/>
+      <geom class="puck" name="g_puck_1" size="0.045 0.022" mass="0.055" rgba="0.20 0.65 0.30 1"/>
+      <!-- #21: the eccentric puck. 0.045 kg buried at x = 0.04, against 0.055 kg
+           in the disc, puts the centre of mass 0.018 m off the geometric centre
+           of a 0.045 m disc, so a contact through the rim
+           exerts a torque that depends on theta, and theta feeds back into where
+           the puck goes. Rotation stops being a decoupled integrator and becomes
+           a hidden variable worth inferring. Invisible: it sits inside the solid
+           cylinder, so the top-down render is unchanged. -->
+      <geom type="sphere" name="g_puck_1_cm" pos="0.04 0 0" size="0.004" mass="0.045"
+            rgba="0.20 0.65 0.30 1" contype="0" conaffinity="0"/>
+      <geom type="box" pos="0.024 0 0.023" size="0.018 0.005 0.001" rgba="0.05 0.25 0.10 1"
+            contype="0" conaffinity="0"/>
+    </body>
+
+    <body name="puck_2" pos="0 0 0">
+      <!-- mu = 0.45 -->
+      <joint name="p2_x" class="puck" type="slide" axis="1 0 0" damping="0.02" frictionloss="0.883"/>
+      <joint name="p2_y" class="puck" type="slide" axis="0 1 0" damping="0.02" frictionloss="0.883"/>
+      <joint name="p2_r" class="puck" type="hinge" axis="0 0 1" damping="0.004" frictionloss="0.042"/>
+      <geom class="puck" name="g_puck_2" size="0.055 0.022" mass="0.20" rgba="0.25 0.35 0.85 1"/>
+      <geom type="box" pos="0.030 0 0.023" size="0.022 0.005 0.001" rgba="0.05 0.10 0.30 1"
+            contype="0" conaffinity="0"/>
+    </body>
+  </worldbody>
+
+  <contact>
+    <!-- link0 starts at the centre, so it is always inside the pedestal. The base is
+         welded to the world, which disables MuJoCo's parent filter, so say it here.
+         link1 and link2 DO collide with the pedestal: the arm cannot fold through it. -->
+    <exclude body1="base" body2="link0"/>
+  </contact>
+
+  <actuator>
+    <motor name="m0" joint="j0" gear="1" ctrlrange="-3.0 3.0"/>
+    <motor name="m1" joint="j1" gear="1" ctrlrange="-2.0 2.0"/>
+    <motor name="m2" joint="j2" gear="1" ctrlrange="-1.0 1.0"/>
+  </actuator>
+
+  <sensor>
+    <touch name="t0" site="touch0"/>
+    <touch name="t1" site="touch1"/>
+    <touch name="t2" site="touch2"/>
+  </sensor>
+</mujoco>

@@ -17,6 +17,10 @@ dependencies = [
     # stops being the reference machine rather than the pin moving.
     "torch==2.2.2",
     "mujoco==3.10.0",
+    # The sandbox is a literal gymnasium.Env. 1.x is the floor: the
+    # conformance test in tests/test_sandbox_conformance.py names
+    # `check_reset_seed_determinism`, which 0.29 called `check_reset_seed`.
+    "gymnasium>=1.0,<2",
     # torch==2.2.2's macOS wheel is built against NumPy 1.x; importing it
     # under NumPy 2.x fails (ABI mismatch). Capped for the same
     # correctness-only reason as the two pins above.
