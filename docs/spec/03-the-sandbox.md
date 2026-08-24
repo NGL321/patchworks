@@ -430,13 +430,16 @@ recovery off that ladder is what the non-alignment constraint forbids. See
 
 A deliberately dumb scripted controller (Jacobian-transpose reaching, no learning, reading the
 privileged `info`) solves **15 of 48** sampled tasks within 60 s of sim time each, across both
-splits and all three pucks. That is a **lower bound**: it establishes that the geometry, torque
+splits and all three pucks — **12 of 48** after [#21](https://github.com/NGL321/patchworks/issues/21)
+raised puck 2's μ by half and made puck 1 eccentric. Both readings below use the current number;
+the change is three tasks out of forty-eight, which is inside the noise of a controller this weak,
+and the world is as solvable as it was. That is a **lower bound**: it establishes that the geometry, torque
 limits, and friction admit the tasks the sampler generates. It is not a baseline, and no agent
 should be compared against it.
 
 **The same number read the other way, which is the less flattering and equally valid reading:** a
-controller with no model, no learning, no hierarchy and no planning takes 31% of the task set. So
-15/48 also bounds how much of this task set requires anything the architecture provides. A build
+controller with no model, no learning, no hierarchy and no planning takes 25% of the task set. So
+12/48 also bounds how much of this task set requires anything the architecture provides. A build
 session should meet that fact at the start rather than rediscover it, and the route-blocking layouts
 above exist partly to move it.
 
