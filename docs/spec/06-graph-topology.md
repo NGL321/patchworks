@@ -296,6 +296,13 @@ is a correction to the diagnostic as recorded in `01-cell-and-sheaf.md`.
 permanently; the sparsity pressure prunes *within* the mask, driving restriction-map weights toward
 zero without shrinking a stalk.
 
+Mechanically that is an **L1 on the normalised map**
+([ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md)): the map's magnitude is fixed by
+construction, so the pressure can only move weight between a map's directions, never take it out. This
+is what makes "prunes within the mask" a statement about the map's *shape* rather than its size — and it
+is why the pressure cannot walk the sheaf to `F = 0` on its own, which is what it would otherwise do
+once the transport rule's own objective is made scale-invariant.
+
 So "sparsity annealing" is a **schedule on the sparsity pressure**, not a structural process. A fully
 zeroed edge is functionally dead but structurally present: it still costs a tick, still contributes
 `m_e` to `χ`, and — through learned rank-deficiency — still enlarges `H⁰`, which is the effect

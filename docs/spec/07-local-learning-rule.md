@@ -33,14 +33,31 @@ point — and never touches a restriction map.
 
 ### The transport rule
 
-Trains restriction maps on **disagreement**: already computed during the message-passing phase, per
-[ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md) constrained to learn on
-*change* in disagreement or disagreement relative to that edge's own recent scale, never toward a zero
+Trains restriction maps on **disagreement**: already computed during the message-passing phase, and per
+[ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md) never aimed at a zero
 target.
 
-The update is a local gradient step on disagreement, composed **in the same step** with the sparsity
+Of ADR-0007's two permitted objectives the rule takes the **relative** one, and the choice is
+load-bearing rather than stylistic ([ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md)).
+Learning on *change* in disagreement does not exclude the trivial solution: shrinking the maps produces
+a negative change every step, which a change-descending rule can read as progress. Learning on
+disagreement **relative to the restricted beliefs' own current magnitudes** — `‖F_u x_u‖ + ‖F_v x_v‖` —
+does, because the ratio is unchanged by `F ↦ αF`, so shrinking buys nothing. The normaliser is
+**locally stateless** and deliberately not a running average of the edge's recent scale: that would be a
+per-edge auxiliary variable with a hand-set time constant, the object ADR-0007 rejects under *A per-edge
+learned baseline*, and it is the same criterion form the change gate settled on
+([`05-timescales.md`](./05-timescales.md)) for the same reason.
+
+The update is a local gradient step on that quantity, composed **in the same step** with the sparsity
 pressure already named in [`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md) — one additive penalty term
-inside one descent step, not a second update loop running alongside it.
+inside one descent step, not a second update loop running alongside it. The penalty is an **L1 on the
+normalised map**, so it redistributes weight across a map's directions rather than removing it.
+
+Both terms are therefore blind to a map's overall magnitude, which is why that magnitude is **fixed by
+construction rather than learned** (`01-cell-and-sheaf.md`, *Scale is gauge-fixed*): interior maps are
+projected back into `‖F‖_F ∈ [1/ρ, ρ]` after each step, boundary maps onto `‖F‖_F = 1`. The projection
+is part of the transport rule's step and is as local as the rest of it — a cell owns its own incident
+maps and needs nothing from a neighbour to project them.
 
 This trains transport: the basis in which a cell's features become comparable to a neighbour's. It
 never reads a neighbour's raw node stalk — only the disagreement already derived from it during
@@ -83,11 +100,13 @@ problem. Across ticks the risk splits by parameter group and neither half needed
   ambiguous evidence rather than settling — the **settling floor**, a third kind alongside static and
   lag in ADR-0007's taxonomy. Bounded by the same `γ` that bounds reconciliation; tolerated, not
   represented, like the other two.
-- The **transport rule** doesn't need a bound of its own — it makes ADR-0007's existing
-  `γ × floor < fold margin` check go stale, since it trains the magnitudes the `Σ_e m_e` proxy stands
-  in for. The check is re-derived locally, per cell, from that cell's own current restriction maps, on
-  the same schedule the global learning-rate and sparsity anneals already use, rather than once at
-  construction.
+- The **transport rule** needed no bound of its own. It was found to make ADR-0007's existing
+  `γ × floor < fold margin` check go stale, since it trains the magnitudes the `Σ_e m_e` proxy stands in
+  for, and the fix was a per-cell re-derivation on the anneal schedule. **[ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md)
+  removed the drift at its source** and that re-derivation is struck: with every incident map bounded,
+  `λ_max(Σ_e F_evᵀF_ev) ≤ ρ² · deg(v)`, so the denominator in
+  [`02-tick-semantics.md`](./02-tick-semantics.md) is a provable bound rather than a proxy that has to
+  be re-checked.
 
 Neither the **change gate** ([`05-timescales.md`](./05-timescales.md)) nor the probabilistic sheaf
 plays a role: confirmed orthogonal, and declined a third time respectively. See ADR-0007,
