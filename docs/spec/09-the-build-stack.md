@@ -75,6 +75,23 @@ therefore exactly the per-cell local gradient, cell by cell — the batching tha
 [`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md) calls the design's concrete single-machine argument is
 preserved, and it is preserved *because* of the detachment rather than in spite of it.
 
+**And it depends on the body being frozen.** The identity above is the ordinary one, but it has a
+condition, and this spec relies on the condition without stating it: a summed batch loss decomposes into
+per-item gradients only when the batched items **share no trainable parameter**. Where they do share
+one, the sum gives an average rather than a stack, which is the entire reason `torch.func`'s per-sample
+gradients and Opacus exist. Patchworks batches predicting cells over a body that is *shared* — so what
+saves the identity is that the body is also *frozen*, leaving the adapting surface per-cell biases and
+per-edge restriction maps
+([ADR-0001](../adr/0001-continual-learning-applies-to-the-adapting-surface.md)). Nothing trainable spans
+the batched dimension, and the equivalence is exact rather than approximate.
+
+Worth stating because the freeze is explicitly *not* load-bearing — it is the top rung of
+`01-cell-and-sheaf.md`'s flex priority ladder. No rung on that ladder actually breaks this, as it
+happens: per-cell adapters (rung 1) and an unfrozen per-cell body (rung 3) are both per-cell, and
+heterogeneous bodies (rung 2) stay fixed. The one shape that would break it is a body both **shared and
+trainable**, which the ladder never reaches. If a later design arrives there anyway, this paragraph is
+what has to be re-argued, and `vmap(grad(·))` over per-cell parameters is the standard repair.
+
 ### 3. The guarantee is tested, because a leak would flatter us
 
 A leaked gradient does not crash and does not look like a bug. It makes the agent work *better* — it
@@ -84,6 +101,15 @@ review habit:
 - **Assertion, cheap and always on**: nothing leaving the tick has a `grad_fn`.
 - **The perturbation test**: perturb one cell's parameters, and assert that no other cell's update
   changes. This is the thesis' load-bearing claim written as something CI can falsify.
+
+**The two catch different leaks, and neither subsumes the other.** The assertion inspects the *tape*;
+the perturbation test inspects the *update*. The gap between them is documented rather than
+hypothetical: `Tensor.detach` returns a tensor sharing storage with the original, so an in-place write
+through a detached view couples two cells while leaving a perfectly clean tape — no `grad_fn` anywhere,
+and a batched graph that genuinely has no cross-cell edges. The assertion cannot see that class by
+construction; only observing the update catches it. This is why the perturbation test in
+[ADR-0011](../adr/0011-the-locality-guarantee-is-enforced-not-inherited.md) is the load-bearing half of
+the guard rather than scaffolding around the cheap check.
 
 ## The environment boundary
 
