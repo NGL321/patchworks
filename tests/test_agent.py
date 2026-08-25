@@ -9,6 +9,8 @@ The body is untrained and the maps are at their initial values, so the arm
 flails. That is expected and is not what any of this checks.
 """
 
+
+import gymnasium as gym
 import numpy as np
 import pytest
 import torch
@@ -39,6 +41,23 @@ def agent(env, dome):
     observation, _info = env.reset(seed=0)
     started.observe(observation)
     return started
+
+
+class _RecordsTheAction(gym.Wrapper):
+    """Catches the action in flight, between the agent and the sandbox.
+
+    The sandbox clips internally, so `data.ctrl` is where an illegal action and
+    a legal one stop being distinguishable. This looks one step earlier, which
+    is the only place the difference exists.
+    """
+
+    def __init__(self, env):
+        super().__init__(env)
+        self.stepped = None
+
+    def step(self, action):
+        self.stepped = np.array(action, copy=True)
+        return self.env.step(action)
 
 
 def patch_cells(dome):
@@ -168,7 +187,30 @@ class TestTheMotorPathway:
         limits = agent.env.model.actuator_ctrlrange[:, 1]
         assert agent.env.data.ctrl == pytest.approx(outcome.applied * limits, abs=1e-6)
 
-    def test_the_command_is_not_clipped_before_the_world_sees_it(self, agent):
+    def test_the_arm_is_stepped_with_the_clipped_action(self, agent):
+        # The clip is against the env's *declared* action space, so what the
+        # env is stepped with has to be inside that space -- otherwise the
+        # efference copy is a statement in the contract's terms about a step
+        # that was not made in them. The sandbox clips internally and would
+        # hide the difference, so the action is caught in flight instead.
+        agent.env = _RecordsTheAction(agent.env)
+        agent.sheaf.tick()
+        with torch.no_grad():
+            agent.sheaf.stalks[agent._commanded_slice] = torch.tensor([7.0, -7.0, 0.5])
+        outcome = agent.act(agent.command())
+        stepped = agent.env.stepped
+        assert stepped == pytest.approx([1.0, -1.0, 0.5])
+        assert stepped == pytest.approx(outcome.applied)
+        assert agent.env.action_space.contains(stepped)
+        # Caught in flight rather than through a contract-checking wrapper.
+        # `PassiveEnvChecker` looks like the natural guard and is not one:
+        # gymnasium 1.3.0 declines to check the action at all -- "for some
+        # environments out-of-bounds values can be given" -- and no wrapper
+        # it ships asserts `action_space.contains(action)`. A test driving a
+        # saturating command through it passes identically before and after
+        # this fix, so it would assert nothing while looking like coverage.
+
+    def test_the_command_is_not_clipped_where_the_graph_produces_it(self, agent):
         with torch.no_grad():
             agent.sheaf.stalks[agent._commanded_slice] = torch.tensor([9.0, 0.0, 0.0])
         assert agent.command()[0] == pytest.approx(9.0)

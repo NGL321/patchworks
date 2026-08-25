@@ -85,7 +85,7 @@ def measure(ticks: int = TICKS) -> dict[str, list[float]]:
         command = agent.command()
         applied = np.clip(command, agent.action_low, agent.action_high)
         read = time.perf_counter()
-        observation, _r, _t, _tr, _info = env.step(command)
+        observation, _r, _t, _tr, _info = env.step(applied)
         stepped = time.perf_counter()
         agent.write(observation, applied)
         written = time.perf_counter()
