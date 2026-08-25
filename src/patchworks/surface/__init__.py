@@ -20,12 +20,12 @@ Four modules, and the seam between them is the record:
 * :mod:`patchworks.surface.dome_panel` -- the second window's dome: bands
   stacked with the sensorimotor boundary at the bottom, prediction error
   normalised per cell as colour, and a trail decaying at each cell's own
-  measured persistence. The boundary cells' marks are drawn from edge
-  disagreement and from the world instead -- the tiled render at L0, the
-  somatomotor strip and its decomposed actuator, the drive mark, and the
-  thresholded edge overlay -- because a boundary cell runs no body and has no
-  prediction error to draw. It reads a record and draws marks; it holds no
-  agent, no sheaf and no world, so closing it changes nothing but the view.
+  measured persistence. It reads a record and draws marks; it holds no agent,
+  no sheaf and no world, so closing it changes nothing but the view.
+  A boundary cell's marks are drawn from edge disagreement and from the world
+  instead -- the tiled render at L0, the somatomotor strip and its decomposed
+  actuator, the drive mark, and the thresholded edge overlay -- because a
+  boundary cell runs no body and has no prediction error to draw.
 * :mod:`patchworks.surface.private_component` -- the private-component panel:
   `‖Δ(private component)‖` per cell against hop distance from the sensorimotor
   rim, drawn as its own panel so that it can disagree with the claim it tests.
