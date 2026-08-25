@@ -703,7 +703,14 @@ class DomePanel:
         # The motor strip stands beside the boundary band rather than in it,
         # and its width is what four bars and the onset counter need. Fixed
         # here, for the reason the notice's width is fixed here.
-        self._bar = self.layout.mark
+        # At least three pixels across, whatever the lattice's own mark is: the
+        # applied fill is drawn one pixel inside the commanded outline, so a
+        # narrower bar has no interior for it to fall short *in* -- at two it
+        # overwrites the outline's far column and at one it lands wholly
+        # outside, and "the fill falls short of its outline" is then not what is
+        # drawn. The strip stands beside the band rather than in it
+        # (:data:`_GUTTER_GAP`), so its bars owe the lattice no width.
+        self._bar = max(3, self.layout.mark)
         self._bar_gap = max(1, pitch // 3)
         self._bar_margin = max(2, pitch // 2)
         bars = self._joints + 1  # one per joint, and the disagreement bar
@@ -1213,10 +1220,14 @@ class DomePanel:
     ) -> np.ndarray | None:
         """One of a record's optional arrays, as floats. `None` if it carries none.
 
-        *Not captured* and *the wrong graph* are different things: an empty
-        array is a record built without this quantity, which the marks drawn
-        from it answer by drawing nothing, and anything else has to be the
-        shape this dome gives it.
+        *Not captured* and *the wrong graph* are different things: the empty
+        one-dimensional array :func:`~patchworks.surface.record._nothing`
+        defaults to is a record built without this quantity, which the marks
+        drawn from it answer by drawing nothing, and anything else has to be the
+        shape this dome gives it. The test is that exact shape rather than
+        `size == 0`, so a record carrying `[2, 0]` for a dome whose actuator has
+        joints is refused as the wrong graph instead of passing for a record
+        that never captured the rows.
 
         **A copy, never the caller's array.** What comes back is held until the
         next record, and :attr:`torque` hands it out; a harness reusing one
@@ -1225,7 +1236,7 @@ class DomePanel:
         which is exactly the case that is not worth relying on.
         """
         array = np.array(values, dtype=np.float64)
-        if array.size == 0:
+        if array.ndim == 1 and array.size == 0:
             return None
         if array.shape != shape:
             raise ValueError(complaint.format(shape=array.shape))
@@ -1470,8 +1481,10 @@ class DomePanel:
         strip.
         """
         top, left, height, width = self.motor_strip
-        text = _FONT_HEIGHT * self._notice_scale + 2 * self._notice_scale
-        bottom = top + height - text
+        # `self._notice_height`, not the formula again: the strip's zero line
+        # and every bar height are measured down from it, so a second copy is
+        # two places for the strip's geometry to drift apart.
+        bottom = top + height - self._notice_height
         zero = (top + bottom) // 2
         half = max(1, (bottom - top) // 2 - 1)
         canvas[zero, left + self._bar_margin : left + width - self._bar_margin] = _ZERO_LINE

@@ -14,6 +14,8 @@ Four modules, and the seam between them is the record:
 * :mod:`patchworks.surface.record` -- the tick record. The snapshot/restore
   contract, unchanged, plus per-cell prediction error and `‖Δ private‖`, plus
   the markers the human's hands drop. Not a new format.
+  Plus, since #94, the two arrays a boundary cell's marks are drawn from:
+  per-edge disagreement, and the actuator's commanded and applied rows.
 * :mod:`patchworks.surface.renderer` -- the one renderer. It consumes an
   iterable of records; a live run and a file off disk are two iterables, not
   two code paths.

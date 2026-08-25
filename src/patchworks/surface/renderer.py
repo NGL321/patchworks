@@ -60,6 +60,14 @@ class Renderer:
     The size is this renderer's, not the record's, and nothing about the record
     changes with it: build a second renderer at another size and the same file
     gives the same run at that size.
+
+    **One consumer constrains the number.** A frame fed to the dome panel's
+    boundary band is cut along the patch lattice, so a size the lattice does
+    not divide is refused there rather than resampled
+    (:meth:`patchworks.surface.dome_panel.DomePanel.frame`). Nothing here
+    enforces that -- a renderer has no lattice -- but the constraint is on this
+    side of the seam, where the number is chosen: with a 16x16 lattice, 64, 128
+    and 256 tile and 100 does not.
     """
 
     def __init__(self, *, size: int = IMAGE_SIZE, seed: int = 0) -> None:

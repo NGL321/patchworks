@@ -1083,6 +1083,10 @@ def standing_bar(panel, frame):
         dome_panel_module._ZERO_LINE,
         dome_panel_module._COMMANDED,
         dome_panel_module._APPLIED,
+        # The onset counter is drawn *inside* the strip, so its ink belongs
+        # here too: without it a test that passes `since` measures the text as
+        # part of the bar and gets a wrong number rather than a failure.
+        dome_panel_module._NOTICE_INK,
     )
     hit = np.ones(region.shape[:2], dtype=bool)
     for ink in known:
@@ -1356,6 +1360,44 @@ class TestTheActuatorDrawsDecomposed:
         outline = painted(panel, frame, dome_panel_module._COMMANDED)
         fill = painted(panel, frame, dome_panel_module._APPLIED)
         assert outline[0] == fill[0]
+
+    def test_the_fill_is_drawn_inside_its_outline_at_every_pitch(self, small):
+        """A pair is one bar, and the fill falls short *within* the outline.
+
+        The fill is drawn one pixel inside the commanded outline, so a bar
+        narrower than three pixels has no interior to fall short in: at two the
+        fill overwrites the outline's far column and at one it lands wholly
+        outside it, in the gap. `BandLayout` accepts a pitch of 2, so both are
+        reachable, and at either one *saturation reads as the fill falling
+        short of its outline* is not what the strip draws.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        for pitch in (2, 3, 4, 8):
+            panel = DomePanel(small, np.full(cells, 4.0), pitch=pitch)
+            for tick in range(1, 6):
+                frame = panel.frame(
+                    full(
+                        tick,
+                        cells,
+                        edges,
+                        disagreement=1.0,
+                        actuator=np.array([[1.0, 0.0, 0.0], [0.5, 0.0, 0.0]]),
+                    )
+                )
+            top, left, height, width = panel.motor_strip
+            region = frame[top : top + height, left : left + width]
+            columns = lambda ink: set(
+                np.flatnonzero(
+                    np.all(region == np.array(ink, dtype=np.uint8), axis=-1).any(axis=0)
+                ).tolist()
+            )
+            outline = columns(dome_panel_module._COMMANDED)
+            fill = columns(dome_panel_module._APPLIED)
+            assert fill, f"pitch {pitch} drew no fill"
+            assert min(outline) < min(fill) and max(fill) < max(outline), (
+                f"at pitch {pitch} the fill at columns {sorted(fill)} is not "
+                f"inside the outline at {sorted(outline)}"
+            )
 
     def test_the_rows_the_strip_drew_are_the_records_own(self, small):
         panel, _frame = self.bars(small, [1.0, -2.0, 0.5], [1.0, -2.0, 0.5])
@@ -1738,11 +1780,33 @@ class TestTheWaysTheBoundaryMarksCouldHaveFlatteredUs:
         panel.frame(
             full(1, cells, edges, disagreement=disagreement, actuator=scratch)
         )
-        drawn, route = panel.torque.copy(), panel.drawn_edges
+        drawn = panel.torque.copy()
+        # The overlay's colours are drawn from the held disagreement, and
+        # `drawn_edges` is a tuple of ints that no later write to the array
+        # could disturb -- so asserting on that alone would assert nothing.
+        # Nothing public re-renders a record already drawn, so this reaches for
+        # the array the colours actually come from.
+        held = panel._last_disagreement.copy()
         scratch[:] = 999.0
         disagreement[:] = 999.0
         assert np.array_equal(panel.torque, drawn)
-        assert panel.drawn_edges == route
+        assert np.array_equal(panel._last_disagreement, held)
+
+    def test_a_record_from_a_jointless_graph_is_refused_not_read_as_uncaptured(
+        self, small
+    ):
+        """*Not captured* is one shape, and every other shape is a wrong graph.
+
+        `[2, 0]` is a record whose actuator has no joints, which this dome's
+        does. Reading it as *nothing was captured* would let a record from
+        another graph draw an empty strip rather than say so.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        with pytest.raises(ValueError, match="commanded"):
+            panel.frame(
+                full(1, cells, edges, disagreement=1.0, actuator=np.zeros((2, 0)))
+            )
 
     def test_an_onset_count_past_the_strip_is_not_quietly_saturated(self, small):
         """A plausible number that is not the reading is the worst outcome.
