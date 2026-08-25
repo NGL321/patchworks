@@ -288,12 +288,21 @@ EXEMPT = {"timescale.py", "__init__.py"}
 def architecture_modules():
     """Every module of the package but the divisor's own, found by glob.
 
+    Exemption is by path relative to the package, not by bare filename: on
+    the latter, `sandbox/__init__.py` fell out with the manifest and a
+    future `learning/timescale.py` would have exempted itself from the very
+    scan it needs to pass.
+
     Found rather than listed, so that a module which does not exist yet is
     scanned the day it is written -- which is what makes this assertion cover
     #88's bias rule and #89's transport rule rather than quietly not covering
     them.
     """
-    return sorted(p for p in PACKAGE.rglob("*.py") if p.name not in EXEMPT)
+    return sorted(
+        p
+        for p in PACKAGE.rglob("*.py")
+        if p.relative_to(PACKAGE).as_posix() not in EXEMPT
+    )
 
 
 def named_in(source):
@@ -334,6 +343,8 @@ class TestNothingInTheArchitectureNamesATimescale:
             "graph.py",
             "restriction.py",
             "tick.py",
+            "sandbox/__init__.py",
+            "sandbox/env.py",
         } <= scanned
         # Pinned so that exempting a module is a visible edit to this test
         # rather than something a later ticket can do in passing.
