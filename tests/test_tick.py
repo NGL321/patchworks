@@ -9,12 +9,13 @@ The world's half of the ordering is `tests/test_agent.py`'s.
 """
 
 import contextlib
+import itertools
 from unittest import mock
 
 import pytest
 import torch
 
-from patchworks.body import CellBiases
+from patchworks.body import CellBiases, CellBody
 from patchworks.graph import DomeSpec, EdgeKind, build_graph
 from patchworks.restriction import GAUGE_RHO, RestrictionMaps, pair_index
 from patchworks.tick import (
@@ -509,3 +510,143 @@ class TestASurfaceBuiltForAnotherGraph:
     def test_biases_for_the_wrong_population_are_refused(self, dome):
         with pytest.raises(ValueError, match="predicting cells"):
             Sheaf(dome, biases=CellBiases(dome.shape, len(dome.predicting) + 1))
+
+
+def _seeded() -> torch.Generator:
+    """A generator of this module's own, so building a stand-in draws nothing
+    from the global stream.
+
+    What is *in* a ready-drawn piece is irrelevant to every test below -- they
+    ask where the piece ends up, not what it holds -- so drawing it unseeded
+    would spend the global RNG purely as a side effect, and shift the draw
+    every later test in the suite makes. Cheap to avoid, and it keeps these
+    tests from depending on what ran before them.
+    """
+    return torch.Generator().manual_seed(0)
+
+
+#: How to supply each piece ready-drawn, and where to read the draw the
+#: generator would otherwise have made. Keyed alike, so one set of names is
+#: both the call and the list of pieces left over for the generator.
+SUPPLY = {
+    "body": lambda dome: CellBody(dome.shape, generator=_seeded()),
+    "biases": lambda dome: CellBiases(
+        dome.shape, len(dome.predicting), generator=_seeded()
+    ),
+    "maps": lambda dome: RestrictionMaps(dome, generator=_seeded()),
+}
+DRAWN = {
+    "body": lambda sheaf: sheaf.body.encode_hidden_weight,
+    "biases": lambda sheaf: sheaf.biases.encode_hidden_bias,
+    "maps": lambda sheaf: sheaf.maps.maps,
+}
+#: Every way of supplying some but not all of the pieces, the empty call
+#: included: the branches on which the generator is still doing real work.
+#: Derived from `SUPPLY` rather than written out, so a fourth ready-drawn piece
+#: would widen the cover instead of quietly leaving it behind.
+PARTIAL = [
+    supplied
+    for size in range(len(SUPPLY))
+    for supplied in itertools.combinations(SUPPLY, size)
+]
+
+
+class TestAnInertGenerator:
+    """`generator` seeds what it was not handed, so all three handed in is a lie (#108).
+
+    #106 closed the same shape one level up: an argument accepted, ignored, and
+    silent about it. The rule it recorded — *nothing consumes a construction
+    argument once the thing it constructs is supplied* — does not read verbatim
+    here, because the generator feeds three independent draws rather than one
+    object. The condition is *nothing left to draw*, which is why every partial
+    call below is not an error but a generator doing real work.
+    """
+
+    def test_body_biases_and_maps_together_refuse_the_generator(self, dome):
+        # Anchored on the leading token, because the refusal has to name the
+        # argument it was handed rather than merely mention it in its advice.
+        with pytest.raises(ValueError, match=r"^generator seeds") as refusal:
+            Sheaf(
+                dome,
+                **{name: supply(dome) for name, supply in SUPPLY.items()},
+                generator=torch.Generator().manual_seed(0),
+            )
+        # Where it would have been consumed, named -- all three of them, since
+        # all three are what a caller has to give up to keep the generator.
+        # Read off the clause before the colon, not the whole message: the
+        # advice after it spells out a call naming all three anyway, so
+        # searching the message entire would pass on the advice alone and the
+        # enumeration could be deleted without a test noticing.
+        named, _, advice = str(refusal.value).partition(":")
+        assert advice
+        for piece in SUPPLY:
+            assert piece in named
+
+    def test_a_surface_built_for_another_graph_is_still_the_first_thing_said(
+        self, dome
+    ):
+        # Both mistakes at once. The mismatched dome is the one that costs
+        # something -- it would read the wrong components rather than fail --
+        # so it is what the caller hears, rather than hearing about the
+        # generator now and the dome on a second run.
+        with pytest.raises(ValueError, match="different dome"):
+            Sheaf(
+                dome,
+                body=SUPPLY["body"](dome),
+                biases=SUPPLY["biases"](dome),
+                maps=RestrictionMaps(build_graph(), generator=_seeded()),
+                generator=torch.Generator().manual_seed(0),
+            )
+
+    def test_biases_for_the_wrong_population_are_also_said_first(self, dome):
+        # The other refusal the generator has to stay behind. Same reasoning:
+        # biases sized against another population are a real mistake with a
+        # real cost, and an inert generator is a wasted argument -- so the
+        # costly one is what a caller who made both hears about. Pinned
+        # separately from the dome case above, because the two checks sit at
+        # different points and moving the generator's check up past only this
+        # one would leave the dome test green.
+        with pytest.raises(ValueError, match="predicting cells"):
+            Sheaf(
+                dome,
+                body=SUPPLY["body"](dome),
+                biases=CellBiases(
+                    dome.shape, len(dome.predicting) + 1, generator=_seeded()
+                ),
+                maps=SUPPLY["maps"](dome),
+                generator=torch.Generator().manual_seed(0),
+            )
+
+    def test_all_three_without_a_generator_is_the_ordinary_prepared_call(self, dome):
+        # Nothing is drawn and nothing was asked to be, so there is nothing to
+        # refuse: handing over a fully prepared surface stays legal.
+        pieces = {name: supply(dome) for name, supply in SUPPLY.items()}
+        built = Sheaf(dome, **pieces)
+        for name, piece in pieces.items():
+            assert getattr(built, name) is piece
+
+    @pytest.mark.parametrize(
+        "supplied", PARTIAL, ids=lambda names: "+".join(names) or "none"
+    )
+    def test_every_partial_call_still_seeds_what_it_draws(self, dome, supplied):
+        # The surviving branches, each held down by the only thing that shows a
+        # generator was consumed at all: the same seed draws the same numbers
+        # and a different seed does not.
+        def build(seed):
+            return Sheaf(
+                dome,
+                **{name: SUPPLY[name](dome) for name in supplied},
+                generator=torch.Generator().manual_seed(seed),
+            )
+
+        one, again, other = build(7), build(7), build(8)
+        # Walked over `SUPPLY` rather than `DRAWN`, so that a fourth piece
+        # added to the one and not the other is a `KeyError` here. Iterating
+        # `DRAWN` would instead widen the parametrisation to cover the new
+        # piece and quietly assert nothing about it.
+        for name in SUPPLY:
+            if name in supplied:
+                continue
+            read = DRAWN[name]
+            assert torch.equal(read(one), read(again))
+            assert not torch.equal(read(one), read(other))

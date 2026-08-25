@@ -233,6 +233,48 @@ class Sheaf:
                 f"biases for {self.biases.cells} cells against this dome's "
                 f"{len(dome.predicting)} predicting cells"
             )
+        # `generator` seeds whatever this constructor was not handed. Hand it
+        # the body, the biases *and* the maps and there was nothing left to
+        # draw, so the generator was consumed by nothing — refused rather than
+        # accepted in silence, on #106's grounds:
+        # `Sheaf(dome, body=b, biases=c, maps=m, generator=g)` is written by
+        # someone who believes the run is seeded, and a run that is not
+        # reproducible while its author believes it is fails plausibly, in the
+        # numbers, long after the fact.
+        #
+        # Last of the three refusals rather than first, though it is the only
+        # one that needs nothing drawn to decide. The two above it are mistakes
+        # that actually cost something — a surface built for another graph
+        # would read the wrong components rather than fail, and biases sized
+        # against another population are wrong about this dome — whereas an
+        # inert generator only wastes an argument. A caller who made both
+        # should hear the costly one now rather than on a second run. Both
+        # orderings are pinned in tests/test_tick.py::TestAnInertGenerator.
+        #
+        # **#106's rule does not transfer verbatim, and that is worth knowing.**
+        # There it reads *nothing in this constructor consumes a construction
+        # argument once the thing it constructs is supplied*, which is exact at
+        # `Agent` because the generator there feeds one construction: the
+        # sheaf. Here it feeds three, drawn independently, so "the thing it
+        # constructs" has no single referent — and one or two supplied pieces
+        # leave the rest genuinely drawn from the generator, which is why
+        # `Sheaf(dome, body=b, generator=g)` is not an error. The rule both
+        # levels are instances of is the finer one: **an argument is refused
+        # when nothing is left for it to do.** #106's wording is that rule
+        # where the argument feeds exactly one thing; the condition here is all
+        # three feeds supplied at once.
+        #
+        # `gamma` needs no companion check: it is consumed on every path, since
+        # the gain below is computed from it whatever else was handed in.
+        nothing_left_to_draw = body is not None and biases is not None and maps is not None
+        if generator is not None and nothing_left_to_draw:
+            raise ValueError(
+                "generator seeds the body, the biases and the maps, and all three "
+                "were supplied already drawn, so it would seed nothing — drop it, or "
+                "draw the piece you meant it for here: "
+                "Sheaf(dome, body=..., biases=..., generator=g) still draws the "
+                "maps from g."
+            )
         self.gamma = gamma
         self.layout = StalkLayout(dome, self.maps)
 
