@@ -1,0 +1,487 @@
+"""The tick record: the snapshot/restore contract, plus two arrays.
+
+`docs/spec/10-the-demo-surface.md`, *The trace*, is the whole of what this
+module implements, over `docs/spec/03-the-sandbox.md`'s *The Gymnasium
+contract, made continual*.
+
+**Nothing here is part of the architecture.** What a record holds is privileged
+state -- what each cell's prediction missed by, how far its private component
+moved, where the human's hands fired -- on exactly the footing
+`03-the-sandbox.md` gives `info`: for looking at, never fed back. No cell reads
+anything computed here, and the guarantee is structural rather than careful:
+
+* **A recorder is driven from outside and nothing holds a reference to one.**
+  :class:`Recorder` holds the agent; the agent holds no recorder, the sheaf
+  holds no recorder, and nothing a cell's computation is handed can reach one.
+  It is the shape :mod:`patchworks.timescale` gives the clock divisor, for the
+  same reason.
+* **A recorder only ever reads.** It gathers node stalks, subtracts, takes
+  norms, and asks the sandbox for the state it already knows how to hand out.
+  Nothing it does writes to a chart, a node stalk, an edge buffer or the
+  world, so switching it off changes no trajectory --
+  `tests/test_surface.py` asserts that bit for bit rather than leaving it to
+  inspection.
+
+**A trace is state, not frames.** A record holds no image. The scene
+re-renders from MuJoCo offscreen at capture time
+(:mod:`patchworks.surface.renderer`), so the capture resolution is chosen when
+rendering rather than baked into the recording -- which is what lets the README
+capture, a falsification sweep and a debugging pass all read the same file. It
+also keeps the live budget near zero: the two arrays are `~150 cells x 2
+floats`, and the state is the vector snapshot/restore already takes.
+
+**Not a new format.** A record is `03-the-sandbox.md`'s
+:class:`~patchworks.sandbox.state.Snapshot` -- `mjSTATE_INTEGRATION`, the task
+and the sampler's RNG -- plus the two arrays and any markers that fired. What
+:meth:`Trace.save` writes is that and nothing else, so a record read back off
+disk restores a world the same way the one held in memory does.
+"""
+
+from __future__ import annotations
+
+import json
+from collections.abc import Sequence
+from dataclasses import dataclass
+from enum import Enum
+from pathlib import Path
+from typing import Iterator
+
+import numpy as np
+import torch
+
+from patchworks.agent import Agent, run
+from patchworks.sandbox.env import CONTROL_HZ, Task
+from patchworks.sandbox.state import Snapshot, snapshot
+
+__all__ = [
+    "CAPTURE_EVERY",
+    "CAPTURE_HZ",
+    "Event",
+    "EventKind",
+    "Recorder",
+    "TickRecord",
+    "Trace",
+]
+
+#: How often a run is captured, in hertz. `docs/spec/10-the-demo-surface.md`,
+#: *The trace*: live mode feeds the renderer at ~10 Hz. The number is a display
+#: rate and nothing reads it but the recorder -- the env still ticks at
+#: `CONTROL_HZ`, and what a capture decimates is how much of that run is kept,
+#: never how much of it happens.
+CAPTURE_HZ = 10.0
+
+#: One capture every this many ticks, from the two rates above. At the
+#: sandbox's 50 Hz control that is every fifth tick.
+CAPTURE_EVERY = round(CONTROL_HZ / CAPTURE_HZ)
+
+
+class EventKind(str, Enum):
+    """The three hands, and nothing else.
+
+    `docs/spec/03-the-sandbox.md`, *The human's hand*, names exactly three
+    entry points, and `10-the-demo-surface.md` binds each to a gesture. A
+    marker names which one fired; #96 is where the gestures call them.
+    """
+
+    DISTURB_ARM = "disturb_arm"
+    PERTURB = "perturb"
+    RETARGET = "retarget"
+
+
+@dataclass(frozen=True)
+class Event:
+    """One marker: which hand fired, on which tick, with what arguments.
+
+    The tick is the one the hand fired on, **not** the one the marker was
+    captured with. A capture is decimated and an event is not, so a marker
+    that carried only its record's tick would put the demo's temporal measure
+    -- onset latency, counted in ticks (`docs/spec/08-the-acceptance-demo.md`)
+    -- at the mercy of the display's rate. It carries its own.
+
+    `detail` is the hand's own arguments, in the order the hand takes them, so
+    that a debugging pass can read back what was done rather than only that
+    something was. It is coerced to plain floats **here**, because the hands
+    are bound to gestures (#96) and a gesture hands over whatever it picked off
+    a numpy array or a MuJoCo pick. Left uncoerced, a `np.float32` is accepted
+    silently and then refused by `json.dumps` at :meth:`Trace.save` -- at the
+    end of the run, taking the whole trace with it. Coercing at construction
+    turns that into a `TypeError` on the marker that caused it.
+    """
+
+    kind: EventKind
+    tick: int
+    detail: tuple[float, ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "detail", tuple(float(value) for value in self.detail))
+
+
+# eq=False for `Snapshot`'s reason: the fields are arrays, so a generated
+# __eq__ would raise rather than compare.
+@dataclass(frozen=True, eq=False)
+class TickRecord:
+    """One captured tick. The contract, plus two arrays, plus what fired.
+
+    Rows of both arrays are indexed by :attr:`~patchworks.graph.Dome.predicting`
+    -- the predicting population, in the order the biases are indexed by.
+    Boundary cells are absent from both on purpose: they run no body and make
+    no prediction (ADR-0006), so a prediction error for one would be a
+    fabrication, and the marks the panel gives them are drawn from edge
+    disagreement instead (`docs/spec/10-the-demo-surface.md`, *The boundary
+    band*).
+    """
+
+    tick: int
+    """The sheaf's tick counter when this was captured."""
+
+    state: Snapshot
+    """`03-the-sandbox.md`'s snapshot/restore contract, unchanged: the physics
+    under `mjSTATE_INTEGRATION`, the task, and the sampler's RNG. This is what
+    makes a trace replayable rather than merely readable -- a record restores
+    the world it was taken from."""
+
+    prediction_error: np.ndarray
+    """`[predicting cells]`: the magnitude of each cell's prediction error, and
+    the panel's primary channel (`docs/spec/10-the-demo-surface.md`, *Colour is
+    prediction error*). Raw, not normalised: normalising against a cell's own
+    running statistics is the panel's job (#93), and a record that had already
+    done it could not also serve the raw map that section keeps behind a debug
+    flag."""
+
+    private_delta: np.ndarray
+    """`[predicting cells]`: `‖Δ(private component)‖`, tick to tick. The
+    private component is the node-stalk directions masked out on every incident
+    edge, known at construction, so this is a fixed projection computed per
+    tick (`docs/spec/05-timescales.md`, *Demonstrating it*)."""
+
+    events: tuple[Event, ...] = ()
+    """The markers that fired since the previous capture, in the order they
+    fired."""
+
+
+class Trace(Sequence[TickRecord]):
+    """A run's records, in order, and the file they go to.
+
+    A sequence rather than a stream, because every consumer the record has
+    wants a different pass over the same one: the README capture takes two
+    short stretches of it, a falsification sweep reads the arrays and never
+    renders a frame, and a debugging pass restores from the middle of it.
+    """
+
+    def __init__(self, records: Sequence[TickRecord] = ()) -> None:
+        self._records: list[TickRecord] = list(records)
+
+    def __len__(self) -> int:
+        return len(self._records)
+
+    def __getitem__(self, index):  # type: ignore[override]
+        # A slice of a trace is a trace: the README's two short loops are two
+        # stretches of one run, and each of them is the same thing to render
+        # as the whole.
+        if isinstance(index, slice):
+            return Trace(self._records[index])
+        return self._records[index]
+
+    def __iter__(self) -> Iterator[TickRecord]:
+        return iter(self._records)
+
+    def __repr__(self) -> str:
+        return f"Trace({len(self._records)} records)"
+
+    def append(self, record: TickRecord) -> None:
+        self._records.append(record)
+
+    # -- the file ----------------------------------------------------------
+
+    def save(self, path: str | Path) -> Path:
+        """Write the trace to one `.npz`. Returns the path written.
+
+        The file holds the contract and the two arrays and nothing else -- no
+        frames, no resolution, no colormap, nothing a display chose. What is
+        stored is stacked by field rather than by record, because every
+        consumer reads one field across the whole run.
+
+        Two fields go through JSON, and both for the same reason: `npz` stores
+        arrays. The sampler's RNG state carries PCG64's 128-bit integers, which
+        no numpy integer dtype holds, and a lossy round trip there is a replay
+        that diverges rather than an error. The markers are a ragged list of
+        heterogeneous tuples. JSON round-trips both exactly.
+        """
+        path = Path(path)
+        records = self._records
+        np.savez(
+            path,
+            tick=np.array([r.tick for r in records], dtype=np.int64),
+            physics=_stack([r.state.physics for r in records]),
+            puck_xy=_stack([r.state.task.puck_xy for r in records]),
+            puck_theta=_stack([r.state.task.puck_theta for r in records]),
+            goal=np.array(
+                [(r.state.task.goal_puck, r.state.task.goal_zone) for r in records],
+                dtype=np.int64,
+            ).reshape(len(records), 2),
+            prediction_error=_stack([r.prediction_error for r in records]),
+            private_delta=_stack([r.private_delta for r in records]),
+            rng=np.asarray(json.dumps([r.state.rng for r in records])),
+            events=np.asarray(
+                json.dumps(
+                    [
+                        [[e.kind.value, e.tick, list(e.detail)] for e in r.events]
+                        for r in records
+                    ]
+                )
+            ),
+        )
+        # `np.savez` appends the extension unless it is already there, and the
+        # caller is owed the name that was actually written.
+        if path.name.endswith(".npz"):
+            return path
+        return path.with_name(f"{path.name}.npz")
+
+    @classmethod
+    def load(cls, path: str | Path) -> "Trace":
+        """Read a trace back. What comes out restores a world; see :meth:`save`.
+
+        Every field is pulled out of the archive **once**, before the loop.
+        `np.load` is lazy and re-reads the whole member on each subscript, so
+        indexing one inside the loop would decompress the entire run per record.
+        """
+        with np.load(Path(path)) as stored:
+            rng = json.loads(str(stored["rng"].item()))
+            events = json.loads(str(stored["events"].item()))
+            ticks = stored["tick"]
+            physics = stored["physics"]
+            puck_xy = stored["puck_xy"]
+            puck_theta = stored["puck_theta"]
+            goal = stored["goal"]
+            prediction_error = stored["prediction_error"]
+            private_delta = stored["private_delta"]
+        records = []
+        for i, tick in enumerate(ticks):
+            state = np.array(physics[i])
+            # Sealed on the way out for the reason `snapshot()` seals it: a
+            # state that drifts while it is being held is a restore that lands
+            # somewhere nobody chose.
+            state.flags.writeable = False
+            records.append(
+                TickRecord(
+                    tick=int(tick),
+                    state=Snapshot(
+                        physics=state,
+                        task=Task(
+                            puck_xy=np.array(puck_xy[i]),
+                            puck_theta=np.array(puck_theta[i]),
+                            goal_puck=int(goal[i][0]),
+                            goal_zone=int(goal[i][1]),
+                        ),
+                        rng=rng[i],
+                    ),
+                    prediction_error=np.array(prediction_error[i]),
+                    private_delta=np.array(private_delta[i]),
+                    events=tuple(
+                        Event(EventKind(kind), int(at), tuple(detail))
+                        for kind, at, detail in events[i]
+                    ),
+                )
+            )
+        return cls(records)
+
+
+def _stack(arrays: list[np.ndarray]) -> np.ndarray:
+    """`np.stack`, with an empty trace surviving it."""
+    return np.stack(arrays) if arrays else np.zeros((0,))
+
+
+class Recorder:
+    """Watches a run from outside and leaves a :class:`Trace`.
+
+    Built on an agent, driven by whoever drives the ticks::
+
+        recorder = Recorder(agent)
+        for _ in recorder.watch(ticks=600, seed=0):
+            ...
+
+    or, when something else owns the loop -- the live viewer's event loop, a
+    clock divisor's run, the acceptance demo's harness -- one call after each
+    whole tick::
+
+        agent.tick()
+        recorder.observe()
+
+    **Every tick, not every capture.** `‖Δ(private component)‖` is a difference
+    between consecutive ticks, so :meth:`observe` has to see all of them even
+    though it keeps one in :data:`CAPTURE_EVERY`. A caller who skipped ticks
+    would silently redefine the readout as a difference over whatever interval
+    it happened to call at, which is why skipping is refused rather than
+    absorbed.
+    """
+
+    def __init__(self, agent: Agent, *, every: int = CAPTURE_EVERY) -> None:
+        if isinstance(every, bool) or not isinstance(every, int) or every < 1:
+            raise ValueError(
+                f"a capture keeps one tick in `every` >= 1; got {every!r}"
+            )
+        self.agent = agent
+        self.every = every
+        self.trace = Trace()
+        # The private component as an index, built once. It is a fixed
+        # projection known at construction (`docs/spec/05-timescales.md`,
+        # *Demonstrating it*), so the positions it keeps are a fixed array of
+        # positions in the flat node stalk buffer -- the same act the agent's
+        # write tables and `StalkLayout`'s index arrays are. Reading it that
+        # way rather than as a mask over the whole population is what keeps
+        # the per-tick cost of the surface where the spec claims it is: this
+        # runs on every tick, because a difference between consecutive ticks
+        # has to.
+        mask = agent.sheaf.dome.private_mask
+        self._cells = mask.shape[0]
+        self._private_positions = agent.sheaf.layout.predicting_positions[mask]
+        self._private_cell = torch.nonzero(mask)[:, 0].contiguous()
+        self._previous_private: torch.Tensor | None = None
+        self._observed: int | None = None
+        self._pending: list[Event] = []
+
+    def __repr__(self) -> str:
+        return f"Recorder(every={self.every}, {len(self.trace)} records)"
+
+    # -- the markers -------------------------------------------------------
+
+    def mark(self, kind: EventKind | str, *detail: float) -> Event:
+        """Drop a marker for a hand that just fired.
+
+        Called by whoever fires the hand -- the bound gesture in the live
+        viewer (#96), or a scripted demo. It is not called by the sandbox: a
+        marker is a thing the surface records, and an env that dropped one
+        would be the world knowing about the display.
+
+        The marker rides on the next capture, carrying the tick it fired on.
+        A tick that fires one is always captured, whatever the decimation says,
+        because a marker decimated away is a marker lost.
+
+        There is one tick in which a marker exists and no record holds it: the
+        one between firing and the next :meth:`observe`. A run that stops in it
+        leaves the marker in :attr:`pending`, where a caller can see it, rather
+        than dropping it somewhere nothing reports.
+        """
+        event = Event(EventKind(kind), self.agent.sheaf.ticks, tuple(detail))
+        self._pending.append(event)
+        return event
+
+    @property
+    def pending(self) -> tuple[Event, ...]:
+        """The markers that have fired and not yet been captured, as a copy."""
+        return tuple(self._pending)
+
+    # -- what it reads -----------------------------------------------------
+
+    def reprime(self) -> None:
+        """Take the gap and carry on: forget the previous tick, keep the trace.
+
+        The refusal in :meth:`observe` is terminal on purpose -- a recorder
+        that quietly absorbed a missed tick would go on reporting a difference
+        over an interval nobody chose, which is the one thing the refusal
+        exists to prevent. But the remedy cannot be a new recorder either: that
+        throws away everything captured so far, and a live viewer that dropped
+        one call in an exception handler would lose the run rather than a tick.
+
+        So the gap is taken deliberately. The next :meth:`observe` primes
+        against the tick it sees and captures nothing, exactly as the first one
+        does; from the one after, the readout is a tick-to-tick difference
+        again. The markers still waiting are untouched.
+        """
+        self._previous_private, self._observed = None, None
+
+    def observe(self) -> TickRecord | None:
+        """Read the tick that just finished. Returns its record, or `None`.
+
+        `None` on the ticks a capture skips, and on the first tick it sees:
+        `‖Δ private‖` is a difference, and there is nothing yet to difference
+        against, so the first observation primes it rather than fabricating a
+        zero.
+
+        Reads and nothing else. Both quantities come off the flat node stalk
+        buffer through an advanced index, which returns a fresh tensor rather
+        than a view -- so the tick's next in-place edit cannot reach back into
+        one of these, and nothing here can reach into the tick. The world's
+        half is :func:`~patchworks.sandbox.state.snapshot`, which the sandbox
+        already offers an experimenter, and which takes the state without
+        touching it.
+
+        **What runs every tick and what runs on a capture** is the whole of
+        the live budget. `‖Δ private‖` is a difference between consecutive
+        ticks and has to be taken on all of them; prediction error is a
+        quantity of the tick it is read on, so it waits until there is a
+        record to put it in.
+
+        Prediction error is **read**, not recomputed. The bias rule's
+        :func:`~patchworks.learning.prediction_error` re-runs the cell's
+        forward path so the quantity is live in the biases and can be descended
+        on; what a display wants is the opposite -- the dead number the tick
+        left behind, off the tape, with no gradient in anything.
+        """
+        sheaf = self.agent.sheaf
+        ticks = sheaf.ticks
+        with torch.no_grad():
+            private = sheaf.stalks[self._private_positions]
+
+            if self._previous_private is None:
+                self._previous_private, self._observed = private, ticks
+                return None
+            if ticks - self._observed != 1:
+                raise ValueError(
+                    f"the last tick this recorder saw was {self._observed} and this "
+                    f"one is {ticks}. `‖Δ private‖` is a difference between "
+                    "consecutive ticks, so observe() has to be called on every one "
+                    "of them -- it is the capture that is decimated, not the "
+                    "reading. See docs/spec/10-the-demo-surface.md, The trace. "
+                    "To go on from here having lost some, call reprime(): it "
+                    "keeps the trace and skips the one delta it cannot state."
+                )
+            moved = private - self._previous_private
+            delta = (
+                torch.zeros(self._cells)
+                .index_add_(0, self._private_cell, moved * moved)
+                .sqrt()
+            )
+            self._previous_private, self._observed = private, ticks
+
+            if ticks % self.every and not self._pending:
+                return None
+            error = (sheaf.prediction - sheaf.evidence()).norm(dim=-1)
+
+        record = TickRecord(
+            tick=ticks,
+            state=snapshot(self.agent.env),
+            prediction_error=error.numpy(),
+            private_delta=delta.numpy(),
+            events=tuple(self._pending),
+        )
+        self._pending.clear()
+        self.trace.append(record)
+        return record
+
+    # -- driving the loop --------------------------------------------------
+
+    def watch(
+        self, ticks: int, *, seed: int | None = None
+    ) -> Iterator[TickRecord]:
+        """:func:`patchworks.agent.run`, watched. Yields each captured record.
+
+        The run is :func:`~patchworks.agent.run`'s, called rather than
+        reimplemented, so a watched run cannot drift from an unwatched one by
+        so much as an ordering. The world is arranged when this is called, for
+        the reason that function gives.
+
+        This is the **live feed**: what it yields is what
+        :meth:`patchworks.surface.renderer.Renderer.frames` consumes, and a
+        trace off disk is the same thing from the other end. Live and replay
+        are one code path with two feeds.
+        """
+        outcomes = run(self.agent, ticks, seed=seed)
+
+        def watching() -> Iterator[TickRecord]:
+            for _outcome in outcomes:
+                record = self.observe()
+                if record is not None:
+                    yield record
+
+        return watching()

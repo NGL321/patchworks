@@ -25,6 +25,9 @@ Built so far:
   that can kill the timescale mechanism before anything is trained.
 * :mod:`patchworks.sandbox` — the world the agent lives in, promoted from
   prototypes/sandbox. Not imported here; import it directly.
+* :mod:`patchworks.surface` — the demo surface: the tick record, and the one
+  renderer that reads it. Outside the architecture by construction — display
+  only, and no cell can reach it. Not imported here; import it directly.
 """
 
 from . import (
