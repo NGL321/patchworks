@@ -125,9 +125,10 @@ class TickRecord:
     Rows of both arrays are indexed by :attr:`~patchworks.graph.Dome.predicting`
     -- the predicting population, in the order the biases are indexed by.
     Boundary cells are absent from both on purpose: they run no body and make
-    no prediction (ADR-0006), so a residual for one would be a fabrication, and
-    the marks the panel gives them are drawn from edge disagreement instead
-    (`docs/spec/10-the-demo-surface.md`, *The boundary band*).
+    no prediction (ADR-0006), so a prediction error for one would be a
+    fabrication, and the marks the panel gives them are drawn from edge
+    disagreement instead (`docs/spec/10-the-demo-surface.md`, *The boundary
+    band*).
     """
 
     tick: int
@@ -140,12 +141,12 @@ class TickRecord:
     the world it was taken from."""
 
     prediction_error: np.ndarray
-    """`[predicting cells]`: the magnitude of each cell's prediction error --
-    what `10-the-demo-surface.md` calls the per-cell **residual**, and the
-    panel's primary channel. Raw, not normalised: normalising against a cell's
-    own running statistics is the panel's job (#93), and a record that had
-    already done it could not also serve the raw map that section keeps behind
-    a debug flag."""
+    """`[predicting cells]`: the magnitude of each cell's prediction error, and
+    the panel's primary channel (`docs/spec/10-the-demo-surface.md`, *Colour is
+    prediction error*). Raw, not normalised: normalising against a cell's own
+    running statistics is the panel's job (#93), and a record that had already
+    done it could not also serve the raw map that section keeps behind a debug
+    flag."""
 
     private_delta: np.ndarray
     """`[predicting cells]`: `‖Δ(private component)‖`, tick to tick. The

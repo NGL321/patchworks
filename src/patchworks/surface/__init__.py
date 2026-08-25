@@ -4,10 +4,10 @@
 implements, and its opening constraint governs every module in it:
 
     **Nothing in this file is part of the architecture.** The panel reads
-    privileged state -- residuals, private components, edge disagreement -- on
-    exactly the footing `03-the-sandbox.md` gives `info`: for looking at, never
-    fed back. No cell reads anything the surface computes, and switching the
-    whole surface off must change no trajectory.
+    privileged state -- prediction error, private components, edge
+    disagreement -- on exactly the footing `03-the-sandbox.md` gives `info`:
+    for looking at, never fed back. No cell reads anything the surface
+    computes, and switching the whole surface off must change no trajectory.
 
 Two modules, and the seam between them is the record:
 

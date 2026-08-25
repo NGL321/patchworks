@@ -6,10 +6,10 @@ what each mark encodes, what the human's hands are bound to, and the record a ru
 
 Terms used here are defined in [`CONTEXT.md`](../../CONTEXT.md).
 
-**Nothing in this file is part of the architecture.** The panel reads privileged state — residuals,
-private components, edge disagreement — on exactly the footing `03-the-sandbox.md` gives `info`: for
-looking at, never fed back. No cell reads anything the surface computes, and switching the whole
-surface off must change no trajectory.
+**Nothing in this file is part of the architecture.** The panel reads privileged state — prediction
+error, private components, edge disagreement — on exactly the footing `03-the-sandbox.md` gives
+`info`: for looking at, never fed back. No cell reads anything the surface computes, and switching
+the whole surface off must change no trajectory.
 
 ## Two windows
 
@@ -44,9 +44,9 @@ embedding** (`06-graph-topology.md`); a spring layout would invent a geometry th
 declines, and invite exactly the confusion with `01-cell-and-sheaf.md`'s charts that the index
 existed to avoid.
 
-### Colour is prediction residual, normalised per cell
+### Colour is prediction error, normalised per cell
 
-One primary channel, and it is residual: how wrong each cell currently is.
+One primary channel, and it is prediction error: how wrong each cell currently is.
 
 It is the encoding that makes the acceptance claim self-evident. Perturb the world and the shallow
 bands light while the core stays dark; retarget and the core lights while the base stays dark. The
@@ -80,7 +80,7 @@ message passing, watched.
 **L0 draws the agent's own 64×64 render, tiled into the 16×16 patch lattice.**
 
 Boundary cells run no body and make no prediction ([ADR-0006](../adr/0006-boundary-cell-stalks-are-world-shaped.md)),
-so they have no residual, and colouring them on the residual map would be a fabrication in the
+so they have no prediction error, and colouring them on that map would be a fabrication in the
 largest, most eye-catching band on screen. The render costs nothing — it already exists every tick —
 and it ties the abstract stack to the world: the picture at the bottom of the panel is the thing the
 arm is doing in the other window.
@@ -90,7 +90,7 @@ arm is doing in the other window.
 Beside the tiled render, because that is where the cluster actually attaches — one region of the base,
 not the vision lattice: **3 proprioceptive, 3 touch, 1 actuator**.
 
-These are boundary cells too, so again no residual. What each one has is an **edge**, and edge
+These are boundary cells too, so again no prediction error. What each one has is an **edge**, and edge
 disagreement is drawn on the same colormap, honestly earned. Touch marks light on contact, which
 gives a bystander the "it hit the puck" beat for nothing.
 
@@ -108,7 +108,7 @@ readout exists; here is where it exists.
 ### The drive mark
 
 The apex band carries a mark for the **drive boundary cell** at the internal rim, drawn like the
-somatomotor strip: edge disagreement on the same colormap, no residual of its own.
+somatomotor strip: edge disagreement on the same colormap, no prediction error of its own.
 
 Not decoration. `08`'s third named near-miss — **task-invariant behaviour**, where the trajectory is
 the same across tasks differing only in the render — is diagnosed by the drive edge's disagreement
@@ -142,10 +142,10 @@ of the three events. The private component is the node-stalk directions masked o
 edge, known at construction, so it is a fixed projection computed per tick.
 
 **It stays off the dome's marks deliberately.** Folding it in as brightness or dot size beside
-residual-as-hue puts two quantities on one mark and makes neither readable — and readability is the
-whole point, because this panel has to be able to *disagree*: if deep private state swings as far as
-the rim, the mechanism is not working, and `08` counts that a failure even when every recovery looks
-perfect. A scatter against depth either slopes or it does not.
+prediction-error-as-hue puts two quantities on one mark and makes neither readable — and
+readability is the whole point, because this panel has to be able to *disagree*: if deep private
+state swings as far as the rim, the mechanism is not working, and `08` counts that a failure even
+when every recovery looks perfect. A scatter against depth either slopes or it does not.
 
 For the same reason the trail is **not** driven by `‖Δ private‖`. That would make the display's decay
 and the claim the display tests the same number, so the panel could never contradict the thesis.
@@ -188,8 +188,8 @@ scripted path.
 feeds it from disk. Not two code paths.
 
 A tick holds `qpos`, `qvel`, `ctrl`, task, RNG — `03-the-sandbox.md`'s snapshot/restore contract,
-unchanged — plus per-cell residual and `‖Δ private‖` (~150 cells × 2 floats), plus any event markers
-that fired. The trace is that contract plus two arrays, not a new format.
+unchanged — plus per-cell prediction error and `‖Δ private‖` (~150 cells × 2 floats), plus any
+event markers that fired. The trace is that contract plus two arrays, not a new format.
 
 **State, not frames.** The scene re-renders from MuJoCo offscreen at capture time, so capture
 resolution is chosen when rendering rather than baked into the recording, and the README GIF, a
