@@ -47,6 +47,8 @@ whole-population tensor operations with no loop over cells or edges.
 
 from __future__ import annotations
 
+from numbers import Real
+
 import torch
 
 from .body import CellBiases, CellBody
@@ -69,6 +71,38 @@ __all__ = [
 #: that check exists this sits at the bound the spec states, which is the only
 #: value in `(0, 1]` that is not an unmotivated constant.
 DEFAULT_GAMMA = 1.0
+
+
+def _checked_gamma(gamma: float) -> float:
+    """Refuse a `γ` that is not a scalar in `(0, 1]`, and hand it back if it is.
+
+    **The one place the legal-`γ` rule lives.** `Sheaf` owns what counts as a
+    legal `γ` and #106 was deliberate about not giving
+    :class:`patchworks.agent.Agent` a second opinion on it; this function is
+    where that ownership is written down, so the gain and the construction that
+    precedes it read one rule rather than each restating it.
+
+    The **type** is checked here alongside the bound because the two are the
+    same mistake reached the same way: a driver writing `gamma=cfg.gamma` for a
+    config that says `None`. Left to the comparison alone that call died two
+    frames down on `'<' not supported between instances of 'float' and
+    'NoneType'`, naming neither `gamma` nor the rule it broke (#107).
+
+    Both refusals are `ValueError` rather than the `TypeError` a non-number
+    would conventionally earn, because one rule deserves one thing to catch: a
+    `γ` sweep reading its points from a config meets `None` and `1.5` the same
+    way, and `Agent`'s adjacent refusal of a misplaced `gamma=None` is already
+    a `ValueError`.
+    """
+    rule = (
+        "gamma is a single global scalar in (0, 1] "
+        "(docs/spec/02-tick-semantics.md, Reconciliation gain)"
+    )
+    if not isinstance(gamma, Real):
+        raise ValueError(f"{rule}; got {gamma!r}, which is not a number")
+    if not 0.0 < gamma <= 1.0:
+        raise ValueError(f"{rule}; got {gamma}")
+    return gamma
 
 
 def reconciliation_gain(
@@ -95,11 +129,7 @@ def reconciliation_gain(
     tighter exact gauge, `Σ_e ‖F‖_F² = deg(v)`, so `ρ² · deg(v)` is a valid
     bound for them too and merely a looser one.
     """
-    if not 0.0 < gamma <= 1.0:
-        raise ValueError(
-            "gamma is a single global scalar in (0, 1] "
-            f"(docs/spec/02-tick-semantics.md, Reconciliation gain); got {gamma}"
-        )
+    gamma = _checked_gamma(gamma)
     stalk_sums = torch.tensor(dome.stalk_sums, dtype=torch.float32)
     degrees = torch.tensor(dome.degrees, dtype=torch.float32)
     return gamma / torch.maximum(stalk_sums, rho * rho * degrees)
@@ -215,6 +245,12 @@ class Sheaf:
         gamma: float = DEFAULT_GAMMA,
         generator: torch.Generator | None = None,
     ) -> None:
+        # Checked here, before the draws, rather than left to the gain at the
+        # bottom of this constructor: the body, the biases and the maps are the
+        # expensive part of building a sheaf, and a `γ` that is going to be
+        # refused anyway is not worth drawing them for (#107). The rule is not
+        # restated here — the gain reads it from the same one place.
+        self.gamma = _checked_gamma(gamma)
         self.dome = dome
         self.body = body if body is not None else CellBody(dome.shape, generator=generator)
         self.biases = (
@@ -233,10 +269,9 @@ class Sheaf:
                 f"biases for {self.biases.cells} cells against this dome's "
                 f"{len(dome.predicting)} predicting cells"
             )
-        self.gamma = gamma
         self.layout = StalkLayout(dome, self.maps)
 
-        self.gain = reconciliation_gain(dome, gamma=gamma, rho=self.maps.rho)
+        self.gain = reconciliation_gain(dome, gamma=self.gamma, rho=self.maps.rho)
         self._gain_per_component = self.layout.per_component(self.gain)
 
         #: `[total + 1]`: every cell's node stalk, end to end. The cell's public

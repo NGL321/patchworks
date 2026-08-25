@@ -14,6 +14,7 @@ from unittest import mock
 import pytest
 import torch
 
+from patchworks import tick
 from patchworks.body import CellBiases
 from patchworks.graph import DomeSpec, EdgeKind, build_graph
 from patchworks.restriction import GAUGE_RHO, RestrictionMaps, pair_index
@@ -509,3 +510,81 @@ class TestASurfaceBuiltForAnotherGraph:
     def test_biases_for_the_wrong_population_are_refused(self, dome):
         with pytest.raises(ValueError, match="predicting cells"):
             Sheaf(dome, biases=CellBiases(dome.shape, len(dome.predicting) + 1))
+
+
+class TestTheGammaASheafIsBuiltWith:
+    """`Sheaf` owns the legal-gamma rule and applies it before the draws (#107).
+
+    Construction draws a body, a set of biases and a set of restriction maps.
+    A `gamma` the gain is going to refuse anyway is not worth any of that, and
+    the caller who wrote `gamma=cfg.gamma` for a config that says `None` was
+    getting `'<' not supported between instances of 'float' and 'NoneType'`
+    from two frames down, after paying for the whole construction.
+    """
+
+    @pytest.fixture
+    def drawn(self, monkeypatch):
+        """Every draw `Sheaf.__init__` makes, in order. Records and calls through.
+
+        Patched on `patchworks.tick`'s own names, which is where the
+        constructor looks them up, so the draws behave exactly as they would
+        untouched and only the record is added.
+        """
+        calls: list[str] = []
+        for name in ("CellBody", "CellBiases", "RestrictionMaps"):
+            real = getattr(tick, name)
+
+            def spy(*args, _name=name, _real=real, **kwargs):
+                calls.append(_name)
+                return _real(*args, **kwargs)
+
+            monkeypatch.setattr(tick, name, spy)
+        return calls
+
+    def test_an_ordinary_construction_draws_all_three(self, dome, drawn):
+        # The control the timing tests below rest on: without it, `drawn == []`
+        # would also be satisfied by a fixture that records nothing.
+        Sheaf(dome)
+        assert drawn == ["CellBody", "CellBiases", "RestrictionMaps"]
+
+    @pytest.mark.parametrize(
+        "gamma",
+        [None, "0.5", (0.5,), object()],
+        ids=["none", "string", "tuple", "object"],
+    )
+    def test_a_gamma_that_is_not_a_number_is_refused_before_the_draws(
+        self, dome, drawn, gamma
+    ):
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=gamma)
+        assert drawn == []
+
+    def test_a_number_outside_the_bound_is_refused_before_the_draws_too(
+        self, dome, drawn
+    ):
+        # The bound was always enforced; what is new is where. One rule, one
+        # moment, whichever way the value is wrong.
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=1.5)
+        assert drawn == []
+
+    def test_the_refusal_names_gamma_and_the_rule_it_broke(self, dome):
+        with pytest.raises(ValueError) as refusal:
+            Sheaf(dome, gamma=None)
+        message = str(refusal.value)
+        # Anchored on the leading token: the refusal has to name the argument
+        # it was handed, not merely mention it somewhere in its advice.
+        assert message.startswith("gamma")
+        assert "(0, 1]" in message
+        assert "None" in message
+
+    def test_the_rule_is_one_rule_in_one_place(self, dome):
+        # `Sheaf` checks gamma before the draws and `reconciliation_gain`
+        # checks it at the point of use. The same words come out of both,
+        # because neither states the rule -- they read it from the one
+        # function that does.
+        with pytest.raises(ValueError) as before_the_draws:
+            Sheaf(dome, gamma=None)
+        with pytest.raises(ValueError) as at_the_gain:
+            reconciliation_gain(dome, gamma=None)
+        assert str(before_the_draws.value) == str(at_the_gain.value)
