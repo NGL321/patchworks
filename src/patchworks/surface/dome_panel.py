@@ -678,14 +678,12 @@ class DomePanel:
         self._patches = tuple(
             cell for cell in dome.cells if cell.kind is CellKind.PATCH
         )
-        self._actuator = next(
-            (
-                cell.id
-                for cell in dome.cells
-                if cell.kind is CellKind.ACTUATOR
-            ),
-            None,
-        )
+        actuator = [cell for cell in dome.cells if cell.kind is CellKind.ACTUATOR]
+        self._actuator = actuator[0].id if actuator else None
+        # One commanded and one efference component per joint (ADR-0006), so
+        # the number of paired bars is a construction fact and the strip is
+        # sized for it before any record arrives.
+        self._joints = actuator[0].stalk // 2 if actuator else 0
         self._edge_ends = np.array(
             [(edge.u, edge.v) for edge in dome.edges], dtype=np.int64
         ).reshape(len(dome.edges), 2)
@@ -702,8 +700,9 @@ class DomePanel:
         self._bar = self.layout.mark
         self._bar_gap = max(1, pitch // 3)
         self._bar_margin = max(2, pitch // 2)
+        bars = self._joints + 1  # one per joint, and the disagreement bar
         self._gutter = max(
-            4 * self._bar + 3 * self._bar_gap + 2 * self._bar_margin,
+            bars * self._bar + (bars - 1) * self._bar_gap + 2 * self._bar_margin,
             _text_width(_ONSET_WIDEST, self._notice_scale),
         )
         self._content = self.layout.width + _GUTTER_GAP * pitch + self._gutter
@@ -1067,6 +1066,10 @@ class DomePanel:
                 f"{error.shape[0]} prediction errors; the panel and the record are "
                 "on different graphs"
             )
+        # Checked before anything is observed, so a render the cells were never
+        # cut from costs the caller an exception rather than a tick of every
+        # mark's statistics that the panel can never be handed again.
+        tiles = None if render is None else self._tiles(render)
         if self._last_tick is None:
             elapsed = 0.0
         elif record.tick <= self._last_tick:
@@ -1100,7 +1103,7 @@ class DomePanel:
         self._glow = np.maximum(self._glow * np.exp(-elapsed / self.persistence), value)
         self._observe_disagreement(record)
         self._observe_torque(record)
-        return self._draw(render=render, since=since)
+        return self._draw(tiles=tiles, since=since)
 
     def frames(
         self,
@@ -1199,10 +1202,12 @@ class DomePanel:
         if actuator.size == 0:
             self._torque = np.zeros((2, 0))
             return
-        if actuator.ndim != 2 or actuator.shape[0] != 2:
+        if actuator.shape != (2, self._joints):
             raise ValueError(
-                "the actuator's rows are `[2, joints]` -- commanded, then "
-                f"applied, as the boundary cell holds them; got {actuator.shape}"
+                f"this dome's actuator cell holds {self._joints} commanded and "
+                f"{self._joints} efference components and the record carries "
+                f"{actuator.shape}; the rows are `[2, joints]`, commanded then "
+                "applied, as the boundary cell holds them"
             )
         self._torque = actuator
         finite = actuator[np.isfinite(actuator)]
@@ -1212,7 +1217,10 @@ class DomePanel:
     # -- pixels ------------------------------------------------------------
 
     def _draw(
-        self, *, render: np.ndarray | None = None, since: int | None = None
+        self,
+        *,
+        tiles: tuple[np.ndarray, int] | None = None,
+        since: int | None = None,
     ) -> np.ndarray:
         canvas = np.empty((self.height, self.width, 3), dtype=np.uint8)
         canvas[:, :] = _BACKGROUND
@@ -1232,8 +1240,8 @@ class DomePanel:
                 # A patch cell, or a mark this record carried nothing for.
                 colour = _EMPTY
             canvas[y : y + size, x : x + size] = colour
-        if render is not None:
-            self._draw_render(canvas, render)
+        if tiles is not None:
+            self._draw_render(canvas, *tiles)
         if self._edges:
             self._draw_edges(canvas)
         self._draw_motor_strip(canvas, since=since)
@@ -1250,16 +1258,13 @@ class DomePanel:
                 )
         return canvas
 
-    def _draw_render(self, canvas: np.ndarray, render: np.ndarray) -> None:
-        """The boundary band: the agent's own render, tiled into the patch lattice.
+    def _tiles(self, render: np.ndarray) -> tuple[np.ndarray, int]:
+        """The render, and the side of one cell's block of it.
 
-        Each patch cell's slot holds **that cell's own block of the render**,
-        cut the way the world writes it into the cell's node stalk, so the
-        picture at the bottom of the panel is the thing the arm is doing in the
-        other window and each square of it is what one cell is looking at. The
-        block is scaled to the slot by repetition -- nearest neighbour, no
-        interpolation -- because a smoothed patch would be a picture of pixels
-        that were never written anywhere.
+        The tiling is **the one the world writes through**
+        (:mod:`patchworks.agent`): patch cell `(r, c)` owns the block at `(r,
+        c)` of the lattice, so a render the cells were never cut from is
+        refused rather than resampled into one.
         """
         image = np.asarray(render)
         if image.ndim != 3 or image.shape[2] != 3 or image.shape[0] != image.shape[1]:
@@ -1276,6 +1281,19 @@ class DomePanel:
                 "writes through (`patchworks.agent`), so a render the cells were "
                 "never cut from is refused rather than resampled."
             )
+        return image, side
+
+    def _draw_render(self, canvas: np.ndarray, image: np.ndarray, side: int) -> None:
+        """The boundary band: the agent's own render, tiled into the patch lattice.
+
+        Each patch cell's slot holds **that cell's own block of the render**,
+        cut the way the world writes it into the cell's node stalk, so the
+        picture at the bottom of the panel is the thing the arm is doing in the
+        other window and each square of it is what one cell is looking at. The
+        block is scaled to the slot by repetition -- nearest neighbour, no
+        interpolation -- because a smoothed patch would be a picture of pixels
+        that were never written anywhere.
+        """
         size = self.layout.mark
         # Which source row and column each drawn pixel comes from: computed
         # once, since every patch is the same shape.
@@ -1340,14 +1358,12 @@ class DomePanel:
         half = max(1, (bottom - top) // 2 - 1)
         canvas[zero, left + self._bar_margin : left + width - self._bar_margin] = _ZERO_LINE
 
-        x = left + self._bar_margin
-        joints = self._torque.shape[1]
-        for joint in range(joints):
+        for joint in range(self._torque.shape[1]):
             commanded, applied = self._torque[0, joint], self._torque[1, joint]
             _draw_bar(
                 canvas,
                 zero=zero,
-                left=x,
+                left=self._bar_left(left, joint),
                 width=self._bar,
                 height=self._scaled(commanded, half),
                 colour=_COMMANDED,
@@ -1356,13 +1372,15 @@ class DomePanel:
             _draw_bar(
                 canvas,
                 zero=zero,
-                left=x + 1,
+                left=self._bar_left(left, joint) + 1,
                 width=max(1, self._bar - 2),
                 height=self._scaled(applied, half),
                 colour=_APPLIED,
                 fill=True,
             )
-            x += self._bar + self._bar_gap
+        # Always the last bar, whether or not the record carried the rows
+        # beside it: a mark that moved along the strip with what was captured
+        # would be a different mark from one tick to the next.
         if self._actuator is not None and self._mark_scale.seen[
             self._mark_row[self._actuator]
         ]:
@@ -1370,7 +1388,7 @@ class DomePanel:
             _draw_bar(
                 canvas,
                 zero=zero,
-                left=x,
+                left=self._bar_left(left, self._joints),
                 width=self._bar,
                 height=int(round(standing * half)),
                 colour=tuple(int(channel) for channel in colormap(standing)),
@@ -1385,6 +1403,10 @@ class DomePanel:
                 scale=self._notice_scale,
                 ink=_NOTICE_INK,
             )
+
+    def _bar_left(self, left: int, index: int) -> int:
+        """Where one of the strip's bars starts, counting from the strip's edge."""
+        return left + self._bar_margin + index * (self._bar + self._bar_gap)
 
     def _scaled(self, torque: float, half: int) -> int:
         """One torque, in pixels above the strip's zero line."""
@@ -1543,6 +1565,7 @@ _GLYPHS = {
     "/": "...#/..#./.#../#.../#...",
     ":": "..../.#../..../.#../....",
     "-": "..../..../.##./..../....",
+    "+": "..../..#./.###/..#./....",
     ".": "..../..../..../..../.#..",
 }
 _UNKNOWN = "####/####/####/####/####"
