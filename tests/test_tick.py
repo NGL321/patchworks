@@ -512,13 +512,28 @@ class TestASurfaceBuiltForAnotherGraph:
             Sheaf(dome, biases=CellBiases(dome.shape, len(dome.predicting) + 1))
 
 
+def _seeded() -> torch.Generator:
+    """A generator of this module's own, so building a stand-in draws nothing
+    from the global stream.
+
+    What is *in* a ready-drawn piece is irrelevant to every test below -- they
+    ask where the piece ends up, not what it holds -- so drawing it unseeded
+    would spend the global RNG purely as a side effect, and shift the draw
+    every later test in the suite makes. Cheap to avoid, and it keeps these
+    tests from depending on what ran before them.
+    """
+    return torch.Generator().manual_seed(0)
+
+
 #: How to supply each piece ready-drawn, and where to read the draw the
 #: generator would otherwise have made. Keyed alike, so one set of names is
 #: both the call and the list of pieces left over for the generator.
 SUPPLY = {
-    "body": lambda dome: CellBody(dome.shape),
-    "biases": lambda dome: CellBiases(dome.shape, len(dome.predicting)),
-    "maps": lambda dome: RestrictionMaps(dome),
+    "body": lambda dome: CellBody(dome.shape, generator=_seeded()),
+    "biases": lambda dome: CellBiases(
+        dome.shape, len(dome.predicting), generator=_seeded()
+    ),
+    "maps": lambda dome: RestrictionMaps(dome, generator=_seeded()),
 }
 DRAWN = {
     "body": lambda sheaf: sheaf.body.encode_hidden_weight,
@@ -579,7 +594,7 @@ class TestAnInertGenerator:
                 dome,
                 body=SUPPLY["body"](dome),
                 biases=SUPPLY["biases"](dome),
-                maps=RestrictionMaps(build_graph()),
+                maps=RestrictionMaps(build_graph(), generator=_seeded()),
                 generator=torch.Generator().manual_seed(0),
             )
 
