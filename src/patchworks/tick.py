@@ -47,8 +47,6 @@ whole-population tensor operations with no loop over cells or edges.
 
 from __future__ import annotations
 
-from numbers import Real
-
 import torch
 
 from .body import CellBiases, CellBody
@@ -82,11 +80,20 @@ def _checked_gamma(gamma: float) -> float:
     where that ownership is written down, so the gain and the construction that
     precedes it read one rule rather than each restating it.
 
-    The **type** is checked here alongside the bound because the two are the
-    same mistake reached the same way: a driver writing `gamma=cfg.gamma` for a
-    config that says `None`. Left to the comparison alone that call died two
-    frames down on `'<' not supported between instances of 'float' and
-    'NoneType'`, naming neither `gamma` nor the rule it broke (#107).
+    Being a number at all is checked here alongside the bound because the two
+    are the same mistake reached the same way: a driver writing
+    `gamma=cfg.gamma` for a config that says `None`. Left to the comparison
+    alone that call died two frames down on `'<' not supported between
+    instances of 'float' and 'NoneType'`, naming neither `gamma` nor the rule
+    it broke (#107).
+
+    It is checked by **coercion** rather than by testing a type, and the
+    `float` is what comes back. A sweep indexing its points out of a
+    `torch.linspace` grid, or computing them in `Fraction`s, is handing over a
+    perfectly good scalar that no type test could enumerate; meanwhile a value
+    that is nominally a number but cannot divide a tensor would sail through
+    such a test and die at the gain — the same two-frames-down `TypeError`,
+    after the same wasted draws. Coercing settles both, and settles them here.
 
     Both refusals are `ValueError` rather than the `TypeError` a non-number
     would conventionally earn, because one rule deserves one thing to catch: a
@@ -98,8 +105,17 @@ def _checked_gamma(gamma: float) -> float:
         "gamma is a single global scalar in (0, 1] "
         "(docs/spec/02-tick-semantics.md, Reconciliation gain)"
     )
-    if not isinstance(gamma, Real):
+    # `bool` is an `int` and `float(True)` is `1.0`, so a config carrying
+    # `gamma = true` would otherwise be read as the default and run a whole
+    # sweep point at the wrong `γ` in silence. A `str` coerces too — and a
+    # config that quotes its numbers is the same kind of mistake, caught here
+    # rather than half-caught by whichever quoted value happens to parse.
+    if isinstance(gamma, (bool, str, bytes)):
         raise ValueError(f"{rule}; got {gamma!r}, which is not a number")
+    try:
+        gamma = float(gamma)
+    except (TypeError, ValueError):
+        raise ValueError(f"{rule}; got {gamma!r}, which is not a number") from None
     if not 0.0 < gamma <= 1.0:
         raise ValueError(f"{rule}; got {gamma}")
     return gamma

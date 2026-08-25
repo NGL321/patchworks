@@ -9,6 +9,8 @@ The world's half of the ordering is `tests/test_agent.py`'s.
 """
 
 import contextlib
+from decimal import Decimal
+from fractions import Fraction
 from unittest import mock
 
 import pytest
@@ -567,6 +569,30 @@ class TestTheGammaASheafIsBuiltWith:
         with pytest.raises(ValueError, match="gamma"):
             Sheaf(dome, gamma=1.5)
         assert drawn == []
+
+    def test_a_boolean_is_not_a_gamma(self, dome, drawn):
+        # `float(True)` is `1.0`, so a config carrying `gamma = true` would
+        # otherwise run its whole sweep point at the default and say nothing.
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=True)
+        assert drawn == []
+
+    @pytest.mark.parametrize(
+        "gamma",
+        [0.5, Fraction(1, 2), Decimal("0.5"), torch.linspace(0.0, 1.0, 3)[1]],
+        ids=["float", "fraction", "decimal", "a point off a grid"],
+    )
+    def test_any_scalar_that_is_a_half_is_a_gamma_of_a_half(self, dome, gamma):
+        # Checked by coercion, not by a type test, and the float is what the
+        # gain gets. A sweep indexing its points out of a `torch.linspace` grid
+        # is handing over a perfectly good scalar; a `Fraction` is one no
+        # tensor can be divided by, and would have died at the gain -- two
+        # frames down, after the draws -- had it been let through as it came.
+        built = Sheaf(dome, gamma=gamma)
+        assert built.gamma == 0.5
+        assert torch.allclose(
+            built.gain, reconciliation_gain(dome, gamma=0.5, rho=built.maps.rho)
+        )
 
     def test_the_refusal_names_gamma_and_the_rule_it_broke(self, dome):
         with pytest.raises(ValueError) as refusal:
