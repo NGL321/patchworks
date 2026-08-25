@@ -149,14 +149,19 @@ def test_the_assembled_loop_runs_with_both_rules_on(agent):
     ticking = run(agent, TICKS, seed=0)
     next(ticking)
     bias.step()
+    # `transport.pressure` is the `λ` the step about to run will compose into
+    # its objective, so recording it here witnesses a step that **took** the
+    # ceiling rather than a schedule that merely reached it after the last one.
+    pressures = []
     for _ in ticking:
         bias.step()
+        pressures.append(transport.pressure)
         transport.step()
 
-    # It completed, and the schedule ran out, so the flat part was reached.
+    # It completed, and a step ran on the anneal's flat part.
     assert agent.sheaf.ticks == TICKS
     assert transport.steps == TICKS - 1
-    assert transport.pressure == pytest.approx(transport.anneal.pressure)
+    assert max(pressures) == pytest.approx(transport.anneal.pressure)
 
     # Both rules actually moved something. `transport.steps` counts calls, not
     # work, and the bias rule counts nothing at all, so without this a rule
@@ -186,8 +191,14 @@ def test_the_assembled_loop_runs_with_both_rules_on(agent):
     # until a step moves the norm. Bare inequality on those rows is therefore
     # precisely "something other than rounding happened", with no threshold in
     # it -- and so no claim about how far anything moved.
+    #
+    # Detached before indexing, as the rest of the suite detaches before
+    # comparing: indexing a live `nn.Parameter` under ambient grad mode puts an
+    # `IndexBackward0` on the tape, and this file least of all should be the
+    # one that leaves a node there.
     interior = ~agent.sheaf.maps.pinned
-    assert not torch.equal(agent.sheaf.maps.maps[interior], initial_maps[interior])
+    final_maps = agent.sheaf.maps.maps.detach()
+    assert not torch.equal(final_maps[interior], initial_maps[interior])
 
     # Finite, and that is the whole of what is asked. The ticket names the
     # biases, the restriction maps and the node stalks; the other three are
@@ -199,7 +210,7 @@ def test_the_assembled_loop_runs_with_both_rules_on(agent):
     # later tick's node stalk -- and on the last tick there is no later tick.
     for name, parameter in agent.sheaf.biases.named_parameters():
         assert torch.isfinite(parameter).all(), name
-    assert torch.isfinite(agent.sheaf.maps.maps).all()
+    assert torch.isfinite(final_maps).all()
     assert torch.isfinite(agent.sheaf.stalks).all()
     assert torch.isfinite(agent.sheaf.charts).all()
     assert torch.isfinite(agent.sheaf.broadcast).all()
