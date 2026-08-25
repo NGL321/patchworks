@@ -73,7 +73,9 @@ def env():
 @pytest.fixture
 def agent(env):
     """Built, not started. `run` arranges the world; the order test does it itself."""
-    return Agent(env, dome=build_graph(SMALL), generator=torch.Generator().manual_seed(0))
+    return Agent(
+        env, dome=build_graph(SMALL), generator=torch.Generator().manual_seed(0)
+    )
 
 
 def test_the_assembled_loop_runs_with_both_rules_on(agent):
