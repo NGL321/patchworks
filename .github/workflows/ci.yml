@@ -37,6 +37,14 @@ jobs:
         # The sandbox's observation is a 64x64 render, so the suite needs a GL
         # context. osmesa is the software one, and libosmesa6 is installed
         # above; the runner has no display and no GPU.
+        #
+        # Both halves of the locality guard ride on this one invocation
+        # (docs/spec/09-the-build-stack.md, The locality guard, part 3): the
+        # always-on tape assertion, which every test that ticks exercises, and
+        # the perturbation test in tests/test_perturbation.py. A leaked
+        # gradient is silent and flattering, so a selection flag here -- -k,
+        # -m, --ignore, --deselect -- would switch the guard off without
+        # anything going red. tests/test_perturbation.py holds that down.
         env:
           MUJOCO_GL: osmesa
         run: pytest

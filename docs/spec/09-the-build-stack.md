@@ -202,6 +202,23 @@ construction; only observing the update catches it. This is why the perturbation
 [ADR-0011](../adr/0011-the-locality-guarantee-is-enforced-not-inherited.md) is the load-bearing half of
 the guard rather than scaffolding around the cheap check.
 
+**Both halves are built, and both run in CI on every push**
+([#90](https://github.com/NGL321/patchworks/issues/90)). The assertion is `assert_no_tape` in
+`src/patchworks/tick.py`, called on the way out of each phase and on the way into each rule; the
+perturbation test is `tests/test_perturbation.py`, covering the bias rule's per-cell path and the
+transport rule's per-edge path. It holds the tick's state **fixed** across a perturbation, because
+the guard is a claim about the learning phase: ticking between the two readings would let a
+perturbation reach a neighbour through reconciliation, which is the architecture working rather than
+a leak. The one cross-cell path it permits is the edge's own detached neighbour term, and it bounds
+that too — everything a neighbour's map can do to a cell arrives as a change to one row of
+`Sheaf.incoming`, and that row reaches one edge endpoint's update and no other.
+
+That file also **constructs the shared-storage case deliberately** — `detach` without the clone,
+plus an in-place write through the alias — and watches the assertion stay silent on it while the
+perturbation comparison catches it, so the gap between the two halves is demonstrated rather than
+argued. It was kill-tested against five planted leaks and caught all five; a control mutation that
+changes the objective without breaking locality left it passing.
+
 ## The environment boundary
 
 **Classic MuJoCo, host-driven loop, numpy at the boundary.** MJX — MuJoCo re-implemented in JAX — is
