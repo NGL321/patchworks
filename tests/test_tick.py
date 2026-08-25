@@ -14,7 +14,7 @@ from unittest import mock
 import pytest
 import torch
 
-from patchworks.body import CellBiases
+from patchworks.body import CellBiases, CellBody
 from patchworks.graph import DomeSpec, EdgeKind, build_graph
 from patchworks.restriction import GAUGE_RHO, RestrictionMaps, pair_index
 from patchworks.tick import (
@@ -509,3 +509,86 @@ class TestASurfaceBuiltForAnotherGraph:
     def test_biases_for_the_wrong_population_are_refused(self, dome):
         with pytest.raises(ValueError, match="predicting cells"):
             Sheaf(dome, biases=CellBiases(dome.shape, len(dome.predicting) + 1))
+
+
+#: How to supply each piece ready-drawn, and where to read the draw the
+#: generator would otherwise have made. Keyed alike, so one set of names is
+#: both the call and the list of pieces left over for the generator.
+SUPPLY = {
+    "body": lambda dome: CellBody(dome.shape),
+    "biases": lambda dome: CellBiases(dome.shape, len(dome.predicting)),
+    "maps": lambda dome: RestrictionMaps(dome),
+}
+DRAWN = {
+    "body": lambda sheaf: sheaf.body.encode_hidden_weight,
+    "biases": lambda sheaf: sheaf.biases.encode_hidden_bias,
+    "maps": lambda sheaf: sheaf.maps.maps,
+}
+#: Every way of supplying some but not all three pieces, the empty call
+#: included: the branches on which the generator is still doing real work.
+PARTIAL = [
+    (),
+    ("body",),
+    ("biases",),
+    ("maps",),
+    ("body", "biases"),
+    ("body", "maps"),
+    ("biases", "maps"),
+]
+
+
+class TestAnInertGenerator:
+    """`generator` seeds what it was not handed, so all three handed in is a lie (#108).
+
+    #106 closed the same shape one level up: an argument accepted, ignored, and
+    silent about it. The rule it recorded — *nothing consumes a construction
+    argument once the thing it constructs is supplied* — does not read verbatim
+    here, because the generator feeds three independent draws rather than one
+    object. The condition is *nothing left to draw*, which is why every partial
+    call below is not an error but a generator doing real work.
+    """
+
+    def test_body_biases_and_maps_together_refuse_the_generator(self, dome):
+        # Anchored on the leading token, because the refusal has to name the
+        # argument it was handed rather than merely mention it in its advice.
+        with pytest.raises(ValueError, match=r"^generator seeds") as refusal:
+            Sheaf(
+                dome,
+                **{name: supply(dome) for name, supply in SUPPLY.items()},
+                generator=torch.Generator().manual_seed(0),
+            )
+        # Where it would have been consumed, named -- all three of them, since
+        # all three are what a caller has to give up to keep the generator.
+        message = str(refusal.value)
+        assert "body" in message
+        assert "biases" in message
+        assert "maps" in message
+
+    def test_all_three_without_a_generator_is_the_ordinary_prepared_call(self, dome):
+        # Nothing is drawn and nothing was asked to be, so there is nothing to
+        # refuse: handing over a fully prepared surface stays legal.
+        pieces = {name: supply(dome) for name, supply in SUPPLY.items()}
+        built = Sheaf(dome, **pieces)
+        for name, piece in pieces.items():
+            assert getattr(built, name) is piece
+
+    @pytest.mark.parametrize(
+        "supplied", PARTIAL, ids=lambda names: "+".join(names) or "none"
+    )
+    def test_every_partial_call_still_seeds_what_it_draws(self, dome, supplied):
+        # The surviving branches, each held down by the only thing that shows a
+        # generator was consumed at all: the same seed draws the same numbers
+        # and a different seed does not.
+        def build(seed):
+            return Sheaf(
+                dome,
+                **{name: SUPPLY[name](dome) for name in supplied},
+                generator=torch.Generator().manual_seed(seed),
+            )
+
+        one, again, other = build(7), build(7), build(8)
+        for name, read in DRAWN.items():
+            if name in supplied:
+                continue
+            assert torch.equal(read(one), read(again))
+            assert not torch.equal(read(one), read(other))
