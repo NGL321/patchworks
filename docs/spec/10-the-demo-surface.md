@@ -105,6 +105,14 @@ the arm **stalling mid-swing** — near-zero commanded torque with standing moto
 and that is an outline near zero beside a disagreement bar that stands. `04` already assumes this
 readout exists; here is where it exists.
 
+**That bar is the one mark drawn raw rather than normalised**, and it has to be. Per-cell
+normalisation makes a chronically-wrong mark render calm — accepted above for the colour channel,
+where the raw map behind the debug flag is the answer — but a stall that *stands* is exactly a
+chronic reading, and a bar that faded as the stall persisted would be the display absorbing the
+failure it exists to show. So the three torque bars are drawn against the largest torque the strip
+has seen and the disagreement bar against the largest a boundary mark has shown; zero stays zero
+under both, which is what keeps *near-zero commanded* legible as near zero. Settled in #94.
+
 ### The drive mark
 
 The apex band carries a mark for the **drive boundary cell** at the internal rim, drawn like the
@@ -115,6 +123,12 @@ the same across tasks differing only in the render — is diagnosed by the drive
 being *non-trivial* while behaviour does not vary. Without this mark that near-miss is
 indistinguishable on screen from the demo working, and it is the one that falsifies the drive rather
 than the demo ([ADR-0009](../adr/0009-a-drive-is-a-motor-edge-attached-deep.md)).
+
+**Which near-miss is read off the raw map, not the live one.** *Non-trivial while behaviour does not
+vary* is a standing reading, and per-cell normalisation renders a standing reading calm — the
+consequence accepted above. That is not a hole: diagnosing a near-miss is a falsification sweep, and
+a sweep is already told to read the raw map. The live mark is what makes the drive *visible* at all
+and what shows it arriving; the sweep is what reads it standing. Settled in #94.
 
 ### Edges: thresholded, and off by default
 
