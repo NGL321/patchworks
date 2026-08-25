@@ -171,9 +171,11 @@ def _checked_gamma(gamma: object) -> float:
         raise not_one_number()
     try:
         as_float = float(gamma)
-    # `RuntimeError` because torch's `__float__` raises it — for a complex
-    # tensor, or one on the meta device — and a rule with one thing to catch
-    # cannot let a second class out through its own coercion.
+    # `RuntimeError` because a tensor on the meta device has no storage to
+    # read a number out of, and torch says so with `NotImplementedError` — a
+    # subclass of it. A rule with one thing to catch cannot let a second class
+    # out through its own coercion. (A complex tensor never reaches here; the
+    # unwrapping above turns it away first.)
     except (RuntimeError, TypeError, ValueError):
         # **A single real** number: the likeliest arrival here is a sweep that
         # passed its whole grid rather than indexing a point out of it, and

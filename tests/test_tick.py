@@ -644,9 +644,38 @@ class TestTheGammaASheafIsBuiltWith:
     def test_a_complex_number_is_not_a_gamma(self, dome, drawn, gamma):
         # `numpy.complex128(0.5 + 3j)` narrows to `0.5` behind a warning, so a
         # sweep reading its points out of a complex array would otherwise run
-        # at a gamma nobody chose. Torch says so by raising `RuntimeError`,
-        # which is not one of the two the coercion caught -- so that one
-        # escaped the rule entirely rather than being misread by it.
+        # at a gamma nobody chose. All three are turned away by the unwrapping
+        # half of the rule, which reaches the complex box through `item()`
+        # before any coercion is attempted.
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=gamma)
+        assert drawn == []
+
+    def test_a_tensor_that_cannot_produce_a_number_is_refused_by_the_rule(
+        self, dome, drawn
+    ):
+        # A tensor on the meta device carries a shape and a dtype but no
+        # storage, so asking it for a number raises `NotImplementedError` --
+        # a `RuntimeError` subclass, which is why the coercion catches that
+        # class at all. It is the one arrival that reaches the coercion's
+        # `RuntimeError` arm: the complex tensor above never gets that far.
+        # Left uncaught this escaped as a bare `NotImplementedError`, past the
+        # one thing the rule promises a caller can catch.
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=torch.tensor(0.5, device="meta"))
+        assert drawn == []
+
+    @pytest.mark.parametrize(
+        "gamma",
+        [float("nan"), float("inf"), float("-inf")],
+        ids=["nan", "inf", "-inf"],
+    )
+    def test_a_gamma_that_is_not_a_finite_number_is_refused(self, dome, drawn, gamma):
+        # Each is a perfectly good `float` that coerces without complaint, so
+        # only the bound turns them away -- and it does so by comparing rather
+        # than by testing for them, exactly as the learning rate's does. A nan
+        # gamma admitted here would scale every gain and poison the surface on
+        # the first tick without a word.
         with pytest.raises(ValueError, match="gamma"):
             Sheaf(dome, gamma=gamma)
         assert drawn == []
