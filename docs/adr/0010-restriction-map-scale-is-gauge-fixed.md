@@ -55,6 +55,37 @@ weight across the map's directions rather than removing it. This is what
 [`06-graph-topology.md`](../spec/06-graph-topology.md)'s "prunes *within* the mask; does not shrink the
 stalk" always meant, now stated mechanically.
 
+*Amended by [#89](https://github.com/NGL321/patchworks/issues/89): the term is normalised by the mask
+size as well as by the norm.* This ADR said only "L1 on the normalised map", which reads as
+`‖F‖₁ / ‖F‖_F`, and the build found that form does not do the job the surrounding argument needs. Its
+gradient has norm `√(p − q²) / ‖F‖_F` for a map whose structural mask leaves `p` weights open, so it
+**grows with the mask**: one global `λ` — and `λ` is global, one of exactly two permitted signals
+([`07-local-learning-rule.md`](../spec/07-local-learning-rule.md)) — pruned a wide map roughly
+eightfold harder than a narrow one across the built dome, at `+0.985` correlation with `p`. That is a
+per-map pressure varying with a structural accident of the mask, which nothing in this ADR argues for.
+
+The term is therefore
+
+```
+‖F‖₁ / (√p · ‖F‖_F)
+```
+
+and the `√p` is exact rather than a correction factor: the gradient becomes `√(1 − h²) / ‖F‖_F`, where
+`h` is the term's own value, and **`p` is absent from it identically**. Measured correlation with `p`
+falls to `+0.071`. The one trace left is that `h` cannot fall below `1/√p`, so the *attainable* ceiling
+still varies by 6.8% across this dome's range of mask sizes — at full concentration, which the maps do
+not reach.
+
+Three things the amendment deliberately does not disturb. Dividing by a construction-time constant per
+map changes nothing **within** a map, so "prunes within the mask" and the rank-concentration pricing
+below are untouched, and `06-graph-topology.md` and `01-cell-and-sheaf.md` remain accurate as written.
+The term stays blind to magnitude, so the unidentified-parameter argument this section rests on is
+unaffected. And `√p` is read off the structural mask, which is fixed at construction and closes
+permanently — it is the same kind of object as the `Σ_e m_e` the reconciliation gain divides by, not
+the per-edge auxiliary variable [ADR-0007](./0007-the-disagreement-floor-is-tolerated-not-represented.md)
+rejects. The normalised quantity is Hoyer's sparseness ratio, which carries the `1/√p` for exactly this
+reason: to be comparable across dimensions.
+
 Both terms are therefore blind to the map's overall magnitude. **Nothing in the transport rule has an
 opinion about it**, which means the magnitude is not merely unconstrained but *unidentified by the
 objective*. This is the whole argument for what follows: fixing an unidentified parameter removes a free
