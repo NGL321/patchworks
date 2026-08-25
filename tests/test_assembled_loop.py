@@ -52,13 +52,16 @@ from patchworks.sandbox import PlanarPushSandbox
 #: is a hard constraint rather than a preference, since this stands in CI on
 #: every push.
 #:
-#: This is the **fourth** copy of the literal, after `tests/test_learning.py`,
-#: `tests/test_transport_rule.py` and `tests/test_perturbation.py`, and nothing
-#: holds the four in step: retuning one leaves the others on the old dome
-#: silently, and `tests/test_perturbation.py`'s hardcoded cell indices are
-#: derived from this exact spec. One `SMALL` in a `tests/conftest.py` would fix
-#: that; it is not done here because it edits three files #105 has no business
-#: touching while other tickets are in flight.
+#: This is the **seventh** byte-identical copy of the literal, after
+#: `tests/test_tick.py`, `tests/test_restriction.py`, `tests/test_learning.py`,
+#: `tests/test_transport_rule.py`, `tests/test_timescale.py` and
+#: `tests/test_perturbation.py`. (`tests/test_bias_selection.py`'s `SMALL` is a
+#: genuinely different dome and is not one of them.) Nothing holds the seven in
+#: step: retuning one leaves the other six on the old dome silently, and
+#: `tests/test_perturbation.py`'s hardcoded cell indices are derived from this
+#: exact spec. One `SMALL` in a `tests/conftest.py` would fix it; that edits
+#: six existing files, which #105 has no business touching while other tickets
+#: are in flight.
 SMALL = DomeSpec(
     patch_grid=4,
     vision_sides=(2,),
