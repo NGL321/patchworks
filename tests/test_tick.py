@@ -547,7 +547,11 @@ class TestTheGammaASheafIsBuiltWith:
     def test_an_ordinary_construction_draws_all_three(self, dome, drawn):
         # The control the timing tests below rest on: without it, `drawn == []`
         # would also be satisfied by a fixture that records nothing.
-        Sheaf(dome)
+        #
+        # Drawn from a local generator, like every other construction in this
+        # file: a `Sheaf` built off the global stream would shift the draws of
+        # every test that runs after this one onto a different RNG state.
+        Sheaf(dome, generator=torch.Generator().manual_seed(0))
         assert drawn == ["CellBody", "CellBiases", "RestrictionMaps"]
 
     @pytest.mark.parametrize(
@@ -622,7 +626,7 @@ class TestTheGammaASheafIsBuiltWith:
         # is handing over a perfectly good scalar; a `Fraction` is one no
         # tensor can be divided by, and would have died at the gain -- two
         # frames down, after the draws -- had it been let through as it came.
-        built = Sheaf(dome, gamma=gamma)
+        built = Sheaf(dome, gamma=gamma, generator=torch.Generator().manual_seed(0))
         assert built.gamma == 0.5
         assert torch.allclose(
             built.gain, reconciliation_gain(dome, gamma=0.5, rho=built.maps.rho)
