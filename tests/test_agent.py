@@ -340,10 +340,15 @@ class TestTheSheafsConstructionArguments:
         # one place. Reading `None` as "the default" here would be a second
         # answer to the same question and would send a caller who followed the
         # refusal's advice to `Sheaf(dome, gamma=None)`, which does not agree.
-        with pytest.raises(TypeError):
+        # What that one rule says, from either door (#107): a refusal naming
+        # `gamma` and the bound it broke, in place of the bare `TypeError` the
+        # comparison inside the gain used to leak.
+        names_the_rule = r"^gamma is a single global scalar"
+        with pytest.raises(ValueError, match=names_the_rule) as through_the_agent:
             Agent(env, dome=dome, gamma=None)
-        with pytest.raises(TypeError):
+        with pytest.raises(ValueError, match=names_the_rule) as straight_at_it:
             Sheaf(dome, gamma=None)
+        assert str(through_the_agent.value) == str(straight_at_it.value)
 
     def test_a_gamma_with_no_sheaf_reaches_the_sheaf_that_gets_built(self, env, dome):
         built = Agent(env, dome=dome, gamma=0.25)

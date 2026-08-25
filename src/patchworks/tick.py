@@ -71,6 +71,126 @@ __all__ = [
 DEFAULT_GAMMA = 1.0
 
 
+def _would_be_misread(gamma: object) -> bool:
+    """`True` for a value that coerces to a float but means something else.
+
+    `float(True)` is `1.0`, `numpy.complex128(0.5 + 3j)` narrows to `0.5`
+    behind a warning, and `float("0.5")` parses. So a config carrying
+    `gamma = true`, a `γ` read out of a complex array, and a grid read off a
+    CSV as text would each otherwise run a whole sweep point at a number
+    nobody chose, or at a rule nobody stated, and say nothing.
+
+    **This is the unwrapping half of the rule.** Python's own `bool` and `str`
+    need none; numpy's `bool_`, `str_`, a boolean tensor and the complex boxes
+    are the same mistakes wearing this stack's containers, and all of them come
+    out through the `item()` every scalar here shares. Anything `item()`
+    refuses is not a scalar at all, and the coercion below is the one to say
+    so.
+    """
+    try:
+        unwrapped = gamma.item() if hasattr(gamma, "item") else gamma
+    except Exception:
+        # Whatever a stand-in for a value does when asked for one, it is not
+        # this function's to diagnose: fall through to the coercion, which
+        # refuses in the rule's own words.
+        return False
+    # `float` is not a `complex` subclass — that relation holds in the
+    # `numbers` tower, not between the built-in types — so this refuses the
+    # complex ones without touching an ordinary `γ`.
+    return isinstance(unwrapped, (bool, complex, str, bytes, bytearray))
+
+
+def _shown(gamma: object) -> str:
+    """What a refusal quotes back: the value's `repr`, kept short.
+
+    An integer too large for a float has hundreds of digits and a sweep that
+    passed its whole grid instead of a point has hundreds of entries. Neither
+    is worth a refusal the reader has to scroll to reach the end of — and past
+    4300 digits `repr` refuses outright, which would lose the refusal that
+    matters behind one about integer formatting.
+    """
+    try:
+        shown = repr(gamma)
+    except Exception:
+        # `repr` of an integer over 4300 digits raises, and a config proxy
+        # standing in for an absent value can raise anything at all. Neither
+        # is allowed to become the exception the caller sees: this is the
+        # refusal path, and losing the diagnosis here loses it entirely.
+        return f"<a {type(gamma).__name__} that cannot be quoted>"
+    return shown if len(shown) <= 60 else f"{shown[:57]}..."
+
+
+def _checked_gamma(gamma: object) -> float:
+    """Refuse a `γ` that is not a scalar in `(0, 1]`, and hand it back if it is.
+
+    **The one place the legal-`γ` rule lives.** `Sheaf` owns what counts as a
+    legal `γ` and #106 was deliberate about not giving
+    :class:`patchworks.agent.Agent` a second opinion on it; this function is
+    where that ownership is written down, so the gain and the construction that
+    precedes it read one rule rather than each restating it.
+
+    Being a number at all is checked here alongside the bound because the two
+    are the same mistake reached the same way: a driver writing
+    `gamma=cfg.gamma` for a config that says `None`. Left to the comparison
+    alone that call died two frames down on `'<' not supported between
+    instances of 'float' and 'NoneType'`, naming neither `gamma` nor the rule
+    it broke (#107).
+
+    It is checked by **coercion** rather than by testing a type, and the
+    `float` is what comes back. A sweep indexing its points out of a
+    `torch.linspace` grid, or computing them in `Fraction`s, is handing over a
+    perfectly good scalar that no type test could enumerate; meanwhile a value
+    that is nominally a number but cannot divide a tensor would sail through
+    such a test and die at the gain — the same two-frames-down `TypeError`,
+    after the same wasted draws. Coercing settles both, and settles them here.
+
+    Every refusal is a `ValueError` rather than the `TypeError` a non-number
+    would conventionally earn, because one rule deserves one thing to catch: a
+    `γ` sweep reading its points from a config meets `None` and `1.5` the same
+    way, and `Agent`'s adjacent refusal of a misplaced `gamma=None` is already
+    a `ValueError`.
+    """
+    rule = (
+        "gamma is a single global scalar in (0, 1] "
+        "(docs/spec/02-tick-semantics.md, Reconciliation gain)"
+    )
+
+    def not_one_number() -> ValueError:
+        return ValueError(
+            f"{rule}; got {_shown(gamma)}, which is not a single real number"
+        )
+
+    # `float()` parses text and buffers as well as coercing numbers, and a
+    # config that quotes its numbers is the same mistake as one that leaves
+    # them out. A number offers `__float__` or `__index__`; text and buffers
+    # offer neither, which is the difference stated once rather than as an
+    # enumeration of the containers text arrives in.
+    if _would_be_misread(gamma) or not (
+        hasattr(gamma, "__float__") or hasattr(gamma, "__index__")
+    ):
+        raise not_one_number()
+    try:
+        as_float = float(gamma)
+    # `RuntimeError` because a tensor on the meta device has no storage to
+    # read a number out of, and torch says so with `NotImplementedError` — a
+    # subclass of it. A rule with one thing to catch cannot let a second class
+    # out through its own coercion. (A complex tensor never reaches here; the
+    # unwrapping above turns it away first.)
+    except (RuntimeError, TypeError, ValueError):
+        # **A single real** number: the likeliest arrival here is a sweep that
+        # passed its whole grid rather than indexing a point out of it, and
+        # what is wrong with that is its arity, not its type.
+        raise not_one_number() from None
+    except OverflowError:
+        raise ValueError(f"{rule}; got {_shown(gamma)}, which no float can hold") from None
+    if not 0.0 < as_float <= 1.0:
+        # The value the caller wrote, not the coercion of it. A sweep handed
+        # `Fraction(3, 2)` and told `got 1.5` is being shown something it
+        # never wrote, which is half of what made the old failure useless.
+        raise ValueError(f"{rule}; got {_shown(gamma)}")
+    return as_float
+
+
 def reconciliation_gain(
     dome: Dome, *, gamma: float = DEFAULT_GAMMA, rho: float = GAUGE_RHO
 ) -> torch.Tensor:
@@ -95,11 +215,7 @@ def reconciliation_gain(
     tighter exact gauge, `Σ_e ‖F‖_F² = deg(v)`, so `ρ² · deg(v)` is a valid
     bound for them too and merely a looser one.
     """
-    if not 0.0 < gamma <= 1.0:
-        raise ValueError(
-            "gamma is a single global scalar in (0, 1] "
-            f"(docs/spec/02-tick-semantics.md, Reconciliation gain); got {gamma}"
-        )
+    gamma = _checked_gamma(gamma)
     stalk_sums = torch.tensor(dome.stalk_sums, dtype=torch.float32)
     degrees = torch.tensor(dome.degrees, dtype=torch.float32)
     return gamma / torch.maximum(stalk_sums, rho * rho * degrees)
@@ -215,6 +331,12 @@ class Sheaf:
         gamma: float = DEFAULT_GAMMA,
         generator: torch.Generator | None = None,
     ) -> None:
+        # Checked here, before the draws, rather than left to the gain at the
+        # bottom of this constructor: the body, the biases and the maps are the
+        # expensive part of building a sheaf, and a `γ` that is going to be
+        # refused anyway is not worth drawing them for (#107). The rule is not
+        # restated here — the gain reads it from the same one place.
+        self.gamma = _checked_gamma(gamma)
         self.dome = dome
         self.body = body if body is not None else CellBody(dome.shape, generator=generator)
         self.biases = (
@@ -275,10 +397,9 @@ class Sheaf:
                 "Sheaf(dome, body=..., biases=..., generator=g) still draws the "
                 "maps from g."
             )
-        self.gamma = gamma
         self.layout = StalkLayout(dome, self.maps)
 
-        self.gain = reconciliation_gain(dome, gamma=gamma, rho=self.maps.rho)
+        self.gain = reconciliation_gain(dome, gamma=self.gamma, rho=self.maps.rho)
         self._gain_per_component = self.layout.per_component(self.gain)
 
         #: `[total + 1]`: every cell's node stalk, end to end. The cell's public

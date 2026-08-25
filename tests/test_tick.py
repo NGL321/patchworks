@@ -10,11 +10,15 @@ The world's half of the ordering is `tests/test_agent.py`'s.
 
 import contextlib
 import itertools
+from decimal import Decimal
+from fractions import Fraction
 from unittest import mock
 
+import numpy as np
 import pytest
 import torch
 
+from patchworks import tick
 from patchworks.body import CellBiases, CellBody
 from patchworks.graph import DomeSpec, EdgeKind, build_graph
 from patchworks.restriction import GAUGE_RHO, RestrictionMaps, pair_index
@@ -650,3 +654,219 @@ class TestAnInertGenerator:
             read = DRAWN[name]
             assert torch.equal(read(one), read(again))
             assert not torch.equal(read(one), read(other))
+class TestTheGammaASheafIsBuiltWith:
+    """`Sheaf` owns the legal-gamma rule and applies it before the draws (#107).
+
+    Construction draws a body, a set of biases and a set of restriction maps.
+    A `gamma` the gain is going to refuse anyway is not worth any of that, and
+    the caller who wrote `gamma=cfg.gamma` for a config that says `None` was
+    getting `'<' not supported between instances of 'float' and 'NoneType'`
+    from two frames down, after paying for the whole construction.
+    """
+
+    @pytest.fixture
+    def drawn(self, monkeypatch):
+        """Every draw `Sheaf.__init__` makes, in order. Records and calls through.
+
+        Patched on `patchworks.tick`'s own names, which is where the
+        constructor looks them up, so the draws behave exactly as they would
+        untouched and only the record is added.
+        """
+        calls: list[str] = []
+        for name in ("CellBody", "CellBiases", "RestrictionMaps"):
+            real = getattr(tick, name)
+
+            def spy(*args, _name=name, _real=real, **kwargs):
+                calls.append(_name)
+                return _real(*args, **kwargs)
+
+            monkeypatch.setattr(tick, name, spy)
+        return calls
+
+    def test_an_ordinary_construction_draws_all_three(self, dome, drawn):
+        # The control the timing tests below rest on: without it, `drawn == []`
+        # would also be satisfied by a fixture that records nothing.
+        #
+        # Drawn from a local generator, like every other construction in this
+        # file: a `Sheaf` built off the global stream would shift the draws of
+        # every test that runs after this one onto a different RNG state.
+        Sheaf(dome, generator=torch.Generator().manual_seed(0))
+        assert drawn == ["CellBody", "CellBiases", "RestrictionMaps"]
+
+    @pytest.mark.parametrize(
+        "gamma",
+        [
+            None,
+            "0.5",
+            np.str_("0.5"),
+            b"0.5",
+            bytearray(b"0.5"),
+            memoryview(b"0.5"),
+            (0.5,),
+            object(),
+        ],
+        ids=[
+            "none",
+            "string",
+            "numpy str_",
+            "bytes",
+            "bytearray",
+            "memoryview",
+            "tuple",
+            "object",
+        ],
+    )
+    def test_a_gamma_that_is_not_a_number_is_refused_before_the_draws(
+        self, dome, drawn, gamma
+    ):
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=gamma)
+        assert drawn == []
+
+    def test_a_number_outside_the_bound_is_refused_before_the_draws_too(
+        self, dome, drawn
+    ):
+        # The bound was always enforced; what is new is where. One rule, one
+        # moment, whichever way the value is wrong.
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=1.5)
+        assert drawn == []
+
+    @pytest.mark.parametrize(
+        "gamma",
+        [True, np.bool_(True), torch.tensor(True)],
+        ids=["bool", "numpy bool_", "boolean tensor"],
+    )
+    def test_a_boolean_is_not_a_gamma(self, dome, drawn, gamma):
+        # `float(True)` is `1.0`, so a config carrying `gamma = true` would
+        # otherwise run its whole sweep point at the default and say nothing.
+        # Every container this stack hands a boolean over in, since numpy's is
+        # not a `bool` and a config read through an array produces one.
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=gamma)
+        assert drawn == []
+
+    def test_a_magnitude_no_float_can_hold_is_refused_as_one_rule_too(self, dome, drawn):
+        # `float(10**400)` raises `OverflowError`, which is neither of the two
+        # the coercion catches -- so this leaked as a bare `OverflowError`,
+        # past the one thing the rule promises a caller can catch.
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=10**400)
+        assert drawn == []
+
+    @pytest.mark.parametrize(
+        "gamma",
+        [0.5, Fraction(1, 2), Decimal("0.5"), torch.linspace(0.0, 1.0, 3)[1]],
+        ids=["float", "fraction", "decimal", "a point off a grid"],
+    )
+    def test_any_scalar_that_is_a_half_is_a_gamma_of_a_half(self, dome, gamma):
+        # Checked by coercion, not by a type test, and the float is what the
+        # gain gets. A sweep indexing its points out of a `torch.linspace` grid
+        # is handing over a perfectly good scalar; a `Fraction` is one no
+        # tensor can be divided by, and would have died at the gain -- two
+        # frames down, after the draws -- had it been let through as it came.
+        built = Sheaf(dome, gamma=gamma, generator=torch.Generator().manual_seed(0))
+        assert built.gamma == 0.5
+        assert torch.allclose(
+            built.gain, reconciliation_gain(dome, gamma=0.5, rho=built.maps.rho)
+        )
+
+    def test_the_refusal_echoes_the_value_the_caller_actually_wrote(self, dome):
+        # Not the coercion of it. A sweep handed `Fraction(3, 2)` and told
+        # `got 1.5` is being shown a value it never wrote, which is half of
+        # what made the old failure useless to read.
+        with pytest.raises(ValueError) as refusal:
+            Sheaf(dome, gamma=Fraction(3, 2))
+        assert "Fraction(3, 2)" in str(refusal.value)
+
+    @pytest.mark.parametrize(
+        "gamma",
+        [0.5 + 3j, np.complex128(0.5 + 3j), torch.tensor(0.5 + 3j)],
+        ids=["complex", "numpy complex128", "complex tensor"],
+    )
+    def test_a_complex_number_is_not_a_gamma(self, dome, drawn, gamma):
+        # `numpy.complex128(0.5 + 3j)` narrows to `0.5` behind a warning, so a
+        # sweep reading its points out of a complex array would otherwise run
+        # at a gamma nobody chose. All three are turned away by the unwrapping
+        # half of the rule, which reaches the complex box through `item()`
+        # before any coercion is attempted.
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=gamma)
+        assert drawn == []
+
+    def test_a_tensor_that_cannot_produce_a_number_is_refused_by_the_rule(
+        self, dome, drawn
+    ):
+        # A tensor on the meta device carries a shape and a dtype but no
+        # storage, so asking it for a number raises `NotImplementedError` --
+        # a `RuntimeError` subclass, which is why the coercion catches that
+        # class at all. It is the one arrival that reaches the coercion's
+        # `RuntimeError` arm: the complex tensor above never gets that far.
+        # Left uncaught this escaped as a bare `NotImplementedError`, past the
+        # one thing the rule promises a caller can catch.
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=torch.tensor(0.5, device="meta"))
+        assert drawn == []
+
+    @pytest.mark.parametrize(
+        "gamma",
+        [float("nan"), float("inf"), float("-inf")],
+        ids=["nan", "inf", "-inf"],
+    )
+    def test_a_gamma_that_is_not_a_finite_number_is_refused(self, dome, drawn, gamma):
+        # Each is a perfectly good `float` that coerces without complaint, so
+        # only the bound turns them away -- and it does so by comparing rather
+        # than by testing for them, exactly as the learning rate's does. A nan
+        # gamma admitted here would scale every gain and poison the surface on
+        # the first tick without a word.
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=gamma)
+        assert drawn == []
+
+    def test_a_value_that_will_not_be_quoted_is_still_refused_by_the_rule(self, dome):
+        # A config proxy standing in for an absent value raises on access, and
+        # the access a refusal makes is `repr`. Losing the diagnosis to that
+        # would lose it on the one path that was producing it.
+
+        class RefusesToBeQuoted:
+            def __repr__(self):
+                raise RuntimeError("this value does not care to be quoted")
+
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=RefusesToBeQuoted())
+
+    def test_an_integer_too_long_to_print_is_still_refused_by_the_rule(self, dome):
+        # `repr` of an integer over 4300 digits raises `ValueError` itself, so
+        # quoting the value back used to lose the refusal that matters behind
+        # one about integer formatting.
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=10**5000)
+
+    def test_a_refusal_does_not_recite_three_hundred_digits(self, dome):
+        # `10**300` is a legal `float` and fails the bound like any other
+        # number, but reciting it costs 300 characters of zeros. What a
+        # refusal quotes back is kept short whichever branch raises it.
+        with pytest.raises(ValueError) as refusal:
+            Sheaf(dome, gamma=10**300)
+        assert len(str(refusal.value)) < 200
+
+    def test_the_refusal_names_gamma_and_the_rule_it_broke(self, dome):
+        with pytest.raises(ValueError) as refusal:
+            Sheaf(dome, gamma=None)
+        message = str(refusal.value)
+        # Anchored on the leading token: the refusal has to name the argument
+        # it was handed, not merely mention it somewhere in its advice.
+        assert message.startswith("gamma")
+        assert "(0, 1]" in message
+        assert "None" in message
+
+    def test_the_rule_is_one_rule_in_one_place(self, dome):
+        # `Sheaf` checks gamma before the draws and `reconciliation_gain`
+        # checks it at the point of use. The same words come out of both,
+        # because neither states the rule -- they read it from the one
+        # function that does.
+        with pytest.raises(ValueError) as before_the_draws:
+            Sheaf(dome, gamma=None)
+        with pytest.raises(ValueError) as at_the_gain:
+            reconciliation_gain(dome, gamma=None)
+        assert str(before_the_draws.value) == str(at_the_gain.value)
