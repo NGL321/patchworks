@@ -14,6 +14,9 @@ Built so far:
   reconciliation gain, over the state they run on.
 * :mod:`patchworks.agent` — the graph wired to the world, and the ordering
   between them: external writes are a tick's last word.
+* :mod:`patchworks.timescale` — the clock divisor, as an instrument. Outside
+  the architecture by construction: it drives the tick from outside, default
+  off, and no cell can reach it.
 * :mod:`patchworks.sandbox` — the world the agent lives in, promoted from
   prototypes/sandbox. Not imported here; import it directly.
 
@@ -21,8 +24,8 @@ The rest of prototypes/ is not promoted yet; a later ticket brings
 prototypes/regional-spectra into this package.
 """
 
-from . import agent, body, graph, restriction, tick
+from . import agent, body, graph, restriction, tick, timescale
 
-__all__ = ["agent", "body", "graph", "restriction", "tick"]
+__all__ = ["agent", "body", "graph", "restriction", "tick", "timescale"]
 
 __version__ = "0.0.0"
