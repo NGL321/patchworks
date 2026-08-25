@@ -188,8 +188,15 @@ scripted path.
 feeds it from disk. Not two code paths.
 
 A tick holds `qpos`, `qvel`, `ctrl`, task, RNG — `03-the-sandbox.md`'s snapshot/restore contract,
-unchanged — plus per-cell prediction error and `‖Δ private‖` (~150 cells × 2 floats), plus any
-event markers that fired. The trace is that contract plus two arrays, not a new format.
+unchanged — plus per-cell prediction error and `‖Δ private‖` (~150 cells × 2 floats), plus
+**per-edge disagreement** (~700 floats) and the **actuator's commanded and applied rows** (six),
+plus any event markers that fired. The trace is that contract plus those arrays, not a new format.
+
+The last two are what every mark a **boundary cell** gets is drawn from — the somatomotor strip, the
+actuator's paired bars, the drive mark and the edge overlay below — and they are in the record for
+the reason the first two are: a quantity the panel could only be handed live would make the live feed
+and the file two code paths, which is the split this section exists to refuse. Corrected here in #94,
+which built those marks and found the record one array short of being able to draw them off disk.
 
 **State, not frames.** The scene re-renders from MuJoCo offscreen at capture time, so capture
 resolution is chosen when rendering rather than baked into the recording, and the README GIF, a

@@ -1,4 +1,4 @@
-"""The tick record: the snapshot/restore contract, plus two arrays.
+"""The tick record: the snapshot/restore contract, plus what the panel draws.
 
 `docs/spec/10-the-demo-surface.md`, *The trace*, is the whole of what this
 module implements, over `docs/spec/03-the-sandbox.md`'s *The Gymnasium
@@ -27,12 +27,23 @@ re-renders from MuJoCo offscreen at capture time
 (:mod:`patchworks.surface.renderer`), so the capture resolution is chosen when
 rendering rather than baked into the recording -- which is what lets the README
 capture, a falsification sweep and a debugging pass all read the same file. It
-also keeps the live budget near zero: the two arrays are `~150 cells x 2
-floats`, and the state is the vector snapshot/restore already takes.
+also keeps the live budget near zero: the arrays are `~150 cells x 2 floats`
+plus `~700 edges x 1` plus the actuator's six, and the state is the vector
+snapshot/restore already takes.
+
+**Why an edge array as well as the two cell ones.** `10-the-demo-surface.md`
+names three privileged quantities the panel reads -- prediction error, private
+components, **edge disagreement** -- and the marks that draw the third are the
+boundary band's: the somatomotor strip, the drive mark and the thresholded edge
+overlay (#94). A boundary cell runs no body and makes no prediction, so what it
+has is an edge, and a record without that array could feed those marks live and
+never off disk -- which is exactly the live/replay split *The trace* exists to
+refuse. So it rides in the record like the other two, at the same order of size,
+and is the same kind of thing: privileged state, read, never fed back.
 
 **Not a new format.** A record is `03-the-sandbox.md`'s
 :class:`~patchworks.sandbox.state.Snapshot` -- `mjSTATE_INTEGRATION`, the task
-and the sampler's RNG -- plus the two arrays and any markers that fired. What
+and the sampler's RNG -- plus those arrays and any markers that fired. What
 :meth:`Trace.save` writes is that and nothing else, so a record read back off
 disk restores a world the same way the one held in memory does.
 """
@@ -41,7 +52,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Iterator
@@ -73,6 +84,17 @@ CAPTURE_HZ = 10.0
 #: One capture every this many ticks, from the two rates above. At the
 #: sandbox's 50 Hz control that is every fifth tick.
 CAPTURE_EVERY = round(CONTROL_HZ / CAPTURE_HZ)
+
+
+def _nothing() -> np.ndarray:
+    """An array that carries no reading. *Not captured*, distinct from zero.
+
+    A default for a record's optional arrays: a test builds one by hand to
+    exercise a mark it is not about, and a hand-built record that defaulted to
+    zeros would say the graph agreed on every edge -- the calmest thing the
+    panel can draw, asserted by nobody.
+    """
+    return np.zeros(0)
 
 
 class EventKind(str, Enum):
@@ -120,15 +142,16 @@ class Event:
 # __eq__ would raise rather than compare.
 @dataclass(frozen=True, eq=False)
 class TickRecord:
-    """One captured tick. The contract, plus two arrays, plus what fired.
+    """One captured tick. The contract, plus the arrays, plus what fired.
 
-    Rows of both arrays are indexed by :attr:`~patchworks.graph.Dome.predicting`
-    -- the predicting population, in the order the biases are indexed by.
-    Boundary cells are absent from both on purpose: they run no body and make
-    no prediction (ADR-0006), so a prediction error for one would be a
-    fabrication, and the marks the panel gives them are drawn from edge
-    disagreement instead (`docs/spec/10-the-demo-surface.md`, *The boundary
-    band*).
+    Rows of the two **cell** arrays are indexed by
+    :attr:`~patchworks.graph.Dome.predicting` -- the predicting population, in
+    the order the biases are indexed by. Boundary cells are absent from both on
+    purpose: they run no body and make no prediction (ADR-0006), so a prediction
+    error for one would be a fabrication, and the marks the panel gives them are
+    drawn from :attr:`disagreement` instead
+    (`docs/spec/10-the-demo-surface.md`, *The boundary band*). That array is
+    indexed by edge, not by cell, and is the whole of what a boundary cell has.
     """
 
     tick: int
@@ -153,6 +176,38 @@ class TickRecord:
     private component is the node-stalk directions masked out on every incident
     edge, known at construction, so this is a fixed projection computed per
     tick (`docs/spec/05-timescales.md`, *Demonstrating it*)."""
+
+    disagreement: np.ndarray = field(default_factory=_nothing, kw_only=True)
+    """`[edges]`: the magnitude of each edge's disagreement, indexed by
+    :attr:`~patchworks.graph.Dome.edges` rather than by cell -- disagreement is
+    edge-owned and spatial where prediction error is cell-owned and temporal
+    (`CONTEXT.md`), and an edge has two ends with no reason to prefer one.
+
+    This is what every mark a **boundary cell** gets is drawn from
+    (`docs/spec/10-the-demo-surface.md`, *The somatomotor strip*, *The drive
+    mark*, *Edges: thresholded, and off by default*). Raw, like the prediction
+    error beside it, and for the same reason: the panel normalises against a
+    mark's own running statistics, and a record that had already done it could
+    not also serve the raw map.
+
+    Empty when a record was built without one -- **no disagreement was
+    captured**, and the panel then draws no mark that would need it rather than
+    a calm one. A record from :meth:`Recorder.observe` always carries it."""
+
+    actuator: np.ndarray = field(default_factory=_nothing, kw_only=True)
+    """`[2, joints]`: the actuator boundary cell's own node stalk, decomposed --
+    row 0 the **commanded** components the world read, row 1 the **applied**
+    ones it wrote back, post-clip and post-saturation.
+
+    `04-action-and-the-boundary.md`'s efference copy, as the cell holds it: not
+    a second reading of the torque taken from the engine, but the six numbers
+    that make the motor edge carry ordinary disagreement rather than being the
+    one edge with none. The panel draws them paired, commanded as an outline and
+    applied as a fill (`10-the-demo-surface.md`, *The somatomotor strip*), so a
+    saturating command reads as the fill falling short of its outline.
+
+    Empty when a record was built without one, exactly as
+    :attr:`disagreement` is."""
 
     events: tuple[Event, ...] = ()
     """The markers that fired since the previous capture, in the order they
@@ -221,6 +276,8 @@ class Trace(Sequence[TickRecord]):
             ).reshape(len(records), 2),
             prediction_error=_stack([r.prediction_error for r in records]),
             private_delta=_stack([r.private_delta for r in records]),
+            disagreement=_stack([r.disagreement for r in records]),
+            actuator=_stack([r.actuator for r in records]),
             rng=np.asarray(json.dumps([r.state.rng for r in records])),
             events=np.asarray(
                 json.dumps(
@@ -255,6 +312,8 @@ class Trace(Sequence[TickRecord]):
             goal = stored["goal"]
             prediction_error = stored["prediction_error"]
             private_delta = stored["private_delta"]
+            disagreement = stored["disagreement"]
+            actuator = stored["actuator"]
         records = []
         for i, tick in enumerate(ticks):
             state = np.array(physics[i])
@@ -277,6 +336,8 @@ class Trace(Sequence[TickRecord]):
                     ),
                     prediction_error=np.array(prediction_error[i]),
                     private_delta=np.array(private_delta[i]),
+                    disagreement=np.array(disagreement[i]),
+                    actuator=np.array(actuator[i]),
                     events=tuple(
                         Event(EventKind(kind), int(at), tuple(detail))
                         for kind, at, detail in events[i]
@@ -408,9 +469,9 @@ class Recorder:
 
         **What runs every tick and what runs on a capture** is the whole of
         the live budget. `‖Δ private‖` is a difference between consecutive
-        ticks and has to be taken on all of them; prediction error is a
-        quantity of the tick it is read on, so it waits until there is a
-        record to put it in.
+        ticks and has to be taken on all of them; prediction error, edge
+        disagreement and the actuator's two rows are quantities of the tick they
+        are read on, so they wait until there is a record to put them in.
 
         Prediction error is **read**, not recomputed. The bias rule's
         :func:`~patchworks.learning.prediction_error` re-runs the cell's
@@ -447,12 +508,29 @@ class Recorder:
             if ticks % self.every and not self._pending:
                 return None
             error = (sheaf.prediction - sheaf.evidence()).norm(dim=-1)
+            # Derived from what both ends broadcast this tick, which is what
+            # `Sheaf.disagreement` is for: the panel's boundary marks read the
+            # magnitude per edge, so the `m_max` axis goes here rather than in
+            # the record. Rows past an edge's own `m` are zero and contribute
+            # nothing to the norm.
+            disagreement = sheaf.disagreement().norm(dim=-1)
+            # The actuator's own stalk, decomposed. Read *after* the whole tick,
+            # so the commanded half is what the world read this tick and the
+            # efference half is what it wrote back having clipped it -- the two
+            # halves of one tick's efference copy rather than a command paired
+            # with the previous tick's answer. `stack` allocates, so neither row
+            # is a view on the flat buffer for the next tick to move.
+            commanded = self.agent.commanded
+            stalk = sheaf.stalk(self.agent.actuator_cell)
+            actuator = torch.stack((stalk[:commanded], stalk[commanded:]))
 
         record = TickRecord(
             tick=ticks,
             state=snapshot(self.agent.env),
             prediction_error=error.numpy(),
             private_delta=delta.numpy(),
+            disagreement=disagreement.numpy(),
+            actuator=actuator.numpy(),
             events=tuple(self._pending),
         )
         self._pending.clear()
