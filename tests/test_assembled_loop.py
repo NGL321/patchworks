@@ -2,12 +2,19 @@
 
 **This asserts assembly, and nothing else.** The whole tick runs here for the
 first time with the adapting surface actually moving under it — the world, the
-two phases of `docs/spec/02-tick-semantics.md`, the bias rule and the transport
-rule, in the order `docs/spec/07-local-learning-rule.md` puts them in — and the
-only questions asked of it are *did it complete*, *did both rules move the
-adapting surface at all*, and *is anything non-finite*. The middle one is there
-because a rule that had quietly become a no-op would satisfy the other two, and
-it is asked with `torch.equal` so that the answer carries no magnitude.
+two phases of `docs/spec/02-tick-semantics.md`, and then both halves of the
+local learning rule as the separate phase `docs/spec/09-the-build-stack.md` §2
+makes them. The order that file fixes is the one between the tick and the
+rules, which #88 named and which this loop is written to stand on. It fixes no
+order *between* the two rules, and this file does not need one: the bias rule
+writes only the biases and the transport rule only the maps, off arrays the
+tick already left behind.
+
+The only questions asked of the loop are *did it complete*, *did both rules
+move the adapting surface at all*, and *is anything non-finite*. The middle one
+is there because a rule that had quietly become a no-op would satisfy the other
+two; it is asked as a bare inequality on the biases, and on the maps against a
+floor that is float32's rounding rather than any magnitude worth naming.
 
 Nothing here is a result. There is no claim about the magnitude, direction or
 trend of any learned quantity, nothing about learning, convergence, timescales
@@ -39,12 +46,19 @@ from patchworks.graph import DomeSpec, build_graph
 from patchworks.learning import BiasRule, SparsityAnneal, TransportRule
 from patchworks.sandbox import PlanarPushSandbox
 
-#: The same small dome `tests/test_learning.py`, `tests/test_transport_rule.py`
-#: and `tests/test_perturbation.py` run on: 39 cells, 15 of them predicting, 54
-#: edges, built by the same rules as the real one. The full dome is not the
+#: The small dome the learning tests run on: 39 cells, 15 of them predicting,
+#: 54 edges, built by the same rules as the real one. The full dome is not the
 #: point here — every seam this exercises is present at this size, and runtime
 #: is a hard constraint rather than a preference, since this stands in CI on
 #: every push.
+#:
+#: This is the **fourth** copy of the literal, after `tests/test_learning.py`,
+#: `tests/test_transport_rule.py` and `tests/test_perturbation.py`, and nothing
+#: holds the four in step: retuning one leaves the others on the old dome
+#: silently, and `tests/test_perturbation.py`'s hardcoded cell indices are
+#: derived from this exact spec. One `SMALL` in a `tests/conftest.py` would fix
+#: that; it is not done here because it edits three files #105 has no business
+#: touching while other tickets are in flight.
 SMALL = DomeSpec(
     patch_grid=4,
     vision_sides=(2,),
@@ -141,12 +155,25 @@ def test_the_assembled_loop_runs_with_both_rules_on(agent):
     # that had become a silent no-op -- `argnums` mis-scoped to something that
     # is not the adapting surface, the **missing** gradient the `torch.func`
     # idiom was chosen to fail towards -- would leave this test green while the
-    # loop it exists to assemble did nothing. Compared with `torch.equal`, so
-    # the claim is that the surface moved and not that it moved by anything in
-    # particular: no threshold, no direction, no trend.
+    # loop it exists to assemble did nothing. Both mutations were planted and
+    # both are caught here.
+    #
+    # The biases are compared with `torch.equal`, so the claim is that they
+    # moved and not that they moved by anything in particular.
     for name, parameter in agent.sheaf.biases.named_parameters():
         assert not torch.equal(parameter, initial_biases[name]), name
-    assert not torch.equal(agent.sheaf.maps.maps, initial_maps)
+    # **The maps cannot be**, and the reason is worth stating because it is
+    # invisible: `RestrictionMaps` scales each map to `INITIAL_NORM` at
+    # construction, which in float32 lands a bit short of exactly 1, so the
+    # gauge projection's own rescale rewrites the pinned maps' last bit
+    # (measured: `6e-8`, on 8 of this dome's 108 endpoints, and it does not
+    # accumulate). `project()` runs after every transport step, so bare
+    # inequality would be satisfied by that noise alone and a transport rule
+    # whose gradient never landed would pass -- planted and confirmed. `1e-4`
+    # is a **noise floor** rather than a magnitude: four orders above the
+    # projection's last bit and three and a half below what this run actually
+    # moves, so it says only that something other than rounding happened.
+    assert (agent.sheaf.maps.maps - initial_maps).abs().max() > 1e-4
 
     # Finite, and that is the whole of what is asked. The ticket names the
     # biases, the restriction maps and the node stalks; the charts are here as
