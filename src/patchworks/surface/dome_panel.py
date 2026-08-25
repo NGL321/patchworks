@@ -322,8 +322,18 @@ def measured_persistence(
 
     The trajectory is the rig's plausible one rather than the run's own -- there
     is no message stream to drive the body with from out here -- which is what
-    `05-timescales.md` specifies its estimator over, and `generator` is what
-    makes it repeatable.
+    `05-timescales.md` specifies its estimator over, and `generator` is what it
+    is drawn with.
+
+    **It never draws from the global RNG**, which is #77's standing constraint
+    rather than a nicety: *switching the surface off must change no trajectory*.
+    `measure` draws `(burn_in + ticks + 1)` batches of normals, so taking the
+    default generator would advance the process-wide stream and a later
+    `Sheaf(dome)` or `Agent(env, dome=dome)` built without one of its own would
+    get **different parameters** because a panel was opened. So `generator=None`
+    means a private :class:`torch.Generator`, not the global one. A fresh
+    generator's seed is fixed, so the default is repeatable as well as
+    inert -- pass one only to draw a different trajectory.
 
     **A cell with no persistence at all is refused rather than clamped.** An
     expansive region has no `tau` -- `tau = -1/ln rho` does not exist at `rho >=
@@ -347,7 +357,11 @@ def measured_persistence(
     notice doing its job rather than failing to clear.
     """
     measurement = measure(
-        sheaf.body, sheaf.biases, ticks=ticks, burn_in=burn_in, generator=generator
+        sheaf.body,
+        sheaf.biases,
+        ticks=ticks,
+        burn_in=burn_in,
+        generator=torch.Generator() if generator is None else generator,
     )
     usable = measurement.finite & (measurement.rho_median < 1.0)
     if not bool(usable.all()):
@@ -413,7 +427,7 @@ class DomePanel:
         self.dome = dome
         self.layout = BandLayout(dome, pitch=pitch)
         cells = len(dome.predicting)
-        values = np.asarray(persistence, dtype=np.float64).reshape(-1)
+        values = np.array(persistence, dtype=np.float64).reshape(-1)
         if values.shape != (cells,):
             raise ValueError(
                 f"the trail decays at one measured persistence per predicting cell, "
@@ -426,7 +440,11 @@ class DomePanel:
                 "a measured persistence is a positive, finite number of ticks; got "
                 f"min {values.min()}, max {values.max()}"
             )
-        #: `[predicting cells]` ticks, in `dome.predicting` order.
+        #: `[predicting cells]` ticks, in `dome.predicting` order. A copy, and
+        #: read-only: it is validated once here, and a caller who could still
+        #: reach the array afterwards could put a negative number in it and turn
+        #: the trail's `exp(-elapsed / tau)` into growth without decay.
+        values.flags.writeable = False
         self.persistence = values
         self._raw = bool(raw)
 
@@ -440,9 +458,13 @@ class DomePanel:
         self._mean = np.zeros(cells)
         self._m2 = np.zeros(cells)
         self._glow = np.zeros(cells)
+        # The ticks a cell's *own* readings span, so a cell that was not a
+        # number for a long stretch does not inherit the run's span. -1 is "no
+        # reading yet"; both move only on a tick this cell was readable.
+        self._first_read = np.full(cells, -1, dtype=np.int64)
+        self._last_read = np.full(cells, -1, dtype=np.int64)
         self._no_reading = np.zeros(cells, dtype=bool)
         self._raw_scale = 0.0
-        self._first_tick: int | None = None
         self._last_tick: int | None = None
         self._closed = False
 
@@ -522,10 +544,17 @@ class DomePanel:
         The condition is read off the record's own tick counter, so a decimated
         capture warms up in the same number of *ticks* as an undecimated one,
         with fewer samples in it.
+
+        **The span is the cell's own readings, not the panel's ticks.** A cell
+        whose prediction error was not a number for most of the run has not been
+        watched for that stretch, and counting it would hand a slow cell a
+        baseline built from the two readings either side of a long silence --
+        the pretending this notice exists to prevent, in exactly the
+        recovering-from-divergence case the panel is built to show.
         """
-        if self._first_tick is None or self._last_tick is None:
-            return np.zeros(len(self.persistence), dtype=bool)
-        spanned = float(self._last_tick - self._first_tick)
+        spanned = np.where(
+            self._first_read >= 0, self._last_read - self._first_read, -1
+        ).astype(np.float64)
         return (self._seen >= 2) & (spanned >= self.persistence)
 
     @property
@@ -646,7 +675,6 @@ class DomePanel:
             )
         if self._last_tick is None:
             elapsed = 0.0
-            self._first_tick = record.tick
         elif record.tick <= self._last_tick:
             raise ValueError(
                 f"this panel last drew tick {self._last_tick} and was handed "
@@ -662,6 +690,14 @@ class DomePanel:
         # kept out of its own statistics, out of the maps' scales and out of the
         # glow, and it is drawn in its own colour instead of on the colormap.
         self._no_reading = ~np.isfinite(error)
+        # The ticks this cell's own readings span, which is what its baseline is
+        # measured against: a stretch it was not a number for is a stretch the
+        # statistics did not watch it.
+        read = ~self._no_reading
+        self._first_read = np.where(
+            read & (self._first_read < 0), record.tick, self._first_read
+        )
+        self._last_read = np.where(read, record.tick, self._last_read)
         readable = self._observe(error)
         value = self._raw_value(readable) if self.raw else self._normalised(readable)
         self._glow = np.maximum(self._glow * np.exp(-elapsed / self.persistence), value)
@@ -744,10 +780,19 @@ class DomePanel:
         for. It is the largest prediction error seen anywhere so far rather than this
         tick's largest, so a quiet tick does not rescale the dome under the
         viewer; :meth:`_observe` keeps it, and keeps the trail on it.
+
+        **A cell with no reading reaches zero here**, so that it is kept out of
+        the glow as the normalised map already keeps it. :meth:`_observe` hands
+        back such a cell standing at its own mean, which is *nothing happened
+        here* on a map read against that mean -- but on this one a mean is a
+        positive raw norm, and feeding it to the trail would pin a diverged
+        cell's glow at a constant forever instead of letting it decay. A
+        permanently diverged cell would then be drawn, on recovery, from a
+        brightness it never produced.
         """
         if self._raw_scale <= 0.0:
             return np.zeros_like(error)
-        return error / self._raw_scale
+        return np.where(self._no_reading, 0.0, error / self._raw_scale)
 
     # -- pixels ------------------------------------------------------------
 

@@ -869,3 +869,100 @@ class TestOneRendererOverATickRecord:
         assert len(drawn) == len(again) > 0
         for i, (left, right) in enumerate(zip(drawn, again)):
             assert np.array_equal(left, right), f"frame {i}"
+
+
+class TestTheFourWaysThePanelCouldHaveFlatteredUs:
+    """One test per finding of #93's review, each one red before its fix.
+
+    Grouped because they are one class of defect rather than four unrelated
+    ones: each is the panel claiming something it had not earned -- a baseline
+    it had not watched for, a trail it had not been fed, a persistence it had
+    validated and then let go of, and a measurement it took out of the run's
+    own random stream.
+    """
+
+    def test_a_cell_that_read_nothing_for_most_of_the_run_is_still_warming_up(
+        self, small
+    ):
+        """A cell's baseline spans that cell's readings, not the panel's ticks.
+
+        Recovering from divergence is the case this panel exists to show, and
+        the notice clearing early would colour a slow cell against a two-sample
+        baseline -- the pretending `10-the-demo-surface.md` rules out.
+        """
+        cells = len(small.predicting)
+        panel = DomePanel(small, np.full(cells, 100.0))
+        rng = np.random.default_rng(11)
+        for tick in range(1, 300):
+            error = np.abs(rng.standard_normal(cells)) + 1.0
+            error[0] = np.nan
+            panel.frame(record(tick, error))
+        # Every other cell has been read for 299 ticks and has a baseline.
+        assert panel.baseline[1:].all()
+        assert not panel.baseline[0]
+        for tick in (300, 301):
+            panel.frame(record(tick, np.abs(rng.standard_normal(cells)) + 1.0))
+        assert panel.spread[0] > 0.0, "two readings, so it does have a spread"
+        assert not panel.baseline[0], "but two readings are not 100 ticks of watching"
+        assert panel.warming_up == 1
+
+    def test_a_diverged_cells_trail_decays_on_the_raw_map_too(self, small):
+        """No reading is kept out of the glow on both maps, not just one.
+
+        On the raw map a cell standing at its own mean is a positive raw norm,
+        and feeding that to the trail would pin a diverged cell's glow at a
+        constant forever -- and draw it, on recovery, from a brightness it
+        never produced.
+        """
+        cells = len(small.predicting)
+        panel = DomePanel(small, np.full(cells, 5.0), raw=True)
+        error = np.zeros(cells)
+        error[0], error[1] = 1.0, 10.0
+        panel.frame(record(0, error))
+        assert panel.glow[0] == pytest.approx(0.1)
+        gone = error.copy()
+        gone[0] = np.nan
+        for tick in range(1, 61):
+            panel.frame(record(tick, gone))
+        # Pinned at 0.1 before the fix; now the plain exponential it should be.
+        assert panel.glow[0] == pytest.approx(0.1 * np.exp(-60.0 / 5.0), rel=1e-9)
+        assert panel.glow[0] < 1e-6
+        assert panel.no_reading[0]
+
+    def test_the_persistence_is_not_the_callers_array_to_change(self, small):
+        """Validated once, so it must not still be reachable to invalidate.
+
+        A negative persistence turns `exp(-elapsed / tau)` into growth without
+        decay -- a trail that brightens on its own, past the check that exists
+        to refuse it.
+        """
+        cells = len(small.predicting)
+        mine = np.full(cells, 5.0)
+        panel = DomePanel(small, mine)
+        mine[:] = -1.0
+        assert np.all(panel.persistence == 5.0)
+        with pytest.raises(ValueError):
+            panel.persistence[0] = -1.0
+
+    def test_measuring_the_persistence_does_not_touch_the_global_rng(
+        self, small_sheaf
+    ):
+        """#77: switching the surface off must change no trajectory.
+
+        `measure` draws a batch of normals per tick of its trajectory. Taken
+        from the global stream, opening a panel would change the parameters of
+        every `Sheaf` or `Agent` built after it without a generator of its own.
+        """
+        torch.manual_seed(1234)
+        expected = torch.randn(3)
+
+        torch.manual_seed(1234)
+        measured_persistence(small_sheaf, ticks=8, burn_in=2)
+        assert torch.equal(torch.randn(3), expected)
+
+    def test_the_default_measurement_is_repeatable(self, small_sheaf):
+        """A private generator's seed is fixed, so inert does not cost repeatable."""
+        first = measured_persistence(small_sheaf, ticks=8, burn_in=2)
+        torch.manual_seed(99)
+        second = measured_persistence(small_sheaf, ticks=8, burn_in=2)
+        assert np.array_equal(first, second)
