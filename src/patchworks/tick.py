@@ -243,9 +243,13 @@ class Sheaf:
         # numbers, long after the fact.
         #
         # Last of the three refusals rather than first, though it is the only
-        # one that needs nothing drawn to decide: a surface built for another
-        # graph is the mistake that actually costs something, and a caller who
-        # made both should hear about that one now rather than on a second run.
+        # one that needs nothing drawn to decide. The two above it are mistakes
+        # that actually cost something -- a surface built for another graph
+        # would read the wrong components rather than fail, and biases sized
+        # against another population are wrong about this dome -- whereas an
+        # inert generator only wastes an argument. A caller who made both
+        # should hear the costly one now rather than on a second run. Both
+        # orderings are pinned in tests/test_tick.py::TestAnInertGenerator.
         #
         # **#106's rule does not transfer verbatim, and that is worth knowing.**
         # There it reads *nothing in this constructor consumes a construction

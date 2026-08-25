@@ -598,6 +598,25 @@ class TestAnInertGenerator:
                 generator=torch.Generator().manual_seed(0),
             )
 
+    def test_biases_for_the_wrong_population_are_also_said_first(self, dome):
+        # The other refusal the generator has to stay behind. Same reasoning:
+        # biases sized against another population are a real mistake with a
+        # real cost, and an inert generator is a wasted argument -- so the
+        # costly one is what a caller who made both hears about. Pinned
+        # separately from the dome case above, because the two checks sit at
+        # different points and moving the generator's check up past only this
+        # one would leave the dome test green.
+        with pytest.raises(ValueError, match="predicting cells"):
+            Sheaf(
+                dome,
+                body=SUPPLY["body"](dome),
+                biases=CellBiases(
+                    dome.shape, len(dome.predicting) + 1, generator=_seeded()
+                ),
+                maps=SUPPLY["maps"](dome),
+                generator=torch.Generator().manual_seed(0),
+            )
+
     def test_all_three_without_a_generator_is_the_ordinary_prepared_call(self, dome):
         # Nothing is drawn and nothing was asked to be, so there is nothing to
         # refuse: handing over a fully prepared surface stays legal.
@@ -621,8 +640,13 @@ class TestAnInertGenerator:
             )
 
         one, again, other = build(7), build(7), build(8)
-        for name, read in DRAWN.items():
+        # Walked over `SUPPLY` rather than `DRAWN`, so that a fourth piece
+        # added to the one and not the other is a `KeyError` here. Iterating
+        # `DRAWN` would instead widen the parametrisation to cover the new
+        # piece and quietly assert nothing about it.
+        for name in SUPPLY:
             if name in supplied:
                 continue
+            read = DRAWN[name]
             assert torch.equal(read(one), read(again))
             assert not torch.equal(read(one), read(other))
