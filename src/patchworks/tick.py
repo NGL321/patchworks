@@ -72,25 +72,32 @@ DEFAULT_GAMMA = 1.0
 
 
 def _would_be_misread(gamma: object) -> bool:
-    """`True` for a scalar that coerces to a float but means something else.
+    """`True` for a value that coerces to a float but means something else.
 
-    `float(True)` is `1.0`, and `numpy.complex128(0.5 + 3j)` narrows to `0.5`
-    behind a warning. So a config carrying `gamma = true`, or a `γ` read out of
-    a complex array, would otherwise run a whole sweep point at a number nobody
-    chose and say nothing. Python's own `bool` needs no unwrapping; numpy's
-    `bool_`, a boolean tensor and the complex containers are the same mistakes
-    wearing this stack's boxes, and all of them unwrap through the `item()`
-    every scalar here shares. Anything `item()` refuses is not a scalar at all,
-    and the coercion below is the one to say so.
+    `float(True)` is `1.0`, `numpy.complex128(0.5 + 3j)` narrows to `0.5`
+    behind a warning, and `float("0.5")` parses. So a config carrying
+    `gamma = true`, a `γ` read out of a complex array, and a grid read off a
+    CSV as text would each otherwise run a whole sweep point at a number
+    nobody chose, or at a rule nobody stated, and say nothing.
+
+    **This is the unwrapping half of the rule.** Python's own `bool` and `str`
+    need none; numpy's `bool_`, `str_`, a boolean tensor and the complex boxes
+    are the same mistakes wearing this stack's containers, and all of them come
+    out through the `item()` every scalar here shares. Anything `item()`
+    refuses is not a scalar at all, and the coercion below is the one to say
+    so.
     """
     try:
         unwrapped = gamma.item() if hasattr(gamma, "item") else gamma
-    except (RuntimeError, TypeError, ValueError):
+    except Exception:
+        # Whatever a stand-in for a value does when asked for one, it is not
+        # this function's to diagnose: fall through to the coercion, which
+        # refuses in the rule's own words.
         return False
     # `float` is not a `complex` subclass — that relation holds in the
     # `numbers` tower, not between the built-in types — so this refuses the
     # complex ones without touching an ordinary `γ`.
-    return isinstance(unwrapped, (bool, complex))
+    return isinstance(unwrapped, (bool, complex, str, bytes, bytearray))
 
 
 def _shown(gamma: object) -> str:
@@ -104,8 +111,12 @@ def _shown(gamma: object) -> str:
     """
     try:
         shown = repr(gamma)
-    except ValueError:
-        return f"<a {type(gamma).__name__} too long to quote>"
+    except Exception:
+        # `repr` of an integer over 4300 digits raises, and a config proxy
+        # standing in for an absent value can raise anything at all. Neither
+        # is allowed to become the exception the caller sees: this is the
+        # refusal path, and losing the diagnosis here loses it entirely.
+        return f"<a {type(gamma).__name__} that cannot be quoted>"
     return shown if len(shown) <= 60 else f"{shown[:57]}..."
 
 

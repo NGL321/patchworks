@@ -552,8 +552,26 @@ class TestTheGammaASheafIsBuiltWith:
 
     @pytest.mark.parametrize(
         "gamma",
-        [None, "0.5", b"0.5", bytearray(b"0.5"), memoryview(b"0.5"), (0.5,), object()],
-        ids=["none", "string", "bytes", "bytearray", "memoryview", "tuple", "object"],
+        [
+            None,
+            "0.5",
+            np.str_("0.5"),
+            b"0.5",
+            bytearray(b"0.5"),
+            memoryview(b"0.5"),
+            (0.5,),
+            object(),
+        ],
+        ids=[
+            "none",
+            "string",
+            "numpy str_",
+            "bytes",
+            "bytearray",
+            "memoryview",
+            "tuple",
+            "object",
+        ],
     )
     def test_a_gamma_that_is_not_a_number_is_refused_before_the_draws(
         self, dome, drawn, gamma
@@ -632,6 +650,18 @@ class TestTheGammaASheafIsBuiltWith:
         with pytest.raises(ValueError, match="gamma"):
             Sheaf(dome, gamma=gamma)
         assert drawn == []
+
+    def test_a_value_that_will_not_be_quoted_is_still_refused_by_the_rule(self, dome):
+        # A config proxy standing in for an absent value raises on access, and
+        # the access a refusal makes is `repr`. Losing the diagnosis to that
+        # would lose it on the one path that was producing it.
+
+        class RefusesToBeQuoted:
+            def __repr__(self):
+                raise RuntimeError("this value does not care to be quoted")
+
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=RefusesToBeQuoted())
 
     def test_an_integer_too_long_to_print_is_still_refused_by_the_rule(self, dome):
         # `repr` of an integer over 4300 digits raises `ValueError` itself, so
