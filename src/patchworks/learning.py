@@ -49,6 +49,8 @@ holds no per-cell or per-edge state of its own — the step is
 
 from __future__ import annotations
 
+import math
+
 import torch
 from torch.func import functional_call, grad
 
@@ -121,8 +123,17 @@ class ForwardPath(torch.nn.Module):
         a node on the ambient tape. Nothing is lost by it: `grad` differentiates
         what `argnums` **names**, not what happens to carry `requires_grad`,
         which is the property this whole idiom is chosen for.
+
+        Cloned as well as detached. `Tensor.detach` returns a tensor **sharing
+        storage** with the original, so an in-place write through what this
+        hands back would reach the live `nn.Parameter` -- the running adapting
+        surface -- while leaving a perfectly clean tape. That is precisely the
+        leak class #90's perturbation test exists to catch and the tape
+        assertion cannot see, so this function does not manufacture one.
         """
-        return {name: value.detach() for name, value in self.named_parameters()}
+        return {
+            name: value.detach().clone() for name, value in self.named_parameters()
+        }
 
 
 def prediction_error(
@@ -175,7 +186,7 @@ class BiasRule:
     def __init__(
         self, sheaf: Sheaf, *, learning_rate: float = DEFAULT_LEARNING_RATE
     ) -> None:
-        if learning_rate <= 0:
+        if not 0.0 < learning_rate < math.inf:
             raise ValueError(
                 "the learning rate is a single positive global scalar "
                 "(docs/spec/07-local-learning-rule.md, Permitted global signals); "
@@ -197,8 +208,22 @@ class BiasRule:
         out. "Over detached inputs" is a claim about what this phase reads, and
         a claim nothing checks at the boundary it is made about is a convention
         rather than a guarantee.
+
+        A sheaf that has never ticked is refused for the same reason. Its
+        `prior_charts` and `prior_evidence` are zeros, which are a perfectly
+        well-formed record of nothing -- so `rule.step(); agent.tick()`, or a
+        step straight after `observe()`, would descend on a fabricated pair
+        and report a gradient rather than a mistake.
         """
         sheaf = self.sheaf
+        if sheaf.ticks == 0:
+            raise ValueError(
+                "the bias rule needs a tick to learn from: `prior_charts` and "
+                "`prior_evidence` are still the zero placeholders a fresh Sheaf "
+                "is built with, so descending on them would train against a "
+                "record that never happened. Run a tick first -- note the order "
+                "is `agent.tick(); rule.step()`, not the reverse"
+            )
         sheaf.assert_no_tape()
         return bias_gradient(
             self.path.bias_parameters(),

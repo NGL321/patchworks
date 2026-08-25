@@ -357,10 +357,52 @@ class TestOneGlobalLearningRate:
     def test_the_default_is_positive_and_small(self):
         assert 0 < DEFAULT_LEARNING_RATE < 1
 
-    @pytest.mark.parametrize("learning_rate", [0.0, -1e-3])
+    @pytest.mark.parametrize(
+        "learning_rate", [0.0, -1e-3, float("nan"), float("inf"), float("-inf")]
+    )
     def test_a_non_positive_learning_rate_is_refused(self, sheaf, learning_rate):
+        # nan and inf among them: `learning_rate <= 0` admits both, and a nan
+        # rate silently poisons every bias on the first step. The bound is
+        # written in `reconciliation_gain`'s shape, which refuses them by
+        # comparing rather than by testing.
         with pytest.raises(ValueError, match="global scalar"):
             BiasRule(sheaf, learning_rate=learning_rate)
+
+
+class TestTheRuleRefusesARecordThatNeverHappened:
+    """A fresh Sheaf's prior chart and evidence are zeros, which are a
+    well-formed record of nothing. Descending on them reports a gradient
+    rather than a mistake, so the rule refuses a sheaf that has not ticked."""
+
+    def test_a_step_before_the_first_tick_is_refused(self, sheaf):
+        with pytest.raises(ValueError, match="needs a tick to learn from"):
+            BiasRule(sheaf).gradient()
+
+    def test_the_wrong_order_is_refused_rather_than_silently_wrong(self, sheaf):
+        # `rule.step(); agent.tick()` is the loop this exists to catch.
+        with pytest.raises(ValueError, match="needs a tick to learn from"):
+            BiasRule(sheaf).step()
+
+    def test_one_tick_is_enough(self, sheaf):
+        sheaf.tick()
+        BiasRule(sheaf).gradient()
+
+
+class TestTheParametersHandedToTheTransformAreACopy:
+    def test_bias_parameters_do_not_share_storage_with_the_live_surface(
+        self, running
+    ):
+        # `Tensor.detach` shares storage, so without the clone an in-place
+        # write through this dict reaches the running adapting surface while
+        # leaving a clean tape -- the leak class #90 exists to catch and the
+        # tape assertion cannot see.
+        path = BiasRule(running).path
+        handed = path.bias_parameters()
+        live = dict(path.named_parameters())
+        for name, value in handed.items():
+            before = live[name].detach().clone()
+            value.add_(1.0)
+            assert torch.equal(live[name].detach(), before), name
 
 
 class TestTheGuard:
