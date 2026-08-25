@@ -18,7 +18,7 @@ import torch
 from patchworks.agent import DRIVE_ASSERTION, PIXEL_SCALE, Agent, run
 from patchworks.graph import CellKind, build_graph
 from patchworks.sandbox import PlanarPushSandbox
-from patchworks.tick import Sheaf
+from patchworks.tick import DEFAULT_GAMMA, Sheaf
 
 TICKS = 250
 
@@ -268,6 +268,100 @@ class TestTheSensoryTiling:
                 Agent(small, dome=dome)
         finally:
             small.close()
+
+
+class TestTheSheafsConstructionArguments:
+    """`gamma` and `generator` build a sheaf, so a supplied sheaf refuses them (#106).
+
+    The stake is `gamma` specifically: it is the constant #85 leaves provisional
+    and the one a sweep varies, and `Agent(env, sheaf=prepared, gamma=x)` that
+    quietly ran at the default would report clean numbers for the wrong `γ`.
+    """
+
+    def test_a_sheaf_and_a_gamma_is_refused_rather_than_ignored(self, env, dome):
+        # Anchored on the leading token, because the refusal has to name the
+        # argument it was handed rather than merely mention it in its advice.
+        with pytest.raises(ValueError, match=r"^gamma belongs") as refusal:
+            Agent(env, sheaf=Sheaf(dome), gamma=0.123)
+        # Where it belongs instead, named: the sweep's fix is to build the
+        # sheaf with the gamma it wants, not to keep looking for an Agent knob.
+        assert "Sheaf" in str(refusal.value)
+        assert "generator" not in str(refusal.value)
+
+    def test_a_gamma_equal_to_the_default_is_refused_too(self, env, dome):
+        # The mistake is asking the Agent to set it, not the value asked for.
+        # A caller who writes the default explicitly is sweeping like any
+        # other, and letting exactly `1.0` through would hide the one point of
+        # a sweep that happens to sit on it.
+        with pytest.raises(ValueError, match=r"^gamma belongs"):
+            Agent(env, sheaf=Sheaf(dome), gamma=DEFAULT_GAMMA)
+
+    def test_a_gamma_of_none_is_refused_too(self, env, dome):
+        # `Agent(env, sheaf=prepared, gamma=cfg.gamma)` with a config that says
+        # `None` for "the default" is asking for `DEFAULT_GAMMA` and would get
+        # the sheaf's own -- the same wrong constant, arrived at more quietly.
+        # Mentioning gamma at all alongside a sheaf is the error.
+        with pytest.raises(ValueError, match=r"^gamma belongs"):
+            Agent(env, sheaf=Sheaf(dome), gamma=None)
+
+    def test_a_sheaf_and_a_generator_is_refused_on_the_same_grounds(self, env, dome):
+        # The decision #106 left open. A supplied sheaf is already drawn, so
+        # nothing is left to seed and a run whose author believes it is
+        # reproducible is not.
+        with pytest.raises(ValueError, match=r"^generator belongs") as refusal:
+            Agent(env, sheaf=Sheaf(dome), generator=torch.Generator().manual_seed(0))
+        assert "Sheaf" in str(refusal.value)
+        assert "gamma" not in str(refusal.value)
+
+    def test_a_sheaf_and_no_generator_is_not_a_generator(self, env, dome):
+        # `None` is torch's own "no generator", so writing it out asks for
+        # nothing and there is nothing to refuse. The sentinel is `gamma`'s
+        # alone, because `None` is not a `γ` a caller could have meant.
+        sheaf = Sheaf(dome)
+        assert Agent(env, sheaf=sheaf, generator=None).sheaf is sheaf
+
+    def test_the_refusal_names_every_argument_it_was_handed(self, env, dome):
+        with pytest.raises(ValueError, match=r"^gamma and generator belong"):
+            Agent(
+                env,
+                sheaf=Sheaf(dome),
+                gamma=0.123,
+                generator=torch.Generator().manual_seed(0),
+            )
+
+    def test_a_sheaf_alone_keeps_its_own_gamma(self, env, dome):
+        prepared = Sheaf(dome, gamma=0.25)
+        built = Agent(env, sheaf=prepared)
+        assert built.sheaf.gamma == 0.25
+
+    def test_a_gamma_of_none_with_no_sheaf_is_the_sheafs_business(self, env, dome):
+        # The sentinel is the only thing read as "not given"; `None` is a
+        # value, and whether a value is a legal `γ` is Sheaf's rule, asked in
+        # one place. Reading `None` as "the default" here would be a second
+        # answer to the same question and would send a caller who followed the
+        # refusal's advice to `Sheaf(dome, gamma=None)`, which does not agree.
+        with pytest.raises(TypeError):
+            Agent(env, dome=dome, gamma=None)
+        with pytest.raises(TypeError):
+            Sheaf(dome, gamma=None)
+
+    def test_a_gamma_with_no_sheaf_reaches_the_sheaf_that_gets_built(self, env, dome):
+        built = Agent(env, dome=dome, gamma=0.25)
+        assert built.sheaf.gamma == 0.25
+        # Through to the gain, which is what `γ` actually is: the same graph at
+        # a quarter of the reconciliation step.
+        default = Agent(env, dome=dome)
+        assert default.sheaf.gamma == DEFAULT_GAMMA
+        assert torch.allclose(built.sheaf.gain, default.sheaf.gain * 0.25)
+
+    def test_a_generator_with_no_sheaf_still_seeds_the_sheaf_that_gets_built(
+        self, env, dome
+    ):
+        one = Agent(env, dome=dome, generator=torch.Generator().manual_seed(7))
+        again = Agent(env, dome=dome, generator=torch.Generator().manual_seed(7))
+        other = Agent(env, dome=dome, generator=torch.Generator().manual_seed(8))
+        assert torch.equal(one.sheaf.maps.maps, again.sheaf.maps.maps)
+        assert not torch.equal(one.sheaf.maps.maps, other.sheaf.maps.maps)
 
 
 class TestASustainedRun:
