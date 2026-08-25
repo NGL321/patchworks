@@ -13,8 +13,8 @@ tick already left behind.
 The only questions asked of the loop are *did it complete*, *did both rules
 move the adapting surface at all*, and *is anything non-finite*. The middle one
 is there because a rule that had quietly become a no-op would satisfy the other
-two; it is asked as a bare inequality on the biases, and on the maps against a
-floor that is float32's rounding rather than any magnitude worth naming.
+two, and it is asked as a bare inequality — no threshold anywhere, so not even
+that middle question carries a magnitude.
 
 Nothing here is a result. There is no claim about the magnitude, direction or
 trend of any learned quantity, nothing about learning, convergence, timescales
@@ -78,12 +78,17 @@ IMAGE_SIZE = 16
 #: runtime constraint, since this stands in CI on every push.
 #:
 #: **Measured, so that trimming it is an informed trade rather than a guess.**
-#: The run below costs ~3.5s, and roughly half of that is MuJoCo's GL context
-#: and first render — a fixed ~1.6s paid once per environment, which does not
-#: scale with this constant and is not bought back by lowering it. What does
-#: scale is ~6ms a tick: ~3ms of physics and 16x16 render, ~3ms of graph and
-#: the two rules. So halving `TICKS` buys under a second and gives up half the
-#: coverage.
+#: The run below costs ~3.6s, and essentially all of it scales with this
+#: constant: ~12ms a tick, of which ~5ms is physics and the 16x16 render and
+#: ~7ms is the graph and the two rules. So halving `TICKS` really would buy
+#: ~1.8s — it is 300 because that is what "a few hundred" asks for and 3.6s is
+#: inside the budget, not because the time is unrecoverable.
+#:
+#: What is *not* recoverable that way is MuJoCo's GL context: ~1.2s, created
+#: lazily on the first render and **process-global rather than per
+#: environment**, so a second environment's first reset costs ~0.05s. In a
+#: full-suite run an earlier test has already paid it and none of it lands
+#: here; in `pytest tests/test_assembled_loop.py` alone, it does.
 TICKS = 300
 
 
@@ -162,18 +167,24 @@ def test_the_assembled_loop_runs_with_both_rules_on(agent):
     # moved and not that they moved by anything in particular.
     for name, parameter in agent.sheaf.biases.named_parameters():
         assert not torch.equal(parameter, initial_biases[name]), name
-    # **The maps cannot be**, and the reason is worth stating because it is
-    # invisible: `RestrictionMaps` scales each map to `INITIAL_NORM` at
-    # construction, which in float32 lands a bit short of exactly 1, so the
-    # gauge projection's own rescale rewrites the pinned maps' last bit
-    # (measured: `6e-8`, on 8 of this dome's 108 endpoints, and it does not
-    # accumulate). `project()` runs after every transport step, so bare
-    # inequality would be satisfied by that noise alone and a transport rule
-    # whose gradient never landed would pass -- planted and confirmed. `1e-4`
-    # is a **noise floor** rather than a magnitude: four orders above the
-    # projection's last bit and three and a half below what this run actually
-    # moves, so it says only that something other than rounding happened.
-    assert (agent.sheaf.maps.maps - initial_maps).abs().max() > 1e-4
+    # **The maps are compared the same way, but only at the interior
+    # endpoints**, and the exclusion is what keeps this an equality rather than
+    # a threshold. `RestrictionMaps` scales every map to `INITIAL_NORM` at
+    # construction, which in float32 lands a bit short of exactly 1; a pinned
+    # map's gauge band is the single point 1, so the projection that runs after
+    # every transport step rewrites its last bit -- `6e-8`, on 8 of this dome's
+    # 28 pinned endpoints at the seed drawn here -- whether or not a gradient
+    # ever landed. An inequality
+    # there would be satisfied by rounding, and a transport rule that computed
+    # its gradient and forgot to apply it would pass: planted, and it did.
+    #
+    # An interior map's band is `[1/rho, rho]` with the norm starting strictly
+    # inside it, so `project()`'s rescale is exactly `1.0` and bit-preserving
+    # until a step moves the norm. Bare inequality on those rows is therefore
+    # precisely "something other than rounding happened", with no threshold in
+    # it -- and so no claim about how far anything moved.
+    interior = ~agent.sheaf.maps.pinned
+    assert not torch.equal(agent.sheaf.maps.maps[interior], initial_maps[interior])
 
     # Finite, and that is the whole of what is asked. The ticket names the
     # biases, the restriction maps and the node stalks; the charts are here as
