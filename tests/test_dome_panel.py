@@ -352,14 +352,24 @@ class TestColourIsPredictionErrorNormalisedPerCell:
         """`rect()` is what a caller indexes a frame with; the layout's is not."""
         cells = len(small.predicting)
         panel = DomePanel(small, np.full(cells, 1.0))
+        offsets = set()
         for cell_id in (small.predicting[0], small.predicting[-1], small.boundary[0]):
             top, left, size = panel.rect(cell_id)
             lattice_top, lattice_left, lattice_size = panel.layout.rect(cell_id)
             assert size == lattice_size
             assert top == lattice_top + (panel.height - panel.layout.height)
-            assert left == lattice_left + (panel.width - panel.layout.width) // 2
+            offsets.add(left - lattice_left)
             assert 0 <= top and top + size <= panel.height
             assert 0 <= left and left + size <= panel.width
+        # One offset for every mark: the lattice is placed, not each cell.
+        (offset,) = offsets
+        # And it is the lattice **and the motor strip beside it** that are
+        # centred, so the taper does not shift by whatever the strip needs.
+        strip_top, strip_left, strip_height, strip_width = panel.motor_strip
+        assert strip_left >= offset + panel.layout.width
+        assert abs(offset - (panel.width - strip_left - strip_width)) <= 1
+        assert strip_top >= panel.height - panel.layout.height
+        assert strip_top + strip_height <= panel.height
 
     def test_a_frame_is_one_uint8_image_of_the_panels_own_size(self, small):
         cells = len(small.predicting)

@@ -1,8 +1,9 @@
-"""The dome panel: stacked bands, prediction error as colour, and the trail.
+"""The dome panel: the bands, and every mark drawn in them.
 
 `docs/spec/10-the-demo-surface.md`, *The dome panel*, is the whole of what this
 module implements, over the record :mod:`patchworks.surface.record` already
-defines. Three things, and the first is the frame the other two are drawn in:
+defines. Three things make the **predicting** cells' picture, and the first is
+the frame every other mark is drawn in too:
 
 * **Stacked bands, the sensorimotor boundary at the bottom and the apex at the
   top**, one band per level, each at its own lattice shape, every position
@@ -31,15 +32,37 @@ running statistics. It holds no agent, no sheaf, no env and no recorder, so
 there is no route from anything a cell's computation is handed to anything
 computed here, and closing the panel is the view ending and nothing else.
 
-**What this ticket draws and what it leaves.** The bands are the frame for
-every mark the panel will ever carry, and #93 fills in one channel of it: the
-predicting cells' prediction error. A boundary cell's slot is laid out and left
-empty on purpose -- boundary cells run no body and make no prediction
-(ADR-0006), so colouring them on this map would be a fabrication in the
-largest, most eye-catching band on screen. The marks they do get -- the tiled
-render in the boundary band, the somatomotor strip, the drive mark, and the
-thresholded edges -- are drawn from edge disagreement and from the world, and
-they are a later ticket's.
+**Every mark draws a quantity that is honestly earned.** A boundary cell runs
+no body and makes no prediction (ADR-0006), so it has **no prediction error**,
+and colouring one on that map would be a fabrication in the largest, most
+eye-catching band on screen. What a boundary cell has instead is an **edge**,
+and edge disagreement is drawn on the same colormap, honestly earned. That
+single distinction is what the rest of this module is: #93 drew the bands and
+the predicting cells' channel, and #94 draws the marks the boundary cells get.
+
+* **The boundary band.** L0 draws the agent's own render, tiled into the patch
+  lattice, and carries no prediction-error colour. The render costs nothing --
+  it already exists every tick -- and it ties the abstract stack to the world.
+  It is handed in rather than taken: this module owns no world (see below), and
+  a record holds state rather than frames, so a caller re-renders one from a
+  record's snapshot (:class:`~patchworks.surface.renderer.Renderer`) or hands
+  over the observation the agent was given.
+* **The somatomotor strip**, beside the tiled render, because that is where the
+  cluster attaches -- 3 proprioceptive, 3 touch, 1 actuator -- coloured by edge
+  disagreement. The actuator additionally draws **decomposed**: three paired
+  bars, commanded as an outline and applied as a fill, which is
+  `04-action-and-the-boundary.md`'s efference copy made visible, beside a
+  standing bar for its own motor-side disagreement.
+* **The drive mark** on the apex band, drawn like the strip. It is what makes
+  `08`'s **task-invariant behaviour** near-miss distinguishable on screen from
+  the demo working, and it falsifies the drive rather than the demo (ADR-0009).
+* **The edge overlay**: only the edges carrying the most disagreement this
+  tick, thresholded from **the tick's own scale**, and off by default.
+
+None of those is on the prediction-error map, and none of them reaches for it:
+`DomePanel` keeps the two populations in two arrays with no index in common,
+and `tests/test_dome_panel.py` asserts that no boundary cell is ever assigned a
+prediction-error value.
 
 **The panel is not the toolkit.** `10-the-demo-surface.md` names no drawing
 library and this module needs none: a frame is a `[height, width, 3]` uint8
@@ -53,13 +76,13 @@ draws text.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable, Iterator, Sequence
+from typing import Callable, Iterable, Iterator, Sequence
 
 import numpy as np
 import torch
 
 from patchworks.bias_selection import DEFAULT_BURN_IN, DEFAULT_TICKS, measure
-from patchworks.graph import Dome
+from patchworks.graph import CellKind, Dome
 from patchworks.tick import Sheaf
 
 from .record import TickRecord
@@ -84,12 +107,35 @@ DEFAULT_PITCH = 8
 _COLUMN_GAP = 1
 _BAND_GAP = 1
 
-#: The panel's ground, and the slot of a cell this ticket draws no mark for.
-#: Distinct from the ground so that the frame is visible -- an empty slot is a
-#: cell whose mark is a later ticket's, not an absent cell.
+#: Slots between the lattice and the motor strip, which stands beside the
+#: boundary band rather than in it: the actuator's decomposition is three
+#: paired bars and a slot is one square.
+_GUTTER_GAP = 1
+
+#: The panel's ground, and the slot of a cell with no mark to draw. Distinct
+#: from the ground so that the frame is visible -- an empty slot is a cell
+#: whose quantity this record did not carry, not an absent cell. A patch cell
+#: sits at this colour until a render is handed in: it has no prediction error
+#: to fall back on, and drawing one would be the fabrication this panel is
+#: built to refuse.
 _BACKGROUND = (8, 8, 10)
 _EMPTY = (26, 26, 30)
 _NOTICE_INK = (216, 216, 220)
+
+#: The motor strip's inks. Deliberately off the colormap: a torque is not a
+#: disagreement, and putting the two on one ramp would invite the bars to be
+#: read against the marks around them. The outline is what was **commanded**
+#: and the fill what was **applied**, so saturation reads as the fill falling
+#: short of its own outline.
+_ZERO_LINE = (72, 74, 84)
+_COMMANDED = (150, 200, 236)
+_APPLIED = (64, 132, 190)
+
+#: The widest onset counter the motor strip ever draws, and what the strip is
+#: sized to fit. Six digits is a run of hours at the sandbox's 50 Hz control
+#: rate, and a counter that outgrew its strip would be a number drawn over a
+#: bar -- so the count is shown in full and the strip is built for it.
+_ONSET_WIDEST = "T+999999"
 
 #: A cell whose prediction error this tick is not a number. Deliberately a
 #: colour the colormap cannot produce -- no colour on that ramp carries more
@@ -380,11 +426,138 @@ def measured_persistence(
     return measurement.effective_timescale.detach().cpu().numpy().astype(np.float64)
 
 
+# -- the statistics a mark is normalised against ----------------------------
+
+
+class _RunningScale:
+    """One running mean and spread per mark, and the raw map's shared scale.
+
+    **Normalisation is per mark, against that mark's own running statistics**
+    (`docs/spec/10-the-demo-surface.md`, *Colour is prediction error*). The
+    argument is made there for prediction error across the taper -- 12,288
+    numbers at the base against 32 at the core -- and it holds just as hard for
+    the marks drawn from edge disagreement, which are read off stalks the world
+    writes at whatever width it has and off a **scalar** drive edge. A raw map
+    over those would show the boundary's shape and nothing else.
+
+    One class for both populations, because they are normalised the same way
+    and a second copy of Welford's would be a second place for the arithmetic
+    to drift. What differs between them is what happens to the value
+    afterwards -- the predicting cells' feeds a trail, the boundary marks' does
+    not -- and that stays in :class:`DomePanel`.
+
+    **A mark whose value is not a number has no reading.** It is kept out of
+    its own statistics, out of the raw map's scale, and drawn in its own
+    colour; :meth:`observe` hands it back standing at its own mean, which is
+    *nothing happened here* on a map read against that mean.
+    """
+
+    def __init__(self, marks: int) -> None:
+        self.seen = np.zeros(marks, dtype=np.int64)
+        self.mean = np.zeros(marks)
+        self.m2 = np.zeros(marks)
+        self.no_reading = np.zeros(marks, dtype=bool)
+        # The ticks a mark's *own* readings span, so a mark that was not a
+        # number for a long stretch does not inherit the run's span. -1 is "no
+        # reading yet"; both move only on a tick this mark was readable.
+        self.first_read = np.full(marks, -1, dtype=np.int64)
+        self.last_read = np.full(marks, -1, dtype=np.int64)
+        self.scale = 0.0
+
+    def observe(self, values: np.ndarray, tick: int) -> tuple[np.ndarray, float]:
+        """This tick into the statistics. Returns the readable values, and a factor.
+
+        The factor is what a trail already drawn on the raw map must be
+        multiplied by, and it is 1.0 unless this tick raised the shared scale:
+        a glow holds values that were divided by the scale as it stood when
+        they were drawn, so a new largest reading anywhere would otherwise
+        leave a decaying mark brighter than one reaching the same raw value
+        now -- and comparing marks is the whole of what the raw map is for.
+        """
+        self.no_reading = ~np.isfinite(values)
+        read = ~self.no_reading
+        self.first_read = np.where(read & (self.first_read < 0), tick, self.first_read)
+        self.last_read = np.where(read, tick, self.last_read)
+        readable = np.where(self.no_reading, self.mean, values)
+        self.seen += read
+        # Welford's, per mark: where there is no reading the delta is zero, so
+        # the mean and the sum of squares stand and the count does not move.
+        delta = readable - self.mean
+        self.mean += delta / np.maximum(self.seen, 1)
+        self.m2 += delta * (readable - self.mean)
+        largest = float(readable.max(initial=0.0))
+        rescale = 1.0
+        if largest > self.scale:
+            if self.scale > 0.0:
+                rescale = self.scale / largest
+            self.scale = largest
+        return readable, rescale
+
+    @property
+    def spread(self) -> np.ndarray:
+        """`[marks]`: each mark's own running standard deviation.
+
+        Zero for a mark with fewer than two readings to take one over.
+        """
+        return np.where(
+            self.seen >= 2, np.sqrt(self.m2 / np.maximum(self.seen - 1, 1)), 0.0
+        )
+
+    @property
+    def spanned(self) -> np.ndarray:
+        """`[marks]`: the ticks each mark's own readings span, or -1 for none."""
+        return np.where(
+            self.first_read >= 0, self.last_read - self.first_read, -1
+        ).astype(np.float64)
+
+    def normalised(self, readable: np.ndarray) -> np.ndarray:
+        """`[marks]` in `[0, 1]`: how far above its own baseline each mark is.
+
+        `1 - exp(-z)` over the positive part of the mark's own z-score. Above
+        the baseline only: both quantities drawn through this are magnitudes,
+        so a mark quieter than usual is calm rather than negatively surprised.
+        Saturating, and its scale is the mark's own standard deviation -- there
+        is no threshold here to hand-set, which is the objection
+        `10-the-demo-surface.md` raises against a hand-set constant on the edge
+        threshold and it applies to a colour scale for the same reason.
+        """
+        above = np.maximum(readable - self.mean, 0.0)
+        spread = self.spread
+        lit = spread > 0.0
+        # No spread yet is no baseline yet, and this is the noise a cold panel
+        # shows: anything above a mean it has barely measured reads as
+        # everything. The notice on screen is what keeps that honest.
+        return np.where(
+            lit,
+            1.0 - np.exp(-above / np.where(lit, spread, 1.0)),
+            np.where(above > 0.0, 1.0, 0.0),
+        )
+
+    def raw(self, readable: np.ndarray) -> np.ndarray:
+        """`[marks]` in `[0, 1]`: the raw values, on one scale shared by all of them.
+
+        One scale, because comparing marks is the whole of what the raw map is
+        for. It is the largest reading seen anywhere so far rather than this
+        tick's largest, so a quiet tick does not rescale the panel under the
+        viewer.
+
+        **A mark with no reading reaches zero here**, so that it is kept out of
+        a trail as the normalised map already keeps it. :meth:`observe` hands
+        back such a mark standing at its own mean, which is *nothing happened
+        here* on a map read against that mean -- but on this one a mean is a
+        positive raw value, and feeding it to a trail would pin a diverged
+        mark's glow at a constant forever.
+        """
+        if self.scale <= 0.0:
+            return np.zeros_like(readable)
+        return np.where(self.no_reading, 0.0, readable / self.scale)
+
+
 # -- the panel --------------------------------------------------------------
 
 
 class DomePanel:
-    """The dome panel: bands, prediction error, and the trail.
+    """The dome panel: the bands, and every mark drawn in them.
 
     Built on the graph's shape and the run's measured persistences, and fed one
     tick record at a time::
@@ -394,12 +567,15 @@ class DomePanel:
             agent.tick()
             record = recorder.observe()
             if record is not None:
-                show(panel.frame(record))
+                show(panel.frame(record, render=observation["image"]))
 
     or over a feed, live or off disk, exactly as
-    :meth:`patchworks.surface.renderer.Renderer.frames` takes one::
+    :meth:`patchworks.surface.renderer.Renderer.frames` takes one -- with the
+    scene's own renderer supplying the boundary band's picture from each
+    record's state::
 
-        panel.frames(Trace.load(path))
+        with Renderer(size=64) as scene:
+            panel.frames(Trace.load(path), renderer=scene.frame)
 
     **A frame is a `[height, width, 3]` uint8 array.** What shows it is the
     caller's; see the module docstring.
@@ -414,6 +590,16 @@ class DomePanel:
     **Fed in order, every capture.** The trail is a decay across the ticks
     between two records, so a record older than the last one it saw is refused
     rather than absorbed -- see :meth:`frame`.
+
+    **Two populations, two arrays, no index in common.** The predicting cells'
+    marks are drawn from :attr:`~patchworks.surface.record.TickRecord.prediction_error`
+    and the boundary cells' from
+    :attr:`~patchworks.surface.record.TickRecord.disagreement`; a cell is in
+    exactly one of :attr:`~patchworks.graph.Dome.predicting` and
+    :attr:`~patchworks.graph.Dome.boundary`, and the rows of the first array are
+    unreachable from any boundary cell's slot. That is what makes *a boundary
+    cell is never assigned a prediction error* structural here rather than
+    careful.
     """
 
     def __init__(
@@ -423,6 +609,7 @@ class DomePanel:
         *,
         pitch: int = DEFAULT_PITCH,
         raw: bool = False,
+        edges: bool = False,
     ) -> None:
         self.dome = dome
         self.layout = BandLayout(dome, pitch=pitch)
@@ -447,6 +634,7 @@ class DomePanel:
         values.flags.writeable = False
         self.persistence = values
         self._raw = bool(raw)
+        self._edges = bool(edges)
 
         self._row = {cell_id: row for row, cell_id in enumerate(dome.predicting)}
         # The running statistics: Welford, so the baseline is the whole run so
@@ -454,27 +642,77 @@ class DomePanel:
         # Counted per cell rather than once, because a cell whose prediction error is
         # not a number this tick contributes nothing to its own statistics and the
         # rest of the dome carries on.
-        self._seen = np.zeros(cells, dtype=np.int64)
-        self._mean = np.zeros(cells)
-        self._m2 = np.zeros(cells)
+        self._cell_scale = _RunningScale(cells)
         self._glow = np.zeros(cells)
-        # The ticks a cell's *own* readings span, so a cell that was not a
-        # number for a long stretch does not inherit the run's span. -1 is "no
-        # reading yet"; both move only on a tick this cell was readable.
-        self._first_read = np.full(cells, -1, dtype=np.int64)
-        self._last_read = np.full(cells, -1, dtype=np.int64)
-        self._no_reading = np.zeros(cells, dtype=bool)
-        self._raw_scale = 0.0
         self._last_tick: int | None = None
         self._closed = False
 
+        # -- the boundary cells' half -------------------------------------
+        # The marks drawn from edge disagreement: every boundary cell that is
+        # not a patch cell. A patch cell's mark is its piece of the render, so
+        # it is not on this map at all -- and leaving it out is also what keeps
+        # the warm-up notice about marks a viewer can see, rather than about
+        # 256 statistics nothing draws.
+        self._marks = tuple(
+            cell_id
+            for cell_id in dome.boundary
+            if dome.cells[cell_id].kind is not CellKind.PATCH
+        )
+        self._mark_row = {cell_id: row for row, cell_id in enumerate(self._marks)}
+        self._mark_scale = _RunningScale(len(self._marks))
+        self._mark_value = np.zeros(len(self._marks))
+        self._mark_raw = np.zeros(len(self._marks))
+        self._last_disagreement = np.zeros(len(dome.edges))
+        # `[marks, widest degree]`: the incident edges of each mark, padded with
+        # the one slot past the end of a record's array -- a zero, which
+        # contributes nothing to the sum of squares below. The whole gather is
+        # then one indexing operation rather than a loop over cells and edges.
+        self._mark_edges = np.full(
+            (len(self._marks), max((dome.degrees[c] for c in self._marks), default=1)),
+            len(dome.edges),
+            dtype=np.int64,
+        )
+        for row, cell_id in enumerate(self._marks):
+            incident = dome.incident[cell_id]
+            self._mark_edges[row, : len(incident)] = incident
+        self._patches = tuple(
+            cell for cell in dome.cells if cell.kind is CellKind.PATCH
+        )
+        self._actuator = next(
+            (
+                cell.id
+                for cell in dome.cells
+                if cell.kind is CellKind.ACTUATOR
+            ),
+            None,
+        )
+        self._edge_ends = np.array(
+            [(edge.u, edge.v) for edge in dome.edges], dtype=np.int64
+        ).reshape(len(dome.edges), 2)
+        self._drawn_edges: tuple[int, ...] = ()
+        self._threshold = 0.0
+        self._torque = np.zeros((2, 0))
+        self._torque_scale = 0.0
+
         self._notice_scale = max(1, pitch // DEFAULT_PITCH)
         self._notice_height = _FONT_HEIGHT * self._notice_scale + 2 * self._notice_scale
+        # The motor strip stands beside the boundary band rather than in it,
+        # and its width is what four bars and the onset counter need. Fixed
+        # here, for the reason the notice's width is fixed here.
+        self._bar = self.layout.mark
+        self._bar_gap = max(1, pitch // 3)
+        self._bar_margin = max(2, pitch // 2)
+        self._gutter = max(
+            4 * self._bar + 3 * self._bar_gap + 2 * self._bar_margin,
+            _text_width(_ONSET_WIDEST, self._notice_scale),
+        )
+        self._content = self.layout.width + _GUTTER_GAP * pitch + self._gutter
         # Fixed at construction from the longest notice this panel can ever
         # show, so the frame is one size for a whole run: a capture whose frames
         # change shape halfway through is not a capture.
         self._width = max(
-            self.layout.width, _text_width(self._notice(cells), self._notice_scale)
+            self._content,
+            _text_width(self._notice(cells, len(self._marks)), self._notice_scale),
         )
 
     def __repr__(self) -> str:
@@ -522,6 +760,28 @@ class DomePanel:
             self._glow = np.zeros_like(self._glow)
         self._raw = raw
 
+    @property
+    def edges(self) -> bool:
+        """The edge overlay: **thresholded, and off by default**.
+
+        `10-the-demo-surface.md`, *Edges: thresholded, and off by default*.
+        Drawing all of them is a hairball over a sparse mask that would grey out
+        the bands underneath; drawing none gives up the live **route** through
+        the graph, which is the thing the trail cannot show -- it says influence
+        propagated, not which cells were carrying it during a reconciliation
+        round.
+
+        Default off, so a README capture stays clean and the live demo can turn
+        it on. A toggle, and switchable mid-run: what it draws is this tick's
+        disagreement and nothing accumulated, so there is no trail here to clear
+        and no state to carry across the switch.
+        """
+        return self._edges
+
+    @edges.setter
+    def edges(self, edges: bool) -> None:
+        self._edges = bool(edges)
+
     def close(self) -> None:
         """Close the panel. Idempotent, and it changes nothing but the view."""
         self._closed = True
@@ -552,15 +812,49 @@ class DomePanel:
         the pretending this notice exists to prevent, in exactly the
         recovering-from-divergence case the panel is built to show.
         """
-        spanned = np.where(
-            self._first_read >= 0, self._last_read - self._first_read, -1
-        ).astype(np.float64)
-        return (self._seen >= 2) & (spanned >= self.persistence)
+        return (self._cell_scale.seen >= 2) & (
+            self._cell_scale.spanned >= self.persistence
+        )
 
     @property
     def warming_up(self) -> int:
         """How many predicting cells have no baseline yet."""
         return int((~self.baseline).sum())
+
+    @property
+    def boundary_marks(self) -> tuple[int, ...]:
+        """The cell ids drawn from edge disagreement, in row order.
+
+        Every boundary cell except a patch cell, whose mark is its piece of the
+        render instead: the somatomotor strip's seven, and the drive.
+        """
+        return self._marks
+
+    @property
+    def boundary_baseline(self) -> np.ndarray:
+        """`[boundary marks]` bool: which marks' statistics are a baseline yet.
+
+        **Two readings, and no span condition** -- which is not a weaker test
+        than :attr:`baseline`'s but the same one applied to a different object.
+        A cell's span has to reach its own measured persistence because a
+        baseline over a stretch the cell barely moved in is not one; a boundary
+        cell runs no body, holds no chart and has the world write its whole node
+        stalk every tick (ADR-0006), so its content turns over in a tick and
+        there is no slow content for a short span to have missed. There is also
+        no measured persistence for one -- `05-timescales.md`'s estimate is
+        taken over the body a boundary cell does not run -- so a span condition
+        here would have to invent the number it compared against.
+
+        A mark that has never been read at all is **not warming up**: it is not
+        being drawn. That is a record carrying no disagreement, not a statistic
+        that has yet to settle.
+        """
+        return self._mark_scale.seen >= 2
+
+    @property
+    def boundary_warming_up(self) -> int:
+        """How many drawn boundary marks have no baseline yet."""
+        return int(((self._mark_scale.seen >= 1) & ~self.boundary_baseline).sum())
 
     def rect(self, cell_id: int) -> tuple[int, int, int]:
         """`(top, left, size)` of one cell's mark **in the frame**.
@@ -574,14 +868,38 @@ class DomePanel:
         return top + self._notice_height, left + self._lattice_left, size
 
     @property
+    def motor_strip(self) -> tuple[int, int, int, int]:
+        """`(top, left, height, width)` of the actuator's decomposition, in the frame.
+
+        The strip stands beside the boundary band, on the same footing
+        :meth:`rect` puts a cell's mark on: the one a caller indexes a frame
+        with to crop the bars out of it or to find what was clicked.
+        """
+        band = min(self.layout.bands, key=lambda entry: entry[0])
+        _level, top, rows = band
+        height = min(self.layout.height, max(rows * self.layout.pitch, 6 * self.layout.pitch))
+        bottom = (top + rows) * self.layout.pitch
+        return (
+            bottom - height + self._notice_height,
+            self._lattice_left + self.layout.width + _GUTTER_GAP * self.layout.pitch,
+            height,
+            self._gutter,
+        )
+
+    @property
     def _lattice_left(self) -> int:
-        """Where the lattice starts across the frame; it is centred in it."""
-        return (self.width - self.layout.width) // 2
+        """Where the lattice starts across the frame.
+
+        The lattice and the motor strip beside it are centred together, so the
+        taper stays the shape the panel shows rather than shifting by whatever
+        the strip needs.
+        """
+        return (self.width - self._content) // 2
 
     @property
     def mean(self) -> np.ndarray:
         """`[predicting cells]`: each cell's own running mean, as a copy."""
-        return self._mean.copy()
+        return self._cell_scale.mean.copy()
 
     @property
     def spread(self) -> np.ndarray:
@@ -590,11 +908,7 @@ class DomePanel:
         Zero for a cell with fewer than two readings to take one over, which is
         the first half of :attr:`baseline`.
         """
-        return np.where(
-            self._seen >= 2,
-            np.sqrt(self._m2 / np.maximum(self._seen - 1, 1)),
-            0.0,
-        )
+        return self._cell_scale.spread
 
     @property
     def no_reading(self) -> np.ndarray:
@@ -603,7 +917,7 @@ class DomePanel:
         Drawn in their own colour rather than on the colormap; see
         :data:`_NO_READING`.
         """
-        return self._no_reading.copy()
+        return self._cell_scale.no_reading.copy()
 
     @property
     def glow(self) -> np.ndarray:
@@ -616,10 +930,83 @@ class DomePanel:
         """
         return self._glow.copy()
 
+    @property
+    def boundary_lit(self) -> np.ndarray:
+        """`[boundary marks]` in `[0, 1]`: what the last record lit each mark to.
+
+        The counterpart of :attr:`glow` for the marks drawn from edge
+        disagreement, and handed out for the same reason -- reading it off
+        pixels is reading it through a colormap.
+
+        **There is no trail on it.** A trail decays at the cell's own measured
+        persistence, and a boundary cell has none to decay at: it runs no body,
+        so `05-timescales.md`'s estimate is not defined for it, and a glow
+        fading at a rate nothing measured would be exactly the fabrication these
+        marks exist to avoid. What a strip mark shows is this tick.
+        """
+        return self._mark_value.copy()
+
+    @property
+    def torque(self) -> np.ndarray:
+        """`[2, joints]`: the commanded and applied rows the strip last drew.
+
+        A copy of what the record carried, held so that the falsification test
+        the bars render can be read as numbers as well as watched:
+        `04-action-and-the-boundary.md`'s route-selection signature is an
+        outline near zero beside a standing disagreement bar, and a sweep should
+        not have to measure pixels to see it.
+        """
+        return self._torque.copy()
+
+    @property
+    def edge_threshold(self) -> float:
+        """The disagreement an edge had to carry to be drawn on the last record.
+
+        **Derived from that tick's own scale**, never hand-set: this tick's mean
+        plus one standard deviation over the edges that had a reading. Multiply
+        every edge's disagreement by any positive constant and exactly the same
+        edges are drawn, which is what makes the picture of the route a property
+        of the graph rather than of a number chosen here
+        (`10-the-demo-surface.md`, *Edges: thresholded, and off by default*).
+        """
+        return self._threshold
+
+    @property
+    def drawn_edges(self) -> tuple[int, ...]:
+        """The edge ids the overlay drew on the last record, or none."""
+        return self._drawn_edges
+
     # -- drawing -----------------------------------------------------------
 
-    def frame(self, record: TickRecord) -> np.ndarray:
+    def frame(
+        self,
+        record: TickRecord,
+        *,
+        render: np.ndarray | None = None,
+        since: int | None = None,
+    ) -> np.ndarray:
         """`[height, width, 3]` uint8: this record, drawn. Advances the trail.
+
+        `render` is the agent's own render for this tick, and it is what the
+        **boundary band** draws: the picture is cut along the patch lattice and
+        each cell's block goes in that cell's slot, so the bottom of the panel
+        is the thing the arm is doing in the other window. It is handed in
+        because a record holds state rather than frames -- re-render one from
+        the record's snapshot with
+        :meth:`patchworks.surface.renderer.Renderer.frame`, or hand over the
+        observation the agent was given, which is the same camera. Without one
+        the band is drawn empty: a patch cell has no prediction error to fall
+        back on, and inventing a colour for the largest band on screen is the
+        fabrication this panel is built to refuse.
+
+        `since` is the onset counter's ticks-since-the-last-marker
+        (:class:`~patchworks.surface.onset.OnsetCounter`), drawn on the motor
+        strip beside the bars so that **onset is read off the strip rather than
+        reconstructed afterward** (`10-the-demo-surface.md`, *Onset, and the
+        near-misses*): the bars carry the moment of the first corrective torque
+        and this carries the count. `None` before any hand has fired, and
+        nothing is drawn for it -- a zero there would read as an event that just
+        happened.
 
         **Colour is prediction error, normalised per cell.** Each cell's error
         is read against that cell's own running mean and spread, and what is
@@ -655,6 +1042,13 @@ class DomePanel:
         diverging body is the event this display exists to make visible, and
         both of those would have rendered it as the quietest cell on screen.
 
+        **A boundary cell is never on any of that.** It runs no body and makes
+        no prediction, so the record carries none for it and this method has
+        none to draw: what its mark shows is the disagreement on its own edges,
+        normalised the same way against its own statistics
+        (:attr:`boundary_lit`), and the actuator's is drawn decomposed on the
+        motor strip beside the band.
+
         Records must arrive in order and each at most once: the decay is taken
         over the gap between two of them, so a record at or behind the last tick
         seen has no gap to decay over and is refused rather than absorbed.
@@ -686,24 +1080,34 @@ class DomePanel:
             elapsed = float(record.tick - self._last_tick)
         self._last_tick = record.tick
 
-        # A cell whose prediction error is not a number has no reading this tick: it is
-        # kept out of its own statistics, out of the maps' scales and out of the
-        # glow, and it is drawn in its own colour instead of on the colormap.
-        self._no_reading = ~np.isfinite(error)
-        # The ticks this cell's own readings span, which is what its baseline is
-        # measured against: a stretch it was not a number for is a stretch the
-        # statistics did not watch it.
-        read = ~self._no_reading
-        self._first_read = np.where(
-            read & (self._first_read < 0), record.tick, self._first_read
+        # A cell whose prediction error is not a number has no reading this
+        # tick: `_RunningScale` keeps it out of its own statistics and out of
+        # the maps' scales, and it is drawn in its own colour instead of on the
+        # colormap. The ticks a cell's own readings span are counted there too,
+        # which is what its baseline is measured against: a stretch it was not a
+        # number for is a stretch the statistics did not watch it.
+        readable, rescale = self._cell_scale.observe(error, record.tick)
+        if self.raw and rescale != 1.0:
+            # A trail already drawn on the raw map is rescaled with it, or a new
+            # largest prediction error anywhere in the dome would leave a
+            # decaying cell brighter than a cell reaching the same raw norm now.
+            self._glow *= rescale
+        value = (
+            self._cell_scale.raw(readable)
+            if self.raw
+            else self._cell_scale.normalised(readable)
         )
-        self._last_read = np.where(read, record.tick, self._last_read)
-        readable = self._observe(error)
-        value = self._raw_value(readable) if self.raw else self._normalised(readable)
         self._glow = np.maximum(self._glow * np.exp(-elapsed / self.persistence), value)
-        return self._draw()
+        self._observe_disagreement(record)
+        self._observe_torque(record)
+        return self._draw(render=render, since=since)
 
-    def frames(self, feed: Iterable[TickRecord]) -> Iterator[np.ndarray]:
+    def frames(
+        self,
+        feed: Iterable[TickRecord],
+        *,
+        renderer: Callable[[TickRecord], np.ndarray] | None = None,
+    ) -> Iterator[np.ndarray]:
         """One frame per record of `feed`, in order, while the panel is open.
 
         `feed` is a live recorder's
@@ -712,6 +1116,13 @@ class DomePanel:
         cannot tell which -- one renderer over a tick record, as the scene's
         renderer is.
 
+        `renderer` is what the boundary band's picture comes from: any callable
+        taking a record and returning that tick's render, which is exactly
+        :meth:`patchworks.surface.renderer.Renderer.frame`'s shape. Passing one
+        is what fills L0 in; without one the band stays empty, because a record
+        holds state rather than frames and this panel owns no world to re-render
+        one from.
+
         **A closed panel drains its feed and yields nothing.** A live feed is a
         run being driven, so a display that stopped consuming would stop the run
         rather than close a window.
@@ -719,103 +1130,119 @@ class DomePanel:
         for record in feed:
             if self._closed:
                 continue
-            yield self.frame(record)
+            yield self.frame(
+                record, render=None if renderer is None else renderer(record)
+            )
 
-    # -- the two maps ------------------------------------------------------
+    # -- what a boundary cell has instead ----------------------------------
 
-    def _observe(self, error: np.ndarray) -> np.ndarray:
-        """This tick, into the statistics: Welford's, and the raw map's scale.
+    def _observe_disagreement(self, record: TickRecord) -> None:
+        """This tick's edge disagreement, into the marks that are drawn from it.
 
-        Returns the readable prediction error -- the array with a cell that has
-        no reading standing at its own mean, so that everything downstream treats
-        it as *nothing happened here* rather than propagating a NaN into a colour.
+        **A boundary cell's mark is the disagreement on its own edges**, taken
+        as `sqrt(Σ_e ‖d_e‖²)` over the edges incident on it -- the cell's own
+        share of the sheaf's Dirichlet energy, which is the one quantity that
+        exists for a cell of any degree with edge stalks of any width. A mean
+        would say a cell with one loud edge and five quiet ones is calm, and a
+        sum would make degree the brightest thing on the strip.
 
-        **A trail already drawn on the raw map is rescaled with it.** The glow
-        holds values that were divided by the scale as it stood when they were
-        drawn, so a new largest prediction error anywhere in the dome would
-        otherwise leave a decaying cell brighter than a cell reaching the same
-        raw norm now -- and comparing cells is the whole of what the raw map is for.
+        From there it is the predicting cells' channel exactly: per-mark running
+        statistics, the same `1 - exp(-z)` ramp, the same raw map behind the
+        same debug flag. The two populations never meet -- this reads
+        :attr:`~patchworks.surface.record.TickRecord.disagreement` and nothing
+        else, and the marks it fills are indexed by boundary cell.
+
+        A record carrying no disagreement leaves every mark unread and unlit,
+        which draws as an empty slot. *Not captured* is not *zero*.
         """
-        readable = np.where(self._no_reading, self._mean, error)
-        self._seen += ~self._no_reading
-        # Welford's, per cell: where there is no reading the delta is zero, so
-        # the mean and the sum of squares stand and the count does not move.
-        delta = readable - self._mean
-        self._mean += delta / np.maximum(self._seen, 1)
-        self._m2 += delta * (readable - self._mean)
-        largest = float(readable.max(initial=0.0))
-        if largest > self._raw_scale:
-            if self._raw and self._raw_scale > 0.0:
-                self._glow *= self._raw_scale / largest
-            self._raw_scale = largest
-        return readable
-
-    def _normalised(self, error: np.ndarray) -> np.ndarray:
-        """`[cells]` in `[0, 1]`: how far above its own baseline each cell is.
-
-        `1 - exp(-z)` over the positive part of the cell's own z-score. Above
-        the baseline only: prediction error is a magnitude, so a cell quieter
-        than usual is calm rather than negatively surprised. Saturating, and its
-        scale is the cell's own standard deviation -- there is no threshold
-        here to hand-set, which is the objection `10-the-demo-surface.md` raises
-        against a hand-set constant on the edge threshold and it applies to a
-        colour scale for the same reason.
-        """
-        above = np.maximum(error - self._mean, 0.0)
-        spread = self.spread
-        lit = spread > 0.0
-        # No spread yet is no baseline yet, and this is the noise a cold panel
-        # shows: anything above a mean it has barely measured reads as
-        # everything. The notice on screen is what keeps that honest.
-        return np.where(
-            lit,
-            1.0 - np.exp(-above / np.where(lit, spread, 1.0)),
-            np.where(above > 0.0, 1.0, 0.0),
+        disagreement = np.asarray(record.disagreement, dtype=np.float64).reshape(-1)
+        if disagreement.size == 0:
+            self._mark_value = np.zeros(len(self._marks))
+            self._mark_raw = np.zeros(len(self._marks))
+            self._last_disagreement = np.zeros(len(self.dome.edges))
+            self._drawn_edges, self._threshold = (), 0.0
+            return
+        if disagreement.shape != (len(self.dome.edges),):
+            raise ValueError(
+                f"this dome has {len(self.dome.edges)} edges and the record carries "
+                f"{disagreement.shape[0]} disagreements; the panel and the record "
+                "are on different graphs"
+            )
+        # The pad slot the mark index points spare degrees at: zero, so a cell
+        # of below-maximum degree sums only its own edges.
+        padded = np.append(disagreement, 0.0)
+        per_mark = np.sqrt((padded[self._mark_edges] ** 2).sum(axis=1))
+        readable, _rescale = self._mark_scale.observe(per_mark, record.tick)
+        # Both maps, every tick: the colour channel takes whichever the debug
+        # flag asks for, and the motor strip's standing bar takes the raw one
+        # whatever the flag says -- see :meth:`_draw_motor_strip`.
+        self._mark_raw = self._mark_scale.raw(readable)
+        self._mark_value = (
+            self._mark_raw if self.raw else self._mark_scale.normalised(readable)
         )
+        self._last_disagreement = disagreement
+        self._threshold, self._drawn_edges = _above_the_ticks_own_scale(disagreement)
 
-    def _raw_value(self, error: np.ndarray) -> np.ndarray:
-        """`[cells]` in `[0, 1]`: the raw norms, on one scale shared by the dome.
+    def _observe_torque(self, record: TickRecord) -> None:
+        """The actuator's commanded and applied rows, and the scale they share.
 
-        One scale, because comparing cells is the whole of what the raw map is
-        for. It is the largest prediction error seen anywhere so far rather than this
-        tick's largest, so a quiet tick does not rescale the dome under the
-        viewer; :meth:`_observe` keeps it, and keeps the trail on it.
-
-        **A cell with no reading reaches zero here**, so that it is kept out of
-        the glow as the normalised map already keeps it. :meth:`_observe` hands
-        back such a cell standing at its own mean, which is *nothing happened
-        here* on a map read against that mean -- but on this one a mean is a
-        positive raw norm, and feeding it to the trail would pin a diverged
-        cell's glow at a constant forever instead of letting it decay. A
-        permanently diverged cell would then be drawn, on recovery, from a
-        brightness it never produced.
+        **One scale for all six numbers**, because they are torques in the same
+        units and the point of the pair is that a fill falls short of its own
+        outline. It is the largest magnitude seen anywhere on the strip so far,
+        the same rule the raw map's scale follows and for the same reason: a
+        tick's own maximum would rescale the strip under the viewer and put a
+        resting arm at full height. Zero stays zero under it, which is what
+        keeps *near-zero commanded torque* -- half of `04`'s stall signature --
+        legible as near zero.
         """
-        if self._raw_scale <= 0.0:
-            return np.zeros_like(error)
-        return np.where(self._no_reading, 0.0, error / self._raw_scale)
+        actuator = np.asarray(record.actuator, dtype=np.float64)
+        if actuator.size == 0:
+            self._torque = np.zeros((2, 0))
+            return
+        if actuator.ndim != 2 or actuator.shape[0] != 2:
+            raise ValueError(
+                "the actuator's rows are `[2, joints]` -- commanded, then "
+                f"applied, as the boundary cell holds them; got {actuator.shape}"
+            )
+        self._torque = actuator
+        finite = actuator[np.isfinite(actuator)]
+        largest = float(np.abs(finite).max(initial=0.0))
+        self._torque_scale = max(self._torque_scale, largest)
 
     # -- pixels ------------------------------------------------------------
 
-    def _draw(self) -> np.ndarray:
+    def _draw(
+        self, *, render: np.ndarray | None = None, since: int | None = None
+    ) -> np.ndarray:
         canvas = np.empty((self.height, self.width, 3), dtype=np.uint8)
         canvas[:, :] = _BACKGROUND
         colours = colormap(self._glow)
+        marks = colormap(self._mark_value)
         for slot in self.layout.slots:
             y, x, size = self.rect(slot.cell)
             row = self._row.get(slot.cell)
-            if row is None:
-                colour = _EMPTY
-            elif self._no_reading[row]:
-                colour = _NO_READING
+            mark = self._mark_row.get(slot.cell)
+            if row is not None:
+                colour = _NO_READING if self._cell_scale.no_reading[row] else colours[row]
+            elif mark is not None and self._mark_scale.seen[mark]:
+                colour = (
+                    _NO_READING if self._mark_scale.no_reading[mark] else marks[mark]
+                )
             else:
-                colour = colours[row]
+                # A patch cell, or a mark this record carried nothing for.
+                colour = _EMPTY
             canvas[y : y + size, x : x + size] = colour
+        if render is not None:
+            self._draw_render(canvas, render)
+        if self._edges:
+            self._draw_edges(canvas)
+        self._draw_motor_strip(canvas, since=since)
         if not self.raw:
-            warming = self.warming_up
-            if warming:
+            warming, marks_warming = self.warming_up, self.boundary_warming_up
+            if warming or marks_warming:
                 _draw_text(
                     canvas,
-                    self._notice(warming),
+                    self._notice(warming, marks_warming),
                     top=self._notice_scale,
                     left=self._notice_scale,
                     scale=self._notice_scale,
@@ -823,14 +1250,246 @@ class DomePanel:
                 )
         return canvas
 
-    def _notice(self, warming: int) -> str:
+    def _draw_render(self, canvas: np.ndarray, render: np.ndarray) -> None:
+        """The boundary band: the agent's own render, tiled into the patch lattice.
+
+        Each patch cell's slot holds **that cell's own block of the render**,
+        cut the way the world writes it into the cell's node stalk, so the
+        picture at the bottom of the panel is the thing the arm is doing in the
+        other window and each square of it is what one cell is looking at. The
+        block is scaled to the slot by repetition -- nearest neighbour, no
+        interpolation -- because a smoothed patch would be a picture of pixels
+        that were never written anywhere.
+        """
+        image = np.asarray(render)
+        if image.ndim != 3 or image.shape[2] != 3 or image.shape[0] != image.shape[1]:
+            raise ValueError(
+                "the boundary band draws the agent's own render, which is a "
+                f"square `[side, side, 3]` image; got {image.shape}"
+            )
+        grid = self.dome.spec.patch_grid
+        side, remainder = divmod(image.shape[0], grid)
+        if remainder or side < 1:
+            raise ValueError(
+                f"a {grid}x{grid} patch lattice does not tile a "
+                f"{image.shape[0]}-pixel render. The tiling is the one the world "
+                "writes through (`patchworks.agent`), so a render the cells were "
+                "never cut from is refused rather than resampled."
+            )
+        size = self.layout.mark
+        # Which source row and column each drawn pixel comes from: computed
+        # once, since every patch is the same shape.
+        take = np.minimum((np.arange(size) * side) // size, side - 1)
+        for cell in self._patches:
+            r, c = cell.index.position
+            block = image[
+                r * side : (r + 1) * side, c * side : (c + 1) * side
+            ]
+            y, x, _size = self.rect(cell.id)
+            canvas[y : y + size, x : x + size] = block[take][:, take]
+
+    def _draw_edges(self, canvas: np.ndarray) -> None:
+        """The route: the edges carrying the most disagreement this tick.
+
+        A line between the two slots, on the same colormap as the marks, drawn
+        over them rather than under: the overlay is off by default and turned on
+        to answer *which cells were carrying it*, and a route hidden behind the
+        marks it runs between would not answer it.
+        """
+        if not self._drawn_edges:
+            return
+        drawn = np.array(self._drawn_edges, dtype=np.int64)
+        disagreement = self._last_disagreement[drawn]
+        # Against this tick's largest, so the brightest line is the loudest edge
+        # now. The threshold below it is the same tick's, so the ramp is read
+        # over the range that survived it rather than over a constant.
+        peak = float(disagreement.max(initial=0.0))
+        colours = colormap(disagreement / peak if peak > 0 else disagreement)
+        for edge_id, colour in zip(self._drawn_edges, colours):
+            u, v = self._edge_ends[edge_id]
+            _draw_line(canvas, self._centre(int(u)), self._centre(int(v)), colour)
+
+    def _centre(self, cell_id: int) -> tuple[int, int]:
+        """The middle of one cell's mark, in frame pixels."""
+        top, left, size = self.rect(cell_id)
+        return top + size // 2, left + size // 2
+
+    def _draw_motor_strip(self, canvas: np.ndarray, *, since: int | None) -> None:
+        """The actuator, decomposed: three paired bars and its disagreement.
+
+        **Commanded as an outline, applied as a fill** -- efference copy made
+        visible, so saturation reads as the fill falling short of its outline
+        and needs no second mark to say so. The fourth bar is the actuator's own
+        motor-side disagreement, and it is drawn **raw**, against the largest a
+        boundary mark has shown: `04-action-and-the-boundary.md`'s
+        route-selection signature is *near-zero commanded torque with standing
+        motor-side disagreement*, and standing is an absolute claim. On the
+        normalised map that bar would habituate -- a chronic stall would settle
+        to its own baseline and render calm, which is the consequence
+        `10-the-demo-surface.md` accepts for the colour channel and cannot be
+        accepted for the one bar a falsification test is read off.
+
+        The onset counter goes below the bars, so the ticks since the last
+        marker and the moment of the first corrective torque are read off one
+        strip.
+        """
+        top, left, height, width = self.motor_strip
+        text = _FONT_HEIGHT * self._notice_scale + 2 * self._notice_scale
+        bottom = top + height - text
+        zero = (top + bottom) // 2
+        half = max(1, (bottom - top) // 2 - 1)
+        canvas[zero, left + self._bar_margin : left + width - self._bar_margin] = _ZERO_LINE
+
+        x = left + self._bar_margin
+        joints = self._torque.shape[1]
+        for joint in range(joints):
+            commanded, applied = self._torque[0, joint], self._torque[1, joint]
+            _draw_bar(
+                canvas,
+                zero=zero,
+                left=x,
+                width=self._bar,
+                height=self._scaled(commanded, half),
+                colour=_COMMANDED,
+                fill=False,
+            )
+            _draw_bar(
+                canvas,
+                zero=zero,
+                left=x + 1,
+                width=max(1, self._bar - 2),
+                height=self._scaled(applied, half),
+                colour=_APPLIED,
+                fill=True,
+            )
+            x += self._bar + self._bar_gap
+        if self._actuator is not None and self._mark_scale.seen[
+            self._mark_row[self._actuator]
+        ]:
+            standing = float(self._mark_raw[self._mark_row[self._actuator]])
+            _draw_bar(
+                canvas,
+                zero=zero,
+                left=x,
+                width=self._bar,
+                height=int(round(standing * half)),
+                colour=tuple(int(channel) for channel in colormap(standing)),
+                fill=True,
+            )
+        if since is not None:
+            _draw_text(
+                canvas,
+                f"T+{min(since, 999999)}",
+                top=bottom + self._notice_scale,
+                left=left,
+                scale=self._notice_scale,
+                ink=_NOTICE_INK,
+            )
+
+    def _scaled(self, torque: float, half: int) -> int:
+        """One torque, in pixels above the strip's zero line."""
+        if not np.isfinite(torque) or self._torque_scale <= 0.0:
+            return 0
+        return int(np.clip(round(torque / self._torque_scale * half), -half, half))
+
+    def _notice(self, warming: int, marks: int = 0) -> str:
         """What the panel says while the statistics are warming up.
 
         On screen, in the frame, rather than in a log the capture does not
         carry: a viewer who cannot see that the map is still noise has been
-        misled by the picture.
+        misled by the picture. The marks drawn from edge disagreement are
+        counted beside the cells rather than folded in with them, because they
+        are a different population warming to a different condition
+        (:attr:`boundary_baseline`), and one number over both would be a count
+        of nothing in particular.
         """
-        return f"WARMING UP {warming}/{len(self.persistence)} CELLS"
+        notice = f"WARMING UP {warming}/{len(self.persistence)} CELLS"
+        if marks:
+            notice += f" {marks}/{len(self._marks)} MARKS"
+        return notice
+
+
+# -- marks that are not squares ---------------------------------------------
+
+
+def _above_the_ticks_own_scale(
+    disagreement: np.ndarray,
+) -> tuple[float, tuple[int, ...]]:
+    """The edges carrying the most disagreement this tick, and the bar they cleared.
+
+    **The threshold is derived from the tick's own scale, never hand-set**
+    (`docs/spec/10-the-demo-surface.md`, *Edges: thresholded, and off by
+    default*): this tick's mean plus one standard deviation, over the edges that
+    have a reading. A fixed magnitude would make the panel's picture of the
+    route an artifact of the constant -- the same objection `05-timescales.md`
+    raises against hand-set thresholds on the change gate, and it applies to a
+    display for the same reason.
+
+    What makes this rule *scale-free* rather than merely computed is that both
+    terms are homogeneous in the disagreement: multiply every edge by any
+    positive constant and the same edges clear the bar. Nothing here carries
+    units, so nothing here can be tuned to make a route appear.
+
+    An edge with no reading is left out of both the statistics and the drawing:
+    a NaN would make the threshold NaN and empty the overlay, which is the
+    quietest possible picture of a graph that has just diverged.
+    """
+    finite = np.isfinite(disagreement)
+    if not finite.any():
+        return 0.0, ()
+    readings = disagreement[finite]
+    threshold = float(readings.mean() + readings.std())
+    drawn = np.flatnonzero(finite & (disagreement > threshold))
+    return threshold, tuple(int(edge) for edge in drawn)
+
+
+def _draw_bar(
+    canvas: np.ndarray,
+    *,
+    zero: int,
+    left: int,
+    width: int,
+    height: int,
+    colour,
+    fill: bool,
+) -> None:
+    """One bar of the motor strip, up or down from the zero line.
+
+    `fill=False` draws the outline alone -- what was **commanded** -- so that
+    the fill drawn inside it can fall short and be seen to. A bar of no height
+    is still drawn, one pixel at the zero line, because *zero torque* is a
+    reading and an absent bar is not.
+    """
+    top = zero - height if height >= 0 else zero
+    bottom = zero if height >= 0 else zero - height
+    top, bottom = max(0, min(top, bottom)), max(top, bottom)
+    if bottom == top:
+        bottom = top + 1
+    if fill:
+        canvas[top:bottom, left : left + width] = colour
+        return
+    canvas[top:bottom, left] = colour
+    canvas[top:bottom, left + width - 1] = colour
+    edge = top if height >= 0 else bottom - 1
+    canvas[edge, left : left + width] = colour
+
+
+def _draw_line(
+    canvas: np.ndarray, start: tuple[int, int], end: tuple[int, int], colour
+) -> None:
+    """A one-pixel line between two marks' centres, clipped at the frame."""
+    height, width = canvas.shape[:2]
+    (y0, x0), (y1, x1) = start, end
+    steps = max(abs(y1 - y0), abs(x1 - x0))
+    if steps == 0:
+        if 0 <= y0 < height and 0 <= x0 < width:
+            canvas[y0, x0] = colour
+        return
+    for step in range(steps + 1):
+        y = y0 + round((y1 - y0) * step / steps)
+        x = x0 + round((x1 - x0) * step / steps)
+        if 0 <= y < height and 0 <= x < width:
+            canvas[y, x] = colour
 
 
 # -- text -------------------------------------------------------------------
