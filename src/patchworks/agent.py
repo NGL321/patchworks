@@ -46,6 +46,21 @@ from .tick import DEFAULT_GAMMA, Sheaf
 
 __all__ = ["DRIVE_ASSERTION", "PIXEL_SCALE", "Agent", "TickOutcome", "run"]
 
+
+class _Unset:
+    """*This argument was not passed at all* — which `None` does not say.
+
+    `None` is a value a caller can hand an argument, and a constructor that
+    reads it as "not given" cannot tell the two apart. Only :data:`_UNSET`
+    means the argument was never mentioned.
+    """
+
+    def __repr__(self) -> str:
+        return "<unset>"
+
+
+_UNSET = _Unset()
+
 #: What the drive boundary cell asserts, every tick, forever. **Chosen here,
 #: not recorded**: the record fixes the stalk's width and its content — one
 #: dimension carrying *valence, not specification* — but not the number. It has
@@ -103,7 +118,16 @@ class Agent:
         env: Any,
         *,
         dome: Dome | None = None,
-        gamma: float = DEFAULT_GAMMA,
+        # `_UNSET` rather than `DEFAULT_GAMMA`, which is still what a sheaf
+        # built here gets: the sentinel is what makes *not given* distinct from
+        # *given*, so the refusal below catches the sweep whose point happens
+        # to sit on `1.0`, and the driver writing `gamma=cfg.gamma` where the
+        # config says `None`. Both mentioned `γ`. What counts as a legal `γ` is
+        # not asked here at all — `Sheaf` owns that rule and checks it in one
+        # place, so anything that is not the sentinel goes straight there.
+        # `generator` needs no sentinel: `None` *is* torch's "no generator", so
+        # passing it asks for nothing and there is nothing to refuse.
+        gamma: float | _Unset = _UNSET,
         generator: torch.Generator | None = None,
         sheaf: Sheaf | None = None,
     ) -> None:
@@ -116,10 +140,54 @@ class Agent:
             self.dome = sheaf.dome
         else:
             self.dome = build_graph()
+        # `gamma` and `generator` configure a sheaf's *construction*, and a
+        # supplied sheaf is already constructed: its `γ` is baked into a gain
+        # tensor and its body, biases and maps are already drawn. Refused
+        # rather than applied, on the precedent of the mismatched-dome check
+        # just below — reaching in to reset `Sheaf.gamma` afterwards would be a
+        # second way to configure the same thing, and the gain it was computed
+        # from a second place the value lives.
+        #
+        # **`generator` is refused on the same grounds** — the decision #106
+        # left open, made here. It is the weaker case: a supplied sheaf is
+        # already drawn, so nothing is left for a generator to seed and
+        # ignoring it changes no number. But the shape of the lie is identical.
+        # `Agent(env, sheaf=prepared, generator=g)` is written by someone who
+        # believes the run is seeded, and a run that is not reproducible while
+        # its author believes it is fails the same way a sweep at the wrong `γ`
+        # does: plausibly, in the numbers, long after the fact. The narrower
+        # rule — refuse `gamma`, ignore `generator` — would also have to be
+        # explained to every caller who passes both, since it makes one half of
+        # the same call an error and the other half silent. One rule reads off
+        # the constructor's shape: **nothing here consumes a construction
+        # argument once the thing it constructs is supplied.**
+        if sheaf is not None:
+            for_the_sheaf = [
+                name
+                for name, given in (
+                    ("gamma", gamma is not _UNSET),
+                    ("generator", generator is not None),
+                )
+                if given
+            ]
+            if for_the_sheaf:
+                named = " and ".join(for_the_sheaf)
+                belong = "belongs" if len(for_the_sheaf) == 1 else "belong"
+                call = ", ".join(f"{name}=..." for name in for_the_sheaf)
+                raise ValueError(
+                    f"{named} {belong} to Sheaf and this sheaf is already built, so "
+                    f"it carries its own: build the sheaf you want — "
+                    f"Sheaf(dome, {call}) — and hand that over. Setting {named} here "
+                    f"would be a second way to configure the same thing."
+                )
+        # Unmentioned means "you choose" once there is no sheaf to disagree
+        # with, and what this constructor chooses is the value the record
+        # states. Every other value is the caller's, passed on unexamined.
+        chosen = DEFAULT_GAMMA if gamma is _UNSET else gamma
         self.sheaf = (
             sheaf
             if sheaf is not None
-            else Sheaf(self.dome, gamma=gamma, generator=generator)
+            else Sheaf(self.dome, gamma=chosen, generator=generator)
         )
         # Refused for the same reason Sheaf refuses mismatched maps: the write
         # tables below are built from this dome's cell ids against the sheaf's
