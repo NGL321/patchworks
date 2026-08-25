@@ -87,11 +87,13 @@ IMAGE_SIZE = 16
 #: ~1.8s — it is 300 because that is what "a few hundred" asks for and 3.6s is
 #: inside the budget, not because the time is unrecoverable.
 #:
-#: What is *not* recoverable that way is MuJoCo's GL context: ~1.2s, created
-#: lazily on the first render and **process-global rather than per
-#: environment**, so a second environment's first reset costs ~0.05s. In a
-#: full-suite run an earlier test has already paid it and none of it lands
-#: here; in `pytest tests/test_assembled_loop.py` alone, it does.
+#: What is *not* recoverable that way is MuJoCo's GL context, created lazily
+#: on the first render: ~1.2s on the development laptop, where the context is
+#: process-global, so a second environment's first reset costs ~0.05s and a
+#: full-suite run has already paid it elsewhere before reaching this file.
+#: Both numbers are that machine's. CI runs `MUJOCO_GL=osmesa`, where the
+#: context is per-renderer instead, so there the cost is paid again here — it
+#: is still one render's worth rather than `TICKS` of them.
 TICKS = 300
 
 
