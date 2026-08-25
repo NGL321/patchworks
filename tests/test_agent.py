@@ -9,13 +9,11 @@ The body is untrained and the maps are at their initial values, so the arm
 flails. That is expected and is not what any of this checks.
 """
 
-import warnings
 
 import gymnasium as gym
 import numpy as np
 import pytest
 import torch
-from gymnasium.wrappers import PassiveEnvChecker
 
 from patchworks.agent import DRIVE_ASSERTION, PIXEL_SCALE, Agent, run
 from patchworks.graph import CellKind, build_graph
@@ -204,23 +202,13 @@ class TestTheMotorPathway:
         assert stepped == pytest.approx([1.0, -1.0, 0.5])
         assert stepped == pytest.approx(outcome.applied)
         assert agent.env.action_space.contains(stepped)
-
-    def test_a_saturating_command_survives_the_passive_env_checker(self, agent):
-        # The contract-checking wrapper an experiment or a vector env would put
-        # in front of the sandbox sees only legal actions, at the command where
-        # legality first bites. Nothing in it may warn or raise. It declines to
-        # check the action itself (gymnasium 1.3.0 -- "for some environments
-        # out-of-bounds values can be given"), so this is the wrapper's own
-        # clean bill of health rather than the assertion that the action was
-        # legal; that one is above, where the action is caught in flight.
-        agent.env = PassiveEnvChecker(agent.env)
-        agent.sheaf.tick()
-        with torch.no_grad():
-            agent.sheaf.stalks[agent._commanded_slice] = torch.tensor([7.0, -7.0, 0.5])
-        with warnings.catch_warnings():
-            warnings.simplefilter("error", UserWarning)
-            outcome = agent.act(agent.command())
-        assert agent.env.action_space.contains(outcome.applied)
+        # Caught in flight rather than through a contract-checking wrapper.
+        # `PassiveEnvChecker` looks like the natural guard and is not one:
+        # gymnasium 1.3.0 declines to check the action at all -- "for some
+        # environments out-of-bounds values can be given" -- and no wrapper
+        # it ships asserts `action_space.contains(action)`. A test driving a
+        # saturating command through it passes identically before and after
+        # this fix, so it would assert nothing while looking like coverage.
 
     def test_the_command_is_not_clipped_where_the_graph_produces_it(self, agent):
         with torch.no_grad():
