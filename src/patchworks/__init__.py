@@ -20,17 +20,27 @@ Built so far:
 * :mod:`patchworks.timescale` — the clock divisor, as an instrument. Outside
   the architecture by construction: it drives the tick from outside, default
   off, and no cell can reach it.
+* :mod:`patchworks.bias_selection` — bias selection: the driven-trajectory
+  measurement, the overlapping bands, the fold-margin check, and the go/no-go
+  that can kill the timescale mechanism before anything is trained.
 * :mod:`patchworks.sandbox` — the world the agent lives in, promoted from
   prototypes/sandbox. Not imported here; import it directly.
-
-The rest of prototypes/ is not promoted yet; a later ticket brings
-prototypes/regional-spectra into this package.
 """
 
-from . import agent, body, graph, learning, restriction, tick, timescale
+from . import (
+    agent,
+    bias_selection,
+    body,
+    graph,
+    learning,
+    restriction,
+    tick,
+    timescale,
+)
 
 __all__ = [
     "agent",
+    "bias_selection",
     "body",
     "graph",
     "learning",

@@ -160,6 +160,7 @@ python3.12 -m venv .venv
 .venv/bin/pip install -e '.[dev]'
 .venv/bin/pytest                                   # the world, held against the spec
 .venv/bin/python benchmarks/achievability.py       # the scripted lower bound: 14 of 72, in ~3-4 min
+.venv/bin/python benchmarks/timescale_selection.py # the timescale go/no-go, in ~2 min
 .venv/bin/python -m patchworks                     # the dome, and what construction records
 ```
 
@@ -176,6 +177,7 @@ files in that directory are and what broke while building them; it does not repe
 | [`CONTEXT.md`](CONTEXT.md) | The vocabulary. Narrow senses, deliberately. |
 | [`src/patchworks/sandbox/`](src/patchworks/sandbox/) | The world, as a `gymnasium.Env`. |
 | [`src/patchworks/graph.py`](src/patchworks/graph.py) | The dome: construction, the structural masks, and the diagnostics it records. |
+| [`src/patchworks/timescales.py`](src/patchworks/timescales.py) | Bias selection, and the go/no-go that can kill the timescale mechanism before anything is trained. |
 | [`prototypes/sandbox/`](prototypes/sandbox/) | The throwaway it was promoted from, and the probes that measured it. |
 | [Issue #1](https://github.com/NGL321/patchworks/issues/1) | The map every one of those decisions was made on. |
 

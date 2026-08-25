@@ -185,13 +185,21 @@ class CellBody(torch.nn.Module):
         weight = torch.empty(size, device=device, dtype=dtype)
         return weight.normal_(0.0, (variance / fan_in) ** 0.5, generator=generator)
 
-    def _apply_map(
+    def apply_map(
         self,
         name: str,
         x: torch.Tensor,
         biases: CellBiases,
-    ) -> torch.Tensor:
-        """One map: affine, ReLU, affine — batched over the leading cell dimension."""
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """One map, as `(hidden pre-activation, output)` — batched over cells.
+
+        Affine, ReLU, affine. The **pre-activation** is returned alongside the
+        output because it is what the map's activation region and fold margin
+        are read from (`docs/spec/05-timescales.md`), and a rig that measures
+        those has to read them off *this* forward path rather than off a copy of
+        it — a body swapped in under these buffers would otherwise leave the
+        measurement behind, measuring a body that is not the one that runs.
+        """
         if biases.shape != self.shape:
             raise ValueError(
                 f"biases are for n={biases.shape.n}, k={biases.shape.k}; this body "
@@ -207,8 +215,8 @@ class CellBody(torch.nn.Module):
         hidden_weight = getattr(self, f"{name}_hidden_weight")
         output_weight = getattr(self, f"{name}_output_weight")
         hidden_bias, output_bias = biases.of(name)
-        hidden = torch.relu(x @ hidden_weight.T + hidden_bias)
-        return hidden @ output_weight.T + output_bias
+        pre_activation = x @ hidden_weight.T + hidden_bias
+        return pre_activation, torch.relu(pre_activation) @ output_weight.T + output_bias
 
     def encode(
         self,
@@ -224,7 +232,7 @@ class CellBody(torch.nn.Module):
         """
         self._check(chart, self.shape.k, "chart")
         self._check(node_stalk, self.shape.n, "node_stalk")
-        return self._apply_map("encode", torch.cat((chart, node_stalk), dim=-1), biases)
+        return self.apply_map("encode", torch.cat((chart, node_stalk), dim=-1), biases)[1]
 
     def step(self, chart: torch.Tensor, biases: CellBiases) -> torch.Tensor:
         """Advance the fused chart one tick: `z(t) -> z_hat(t+1)`, `[cells, k]`.
@@ -232,12 +240,12 @@ class CellBody(torch.nn.Module):
         A feed-forward map, a single forward pass — never an inner solve.
         """
         self._check(chart, self.shape.k, "chart")
-        return self._apply_map("step", chart, biases)
+        return self.apply_map("step", chart, biases)[1]
 
     def decode(self, chart: torch.Tensor, biases: CellBiases) -> torch.Tensor:
         """Read the advanced chart back out as a predicted node stalk, `[cells, n]`."""
         self._check(chart, self.shape.k, "chart")
-        return self._apply_map("decode", chart, biases)
+        return self.apply_map("decode", chart, biases)[1]
 
     def forward(
         self,
@@ -342,6 +350,51 @@ class CellBiases(torch.nn.Module):
             getattr(self, f"{name}_hidden_bias"),
             getattr(self, f"{name}_output_bias"),
         )
+
+    def subset(self, index: torch.Tensor) -> "CellBiases":
+        """The same biases over the cells `index` names, in that order.
+
+        What selection keeps: `docs/spec/05-timescales.md` draws candidate bias
+        vectors, measures the timescale each produces, and keeps a set covering
+        the target band. That kept set is this — a population of the same shape
+        holding a subset of the rows, detached from the draw it came out of, so
+        the discarded candidates are not carried into training on the graph.
+        """
+        if index.ndim != 1:
+            raise ValueError(f"index must be [cells], got {tuple(index.shape)}")
+        if index.dtype not in (torch.int32, torch.int64):
+            # A bool mask is the natural thing to reach for and would silently
+            # give a population whose `cells` was the mask's length rather than
+            # its count. Refused with the fix named, since the caller has the
+            # mask and `nonzero` is the whole of the conversion.
+            raise ValueError(
+                f"index must name cells, not mask them; got dtype {index.dtype}. "
+                "Pass index.nonzero(as_tuple=False).flatten() for a mask."
+            )
+        cells = int(index.numel())
+        source = self.encode_hidden_bias
+        # Keeping nothing is a real outcome -- a band no draw reached -- so an
+        # empty subset is representable, even though drawing zero cells is not.
+        # The draw this constructor makes is overwritten below, and it is made
+        # on a private generator so that keeping a set of biases does not
+        # advance the global RNG by an amount that depends on how many were
+        # kept -- inside a construction whose contract is that it reproduces.
+        kept = CellBiases(
+            self.shape,
+            max(cells, 1),
+            bias_variance=self.bias_variance,
+            generator=torch.Generator(device=source.device),
+            device=source.device,
+            dtype=source.dtype,
+        )
+        kept.cells = cells
+        with torch.no_grad():
+            for name in _map_dimensions(self.shape):
+                for role in ("hidden", "output"):
+                    getattr(kept, f"{name}_{role}_bias").data = (
+                        getattr(self, f"{name}_{role}_bias").data[index].clone()
+                    )
+        return kept
 
     def extra_repr(self) -> str:
         return f"cells={self.cells}, n={self.shape.n}, k={self.shape.k}"
