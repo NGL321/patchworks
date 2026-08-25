@@ -279,17 +279,29 @@ VOCABULARY = re.compile(r"divisor|timescale|clock|schedule|cadence", re.IGNORECA
 
 PACKAGE = pathlib.Path(__file__).resolve().parent.parent / "src" / "patchworks"
 
-#: The two files the scan does not read, and why. `timescale.py` **is** the
-#: instrument, and it is outside the architecture by construction. `__init__.py`
-#: is the package manifest and is asserted below to hold no code at all.
-# Both exempt modules are instruments rather than architecture, and the
-# distinction is the whole point of this scan. `timescale.py` is the clock
-# divisor; `bias_selection.py` is #85's construction-time measurement rig,
-# whose job is to *measure* a regional timescale and report a go/no-go
-# before anything is trained. Neither is on the tick path and no cell can
-# reach either. `__init__.py` is a manifest and holds no code -- asserted
-# separately below.
-EXEMPT = {"timescale.py", "bias_selection.py", "__init__.py"}
+#: The files the scan does not read, and why. Every exempt module is an
+#: instrument or a display rather than architecture, and that distinction is
+#: the whole point of this scan. `timescale.py` **is** the clock divisor;
+#: `bias_selection.py` is #85's construction-time measurement rig, whose job is
+#: to *measure* a regional timescale and report a go/no-go before anything is
+#: trained; `surface/dome_panel.py` is #93's dome panel, which reads
+#: `bias_selection`'s estimate because `docs/spec/10-the-demo-surface.md`
+#: specifies the trail to decay at each cell's measured persistence -- and that
+#: file opens by stating that **nothing in it is part of the architecture**.
+#: None of the three is on the tick path and no cell can reach any of them:
+#: `tests/test_dome_panel.py` walks a panel and finds no agent, sheaf or world
+#: in it, as this file's own object walk does for the divisor. `__init__.py` is
+#: the package manifest and is asserted below to hold no code at all.
+#:
+#: The prohibition itself is untouched by any of them. ADR-0005 bars the
+#: *architecture* from reading a timescale at runtime; measuring one from
+#: outside, once, and drawing it is the one thing a timescale is for.
+EXEMPT = {
+    "timescale.py",
+    "bias_selection.py",
+    "surface/dome_panel.py",
+    "__init__.py",
+}
 
 
 def architecture_modules():
@@ -353,9 +365,17 @@ class TestNothingInTheArchitectureNamesATimescale:
             "sandbox/__init__.py",
             "sandbox/env.py",
         } <= scanned
+        # The surface's other two modules stay scanned: only the panel needs
+        # the exemption, and it is taken per path rather than per package.
+        assert {"surface/record.py", "surface/renderer.py"} <= scanned
         # Pinned so that exempting a module is a visible edit to this test
         # rather than something a later ticket can do in passing.
-        assert EXEMPT == {"timescale.py", "bias_selection.py", "__init__.py"}
+        assert EXEMPT == {
+            "timescale.py",
+            "bias_selection.py",
+            "surface/dome_panel.py",
+            "__init__.py",
+        }
 
     def test_the_exempt_manifest_holds_no_code(self):
         tree = ast.parse((PACKAGE / "__init__.py").read_text())
