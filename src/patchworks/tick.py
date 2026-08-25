@@ -79,7 +79,7 @@ def _is_a_flag(gamma: object) -> bool:
     silence. `bool` is the Python one; numpy's `bool_` and a boolean tensor are
     the same mistake wearing this stack's containers, and both unwrap through
     the `item()` every scalar here shares. Anything `item()` refuses is not a
-    scalar at all, which the coercion below is the one to say so.
+    scalar at all, and the coercion below is the one to say so.
     """
     try:
         unwrapped = gamma.item() if hasattr(gamma, "item") else gamma
@@ -88,7 +88,18 @@ def _is_a_flag(gamma: object) -> bool:
     return isinstance(unwrapped, bool)
 
 
-def _checked_gamma(gamma: float) -> float:
+def _shown(gamma: object) -> str:
+    """What a refusal quotes back: the value's `repr`, kept short.
+
+    An integer too large for a float has hundreds of digits and a sweep that
+    passed its whole grid instead of a point has hundreds of entries. Neither
+    is worth a refusal the reader has to scroll to reach the end of.
+    """
+    shown = repr(gamma)
+    return shown if len(shown) <= 60 else f"{shown[:57]}..."
+
+
+def _checked_gamma(gamma: object) -> float:
     """Refuse a `γ` that is not a scalar in `(0, 1]`, and hand it back if it is.
 
     **The one place the legal-`γ` rule lives.** `Sheaf` owns what counts as a
@@ -130,21 +141,23 @@ def _checked_gamma(gamma: float) -> float:
     if _is_a_flag(gamma) or not (
         hasattr(gamma, "__float__") or hasattr(gamma, "__index__")
     ):
-        raise ValueError(f"{rule}; got {gamma!r}, which is not a number")
+        raise ValueError(f"{rule}; got {_shown(gamma)}, which is not a single number")
     try:
         as_float = float(gamma)
     except (TypeError, ValueError):
-        raise ValueError(f"{rule}; got {gamma!r}, which is not a number") from None
+        # **A single** number: the likeliest arrival here is a sweep that
+        # passed its whole grid rather than indexing a point out of it, and
+        # what is wrong with that is its arity, not its type.
+        raise ValueError(
+            f"{rule}; got {_shown(gamma)}, which is not a single number"
+        ) from None
     except OverflowError:
-        # A magnitude no float can hold is emphatically not in `(0, 1]`, and
-        # is reported without its digits: an integer that overflows a float
-        # has hundreds of them.
-        raise ValueError(f"{rule}; got a magnitude no float can hold") from None
+        raise ValueError(f"{rule}; got {_shown(gamma)}, which no float can hold") from None
     if not 0.0 < as_float <= 1.0:
         # The value the caller wrote, not the coercion of it. A sweep handed
         # `Fraction(3, 2)` and told `got 1.5` is being shown something it
         # never wrote, which is half of what made the old failure useless.
-        raise ValueError(f"{rule}; got {gamma!r}")
+        raise ValueError(f"{rule}; got {_shown(gamma)}")
     return as_float
 
 

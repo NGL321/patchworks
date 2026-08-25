@@ -363,8 +363,8 @@ class TestOneGlobalLearningRate:
     def test_a_non_positive_learning_rate_is_refused(self, sheaf, learning_rate):
         # nan and inf among them: `learning_rate <= 0` admits both, and a nan
         # rate silently poisons every bias on the first step. The bound is
-        # written in `reconciliation_gain`'s shape, which refuses them by
-        # comparing rather than by testing.
+        # written as one comparison that nan and inf both fail, rather than as
+        # a pair of tests for them.
         with pytest.raises(ValueError, match="global scalar"):
             BiasRule(sheaf, learning_rate=learning_rate)
 

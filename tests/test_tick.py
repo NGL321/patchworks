@@ -618,6 +618,14 @@ class TestTheGammaASheafIsBuiltWith:
             Sheaf(dome, gamma=Fraction(3, 2))
         assert "Fraction(3, 2)" in str(refusal.value)
 
+    def test_a_refusal_does_not_recite_three_hundred_digits(self, dome):
+        # `10**300` is a legal `float` and fails the bound like any other
+        # number, but reciting it costs 300 characters of zeros. What a
+        # refusal quotes back is kept short whichever branch raises it.
+        with pytest.raises(ValueError) as refusal:
+            Sheaf(dome, gamma=10**300)
+        assert len(str(refusal.value)) < 200
+
     def test_the_refusal_names_gamma_and_the_rule_it_broke(self, dome):
         with pytest.raises(ValueError) as refusal:
             Sheaf(dome, gamma=None)
