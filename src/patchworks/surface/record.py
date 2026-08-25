@@ -251,10 +251,15 @@ class Trace(Sequence[TickRecord]):
     def save(self, path: str | Path) -> Path:
         """Write the trace to one `.npz`. Returns the path written.
 
-        The file holds the contract and the two arrays and nothing else -- no
+        The file holds the contract and the arrays and nothing else -- no
         frames, no resolution, no colormap, nothing a display chose. What is
         stored is stacked by field rather than by record, because every
         consumer reads one field across the whole run.
+
+        A trace whose records disagree about whether they carry one of the
+        optional arrays is refused rather than padded: a zero written in for a
+        record that never captured one would read back as a graph agreeing on
+        every edge.
 
         Two fields go through JSON, and both for the same reason: `npz` stores
         arrays. The sampler's RNG state carries PCG64's 128-bit integers, which
@@ -267,17 +272,17 @@ class Trace(Sequence[TickRecord]):
         np.savez(
             path,
             tick=np.array([r.tick for r in records], dtype=np.int64),
-            physics=_stack([r.state.physics for r in records]),
-            puck_xy=_stack([r.state.task.puck_xy for r in records]),
-            puck_theta=_stack([r.state.task.puck_theta for r in records]),
+            physics=_stack([r.state.physics for r in records], "physics"),
+            puck_xy=_stack([r.state.task.puck_xy for r in records], "puck_xy"),
+            puck_theta=_stack([r.state.task.puck_theta for r in records], "puck_theta"),
             goal=np.array(
                 [(r.state.task.goal_puck, r.state.task.goal_zone) for r in records],
                 dtype=np.int64,
             ).reshape(len(records), 2),
-            prediction_error=_stack([r.prediction_error for r in records]),
-            private_delta=_stack([r.private_delta for r in records]),
-            disagreement=_stack([r.disagreement for r in records]),
-            actuator=_stack([r.actuator for r in records]),
+            prediction_error=_stack([r.prediction_error for r in records], "prediction_error"),
+            private_delta=_stack([r.private_delta for r in records], "private_delta"),
+            disagreement=_stack([r.disagreement for r in records], "disagreement"),
+            actuator=_stack([r.actuator for r in records], "actuator"),
             rng=np.asarray(json.dumps([r.state.rng for r in records])),
             events=np.asarray(
                 json.dumps(
@@ -301,6 +306,12 @@ class Trace(Sequence[TickRecord]):
         Every field is pulled out of the archive **once**, before the loop.
         `np.load` is lazy and re-reads the whole member on each subscript, so
         indexing one inside the loop would decompress the entire run per record.
+
+        **A file written before one of the optional arrays existed still
+        reads.** What comes back for it is *not captured*, which is exactly
+        what happened, and the marks drawn from it then draw nothing rather
+        than a zero. A trace is meant to outlive the run that made it, and a
+        capture from last month is not made wrong by a mark added since.
         """
         with np.load(Path(path)) as stored:
             rng = json.loads(str(stored["rng"].item()))
@@ -312,8 +323,8 @@ class Trace(Sequence[TickRecord]):
             goal = stored["goal"]
             prediction_error = stored["prediction_error"]
             private_delta = stored["private_delta"]
-            disagreement = stored["disagreement"]
-            actuator = stored["actuator"]
+            disagreement = _optional(stored, "disagreement", len(ticks))
+            actuator = _optional(stored, "actuator", len(ticks))
         records = []
         for i, tick in enumerate(ticks):
             state = np.array(physics[i])
@@ -347,9 +358,41 @@ class Trace(Sequence[TickRecord]):
         return cls(records)
 
 
-def _stack(arrays: list[np.ndarray]) -> np.ndarray:
-    """`np.stack`, with an empty trace surviving it."""
-    return np.stack(arrays) if arrays else np.zeros((0,))
+def _optional(stored, name: str, records: int) -> list[np.ndarray]:
+    """One of the archive's optional members, or *not captured* per record.
+
+    See :meth:`Trace.load`: a file written before a field existed carries no
+    member for it, and what that means is that nothing was captured -- not that
+    the file is unreadable, and never that the quantity was zero.
+    """
+    if name not in stored.files:
+        return [_nothing() for _ in range(records)]
+    return stored[name]
+
+
+def _stack(arrays: list[np.ndarray], what: str = "field") -> np.ndarray:
+    """`np.stack`, with an empty trace surviving it and a ragged one explained.
+
+    The optional arrays default to *not captured*, so a trace assembled by hand
+    can hold records that carry one and records that do not. `np.stack` refuses
+    that with a shape complaint naming neither the field nor the record, and
+    the fix is never to pad -- see :meth:`Trace.save`.
+    """
+    if not arrays:
+        return np.zeros((0,))
+    shapes = {array.shape for array in arrays}
+    if len(shapes) > 1:
+        odd = next(
+            i for i, array in enumerate(arrays) if array.shape != arrays[0].shape
+        )
+        raise ValueError(
+            f"this trace's records disagree about `{what}`: record 0 carries "
+            f"{arrays[0].shape} and record {odd} carries {arrays[odd].shape}. A "
+            "trace is one run through one graph, and a record that carried none "
+            "of a quantity cannot be written beside records that did -- the zero "
+            "it would be padded with is a reading nobody took."
+        )
+    return np.stack(arrays)
 
 
 class Recorder:

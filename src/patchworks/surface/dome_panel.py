@@ -663,6 +663,10 @@ class DomePanel:
         self._mark_value = np.zeros(len(self._marks))
         self._mark_raw = np.zeros(len(self._marks))
         self._last_disagreement = np.zeros(len(dome.edges))
+        #: Whether the **last** record carried disagreement at all. What the
+        #: marks are drawn from is a fact about that record, not about the run:
+        #: a capture that left the array out is nothing to draw, not agreement.
+        self._carried = False
         # `[marks, widest degree]`: the incident edges of each mark, padded with
         # the one slot past the end of a record's array -- a zero, which
         # contributes nothing to the sum of squares below. The whole gather is
@@ -852,8 +856,17 @@ class DomePanel:
 
     @property
     def boundary_warming_up(self) -> int:
-        """How many drawn boundary marks have no baseline yet."""
-        return int(((self._mark_scale.seen >= 1) & ~self.boundary_baseline).sum())
+        """How many boundary marks are being drawn without a baseline yet.
+
+        Only the marks actually on the colormap: a record that carried no
+        disagreement draws none of them, and a mark with no reading this tick
+        is drawn in its own colour rather than against its statistics. Neither
+        can mislead a viewer, so neither is what the notice is about.
+        """
+        if not self._carried:
+            return 0
+        drawn = ~self._mark_scale.no_reading
+        return int((drawn & ~self.boundary_baseline).sum())
 
     def rect(self, cell_id: int) -> tuple[int, int, int]:
         """`(top, left, size)` of one cell's mark **in the frame**.
@@ -1066,9 +1079,26 @@ class DomePanel:
                 f"{error.shape[0]} prediction errors; the panel and the record are "
                 "on different graphs"
             )
-        # Checked before anything is observed, so a render the cells were never
-        # cut from costs the caller an exception rather than a tick of every
-        # mark's statistics that the panel can never be handed again.
+        # Everything this record carries is checked before anything is
+        # observed. A record the panel refuses part-way through would already
+        # have folded this tick into every cell's statistics and advanced the
+        # trail, and the corrected record is then refused as out of order --
+        # so the panel would be permanently one tick of statistics off, with
+        # no recovery short of a fresh one.
+        disagreement = self._checked(
+            record.disagreement,
+            (len(self.dome.edges),),
+            f"this dome has {len(self.dome.edges)} edges and the record carries "
+            "{shape} disagreements; the panel and the record are on different graphs",
+        )
+        actuator = self._checked(
+            record.actuator,
+            (2, self._joints),
+            f"this dome's actuator cell holds {self._joints} commanded and "
+            f"{self._joints} efference components and the record carries "
+            "{shape}; the rows are `[2, joints]`, commanded then applied, as "
+            "the boundary cell holds them",
+        )
         tiles = None if render is None else self._tiles(render)
         if self._last_tick is None:
             elapsed = 0.0
@@ -1101,8 +1131,8 @@ class DomePanel:
             else self._cell_scale.normalised(readable)
         )
         self._glow = np.maximum(self._glow * np.exp(-elapsed / self.persistence), value)
-        self._observe_disagreement(record)
-        self._observe_torque(record)
+        self._observe_disagreement(disagreement, record.tick)
+        self._observe_torque(actuator)
         return self._draw(tiles=tiles, since=since)
 
     def frames(
@@ -1139,7 +1169,27 @@ class DomePanel:
 
     # -- what a boundary cell has instead ----------------------------------
 
-    def _observe_disagreement(self, record: TickRecord) -> None:
+    @staticmethod
+    def _checked(
+        values: np.ndarray, shape: tuple[int, ...], complaint: str
+    ) -> np.ndarray | None:
+        """One of a record's optional arrays, as floats. `None` if it carries none.
+
+        *Not captured* and *the wrong graph* are different things: an empty
+        array is a record built without this quantity, which the marks drawn
+        from it answer by drawing nothing, and anything else has to be the
+        shape this dome gives it.
+        """
+        array = np.asarray(values, dtype=np.float64)
+        if array.size == 0:
+            return None
+        if array.shape != shape:
+            raise ValueError(complaint.format(shape=array.shape))
+        return array
+
+    def _observe_disagreement(
+        self, disagreement: np.ndarray | None, tick: int
+    ) -> None:
         """This tick's edge disagreement, into the marks that are drawn from it.
 
         **A boundary cell's mark is the disagreement on its own edges**, taken
@@ -1156,26 +1206,23 @@ class DomePanel:
         else, and the marks it fills are indexed by boundary cell.
 
         A record carrying no disagreement leaves every mark unread and unlit,
-        which draws as an empty slot. *Not captured* is not *zero*.
+        which draws as an empty slot. *Not captured* is not *zero*, and it is a
+        fact about **this** record: a mark drawn calm because the last capture
+        happened to leave the array out would be a graph reported as agreeing
+        on every edge by nobody.
         """
-        disagreement = np.asarray(record.disagreement, dtype=np.float64).reshape(-1)
-        if disagreement.size == 0:
+        self._carried = disagreement is not None
+        if disagreement is None:
             self._mark_value = np.zeros(len(self._marks))
             self._mark_raw = np.zeros(len(self._marks))
             self._last_disagreement = np.zeros(len(self.dome.edges))
             self._drawn_edges, self._threshold = (), 0.0
             return
-        if disagreement.shape != (len(self.dome.edges),):
-            raise ValueError(
-                f"this dome has {len(self.dome.edges)} edges and the record carries "
-                f"{disagreement.shape[0]} disagreements; the panel and the record "
-                "are on different graphs"
-            )
         # The pad slot the mark index points spare degrees at: zero, so a cell
         # of below-maximum degree sums only its own edges.
         padded = np.append(disagreement, 0.0)
         per_mark = np.sqrt((padded[self._mark_edges] ** 2).sum(axis=1))
-        readable, _rescale = self._mark_scale.observe(per_mark, record.tick)
+        readable, _rescale = self._mark_scale.observe(per_mark, tick)
         # Both maps, every tick: the colour channel takes whichever the debug
         # flag asks for, and the motor strip's standing bar takes the raw one
         # whatever the flag says -- see :meth:`_draw_motor_strip`.
@@ -1186,7 +1233,7 @@ class DomePanel:
         self._last_disagreement = disagreement
         self._threshold, self._drawn_edges = _above_the_ticks_own_scale(disagreement)
 
-    def _observe_torque(self, record: TickRecord) -> None:
+    def _observe_torque(self, actuator: np.ndarray | None) -> None:
         """The actuator's commanded and applied rows, and the scale they share.
 
         **One scale for all six numbers**, because they are torques in the same
@@ -1198,17 +1245,9 @@ class DomePanel:
         keeps *near-zero commanded torque* -- half of `04`'s stall signature --
         legible as near zero.
         """
-        actuator = np.asarray(record.actuator, dtype=np.float64)
-        if actuator.size == 0:
+        if actuator is None:
             self._torque = np.zeros((2, 0))
             return
-        if actuator.shape != (2, self._joints):
-            raise ValueError(
-                f"this dome's actuator cell holds {self._joints} commanded and "
-                f"{self._joints} efference components and the record carries "
-                f"{actuator.shape}; the rows are `[2, joints]`, commanded then "
-                "applied, as the boundary cell holds them"
-            )
         self._torque = actuator
         finite = actuator[np.isfinite(actuator)]
         largest = float(np.abs(finite).max(initial=0.0))
@@ -1232,7 +1271,7 @@ class DomePanel:
             mark = self._mark_row.get(slot.cell)
             if row is not None:
                 colour = _NO_READING if self._cell_scale.no_reading[row] else colours[row]
-            elif mark is not None and self._mark_scale.seen[mark]:
+            elif mark is not None and self._carried:
                 colour = (
                     _NO_READING if self._mark_scale.no_reading[mark] else marks[mark]
                 )
@@ -1347,6 +1386,15 @@ class DomePanel:
         `10-the-demo-surface.md` accepts for the colour channel and cannot be
         accepted for the one bar a falsification test is read off.
 
+        **A bar with no reading spans the whole strip in its own colour**
+        (:data:`_NO_READING`) rather than standing at zero. A bar encodes its
+        quantity in a height, and there is no height that means *not a number*:
+        drawing one at the zero line would put *near-zero commanded torque* --
+        half of `04`'s stall signature -- on screen out of no reading at all, on
+        the one mark a falsification test is read off. A pair is one mark, so a
+        non-finite half takes both with it, and a full-height column crosses the
+        zero line, which no torque bar ever does.
+
         The onset counter goes below the bars, so the ticks since the last
         marker and the moment of the first corrective torque are read off one
         strip.
@@ -1360,6 +1408,10 @@ class DomePanel:
 
         for joint in range(self._torque.shape[1]):
             commanded, applied = self._torque[0, joint], self._torque[1, joint]
+            if not (np.isfinite(commanded) and np.isfinite(applied)):
+                x = self._bar_left(left, joint)
+                canvas[top:bottom, x : x + self._bar] = _NO_READING
+                continue
             _draw_bar(
                 canvas,
                 zero=zero,
@@ -1381,19 +1433,22 @@ class DomePanel:
         # Always the last bar, whether or not the record carried the rows
         # beside it: a mark that moved along the strip with what was captured
         # would be a different mark from one tick to the next.
-        if self._actuator is not None and self._mark_scale.seen[
-            self._mark_row[self._actuator]
-        ]:
-            standing = float(self._mark_raw[self._mark_row[self._actuator]])
-            _draw_bar(
-                canvas,
-                zero=zero,
-                left=self._bar_left(left, self._joints),
-                width=self._bar,
-                height=int(round(standing * half)),
-                colour=tuple(int(channel) for channel in colormap(standing)),
-                fill=True,
-            )
+        if self._actuator is not None and self._carried:
+            row = self._mark_row[self._actuator]
+            x = self._bar_left(left, self._joints)
+            if self._mark_scale.no_reading[row]:
+                canvas[top:bottom, x : x + self._bar] = _NO_READING
+            else:
+                standing = float(self._mark_raw[row])
+                _draw_bar(
+                    canvas,
+                    zero=zero,
+                    left=x,
+                    width=self._bar,
+                    height=int(round(standing * half)),
+                    colour=tuple(int(channel) for channel in colormap(standing)),
+                    fill=True,
+                )
         if since is not None:
             _draw_text(
                 canvas,
@@ -1409,8 +1464,12 @@ class DomePanel:
         return left + self._bar_margin + index * (self._bar + self._bar_gap)
 
     def _scaled(self, torque: float, half: int) -> int:
-        """One torque, in pixels above the strip's zero line."""
-        if not np.isfinite(torque) or self._torque_scale <= 0.0:
+        """One torque, in pixels above the strip's zero line.
+
+        Only ever called on a reading: a non-finite one is drawn as no reading
+        rather than reduced to a height, and its caller has already left.
+        """
+        if self._torque_scale <= 0.0:
             return 0
         return int(np.clip(round(torque / self._torque_scale * half), -half, half))
 

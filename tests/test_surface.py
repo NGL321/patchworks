@@ -502,6 +502,48 @@ class TestTheFile:
             assert np.array_equal(read.actuator, written.actuator)
             assert read.events == written.events
 
+    def test_a_file_written_before_a_field_existed_still_reads(self, agent, tmp_path):
+        """A trace outlives the run that made it, and marks are added later.
+
+        What comes back for a member the archive does not hold is *not
+        captured*, which is exactly what happened -- and the marks drawn from
+        it then draw nothing rather than a zero.
+        """
+        recorder = Recorder(agent)
+        run_watched(recorder)
+        path = recorder.trace.save(tmp_path / "run")
+        with np.load(path) as stored:
+            older = {
+                name: stored[name]
+                for name in stored.files
+                if name not in ("disagreement", "actuator")
+            }
+        np.savez(tmp_path / "older", **older)
+        back = Trace.load(tmp_path / "older.npz")
+        assert len(back) == len(recorder.trace)
+        for read, written in zip(back, recorder.trace):
+            assert np.array_equal(read.prediction_error, written.prediction_error)
+            assert read.disagreement.size == 0
+            assert read.actuator.size == 0
+
+    def test_a_trace_whose_records_disagree_about_a_field_is_refused(
+        self, agent, tmp_path
+    ):
+        """Not padded with a zero: that reads back as a graph that agreed."""
+        recorder = Recorder(agent)
+        run_watched(recorder)
+        captured = recorder.trace[0]
+        recorder.trace.append(
+            TickRecord(
+                tick=captured.tick + 1000,
+                state=captured.state,
+                prediction_error=captured.prediction_error,
+                private_delta=captured.private_delta,
+            )
+        )
+        with pytest.raises(ValueError, match="disagreement"):
+            recorder.trace.save(tmp_path / "ragged")
+
     def test_the_rng_survives_at_full_width(self, agent, tmp_path):
         """PCG64's state is a 128-bit integer, and a lossy trip is a replay that
         diverges rather than an error."""

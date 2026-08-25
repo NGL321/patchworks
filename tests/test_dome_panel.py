@@ -1551,3 +1551,102 @@ class TestNoBoundaryCellIsEverAssignedAPredictionError:
             assert mark(quiet, calm, cell_id) == mark(loud, burning, cell_id)
         # Including the strip's bars, which are the record's own rows.
         assert np.array_equal(quiet.torque, loud.torque)
+
+
+class TestTheFourWaysTheBoundaryMarksCouldHaveFlatteredUs:
+    """One test per finding of #94's review, each one red before its fix.
+
+    The same class of defect #93's review found, in the marks #94 added: each
+    is the panel drawing something calmer than what it was handed -- an empty
+    slot for a divergence, a zero torque for a number that was not one, a calm
+    mark for a quantity nobody captured, and a baseline that moved on a record
+    the panel then refused.
+    """
+
+    def test_a_marks_first_reading_being_no_reading_is_still_no_reading(self, small):
+        """A graph that has already diverged when the panel opens.
+
+        Drawn as an empty slot -- *this record carried nothing* -- the one
+        thing on screen would be the panel reporting that it had not been told,
+        about the event it exists to show.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        gone = np.full(edges, 1.0)
+        touch = only(small, "touch")[0]
+        (edge,) = small.incident[touch]
+        gone[edge] = np.inf
+        frame = panel.frame(full(1, cells, edges, disagreement=gone))
+        assert mark(panel, frame, touch) == dome_panel_module._NO_READING
+
+    def test_a_torque_that_is_not_a_number_is_not_drawn_as_zero_torque(self, small):
+        """The stall signature's own half, fabricated out of no reading.
+
+        A bar encodes its quantity in a height and no height means *not a
+        number*, so a non-finite pair takes the whole column in its own colour
+        -- across the zero line, which no torque bar ever crosses.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        rest = panel.frame(
+            full(1, cells, edges, disagreement=1.0, actuator=np.zeros((2, 3)))
+        )
+        lost = np.zeros((2, 3))
+        lost[0, 0] = np.nan
+        gone = panel.frame(full(2, cells, edges, disagreement=1.0, actuator=lost))
+        top, left, height, width = panel.motor_strip
+        ink = np.array(dome_panel_module._NO_READING, dtype=np.uint8)
+
+        def unread(frame):
+            region = frame[top : top + height, left : left + width]
+            return np.all(region == ink, axis=-1)
+
+        assert not unread(rest).any(), "a torque of zero is a reading"
+        # A whole column of it, crossing the zero line, where the first joint's
+        # pair would have stood.
+        columns = np.flatnonzero(unread(gone).any(axis=0))
+        assert columns.size == panel.layout.mark
+        assert unread(gone)[:, columns[0]].sum() > 2
+
+    def test_a_record_that_carries_no_disagreement_empties_the_marks_again(
+        self, small
+    ):
+        """*Not captured* is a fact about this record, not about the run.
+
+        A mark left standing at the calmest stop on the ramp because the last
+        capture happened to leave the array out is a graph reported as agreeing
+        on every edge by nobody.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        panel.frame(full(1, cells, edges, disagreement=2.0))
+        panel.frame(full(2, cells, edges, disagreement=3.0))
+        frame = panel.frame(record(3, np.zeros(cells)))
+        for cell_id in panel.boundary_marks:
+            assert mark(panel, frame, cell_id) == dome_panel_module._EMPTY
+        assert panel.boundary_warming_up == 0
+
+    def test_a_refused_record_leaves_the_statistics_where_they_were(self, small):
+        """A record is checked whole before any of it is observed.
+
+        Refused half-way through, the tick is already in every cell's Welford
+        statistics and the trail has already advanced -- and the corrected
+        record is then refused as out of order, so the panel is permanently one
+        tick off with no recovery short of a fresh one.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        panel.frame(full(1, cells, edges, error=1.0, disagreement=1.0))
+        settled = panel.mean.copy(), panel.glow.copy(), panel.boundary_lit.copy()
+        for wrong in (
+            full(2, cells, edges + 1, error=9.0, disagreement=9.0),
+            full(2, cells, edges, error=9.0, actuator=np.zeros((2, 5))),
+        ):
+            with pytest.raises(ValueError):
+                panel.frame(wrong)
+        assert np.array_equal(panel.mean, settled[0])
+        assert np.array_equal(panel.glow, settled[1])
+        assert np.array_equal(panel.boundary_lit, settled[2])
+        # And tick 2 is still there to be drawn, by the record that fits.
+        panel.frame(full(2, cells, edges, error=9.0, disagreement=9.0))
+        assert not np.array_equal(panel.mean, settled[0])

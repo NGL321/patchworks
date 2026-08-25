@@ -17,7 +17,7 @@ makes neither readable -- and readability is the whole point, because this
 panel has to be able to *disagree*: if deep private state swings as far as the
 rim, the mechanism is not working, and `08` counts that a failure even when
 every recovery looks perfect. A scatter against depth either slopes or it does
-not. So this panel reads exactly one of a record's two arrays --
+not. So this panel reads exactly one of a record's arrays --
 :attr:`~patchworks.surface.record.TickRecord.private_delta` -- and the dome's
 channel (#93) is not reachable from anything here.
 
