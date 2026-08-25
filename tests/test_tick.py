@@ -618,6 +618,28 @@ class TestTheGammaASheafIsBuiltWith:
             Sheaf(dome, gamma=Fraction(3, 2))
         assert "Fraction(3, 2)" in str(refusal.value)
 
+    @pytest.mark.parametrize(
+        "gamma",
+        [0.5 + 3j, np.complex128(0.5 + 3j), torch.tensor(0.5 + 3j)],
+        ids=["complex", "numpy complex128", "complex tensor"],
+    )
+    def test_a_complex_number_is_not_a_gamma(self, dome, drawn, gamma):
+        # `numpy.complex128(0.5 + 3j)` narrows to `0.5` behind a warning, so a
+        # sweep reading its points out of a complex array would otherwise run
+        # at a gamma nobody chose. Torch says so by raising `RuntimeError`,
+        # which is not one of the two the coercion caught -- so that one
+        # escaped the rule entirely rather than being misread by it.
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=gamma)
+        assert drawn == []
+
+    def test_an_integer_too_long_to_print_is_still_refused_by_the_rule(self, dome):
+        # `repr` of an integer over 4300 digits raises `ValueError` itself, so
+        # quoting the value back used to lose the refusal that matters behind
+        # one about integer formatting.
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=10**5000)
+
     def test_a_refusal_does_not_recite_three_hundred_digits(self, dome):
         # `10**300` is a legal `float` and fails the bound like any other
         # number, but reciting it costs 300 characters of zeros. What a

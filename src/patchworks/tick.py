@@ -71,21 +71,26 @@ __all__ = [
 DEFAULT_GAMMA = 1.0
 
 
-def _is_a_flag(gamma: object) -> bool:
-    """`True` for a boolean in any of the shapes this stack hands one over in.
+def _would_be_misread(gamma: object) -> bool:
+    """`True` for a scalar that coerces to a float but means something else.
 
-    `float(True)` is `1.0`, so a config carrying `gamma = true` would otherwise
-    be read as the default and run a whole sweep point at the wrong `γ` in
-    silence. `bool` is the Python one; numpy's `bool_` and a boolean tensor are
-    the same mistake wearing this stack's containers, and both unwrap through
-    the `item()` every scalar here shares. Anything `item()` refuses is not a
-    scalar at all, and the coercion below is the one to say so.
+    `float(True)` is `1.0`, and `numpy.complex128(0.5 + 3j)` narrows to `0.5`
+    behind a warning. So a config carrying `gamma = true`, or a `γ` read out of
+    a complex array, would otherwise run a whole sweep point at a number nobody
+    chose and say nothing. Python's own `bool` needs no unwrapping; numpy's
+    `bool_`, a boolean tensor and the complex containers are the same mistakes
+    wearing this stack's boxes, and all of them unwrap through the `item()`
+    every scalar here shares. Anything `item()` refuses is not a scalar at all,
+    and the coercion below is the one to say so.
     """
     try:
         unwrapped = gamma.item() if hasattr(gamma, "item") else gamma
     except (RuntimeError, TypeError, ValueError):
         return False
-    return isinstance(unwrapped, bool)
+    # `float` is not a `complex` subclass — that relation holds in the
+    # `numbers` tower, not between the built-in types — so this refuses the
+    # complex ones without touching an ordinary `γ`.
+    return isinstance(unwrapped, (bool, complex))
 
 
 def _shown(gamma: object) -> str:
@@ -93,9 +98,14 @@ def _shown(gamma: object) -> str:
 
     An integer too large for a float has hundreds of digits and a sweep that
     passed its whole grid instead of a point has hundreds of entries. Neither
-    is worth a refusal the reader has to scroll to reach the end of.
+    is worth a refusal the reader has to scroll to reach the end of — and past
+    4300 digits `repr` refuses outright, which would lose the refusal that
+    matters behind one about integer formatting.
     """
-    shown = repr(gamma)
+    try:
+        shown = repr(gamma)
+    except ValueError:
+        return f"<a {type(gamma).__name__} too long to quote>"
     return shown if len(shown) <= 60 else f"{shown[:57]}..."
 
 
@@ -123,7 +133,7 @@ def _checked_gamma(gamma: object) -> float:
     such a test and die at the gain — the same two-frames-down `TypeError`,
     after the same wasted draws. Coercing settles both, and settles them here.
 
-    Both refusals are `ValueError` rather than the `TypeError` a non-number
+    Every refusal is a `ValueError` rather than the `TypeError` a non-number
     would conventionally earn, because one rule deserves one thing to catch: a
     `γ` sweep reading its points from a config meets `None` and `1.5` the same
     way, and `Agent`'s adjacent refusal of a misplaced `gamma=None` is already
@@ -133,24 +143,31 @@ def _checked_gamma(gamma: object) -> float:
         "gamma is a single global scalar in (0, 1] "
         "(docs/spec/02-tick-semantics.md, Reconciliation gain)"
     )
+
+    def not_one_number() -> ValueError:
+        return ValueError(
+            f"{rule}; got {_shown(gamma)}, which is not a single real number"
+        )
+
     # `float()` parses text and buffers as well as coercing numbers, and a
     # config that quotes its numbers is the same mistake as one that leaves
     # them out. A number offers `__float__` or `__index__`; text and buffers
     # offer neither, which is the difference stated once rather than as an
     # enumeration of the containers text arrives in.
-    if _is_a_flag(gamma) or not (
+    if _would_be_misread(gamma) or not (
         hasattr(gamma, "__float__") or hasattr(gamma, "__index__")
     ):
-        raise ValueError(f"{rule}; got {_shown(gamma)}, which is not a single number")
+        raise not_one_number()
     try:
         as_float = float(gamma)
-    except (TypeError, ValueError):
-        # **A single** number: the likeliest arrival here is a sweep that
+    # `RuntimeError` because torch's `__float__` raises it — for a complex
+    # tensor, or one on the meta device — and a rule with one thing to catch
+    # cannot let a second class out through its own coercion.
+    except (RuntimeError, TypeError, ValueError):
+        # **A single real** number: the likeliest arrival here is a sweep that
         # passed its whole grid rather than indexing a point out of it, and
         # what is wrong with that is its arity, not its type.
-        raise ValueError(
-            f"{rule}; got {_shown(gamma)}, which is not a single number"
-        ) from None
+        raise not_one_number() from None
     except OverflowError:
         raise ValueError(f"{rule}; got {_shown(gamma)}, which no float can hold") from None
     if not 0.0 < as_float <= 1.0:
