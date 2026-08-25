@@ -17,6 +17,11 @@ Four modules, and the seam between them is the record:
 * :mod:`patchworks.surface.renderer` -- the one renderer. It consumes an
   iterable of records; a live run and a file off disk are two iterables, not
   two code paths.
+* :mod:`patchworks.surface.dome_panel` -- the second window's dome: bands
+  stacked with the sensorimotor boundary at the bottom, prediction error
+  normalised per cell as colour, and a trail decaying at each cell's own
+  measured persistence. It reads a record and draws marks; it holds no agent,
+  no sheaf and no world, so closing it changes nothing but the view.
 * :mod:`patchworks.surface.private_component` -- the private-component panel:
   `‖Δ(private component)‖` per cell against hop distance from the sensorimotor
   rim, drawn as its own panel so that it can disagree with the claim it tests.
@@ -28,6 +33,14 @@ Not imported by :mod:`patchworks`; import it directly, as with
 :mod:`patchworks.sandbox`.
 """
 
+from patchworks.surface.dome_panel import (
+    DEFAULT_PITCH,
+    BandLayout,
+    DomePanel,
+    Slot,
+    colormap,
+    measured_persistence,
+)
 from patchworks.surface.onset import Hands, OnsetCounter
 from patchworks.surface.private_component import (
     PANEL_HEIGHT,
@@ -50,8 +63,11 @@ from patchworks.surface.renderer import Renderer
 __all__ = [
     "CAPTURE_EVERY",
     "CAPTURE_HZ",
+    "DEFAULT_PITCH",
     "PANEL_HEIGHT",
     "PANEL_WIDTH",
+    "BandLayout",
+    "DomePanel",
     "Event",
     "EventKind",
     "Hands",
@@ -60,7 +76,10 @@ __all__ = [
     "Recorder",
     "Renderer",
     "Scatter",
+    "Slot",
     "TickRecord",
     "Trace",
+    "colormap",
     "hop_distance",
+    "measured_persistence",
 ]
