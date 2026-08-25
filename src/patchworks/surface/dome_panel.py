@@ -432,8 +432,8 @@ class DomePanel:
         self._row = {cell_id: row for row, cell_id in enumerate(dome.predicting)}
         # The running statistics: Welford, so the baseline is the whole run so
         # far rather than a window whose length would be a hand-set constant.
-        # Counted per cell rather than once, because a cell whose error is not a
-        # number this tick contributes nothing to its own statistics and the
+        # Counted per cell rather than once, because a cell whose prediction error is
+        # not a number this tick contributes nothing to its own statistics and the
         # rest of the dome carries on.
         self._seen = np.zeros(cells, dtype=np.int64)
         self._mean = np.zeros(cells)
@@ -568,7 +568,7 @@ class DomePanel:
 
     @property
     def no_reading(self) -> np.ndarray:
-        """`[predicting cells]` bool: whose last error was not a number.
+        """`[predicting cells]` bool: whose last prediction error was not a number.
 
         Drawn in their own colour rather than on the colormap; see
         :data:`_NO_READING`.
@@ -603,7 +603,7 @@ class DomePanel:
 
         **With :attr:`raw` set** the map is the un-normalised one that section
         keeps behind a debug flag: every cell against one shared scale, the
-        largest error the panel has seen anywhere in the dome. That map shows
+        largest prediction error the panel has seen anywhere in the dome. That map shows
         the taper's shape -- which is exactly why it is not the primary channel
         -- and it is the map a falsification sweep should read, because chronic
         failure is visible on it.
@@ -617,7 +617,7 @@ class DomePanel:
         lit for hundreds of ticks, and a wave of glow climbing the bands is
         message passing, watched.
 
-        **A cell whose error is not a number has no reading**, and is drawn in
+        **A cell whose prediction error is not a number has no reading**, and is drawn in
         its own colour (:data:`_NO_READING`) rather than anywhere on the
         colormap. It is kept out of its own statistics, so one NaN does not
         leave a cell's baseline undefined for the rest of the run, and out of
@@ -657,7 +657,7 @@ class DomePanel:
             elapsed = float(record.tick - self._last_tick)
         self._last_tick = record.tick
 
-        # A cell whose error is not a number has no reading this tick: it is
+        # A cell whose prediction error is not a number has no reading this tick: it is
         # kept out of its own statistics, out of the maps' scales and out of the
         # glow, and it is drawn in its own colour instead of on the colormap.
         self._no_reading = ~np.isfinite(error)
@@ -689,13 +689,13 @@ class DomePanel:
     def _observe(self, error: np.ndarray) -> np.ndarray:
         """This tick, into the statistics: Welford's, and the raw map's scale.
 
-        Returns the readable error -- the array with a cell that has no reading
+        Returns the readable prediction error -- the array with a cell that has no reading
         standing at its own mean, so that everything downstream treats it as
         *nothing happened here* rather than propagating a NaN into a colour.
 
         **A trail already drawn on the raw map is rescaled with it.** The glow
         holds values that were divided by the scale as it stood when they were
-        drawn, so a new largest error anywhere in the dome would otherwise leave
+        drawn, so a new largest prediction error anywhere in the dome would otherwise leave
         a decaying cell brighter than a cell reaching the same raw norm now --
         and comparing cells is the whole of what the raw map is for.
         """
@@ -740,7 +740,7 @@ class DomePanel:
         """`[cells]` in `[0, 1]`: the raw norms, on one scale shared by the dome.
 
         One scale, because comparing cells is the whole of what the raw map is
-        for. It is the largest error seen anywhere so far rather than this
+        for. It is the largest prediction error seen anywhere so far rather than this
         tick's largest, so a quiet tick does not rescale the dome under the
         viewer; :meth:`_observe` keeps it, and keeps the trail on it.
         """
