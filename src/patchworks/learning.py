@@ -357,28 +357,20 @@ NORM_FLOOR = 1e-24
 #: **The value is chosen here, not recorded.** `06-graph-topology.md` fixes that
 #: sparsity annealing is "a schedule on the sparsity pressure, not a structural
 #: process" and ADR-0010 fixes that the pressure is an L1 on the normalised map;
-#: neither fixes a number or a shape. It is set by **measuring** the balance
-#: rather than by arguing it, because the two terms' gradients are not the same
-#: size: the relative disagreement lies in `[0, 1]`, but `∇(‖F‖₁/‖F‖_F)` has
-#: norm `√(p − q²)/‖F‖_F` for a map with `p` open weights, which **grows with
-#: the mask** rather than being `O(1)`. Measured on the default dome at `λ =
-#: 0.03`, the pressure term's per-map gradient sits at a median **0.12** of the
-#: transport term's (0.116–0.129 across three seeds), which is what "prunes
+#: neither fixes a number. It is set by **measuring** the balance rather than by
+#: arguing it: the relative disagreement lies in `[0, 1]`, and the pressure
+#: term's gradient is `√(1 − h²)/‖F‖_F` (see :func:`normalised_l1`), so the two
+#: are the same order but not the same size. Measured on the default dome at
+#: `λ = 0.4`, the pressure term's per-map gradient sits at a median **0.12** of
+#: the transport term's (0.114–0.127 across three seeds), which is what "prunes
 #: *within* the mask" asks of a secondary pressure. It is a thing to retune once
-#: #91 can read effective rank, and
-#: `tests/test_transport_rule.py` holds the figure to the dome it names.
+#: #91 can read effective rank, and `tests/test_transport_rule.py` holds the
+#: figure to the dome it names.
 #:
-#: **A consequence the record does not address.** Because that norm grows with
-#: `p`, one global `λ` prunes a wide map harder than a narrow one. The bound is
-#: derived rather than measured and so does not move with the state: at equal
-#: `‖F‖_F` the spread across this dome's mask sizes is at most `√(384/8) ≈ 7×`
-#: (the realised median-split ratio is nearer `1.6×`). Dividing the term by `√p`
-#: would equalise it, exactly as `02-tick-semantics.md`'s reconciliation gain
-#: divides by `Σ_e m_e` to remove a degree artifact from one global `γ`. It is
-#: **not** done here: ADR-0010 names the term, the size grading is a property
-#: of the term it names, and changing it is a decision for the record rather
-#: than for this constant.
-DEFAULT_SPARSITY_PRESSURE = 0.03
+#: The value moved from `0.03` to `0.4` when the `1/√p` normalisation went into
+#: :func:`normalised_l1` (#89): the term shrank by roughly `√p`, and the ceiling
+#: rose by roughly the same factor to hold the balance where it was.
+DEFAULT_SPARSITY_PRESSURE = 0.4
 
 #: How many steps the pressure takes to reach that ceiling.
 #:
@@ -386,7 +378,10 @@ DEFAULT_SPARSITY_PRESSURE = 0.03
 #: pressure anneals **up**, from nothing, rather than down. A map is drawn
 #: random and dense, and until transport has organised it there is no shape for
 #: an L1 to prune *within* — pruning a map before it carries anything is the
-#: local-neuroplasticity analogue run backwards. The horizon is then set an
+#: local-neuroplasticity analogue run backwards. **That direction was escalated
+#: from #89 and ruled on rather than left to default**, so it is settled and not
+#: merely a first guess; the horizon and the ramp's shape were not, and remain
+#: this module's. The horizon is set an
 #: order of magnitude above the slowest cell's own time constant
 #: (`docs/spec/05-timescales.md` reaches `τ ≥ 100 ticks`), so that on the
 #: timescale any one cell adapts over the pressure is a constant rather than
@@ -541,8 +536,8 @@ def relative_disagreement(
     )
 
 
-def normalised_l1(maps: torch.Tensor) -> torch.Tensor:
-    """`[pairs]`: `‖F‖₁ / ‖F‖_F`, the sparsity pressure's per-map term.
+def normalised_l1(maps: torch.Tensor, permitted: torch.Tensor) -> torch.Tensor:
+    """`[pairs]`: `‖F‖₁ / (√p ‖F‖_F)`, the sparsity pressure's per-map term.
 
     An L1 on the **normalised** map, so the pressure redistributes weight
     across a map's directions rather than removing it
@@ -554,9 +549,38 @@ def normalised_l1(maps: torch.Tensor) -> torch.Tensor:
     Zeroed entries — masked or padded — contribute nothing to either norm, so
     the quantity is over what the mask permits without a second mask being
     applied here.
+
+    **The `1/√p` is what makes one global `λ` mean the same thing on every
+    map**, where `p` is how many weights that map's structural mask leaves open
+    (ADR-0010, amended in #89). Without it the term's gradient has norm
+    `√(p − ‖F‖₁²/‖F‖_F²)/‖F‖_F`, which grows with the mask, so a single global
+    scalar prunes a wide map harder than a narrow one — measured at `+0.985`
+    correlation with `p` across the real dome, an eightfold spread. With it the
+    gradient is::
+
+        ‖∇(‖F‖₁ / (√p ‖F‖_F))‖  =  √(1 − h²) / ‖F‖_F,   h the value above
+
+    and **`p` is gone from it identically**, not approximately: correlation with
+    `p` falls to `+0.071`. What is left, `√(1 − h²)`, is the same function of a
+    map's own normalised sparsity for every map at any size. `p` survives only
+    in `h`'s own floor of `1/√p` — a fully concentrated map — so the *attainable
+    ceiling* still varies by `√(1 − 1/8) / √(1 − 1/384) = 6.8%` across this
+    dome's mask sizes, at an extreme the maps do not occupy.
+
+    The quantity `h` itself is Hoyer's sparseness ratio, normalised for exactly
+    this reason: to be comparable across dimensions. It runs `1/√p` for a map
+    on one direction to `1` for a flat one, so **smaller is sparser** and the
+    pressure descends it. Dividing by `√p` is a construction-time constant per
+    map and changes nothing *within* one — the pruning `06-graph-topology.md`
+    asks for is untouched — only the weight between maps of different sizes.
+
+    ``permitted`` is `[pairs]`: the mask's open-weight count, read off the
+    structural mask at construction. It is **not** per-edge state — nothing
+    updates it, nothing learns it, and it moves only if the graph does, exactly
+    like the `Σ_e m_e` the reconciliation gain divides by.
     """
     flat = maps.flatten(1)
-    return flat.abs().sum(-1) / _norm(flat)
+    return flat.abs().sum(-1) / (_norm(flat) * permitted.sqrt())
 
 
 def transport_objective(
@@ -564,6 +588,7 @@ def transport_objective(
     path: TransportPath,
     gathered: torch.Tensor,
     neighbour_beliefs: torch.Tensor,
+    permitted: torch.Tensor,
     pressure: float,
 ) -> torch.Tensor:
     """The whole graph's transport objective, as one scalar.
@@ -589,14 +614,15 @@ def transport_objective(
     """
     outgoing = functional_call(path, map_parameters, (gathered,))
     disagreement = relative_disagreement(outgoing, neighbour_beliefs).sum()
-    return disagreement + pressure * normalised_l1(map_parameters[MAPS_PARAMETER]).sum()
+    penalty = normalised_l1(map_parameters[MAPS_PARAMETER], permitted).sum()
+    return disagreement + pressure * penalty
 
 
 #: `∂ transport_objective / ∂ maps`, and nothing else.
 #:
 #: `argnums=0` names the map tensor alone. The path, the gathered node stalks,
-#: the neighbour beliefs and the pressure are ordinary arguments and are not
-#: differentiated. The neighbour's map is inside ``neighbour_beliefs``, already
+#: the neighbour beliefs, the mask's open-weight counts and the pressure are
+#: ordinary arguments and are not differentiated. The neighbour's map is inside ``neighbour_beliefs``, already
 #: applied, so the one cross-cell parameter in the phase is not reachable from
 #: here at all.
 transport_gradient = grad(transport_objective, argnums=0)
@@ -609,8 +635,10 @@ class TransportRule:
     Holds a learning rate, an anneal, a path, and **one integer** — the
     position on the global anneal schedule, which is the second permitted
     global signal and is one number for the whole graph. There is nothing
-    per-cell and nothing per-edge: no momentum, no running average, no baseline
-    and no estimate of any edge's recent scale.
+    per-cell and nothing per-edge that *changes*: no momentum, no running
+    average, no baseline and no estimate of any edge's recent scale. The one
+    per-edge array it holds, :attr:`permitted`, is the structural mask's own
+    open-weight count, fixed at construction and never written.
     """
 
     def __init__(
@@ -624,6 +652,15 @@ class TransportRule:
         self.learning_rate = checked_learning_rate(learning_rate)
         self.anneal = anneal if anneal is not None else SparsityAnneal()
         self.path = TransportPath(sheaf.maps)
+        #: `[pairs]`: how many weights each map's structural mask leaves open,
+        #: which the sparsity term divides by the root of
+        #: (:func:`normalised_l1`). Read off the mask once, because the mask is
+        #: set at construction and closes permanently — this is the same kind
+        #: of object as the `Σ_e m_e` in the reconciliation gain's denominator,
+        #: a structural constant of the built graph, and **not** per-edge state.
+        self.permitted = sheaf.maps.support.flatten(1).sum(-1).to(
+            sheaf.maps.maps.dtype
+        )
         #: How many steps this rule has taken — the schedule's position, and
         #: the only thing it carries between steps.
         self.steps = 0
@@ -696,6 +733,7 @@ class TransportRule:
             self.path.map_parameters(),
             self.path,
             *self.inputs(),
+            self.permitted,
             self.pressure,
         )[MAPS_PARAMETER]
 

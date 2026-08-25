@@ -153,6 +153,7 @@ def objective_of(rule, *, pressure=None, maps=None, neighbour_beliefs=None):
         rule.path,
         gathered,
         incoming if neighbour_beliefs is None else neighbour_beliefs,
+        rule.permitted,
         rule.pressure if pressure is None else pressure,
     )
 
@@ -163,7 +164,13 @@ def in_precision(rule, dtype):
     convert the sheaf the rest of the test is still running on."""
     gathered, incoming = (tensor.to(dtype) for tensor in rule.inputs())
     parameters = {MAPS_PARAMETER: rule.sheaf.maps.maps.detach().to(dtype)}
-    return parameters, (rule.path, gathered, incoming, rule.pressure)
+    return parameters, (
+        rule.path,
+        gathered,
+        incoming,
+        rule.permitted.to(dtype),
+        rule.pressure,
+    )
 
 
 def local_gradient(rule, pair, dtype=torch.float64):
@@ -179,7 +186,10 @@ def local_gradient(rule, pair, dtype=torch.float64):
     restricted = (single @ gathered[pair].to(dtype)).unsqueeze(0)
     term = (
         relative_disagreement(restricted, incoming[pair].to(dtype).unsqueeze(0))[0]
-        + rule.pressure * normalised_l1(single.unsqueeze(0))[0]
+        + rule.pressure
+        * normalised_l1(
+            single.unsqueeze(0), rule.permitted[pair].to(dtype).unsqueeze(0)
+        )[0]
     )
     term.backward()
     return single.grad
@@ -481,7 +491,7 @@ class TestTheSparsityPressureComposesInTheSameStep:
         _, incoming = rule.inputs()
         pressure = 0.37
         disagreement = relative_disagreement(outgoing_of(rule), incoming).sum()
-        penalty = normalised_l1(running.maps.maps.detach()).sum()
+        penalty = normalised_l1(running.maps.maps.detach(), rule.permitted).sum()
         composed = objective_of(rule, pressure=pressure)
         assert composed.item() == pytest.approx(
             (disagreement + pressure * penalty).item(), rel=1e-6
@@ -496,7 +506,7 @@ class TestTheSparsityPressureComposesInTheSameStep:
 
         def taken(pressure):
             return transport_gradient(
-                parameters, rule.path, gathered, incoming, pressure
+                parameters, rule.path, gathered, incoming, rule.permitted, pressure
             )[MAPS_PARAMETER]
 
         transport, both = taken(0.0), taken(0.4)
@@ -525,7 +535,7 @@ class TestTheSparsityPressureComposesInTheSameStep:
 
         def taken(pressure):
             return transport_gradient(
-                parameters, rule.path, gathered, incoming, pressure
+                parameters, rule.path, gathered, incoming, rule.permitted, pressure
             )[MAPS_PARAMETER]
 
         transport = taken(0.0)
@@ -544,41 +554,60 @@ class TestTheSparsityPressureComposesInTheSameStep:
         ratio = DEFAULT_SPARSITY_PRESSURE * penalty[free_pairs] / transport[free_pairs]
         assert 0.03 < ratio.median().item() < 0.3
 
-    def test_the_pressure_grades_with_what_the_mask_leaves_open(
+    def test_the_pressure_does_not_grade_with_what_the_mask_leaves_open(
         self, running, free_pairs
     ):
-        # A known consequence of the term ADR-0010 names rather than a defect
-        # of this implementation, recorded so it stays visible: the normalised
-        # L1's gradient norm grows with the number of open weights, so one
-        # global scalar prunes a wide map harder than a narrow one. Equalising
-        # it would change the objective, which is the record's decision to
-        # make and not this module's.
+        # The `1/√p` normalisation's whole job (ADR-0010, amended in #89).
+        # Without it the term's gradient norm carried a `+0.985` correlation
+        # with the open-weight count, so one global `λ` pruned a wide map
+        # roughly eightfold harder than a narrow one. With it `p` is gone from
+        # the gradient identically, and what correlation survives is noise.
         _, penalty = self._term_norms(running)
         permitted = _permitted(running).float()[free_pairs]
-        narrow = permitted <= permitted.median()
-        assert (
-            penalty[free_pairs][narrow].median()
-            < penalty[free_pairs][~narrow].median()
-        )
+        stacked = torch.stack([permitted, penalty[free_pairs]])
+        assert abs(torch.corrcoef(stacked)[0, 1].item()) < 0.2
+
+    def test_the_pressures_gradient_is_free_of_the_mask_size(self):
+        # The identity the ruling in #89 turned on, checked directly rather
+        # than inferred from a correlation: for `h = ‖F‖₁/(√p‖F‖_F)`,
+        # `‖∇h‖ = √(1 − h²)/‖F‖_F`, in which `p` does not appear.
+        for permitted in (2, 8, 13, 96, 384):
+            weights = torch.randn(permitted, dtype=torch.float64).requires_grad_(True)
+            count = torch.tensor([float(permitted)], dtype=torch.float64)
+            value = normalised_l1(weights.reshape(1, 1, -1), count)[0]
+            (taken,) = torch.autograd.grad(value, weights)
+            expected = (1 - value.item() ** 2) ** 0.5 / weights.detach().norm().item()
+            assert taken.norm().item() == pytest.approx(expected, rel=1e-9)
 
     def test_the_penalty_is_blind_to_a_maps_magnitude(self, running):
         maps = running.maps.maps.detach()
+        permitted = _permitted(running).float()
         for alpha in (0.25, 4.0):
             assert torch.allclose(
-                normalised_l1(maps * alpha), normalised_l1(maps), atol=1e-5
+                normalised_l1(maps * alpha, permitted),
+                normalised_l1(maps, permitted),
+                atol=1e-5,
             )
 
     def test_at_a_fixed_norm_the_penalty_prefers_the_sparser_map(self):
         # What makes it a *pruning* pressure rather than weight decay: at fixed
         # Frobenius norm the sum of absolute values is smallest when the map's
-        # weight sits on fewest directions.
+        # weight sits on fewest directions. The `1/√p` is a constant per map,
+        # so it cannot change this -- which is the point of it. Both maps here
+        # have the same mask, so both divide by the same root.
         concentrated = torch.tensor([[[2.0, 0.0], [0.0, 0.0]]])
         spread = torch.full((1, 2, 2), 1.0)
+        permitted = torch.tensor([4.0])
         assert torch.allclose(
             torch.linalg.matrix_norm(concentrated), torch.linalg.matrix_norm(spread)
         )
-        assert normalised_l1(concentrated).item() < normalised_l1(spread).item()
-        assert normalised_l1(concentrated).item() == pytest.approx(1.0, abs=1e-6)
+        assert (
+            normalised_l1(concentrated, permitted).item()
+            < normalised_l1(spread, permitted).item()
+        )
+        # Hoyer's ratio: `1/√p` on one direction, exactly `1` when flat.
+        assert normalised_l1(concentrated, permitted).item() == pytest.approx(0.5)
+        assert normalised_l1(spread, permitted).item() == pytest.approx(1.0)
 
     def test_the_penalty_redistributes_rather_than_removes(self, running):
         # "Prunes within the mask; does not shrink the stalk", mechanically:
@@ -748,7 +777,7 @@ class TestTheNeighboursMapEntersDetached:
 
         def taken(beliefs):
             return transport_gradient(
-                parameters, rule.path, gathered, beliefs, rule.pressure
+                parameters, rule.path, gathered, beliefs, rule.permitted, rule.pressure
             )[MAPS_PARAMETER]
 
         before = taken(incoming)
@@ -1007,9 +1036,23 @@ class TestOneGlobalLearningRate:
             "learning_rate",
             "anneal",
             "path",
+            "permitted",
             "steps",
         }
         assert rule.steps == 0
+
+    def test_the_open_weight_counts_are_the_masks_own_and_never_move(self, running):
+        # `permitted` is the one per-edge array the rule holds, and it has to
+        # be a structural constant rather than state for the "no per-edge
+        # auxiliary variable" constraint to survive it. So: it is read off the
+        # mask, and training does not touch it.
+        rule = TransportRule(running, learning_rate=0.2)
+        assert torch.equal(rule.permitted, _permitted(running).to(rule.permitted.dtype))
+        before = rule.permitted.clone()
+        for _ in range(5):
+            rule.step()
+        assert torch.equal(rule.permitted, before)
+        assert torch.equal(rule.permitted, _permitted(running).to(rule.permitted.dtype))
 
     def test_the_maps_gain_no_buffer_of_their_own(self, running):
         # A per-edge auxiliary variable would have to live somewhere, and the
@@ -1135,7 +1178,7 @@ def test_the_real_domes_pressure_is_the_fraction_the_constant_records(seed):
 
     def taken(pressure):
         return transport_gradient(
-            parameters, rule.path, gathered, incoming, pressure
+            parameters, rule.path, gathered, incoming, rule.permitted, pressure
         )[MAPS_PARAMETER]
 
     transport = taken(0.0).flatten(1).norm(dim=-1)
