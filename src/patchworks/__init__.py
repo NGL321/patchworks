@@ -14,9 +14,9 @@ Built so far:
   reconciliation gain, over the state they run on.
 * :mod:`patchworks.agent` — the graph wired to the world, and the ordering
   between them: external writes are a tick's last word.
-* :mod:`patchworks.learning` — the learning phase: the local learning rule,
-  run over the tick's detached state through `torch.func` rather than ambient
-  autograd.
+* :mod:`patchworks.learning` — the learning phase: both halves of the local
+  learning rule, the bias rule and the transport rule, run over the tick's
+  detached state through `torch.func` rather than ambient autograd.
 * :mod:`patchworks.timescale` — the clock divisor, as an instrument. Outside
   the architecture by construction: it drives the tick from outside, default
   off, and no cell can reach it.
