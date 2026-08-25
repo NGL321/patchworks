@@ -131,10 +131,11 @@ _ZERO_LINE = (72, 74, 84)
 _COMMANDED = (150, 200, 236)
 _APPLIED = (64, 132, 190)
 
-#: The widest onset counter the motor strip ever draws, and what the strip is
-#: sized to fit. Six digits is a run of hours at the sandbox's 50 Hz control
-#: rate, and a counter that outgrew its strip would be a number drawn over a
-#: bar -- so the count is shown in full and the strip is built for it.
+#: The onset counter the motor strip is sized to fit. Six digits is a run of
+#: hours at the sandbox's 50 Hz control rate. The count is always drawn in
+#: full: one that outgrew this runs off the strip and is clipped at the frame,
+#: which is visibly wrong, where a saturated count would be a plausible number
+#: that is not the reading.
 _ONSET_WIDEST = "T+999999"
 
 #: A cell whose prediction error this tick is not a number. Deliberately a
@@ -692,6 +693,7 @@ class DomePanel:
             [(edge.u, edge.v) for edge in dome.edges], dtype=np.int64
         ).reshape(len(dome.edges), 2)
         self._drawn_edges: tuple[int, ...] = ()
+        self._unread_edges: tuple[int, ...] = ()
         self._threshold = 0.0
         self._torque = np.zeros((2, 0))
         self._torque_scale = 0.0
@@ -955,8 +957,17 @@ class DomePanel:
         so `05-timescales.md`'s estimate is not defined for it, and a glow
         fading at a rate nothing measured would be exactly the fabrication these
         marks exist to avoid. What a strip mark shows is this tick.
+
+        **Not a number where there is nothing to draw** -- a record that carried
+        no disagreement, or a mark whose own reading was not one. Zero is a
+        reading here, and a sweep that read one off a replay of a trace saved
+        before this array existed would read the graph as agreeing on every
+        edge. The pixels say the same thing in their own way: an empty slot and
+        :data:`_NO_READING`.
         """
-        return self._mark_value.copy()
+        if not self._carried:
+            return np.full(len(self._marks), np.nan)
+        return np.where(self._mark_scale.no_reading, np.nan, self._mark_value)
 
     @property
     def torque(self) -> np.ndarray:
@@ -985,8 +996,23 @@ class DomePanel:
 
     @property
     def drawn_edges(self) -> tuple[int, ...]:
-        """The edge ids the overlay drew on the last record, or none."""
+        """The edge ids that cleared :attr:`edge_threshold` on the last record.
+
+        The route. :attr:`unread_edges` is drawn beside it and is not part of
+        it: an edge with no reading cleared no threshold.
+        """
         return self._drawn_edges
+
+    @property
+    def unread_edges(self) -> tuple[int, ...]:
+        """The edge ids whose disagreement was not a number on the last record.
+
+        Drawn in :data:`_NO_READING` whatever the threshold says, and kept out
+        of the statistics the threshold is taken over. An edge that has left the
+        numbers is the loudest thing on the graph, and an overlay that dropped
+        it would draw the route *around* a divergence.
+        """
+        return self._unread_edges
 
     # -- drawing -----------------------------------------------------------
 
@@ -1140,6 +1166,7 @@ class DomePanel:
         feed: Iterable[TickRecord],
         *,
         renderer: Callable[[TickRecord], np.ndarray] | None = None,
+        since: Callable[[TickRecord], int | None] | None = None,
     ) -> Iterator[np.ndarray]:
         """One frame per record of `feed`, in order, while the panel is open.
 
@@ -1156,6 +1183,15 @@ class DomePanel:
         holds state rather than frames and this panel owns no world to re-render
         one from.
 
+        `since` is the onset counter, on the same footing:
+        :meth:`patchworks.surface.onset.OnsetCounter.count` is exactly its
+        shape. It is here so that **a replay draws the counter the live panel
+        drew** -- onset is read off the strip rather than reconstructed
+        afterward, and a README capture composed from a trace would otherwise be
+        the one picture without it::
+
+            panel.frames(Trace.load(path), renderer=scene.frame, since=counter.count)
+
         **A closed panel drains its feed and yields nothing.** A live feed is a
         run being driven, so a display that stopped consuming would stop the run
         rather than close a window.
@@ -1164,7 +1200,9 @@ class DomePanel:
             if self._closed:
                 continue
             yield self.frame(
-                record, render=None if renderer is None else renderer(record)
+                record,
+                render=None if renderer is None else renderer(record),
+                since=None if since is None else since(record),
             )
 
     # -- what a boundary cell has instead ----------------------------------
@@ -1216,7 +1254,7 @@ class DomePanel:
             self._mark_value = np.zeros(len(self._marks))
             self._mark_raw = np.zeros(len(self._marks))
             self._last_disagreement = np.zeros(len(self.dome.edges))
-            self._drawn_edges, self._threshold = (), 0.0
+            self._drawn_edges, self._unread_edges, self._threshold = (), (), 0.0
             return
         # The pad slot the mark index points spare degrees at: zero, so a cell
         # of below-maximum degree sums only its own edges.
@@ -1231,7 +1269,11 @@ class DomePanel:
             self._mark_raw if self.raw else self._mark_scale.normalised(readable)
         )
         self._last_disagreement = disagreement
-        self._threshold, self._drawn_edges = _above_the_ticks_own_scale(disagreement)
+        (
+            self._threshold,
+            self._drawn_edges,
+            self._unread_edges,
+        ) = _above_the_ticks_own_scale(disagreement)
 
     def _observe_torque(self, actuator: np.ndarray | None) -> None:
         """The actuator's commanded and applied rows, and the scale they share.
@@ -1311,6 +1353,15 @@ class DomePanel:
                 "the boundary band draws the agent's own render, which is a "
                 f"square `[side, side, 3]` image; got {image.shape}"
             )
+        if image.dtype != np.uint8:
+            raise ValueError(
+                f"the render is `uint8` -- the world's own, as the env's "
+                f"observation space declares it -- and this one is {image.dtype}. "
+                "Refused rather than converted: a normalised image assigned into "
+                "the frame draws a black arena, which is a picture rather than a "
+                "refusal, and nothing here can tell a scaled render from a dark "
+                "one. Convert it where the convention that scaled it is known."
+            )
         grid = self.dome.spec.patch_grid
         side, remainder = divmod(image.shape[0], grid)
         if remainder or side < 1:
@@ -1353,6 +1404,9 @@ class DomePanel:
         to answer *which cells were carrying it*, and a route hidden behind the
         marks it runs between would not answer it.
         """
+        for edge_id in self._unread_edges:
+            u, v = self._edge_ends[edge_id]
+            _draw_line(canvas, self._centre(int(u)), self._centre(int(v)), _NO_READING)
         if not self._drawn_edges:
             return
         drawn = np.array(self._drawn_edges, dtype=np.int64)
@@ -1394,6 +1448,15 @@ class DomePanel:
         the one mark a falsification test is read off. A pair is one mark, so a
         non-finite half takes both with it, and a full-height column crosses the
         zero line, which no torque bar ever does.
+
+        **The bars and the bar beside them are one tick apart**, and are meant
+        to be. The rows are what the world read and wrote on this tick; the
+        disagreement is what the actuator's edges carried when the cells
+        broadcast, which is before that write landed
+        (:attr:`~patchworks.surface.record.TickRecord.disagreement`). That is
+        the unit delay the whole graph runs on rather than a reading taken late,
+        and it costs the signature nothing: a stall is a swing's worth of ticks,
+        not one.
 
         The onset counter goes below the bars, so the ticks since the last
         marker and the moment of the first corrective torque are read off one
@@ -1450,9 +1513,14 @@ class DomePanel:
                     fill=True,
                 )
         if since is not None:
+            # In full, and clipped at the frame if it outgrows the strip: a
+            # count that ran off the edge is visibly wrong, where a saturated
+            # one is a plausible number that is not the reading. A harness that
+            # misses an `OnsetCounter.restart()` is the way to get there, and
+            # that class documents a restore as invisible to it.
             _draw_text(
                 canvas,
-                f"T+{min(since, 999999)}",
+                f"T+{since}",
                 top=bottom + self._notice_scale,
                 left=left,
                 scale=self._notice_scale,
@@ -1495,7 +1563,7 @@ class DomePanel:
 
 def _above_the_ticks_own_scale(
     disagreement: np.ndarray,
-) -> tuple[float, tuple[int, ...]]:
+) -> tuple[float, tuple[int, ...], tuple[int, ...]]:
     """The edges carrying the most disagreement this tick, and the bar they cleared.
 
     **The threshold is derived from the tick's own scale, never hand-set**
@@ -1511,17 +1579,22 @@ def _above_the_ticks_own_scale(
     positive constant and the same edges clear the bar. Nothing here carries
     units, so nothing here can be tuned to make a route appear.
 
-    An edge with no reading is left out of both the statistics and the drawing:
-    a NaN would make the threshold NaN and empty the overlay, which is the
-    quietest possible picture of a graph that has just diverged.
+    An edge with no reading is left out of the **statistics** -- a NaN would
+    make the threshold NaN and empty the overlay, which is the quietest possible
+    picture of a graph that has just diverged -- and is returned separately
+    rather than dropped. It is drawn whatever the threshold says, in its own
+    colour: an edge whose disagreement has left the numbers is the loudest thing
+    on the graph, and a route drawn *around* the divergence would be the same
+    quiet picture arrived at more slowly.
     """
     finite = np.isfinite(disagreement)
+    unread = tuple(int(edge) for edge in np.flatnonzero(~finite))
     if not finite.any():
-        return 0.0, ()
+        return 0.0, (), unread
     readings = disagreement[finite]
     threshold = float(readings.mean() + readings.std())
     drawn = np.flatnonzero(finite & (disagreement > threshold))
-    return threshold, tuple(int(edge) for edge in drawn)
+    return threshold, tuple(int(edge) for edge in drawn), unread
 
 
 def _draw_bar(

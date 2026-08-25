@@ -1496,7 +1496,23 @@ class TestEdgesAreThresholdedAndOffByDefault:
         panel = DomePanel(small, np.full(cells, 4.0), edges=True)
         panel.frame(full(1, cells, edges, disagreement=disagreement))
         assert panel.drawn_edges
-        assert 0 not in panel.drawn_edges
+        assert 0 not in panel.drawn_edges, "it cleared no threshold"
+
+    def test_an_edge_with_no_reading_is_drawn_rather_than_dropped(self, small):
+        """The loudest thing on the graph is not the one edge left out.
+
+        Keeping a NaN out of the statistics and keeping it out of the drawing
+        are two decisions, and only the first is justified: a route drawn
+        *around* a divergence is the quiet picture arrived at more slowly.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        disagreement = self.loud(small)
+        disagreement[0] = np.nan
+        panel = DomePanel(small, np.full(cells, 4.0), edges=True)
+        drawn = panel.frame(full(1, cells, edges, disagreement=disagreement))
+        assert panel.unread_edges == (0,)
+        ink = np.array(dome_panel_module._NO_READING, dtype=np.uint8)
+        assert np.all(drawn == ink, axis=-1).any()
 
 
 class TestNoBoundaryCellIsEverAssignedAPredictionError:
@@ -1553,14 +1569,16 @@ class TestNoBoundaryCellIsEverAssignedAPredictionError:
         assert np.array_equal(quiet.torque, loud.torque)
 
 
-class TestTheFourWaysTheBoundaryMarksCouldHaveFlatteredUs:
+class TestTheWaysTheBoundaryMarksCouldHaveFlatteredUs:
     """One test per finding of #94's review, each one red before its fix.
 
     The same class of defect #93's review found, in the marks #94 added: each
-    is the panel drawing something calmer than what it was handed -- an empty
-    slot for a divergence, a zero torque for a number that was not one, a calm
-    mark for a quantity nobody captured, and a baseline that moved on a record
-    the panel then refused.
+    is the panel reporting something calmer or tidier than what it was handed --
+    an empty slot for a divergence, a zero torque for a number that was not one,
+    a calm mark for a quantity nobody captured, a baseline that moved on a
+    record the panel then refused, a black arena for a render it could not read,
+    a route drawn around a diverged edge, and a saturated count that reads as a
+    latency.
     """
 
     def test_a_marks_first_reading_being_no_reading_is_still_no_reading(self, small):
@@ -1650,3 +1668,75 @@ class TestTheFourWaysTheBoundaryMarksCouldHaveFlatteredUs:
         # And tick 2 is still there to be drawn, by the record that fits.
         panel.frame(full(2, cells, edges, error=9.0, disagreement=9.0))
         assert not np.array_equal(panel.mean, settled[0])
+
+    def test_the_numbers_beside_the_pixels_say_no_reading_too(self, small):
+        """`boundary_lit` is what a sweep reads, and zero is a reading.
+
+        A replay of a trace saved before the disagreement array existed hands
+        the panel records that carry none; a zero there reads back as a graph
+        agreeing on every edge, which is the fabrication the pixels already
+        refuse by drawing an empty slot.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        panel.frame(full(1, cells, edges, disagreement=1.0))
+        panel.frame(full(2, cells, edges, disagreement=4.0))
+        assert np.isfinite(panel.boundary_lit).all()
+        panel.frame(record(3, np.zeros(cells)))
+        assert np.isnan(panel.boundary_lit).all()
+        # And per mark, for the one whose own reading was not a number.
+        gone = np.full(edges, 1.0)
+        touch = only(small, "touch")[0]
+        (edge,) = small.incident[touch]
+        gone[edge] = np.nan
+        panel.frame(full(4, cells, edges, disagreement=gone))
+        row = panel.boundary_marks.index(touch)
+        assert np.isnan(panel.boundary_lit[row])
+        assert np.isfinite(np.delete(panel.boundary_lit, row)).all()
+
+    def test_a_render_that_is_not_the_worlds_own_is_refused(self, small):
+        """A normalised image assigned into the frame draws a black arena.
+
+        Not an empty slot -- a picture, of an arena with the lights off, which
+        is a reading of the world that nobody took.
+        """
+        cells = len(small.predicting)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        scaled = np.full((small.spec.patch_grid * 4,) * 2 + (3,), 0.5, dtype=np.float32)
+        with pytest.raises(ValueError, match="uint8"):
+            panel.frame(record(1, np.zeros(cells)), render=scaled)
+
+    def test_a_replay_draws_the_counter_the_live_panel_drew(self, small):
+        """Onset is read off the strip, and a replay is not a second code path."""
+        cells, edges = len(small.predicting), len(small.edges)
+        feed = [full(tick, cells, edges, disagreement=1.0) for tick in (1, 2, 3)]
+        counted = list(
+            DomePanel(small, np.full(cells, 4.0)).frames(
+                feed, since=lambda record: record.tick * 3
+            )
+        )
+        plain = list(DomePanel(small, np.full(cells, 4.0)).frames(feed))
+        assert len(counted) == len(plain) == 3
+        assert not np.array_equal(counted[-1], plain[-1])
+        one_by_one = DomePanel(small, np.full(cells, 4.0))
+        by_hand = [
+            one_by_one.frame(record, since=record.tick * 3) for record in feed
+        ]
+        for i, (fed, hand) in enumerate(zip(counted, by_hand)):
+            assert np.array_equal(fed, hand), f"frame {i}"
+
+    def test_an_onset_count_past_the_strip_is_not_quietly_saturated(self, small):
+        """A plausible number that is not the reading is the worst outcome.
+
+        The count is drawn in full and runs off the strip, which is visibly
+        wrong; a harness that misses `OnsetCounter.restart()` is the realistic
+        way to get a count that large, and that class documents a restore as
+        invisible to it.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        big = panel.frame(full(1, cells, edges, disagreement=1.0), since=999999)
+        bigger = panel.frame(full(2, cells, edges, disagreement=1.0), since=12345678)
+        top, _left, height, _width = panel.motor_strip
+        text = slice(top + height - dome_panel_module._FONT_HEIGHT, top + height)
+        assert not np.array_equal(big[text], bigger[text])

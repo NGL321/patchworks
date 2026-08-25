@@ -190,6 +190,18 @@ class TickRecord:
     mark's own running statistics, and a record that had already done it could
     not also serve the raw map.
 
+    **It is the tick's disagreement as the sheaf defines it**, derived from what
+    each end *broadcast* during this tick's message-passing phase
+    (:meth:`~patchworks.tick.Sheaf.disagreement`) -- which is before the
+    external write lands, since that write is the tick's last word
+    (`docs/spec/02-tick-semantics.md`). So a motor edge's disagreement is
+    measured against the previous tick's efference copy, and a sensory edge's
+    against the previous tick's observation. That is the unit delay every edge
+    in the graph runs on, not a reading taken late: what a cell reconciles
+    against is always one tick stale, and this is the quantity the cell actually
+    saw. Read the strip's disagreement bar as belonging to the swing rather than
+    to the single tick beside it.
+
     Empty when a record was built without one -- **no disagreement was
     captured**, and the panel then draws no mark that would need it rather than
     a calm one. A record from :meth:`Recorder.observe` always carries it."""
