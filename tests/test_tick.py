@@ -552,8 +552,8 @@ class TestTheGammaASheafIsBuiltWith:
 
     @pytest.mark.parametrize(
         "gamma",
-        [None, "0.5", b"0.5", bytearray(b"0.5"), (0.5,), object()],
-        ids=["none", "string", "bytes", "bytearray", "tuple", "object"],
+        [None, "0.5", b"0.5", bytearray(b"0.5"), memoryview(b"0.5"), (0.5,), object()],
+        ids=["none", "string", "bytes", "bytearray", "memoryview", "tuple", "object"],
     )
     def test_a_gamma_that_is_not_a_number_is_refused_before_the_draws(
         self, dome, drawn, gamma
@@ -609,6 +609,14 @@ class TestTheGammaASheafIsBuiltWith:
         assert torch.allclose(
             built.gain, reconciliation_gain(dome, gamma=0.5, rho=built.maps.rho)
         )
+
+    def test_the_refusal_echoes_the_value_the_caller_actually_wrote(self, dome):
+        # Not the coercion of it. A sweep handed `Fraction(3, 2)` and told
+        # `got 1.5` is being shown a value it never wrote, which is half of
+        # what made the old failure useless to read.
+        with pytest.raises(ValueError) as refusal:
+            Sheaf(dome, gamma=Fraction(3, 2))
+        assert "Fraction(3, 2)" in str(refusal.value)
 
     def test_the_refusal_names_gamma_and_the_rule_it_broke(self, dome):
         with pytest.raises(ValueError) as refusal:

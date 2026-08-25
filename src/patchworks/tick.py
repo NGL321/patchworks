@@ -122,13 +122,17 @@ def _checked_gamma(gamma: float) -> float:
         "gamma is a single global scalar in (0, 1] "
         "(docs/spec/02-tick-semantics.md, Reconciliation gain)"
     )
-    # Text coerces, and a config that quotes its numbers is the same kind of
-    # mistake as one that leaves them out — caught here rather than
-    # half-caught by whichever quoted value happens to parse.
-    if isinstance(gamma, (str, bytes, bytearray)) or _is_a_flag(gamma):
+    # `float()` parses text and buffers as well as coercing numbers, and a
+    # config that quotes its numbers is the same mistake as one that leaves
+    # them out. A number offers `__float__` or `__index__`; text and buffers
+    # offer neither, which is the difference stated once rather than as an
+    # enumeration of the containers text arrives in.
+    if _is_a_flag(gamma) or not (
+        hasattr(gamma, "__float__") or hasattr(gamma, "__index__")
+    ):
         raise ValueError(f"{rule}; got {gamma!r}, which is not a number")
     try:
-        gamma = float(gamma)
+        as_float = float(gamma)
     except (TypeError, ValueError):
         raise ValueError(f"{rule}; got {gamma!r}, which is not a number") from None
     except OverflowError:
@@ -136,9 +140,12 @@ def _checked_gamma(gamma: float) -> float:
         # is reported without its digits: an integer that overflows a float
         # has hundreds of them.
         raise ValueError(f"{rule}; got a magnitude no float can hold") from None
-    if not 0.0 < gamma <= 1.0:
-        raise ValueError(f"{rule}; got {gamma}")
-    return gamma
+    if not 0.0 < as_float <= 1.0:
+        # The value the caller wrote, not the coercion of it. A sweep handed
+        # `Fraction(3, 2)` and told `got 1.5` is being shown something it
+        # never wrote, which is half of what made the old failure useless.
+        raise ValueError(f"{rule}; got {gamma!r}")
+    return as_float
 
 
 def reconciliation_gain(
