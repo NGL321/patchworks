@@ -17,6 +17,11 @@ Built so far:
 * :mod:`patchworks.learning` — the learning phase: both halves of the local
   learning rule, the bias rule and the transport rule, run over the tick's
   detached state through `torch.func` rather than ambient autograd.
+* :mod:`patchworks.diagnostics` — the diagnostics that run on a cadence: the
+  paired per-edge instrument (Dirichlet energy and effective rank, never one
+  without the other), the topology-only `H¹` baseline, and the run-time
+  `dim H⁰` and minimum achievable energy. Outside the architecture by
+  construction — it reads, and no cell can reach it.
 * :mod:`patchworks.timescale` — the clock divisor, as an instrument. Outside
   the architecture by construction: it drives the tick from outside, default
   off, and no cell can reach it.
@@ -34,6 +39,7 @@ from . import (
     agent,
     bias_selection,
     body,
+    diagnostics,
     graph,
     learning,
     restriction,
@@ -45,6 +51,7 @@ __all__ = [
     "agent",
     "bias_selection",
     "body",
+    "diagnostics",
     "graph",
     "learning",
     "restriction",
