@@ -210,6 +210,15 @@ class TestTheSensoryTiling:
         with pytest.raises(ValueError, match="different dome"):
             Agent(env, dome=dome, sheaf=Sheaf(build_graph()))
 
+    def test_a_sheaf_alone_brings_its_own_dome(self, env, dome):
+        # Building a sheaf and handing it over is the natural thing to do, and
+        # the sheaf already carries the authoritative dome. Manufacturing a
+        # second one here would make this call raise on an input it accepts.
+        sheaf = Sheaf(dome)
+        built = Agent(env, sheaf=sheaf)
+        assert built.dome is dome
+        assert built.sheaf is sheaf
+
     def test_the_agent_refuses_a_render_its_dome_does_not_tile(self, dome):
         small = PlanarPushSandbox(split="any", image_size=17, render_obs=False)
         try:

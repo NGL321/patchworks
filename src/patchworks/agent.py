@@ -107,7 +107,15 @@ class Agent:
         generator: torch.Generator | None = None,
         sheaf: Sheaf | None = None,
     ) -> None:
-        self.dome = dome if dome is not None else build_graph()
+        # A sheaf carries the dome it was built on, and that one is
+        # authoritative: manufacturing a second one here would only be a
+        # different graph for the check below to reject.
+        if dome is not None:
+            self.dome = dome
+        elif sheaf is not None:
+            self.dome = sheaf.dome
+        else:
+            self.dome = build_graph()
         self.sheaf = (
             sheaf
             if sheaf is not None
