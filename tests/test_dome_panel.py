@@ -1725,6 +1725,25 @@ class TestTheWaysTheBoundaryMarksCouldHaveFlatteredUs:
         for i, (fed, hand) in enumerate(zip(counted, by_hand)):
             assert np.array_equal(fed, hand), f"frame {i}"
 
+    def test_the_arrays_a_record_hands_over_are_copied_not_aliased(self, small):
+        """#93's finding, in #94's arrays: a reading that moves is not one.
+
+        A harness reusing one scratch buffer per tick would otherwise have the
+        panel reporting a torque no frame ever drew.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        scratch = np.array([[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
+        disagreement = np.full(edges, 1.0)
+        panel.frame(
+            full(1, cells, edges, disagreement=disagreement, actuator=scratch)
+        )
+        drawn, route = panel.torque.copy(), panel.drawn_edges
+        scratch[:] = 999.0
+        disagreement[:] = 999.0
+        assert np.array_equal(panel.torque, drawn)
+        assert panel.drawn_edges == route
+
     def test_an_onset_count_past_the_strip_is_not_quietly_saturated(self, small):
         """A plausible number that is not the reading is the worst outcome.
 

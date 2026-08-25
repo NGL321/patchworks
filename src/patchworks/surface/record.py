@@ -196,11 +196,16 @@ class TickRecord:
     external write lands, since that write is the tick's last word
     (`docs/spec/02-tick-semantics.md`). So a motor edge's disagreement is
     measured against the previous tick's efference copy, and a sensory edge's
-    against the previous tick's observation. That is the unit delay every edge
-    in the graph runs on, not a reading taken late: what a cell reconciles
-    against is always one tick stale, and this is the quantity the cell actually
-    saw. Read the strip's disagreement bar as belonging to the swing rather than
-    to the single tick beside it.
+    against the previous tick's observation. That is not a reading taken late:
+    it is where the boundary's content sits when the graph speaks, because the
+    external write is the tick's last word.
+
+    It is **not** what a cell reconciled against, which is the partner's
+    broadcast from `t − 1` -- :meth:`~patchworks.tick.Sheaf.disagreement` takes
+    both terms from the same tick, so the unit delay does not show up inside it.
+    It is the sheaf's coboundary on this tick, which is the quantity `CONTEXT.md`
+    defines and the one an edge is judged by. Read the strip's disagreement bar
+    as belonging to the swing rather than to the single tick beside it.
 
     Empty when a record was built without one -- **no disagreement was
     captured**, and the panel then draws no mark that would need it rather than

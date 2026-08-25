@@ -1217,8 +1217,14 @@ class DomePanel:
         array is a record built without this quantity, which the marks drawn
         from it answer by drawing nothing, and anything else has to be the
         shape this dome gives it.
+
+        **A copy, never the caller's array.** What comes back is held until the
+        next record, and :attr:`torque` hands it out; a harness reusing one
+        scratch buffer per tick would otherwise have the panel reporting a
+        number no frame ever drew. `asarray` copies only when the dtype differs,
+        which is exactly the case that is not worth relying on.
         """
-        array = np.asarray(values, dtype=np.float64)
+        array = np.array(values, dtype=np.float64)
         if array.size == 0:
             return None
         if array.shape != shape:
@@ -1452,7 +1458,8 @@ class DomePanel:
         **The bars and the bar beside them are one tick apart**, and are meant
         to be. The rows are what the world read and wrote on this tick; the
         disagreement is what the actuator's edges carried when the cells
-        broadcast, which is before that write landed
+        broadcast, which is while the cell's stalk still held the *previous*
+        tick's efference copy
         (:attr:`~patchworks.surface.record.TickRecord.disagreement`). That is
         the unit delay the whole graph runs on rather than a reading taken late,
         and it costs the signature nothing: a stall is a swing's worth of ticks,
