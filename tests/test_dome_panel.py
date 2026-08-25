@@ -460,7 +460,10 @@ class TestTheRawMapIsBehindADebugFlag:
         panel = DomePanel(small, np.full(cells, 1.0), raw=True)
         frame = panel.frame(record(1, np.full(cells, 3.0)))
         notice = frame[: panel.height - panel.layout.height]
-        assert np.array_equal(np.unique(notice.reshape(-1, 3), axis=0), np.array([dome_panel_module._BACKGROUND]))
+        assert np.array_equal(
+            np.unique(notice.reshape(-1, 3), axis=0),
+            np.array([dome_panel_module._BACKGROUND]),
+        )
 
 
 class TestThePanelSaysItIsWarmingUp:

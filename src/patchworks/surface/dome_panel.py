@@ -93,10 +93,11 @@ _NOTICE_INK = (216, 216, 220)
 
 #: A cell whose prediction error this tick is not a number. Deliberately a
 #: colour the colormap cannot produce -- no colour on that ramp carries more
-#: green than red -- so that *no reading* is never mistaken for a reading. A diverging cell is the
-#: event this display exists to make visible, and the arithmetic that would
-#: otherwise absorb it (`NaN > 0` is False, so it would draw at the calmest
-#: stop on the ramp) would render it as the quietest cell in the dome.
+#: green than red -- so that *no reading* is never mistaken for a reading. A
+#: diverging cell is the event this display exists to make visible, and the
+#: arithmetic that would otherwise absorb it (`NaN > 0` is False, so it would
+#: draw at the calmest stop on the ramp) would render it as the quietest cell
+#: in the dome.
 _NO_READING = (0, 230, 230)
 
 
@@ -617,9 +618,9 @@ class DomePanel:
         lit for hundreds of ticks, and a wave of glow climbing the bands is
         message passing, watched.
 
-        **A cell whose prediction error is not a number has no reading**, and is drawn in
-        its own colour (:data:`_NO_READING`) rather than anywhere on the
-        colormap. It is kept out of its own statistics, so one NaN does not
+        **A cell whose prediction error is not a number has no reading**, and is
+        drawn in its own colour (:data:`_NO_READING`) rather than anywhere on
+        the colormap. It is kept out of its own statistics, so one NaN does not
         leave a cell's baseline undefined for the rest of the run, and out of
         the raw map's scale, so one infinity does not black out the dome. A
         diverging body is the event this display exists to make visible, and
@@ -689,15 +690,15 @@ class DomePanel:
     def _observe(self, error: np.ndarray) -> np.ndarray:
         """This tick, into the statistics: Welford's, and the raw map's scale.
 
-        Returns the readable prediction error -- the array with a cell that has no reading
-        standing at its own mean, so that everything downstream treats it as
-        *nothing happened here* rather than propagating a NaN into a colour.
+        Returns the readable prediction error -- the array with a cell that has
+        no reading standing at its own mean, so that everything downstream treats
+        it as *nothing happened here* rather than propagating a NaN into a colour.
 
         **A trail already drawn on the raw map is rescaled with it.** The glow
         holds values that were divided by the scale as it stood when they were
-        drawn, so a new largest prediction error anywhere in the dome would otherwise leave
-        a decaying cell brighter than a cell reaching the same raw norm now --
-        and comparing cells is the whole of what the raw map is for.
+        drawn, so a new largest prediction error anywhere in the dome would
+        otherwise leave a decaying cell brighter than a cell reaching the same
+        raw norm now -- and comparing cells is the whole of what the raw map is for.
         """
         readable = np.where(self._no_reading, self._mean, error)
         self._seen += ~self._no_reading
