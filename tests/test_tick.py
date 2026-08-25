@@ -13,6 +13,7 @@ from decimal import Decimal
 from fractions import Fraction
 from unittest import mock
 
+import numpy as np
 import pytest
 import torch
 
@@ -551,8 +552,8 @@ class TestTheGammaASheafIsBuiltWith:
 
     @pytest.mark.parametrize(
         "gamma",
-        [None, "0.5", (0.5,), object()],
-        ids=["none", "string", "tuple", "object"],
+        [None, "0.5", b"0.5", bytearray(b"0.5"), (0.5,), object()],
+        ids=["none", "string", "bytes", "bytearray", "tuple", "object"],
     )
     def test_a_gamma_that_is_not_a_number_is_refused_before_the_draws(
         self, dome, drawn, gamma
@@ -570,11 +571,26 @@ class TestTheGammaASheafIsBuiltWith:
             Sheaf(dome, gamma=1.5)
         assert drawn == []
 
-    def test_a_boolean_is_not_a_gamma(self, dome, drawn):
+    @pytest.mark.parametrize(
+        "gamma",
+        [True, np.bool_(True), torch.tensor(True)],
+        ids=["bool", "numpy bool_", "boolean tensor"],
+    )
+    def test_a_boolean_is_not_a_gamma(self, dome, drawn, gamma):
         # `float(True)` is `1.0`, so a config carrying `gamma = true` would
         # otherwise run its whole sweep point at the default and say nothing.
+        # Every container this stack hands a boolean over in, since numpy's is
+        # not a `bool` and a config read through an array produces one.
         with pytest.raises(ValueError, match="gamma"):
-            Sheaf(dome, gamma=True)
+            Sheaf(dome, gamma=gamma)
+        assert drawn == []
+
+    def test_a_magnitude_no_float_can_hold_is_refused_as_one_rule_too(self, dome, drawn):
+        # `float(10**400)` raises `OverflowError`, which is neither of the two
+        # the coercion catches -- so this leaked as a bare `OverflowError`,
+        # past the one thing the rule promises a caller can catch.
+        with pytest.raises(ValueError, match="gamma"):
+            Sheaf(dome, gamma=10**400)
         assert drawn == []
 
     @pytest.mark.parametrize(

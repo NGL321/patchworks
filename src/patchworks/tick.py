@@ -71,6 +71,23 @@ __all__ = [
 DEFAULT_GAMMA = 1.0
 
 
+def _is_a_flag(gamma: object) -> bool:
+    """`True` for a boolean in any of the shapes this stack hands one over in.
+
+    `float(True)` is `1.0`, so a config carrying `gamma = true` would otherwise
+    be read as the default and run a whole sweep point at the wrong `γ` in
+    silence. `bool` is the Python one; numpy's `bool_` and a boolean tensor are
+    the same mistake wearing this stack's containers, and both unwrap through
+    the `item()` every scalar here shares. Anything `item()` refuses is not a
+    scalar at all, which the coercion below is the one to say so.
+    """
+    try:
+        unwrapped = gamma.item() if hasattr(gamma, "item") else gamma
+    except (RuntimeError, TypeError, ValueError):
+        return False
+    return isinstance(unwrapped, bool)
+
+
 def _checked_gamma(gamma: float) -> float:
     """Refuse a `γ` that is not a scalar in `(0, 1]`, and hand it back if it is.
 
@@ -105,17 +122,20 @@ def _checked_gamma(gamma: float) -> float:
         "gamma is a single global scalar in (0, 1] "
         "(docs/spec/02-tick-semantics.md, Reconciliation gain)"
     )
-    # `bool` is an `int` and `float(True)` is `1.0`, so a config carrying
-    # `gamma = true` would otherwise be read as the default and run a whole
-    # sweep point at the wrong `γ` in silence. A `str` coerces too — and a
-    # config that quotes its numbers is the same kind of mistake, caught here
-    # rather than half-caught by whichever quoted value happens to parse.
-    if isinstance(gamma, (bool, str, bytes)):
+    # Text coerces, and a config that quotes its numbers is the same kind of
+    # mistake as one that leaves them out — caught here rather than
+    # half-caught by whichever quoted value happens to parse.
+    if isinstance(gamma, (str, bytes, bytearray)) or _is_a_flag(gamma):
         raise ValueError(f"{rule}; got {gamma!r}, which is not a number")
     try:
         gamma = float(gamma)
     except (TypeError, ValueError):
         raise ValueError(f"{rule}; got {gamma!r}, which is not a number") from None
+    except OverflowError:
+        # A magnitude no float can hold is emphatically not in `(0, 1]`, and
+        # is reported without its digits: an integer that overflows a float
+        # has hundreds of them.
+        raise ValueError(f"{rule}; got a magnitude no float can hold") from None
     if not 0.0 < gamma <= 1.0:
         raise ValueError(f"{rule}; got {gamma}")
     return gamma
