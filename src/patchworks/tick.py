@@ -215,14 +215,37 @@ class Sheaf:
         gamma: float = DEFAULT_GAMMA,
         generator: torch.Generator | None = None,
     ) -> None:
+        self.dome = dome
+        self.body = body if body is not None else CellBody(dome.shape, generator=generator)
+        self.biases = (
+            biases
+            if biases is not None
+            else CellBiases(dome.shape, len(dome.predicting), generator=generator)
+        )
+        self.maps = maps if maps is not None else RestrictionMaps(dome, generator=generator)
+        # Refused here rather than at the first tick: the layout below indexes
+        # one flat buffer by cell and by edge endpoint, so a surface built for
+        # another graph would read the wrong components rather than fail.
+        if self.maps.dome is not dome:
+            raise ValueError("the restriction maps were built for a different dome")
+        if self.biases.cells != len(dome.predicting):
+            raise ValueError(
+                f"biases for {self.biases.cells} cells against this dome's "
+                f"{len(dome.predicting)} predicting cells"
+            )
         # `generator` seeds whatever this constructor was not handed. Hand it
-        # the body, the biases *and* the maps and there is nothing left to
-        # draw, so the generator is consumed by nothing — refused here rather
-        # than accepted in silence, on #106's grounds:
+        # the body, the biases *and* the maps and there was nothing left to
+        # draw, so the generator was consumed by nothing — refused rather than
+        # accepted in silence, on #106's grounds:
         # `Sheaf(dome, body=b, biases=c, maps=m, generator=g)` is written by
         # someone who believes the run is seeded, and a run that is not
         # reproducible while its author believes it is fails plausibly, in the
         # numbers, long after the fact.
+        #
+        # Last of the three refusals rather than first, though it is the only
+        # one that needs nothing drawn to decide: a surface built for another
+        # graph is the mistake that actually costs something, and a caller who
+        # made both should hear about that one now rather than on a second run.
         #
         # **#106's rule does not transfer verbatim, and that is worth knowing.**
         # There it reads *nothing in this constructor consumes a construction
@@ -243,28 +266,10 @@ class Sheaf:
         if generator is not None and nothing_left_to_draw:
             raise ValueError(
                 "generator seeds the body, the biases and the maps, and all three "
-                "were supplied already drawn, so it would seed nothing: drop it, or "
-                "draw the piece you meant it for here — "
+                "were supplied already drawn, so it would seed nothing — drop it, or "
+                "draw the piece you meant it for here: "
                 "Sheaf(dome, body=..., biases=..., generator=g) still draws the "
                 "maps from g."
-            )
-        self.dome = dome
-        self.body = body if body is not None else CellBody(dome.shape, generator=generator)
-        self.biases = (
-            biases
-            if biases is not None
-            else CellBiases(dome.shape, len(dome.predicting), generator=generator)
-        )
-        self.maps = maps if maps is not None else RestrictionMaps(dome, generator=generator)
-        # Refused here rather than at the first tick: the layout below indexes
-        # one flat buffer by cell and by edge endpoint, so a surface built for
-        # another graph would read the wrong components rather than fail.
-        if self.maps.dome is not dome:
-            raise ValueError("the restriction maps were built for a different dome")
-        if self.biases.cells != len(dome.predicting):
-            raise ValueError(
-                f"biases for {self.biases.cells} cells against this dome's "
-                f"{len(dome.predicting)} predicting cells"
             )
         self.gamma = gamma
         self.layout = StalkLayout(dome, self.maps)

@@ -9,6 +9,7 @@ The world's half of the ordering is `tests/test_agent.py`'s.
 """
 
 import contextlib
+import itertools
 from unittest import mock
 
 import pytest
@@ -524,16 +525,14 @@ DRAWN = {
     "biases": lambda sheaf: sheaf.biases.encode_hidden_bias,
     "maps": lambda sheaf: sheaf.maps.maps,
 }
-#: Every way of supplying some but not all three pieces, the empty call
+#: Every way of supplying some but not all of the pieces, the empty call
 #: included: the branches on which the generator is still doing real work.
+#: Derived from `SUPPLY` rather than written out, so a fourth ready-drawn piece
+#: would widen the cover instead of quietly leaving it behind.
 PARTIAL = [
-    (),
-    ("body",),
-    ("biases",),
-    ("maps",),
-    ("body", "biases"),
-    ("body", "maps"),
-    ("biases", "maps"),
+    supplied
+    for size in range(len(SUPPLY))
+    for supplied in itertools.combinations(SUPPLY, size)
 ]
 
 
@@ -559,10 +558,30 @@ class TestAnInertGenerator:
             )
         # Where it would have been consumed, named -- all three of them, since
         # all three are what a caller has to give up to keep the generator.
-        message = str(refusal.value)
-        assert "body" in message
-        assert "biases" in message
-        assert "maps" in message
+        # Read off the clause before the colon, not the whole message: the
+        # advice after it spells out a call naming all three anyway, so
+        # searching the message entire would pass on the advice alone and the
+        # enumeration could be deleted without a test noticing.
+        named, _, advice = str(refusal.value).partition(":")
+        assert advice
+        for piece in SUPPLY:
+            assert piece in named
+
+    def test_a_surface_built_for_another_graph_is_still_the_first_thing_said(
+        self, dome
+    ):
+        # Both mistakes at once. The mismatched dome is the one that costs
+        # something -- it would read the wrong components rather than fail --
+        # so it is what the caller hears, rather than hearing about the
+        # generator now and the dome on a second run.
+        with pytest.raises(ValueError, match="different dome"):
+            Sheaf(
+                dome,
+                body=SUPPLY["body"](dome),
+                biases=SUPPLY["biases"](dome),
+                maps=RestrictionMaps(build_graph()),
+                generator=torch.Generator().manual_seed(0),
+            )
 
     def test_all_three_without_a_generator_is_the_ordinary_prepared_call(self, dome):
         # Nothing is drawn and nothing was asked to be, so there is nothing to
