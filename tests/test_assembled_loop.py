@@ -4,7 +4,10 @@
 first time with the adapting surface actually moving under it — the world, the
 two phases of `docs/spec/02-tick-semantics.md`, the bias rule and the transport
 rule, in the order `docs/spec/07-local-learning-rule.md` puts them in — and the
-only questions asked of it are *did it complete* and *is anything non-finite*.
+only questions asked of it are *did it complete*, *did both rules move the
+adapting surface at all*, and *is anything non-finite*. The middle one is there
+because a rule that had quietly become a no-op would satisfy the other two, and
+it is asked with `torch.equal` so that the answer carries no magnitude.
 
 Nothing here is a result. There is no claim about the magnitude, direction or
 trend of any learned quantity, nothing about learning, convergence, timescales
