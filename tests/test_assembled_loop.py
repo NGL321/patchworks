@@ -33,7 +33,7 @@ import torch
 
 from patchworks.agent import Agent, run
 from patchworks.graph import DomeSpec, build_graph
-from patchworks.learning import BiasRule, TransportRule
+from patchworks.learning import BiasRule, SparsityAnneal, TransportRule
 from patchworks.sandbox import PlanarPushSandbox
 
 #: The same small dome `tests/test_learning.py`, `tests/test_transport_rule.py`
@@ -58,8 +58,15 @@ IMAGE_SIZE = 16
 
 #: A few hundred, as the ticket asks. Long enough that both rules have taken
 #: hundreds of steps into each other's state, short enough to stay inside the
-#: runtime constraint: the run below adds ~3s to the suite, of which ~2s is
-#: MuJoCo rendering rather than anything the graph does.
+#: runtime constraint, since this stands in CI on every push.
+#:
+#: **Measured, so that trimming it is an informed trade rather than a guess.**
+#: The run below costs ~3.5s, and roughly half of that is MuJoCo's GL context
+#: and first render — a fixed ~1.6s paid once per environment, which does not
+#: scale with this constant and is not bought back by lowering it. What does
+#: scale is ~6ms a tick: ~3ms of physics and 16x16 render, ~3ms of graph and
+#: the two rules. So halving `TICKS` buys under a second and gives up half the
+#: coverage.
 TICKS = 300
 
 
@@ -96,7 +103,23 @@ def test_the_assembled_loop_runs_with_both_rules_on(agent):
     because prediction error is a cell's own quantity and crosses no edge.
     """
     bias = BiasRule(agent.sheaf)
-    transport = TransportRule(agent.sheaf)
+    # **Not the default anneal**, and the reason is coverage rather than taste.
+    # `DEFAULT_ANNEAL_HORIZON` is 1000 steps and this run takes 299, so at the
+    # default the sparsity pressure would never once reach its ceiling and the
+    # loop would be smoke-tested only on the ramp -- while #97 spends
+    # essentially all of its time on the flat part, at full `λ`, which is also
+    # where the sparsity term pushes hardest against the gauge projection. A
+    # horizon of half the run puts both regimes inside it. It configures this
+    # run and changes no default.
+    transport = TransportRule(agent.sheaf, anneal=SparsityAnneal(horizon=TICKS // 2))
+
+    # The adapting surface as it was drawn, to compare against at the end.
+    # Cloned, because both rules write theirs in place.
+    initial_biases = {
+        name: parameter.detach().clone()
+        for name, parameter in agent.sheaf.biases.named_parameters()
+    }
+    initial_maps = agent.sheaf.maps.maps.detach().clone()
 
     ticking = run(agent, TICKS, seed=0)
     next(ticking)
@@ -105,10 +128,22 @@ def test_the_assembled_loop_runs_with_both_rules_on(agent):
         bias.step()
         transport.step()
 
-    # It completed, and both rules ran on every tick they were owed rather than
-    # being skipped into a run that only looks like one.
+    # It completed, and the schedule ran out, so the flat part was reached.
     assert agent.sheaf.ticks == TICKS
     assert transport.steps == TICKS - 1
+    assert transport.pressure == pytest.approx(transport.anneal.pressure)
+
+    # Both rules actually moved something. `transport.steps` counts calls, not
+    # work, and the bias rule counts nothing at all, so without this a rule
+    # that had become a silent no-op -- `argnums` mis-scoped to something that
+    # is not the adapting surface, the **missing** gradient the `torch.func`
+    # idiom was chosen to fail towards -- would leave this test green while the
+    # loop it exists to assemble did nothing. Compared with `torch.equal`, so
+    # the claim is that the surface moved and not that it moved by anything in
+    # particular: no threshold, no direction, no trend.
+    for name, parameter in agent.sheaf.biases.named_parameters():
+        assert not torch.equal(parameter, initial_biases[name]), name
+    assert not torch.equal(agent.sheaf.maps.maps, initial_maps)
 
     # Finite, and that is the whole of what is asked. The ticket names the
     # biases, the restriction maps and the node stalks; the charts are here as
