@@ -177,9 +177,9 @@ def test_the_assembled_loop_runs_with_both_rules_on(agent):
     # map's gauge band is the single point 1, so the projection that runs after
     # every transport step rewrites its last bit -- `6e-8`, on 8 of this dome's
     # 28 pinned endpoints at the seed drawn here -- whether or not a gradient
-    # ever landed. An inequality
-    # there would be satisfied by rounding, and a transport rule that computed
-    # its gradient and forgot to apply it would pass: planted, and it did.
+    # ever landed. An inequality there would be satisfied by rounding, and a
+    # transport rule that computed its gradient and forgot to apply it would
+    # pass: planted, and it did.
     #
     # An interior map's band is `[1/rho, rho]` with the norm starting strictly
     # inside it, so `project()`'s rescale is exactly `1.0` and bit-preserving
@@ -190,14 +190,20 @@ def test_the_assembled_loop_runs_with_both_rules_on(agent):
     assert not torch.equal(agent.sheaf.maps.maps[interior], initial_maps[interior])
 
     # Finite, and that is the whole of what is asked. The ticket names the
-    # biases, the restriction maps and the node stalks; the charts are here as
-    # well because a chart is the inference phase's state carried across ticks,
-    # so it is the fourth place a `nan` could sit and be carried forward.
+    # biases, the restriction maps and the node stalks; the other three are
+    # here because they are the rest of what a tick carries into the next one,
+    # and a `nan` sitting in any of them is a `nan` the run is already using. A
+    # chart is the inference phase's state; `broadcast` is read a tick later as
+    # the unit-delayed neighbour belief; `incoming` *is* the array the
+    # transport rule descends on. Each would otherwise surface only through a
+    # later tick's node stalk -- and on the last tick there is no later tick.
     for name, parameter in agent.sheaf.biases.named_parameters():
         assert torch.isfinite(parameter).all(), name
     assert torch.isfinite(agent.sheaf.maps.maps).all()
     assert torch.isfinite(agent.sheaf.stalks).all()
     assert torch.isfinite(agent.sheaf.charts).all()
+    assert torch.isfinite(agent.sheaf.broadcast).all()
+    assert torch.isfinite(agent.sheaf.incoming).all()
 
 
 def test_the_wrong_order_stops_the_run_rather_than_training_on_placeholders(agent):
