@@ -263,9 +263,9 @@ class Agent:
         There is no read-out map here and no decode path to torque that bypasses
         a stalk: this is a slice of a node stalk that reconciliation filled, and
         the arm reads it the way the world reads any motor edge's far endpoint.
-        It is deliberately not clipped — `env.step()` clips, and the difference
-        between what was asked and what the body would do is exactly the
-        disagreement the efference copy carries back.
+        It is deliberately not clipped — :meth:`act` clips on the way to the
+        arm, and the difference between what was asked and what the body would
+        do is exactly the disagreement the efference copy carries back.
         """
         commanded = self.sheaf.stalks[self._commanded_slice]
         return commanded.detach().clone().numpy().astype(np.float32, copy=False)
@@ -337,10 +337,19 @@ class Agent:
 
         The clip is against the environment's declared action space, so the
         efference copy is a statement in the contract's own terms rather than a
-        reading of the engine's registers. See :class:`TickOutcome`.
+        reading of the engine's registers. The same clipped value is what the
+        env is stepped with, so nothing leaves here outside the declared space
+        and a wrapper that enforces the contract sees a legal action. The
+        sandbox clips identically on its own, so this decides no trajectory —
+        only whose statement the action is. See :class:`TickOutcome`.
         """
         applied = np.clip(command, self.action_low, self.action_high)
-        observation, _reward, _terminated, _truncated, info = self.env.step(command)
+        # A copy, because the same array is the efference copy a moment later
+        # and a wrapper that normalised its action in place would otherwise
+        # rewrite what the actuator cell reports having done.
+        observation, _reward, _terminated, _truncated, info = self.env.step(
+            applied.copy()
+        )
         self.write(observation, applied)
         return TickOutcome(
             command=command, applied=applied, observation=observation, info=info
