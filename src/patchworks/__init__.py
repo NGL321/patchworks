@@ -14,6 +14,9 @@ Built so far:
   reconciliation gain, over the state they run on.
 * :mod:`patchworks.agent` — the graph wired to the world, and the ordering
   between them: external writes are a tick's last word.
+* :mod:`patchworks.learning` — the learning phase: the local learning rule,
+  run over the tick's detached state through `torch.func` rather than ambient
+  autograd.
 * :mod:`patchworks.sandbox` — the world the agent lives in, promoted from
   prototypes/sandbox. Not imported here; import it directly.
 
@@ -21,8 +24,8 @@ The rest of prototypes/ is not promoted yet; a later ticket brings
 prototypes/regional-spectra into this package.
 """
 
-from . import agent, body, graph, restriction, tick
+from . import agent, body, graph, learning, restriction, tick
 
-__all__ = ["agent", "body", "graph", "restriction", "tick"]
+__all__ = ["agent", "body", "graph", "learning", "restriction", "tick"]
 
 __version__ = "0.0.0"

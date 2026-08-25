@@ -254,8 +254,19 @@ class Sheaf:
         #: on it, and it is a tick's own record of what it was told.
         self.incoming = torch.zeros_like(self.broadcast)
         #: `[predicting cells, n]`: what `decode` predicted this tick, before
-        #: reconciliation edited it. The bias rule's target next tick.
+        #: reconciliation edited it. What the bias rule's prediction error is
+        #: measured against next tick — though the rule never descends on *this*
+        #: tensor, which is dead and has no gradient in anything.
         self.prediction = torch.zeros(len(dome.predicting), dome.spec.n)
+        #: `[predicting cells, k]` and `[predicting cells, n]`: what the last
+        #: inference phase **read** — the persisted chart it advanced from and
+        #: the node stalk it took as evidence. Kept for the same reason
+        #: :attr:`incoming` is: the bias rule (#88) re-runs exactly that forward
+        #: path, live in the biases, against the node stalk reconciliation has
+        #: since left behind (`docs/spec/09-the-build-stack.md`, *Learning is a
+        #: separate phase over detached inputs*).
+        self.prior_charts = torch.zeros(len(dome.predicting), dome.spec.k)
+        self.prior_evidence = torch.zeros(len(dome.predicting), dome.spec.n)
         self.ticks = 0
 
     # -- the two phases ----------------------------------------------------
@@ -281,8 +292,14 @@ class Sheaf:
         did. Nesting `no_grad` is free.
         """
         with torch.no_grad():
-            stalks = self.stalks[self.layout.predicting_positions]
-            self.charts, self.prediction = self.body(self.charts, stalks, self.biases)
+            evidence = self.evidence()
+            # The pair the bias rule re-runs. Both are already private copies:
+            # the advanced chart is *rebound* below rather than written into,
+            # and an advanced-index gather returns a fresh tensor rather than a
+            # view -- so neither record can be moved out from under the rule by
+            # the message-passing phase's in-place edits to the stalk buffer.
+            self.prior_charts, self.prior_evidence = self.charts, evidence
+            self.charts, self.prediction = self.body(self.charts, evidence, self.biases)
             self.stalks[self.layout.predicting_positions] = self.prediction
         self.assert_no_tape()
 
@@ -365,6 +382,8 @@ class Sheaf:
             prediction=self.prediction,
             broadcast=self.broadcast,
             incoming=self.incoming,
+            prior_charts=self.prior_charts,
+            prior_evidence=self.prior_evidence,
         )
 
     # -- reading the state -------------------------------------------------
@@ -372,6 +391,21 @@ class Sheaf:
     def stalk(self, cell_id: int) -> torch.Tensor:
         """One cell's node stalk, as a view on the flat buffer."""
         return self.stalks[self.layout.slice(cell_id)]
+
+    def evidence(self) -> torch.Tensor:
+        """`[predicting cells, n]`: what every predicting cell now reads in as evidence.
+
+        A gather, so the result is a fresh tensor rather than a view on the
+        flat buffer — reconciliation's next in-place edit cannot reach back
+        into one of these.
+
+        The inference phase reads it, and the bias rule takes it as the
+        detached target: between the two it is the node stalk reconciliation
+        left behind, which is how prediction error carries the neighbours'
+        disagreement without the rule reading a neighbour
+        (`docs/spec/07-local-learning-rule.md`, *The bias rule*).
+        """
+        return self.stalks[self.layout.predicting_positions]
 
     def disagreement(self) -> torch.Tensor:
         """`[edges, m_max]`: the difference between the two ends' restrictions.
