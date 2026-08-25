@@ -113,6 +113,27 @@ failure it exists to show. So the three torque bars are drawn against the larges
 has seen and the disagreement bar against the largest a boundary mark has shown; zero stays zero
 under both, which is what keeps *near-zero commanded* legible as near zero. Settled in #94.
 
+**That last sentence is wrong, and the divisor it names is an open question.** Both scales are
+running maxima, so both are ratchets that one tick can raise for the rest of the run, and #94's
+review demonstrated each one erasing the signature this bar exists to render:
+
+- *The largest a boundary mark has shown* is shared across every boundary mark, so a single tick in
+  which the **drive** edge spikes permanently flattens the **actuator's** bar — 18 px to 1 px on the
+  small dome, and the drive is already the largest boundary mark within 120 ticks of a real run. The
+  two marks the panel most needs to read independently are coupled through one divisor.
+- *The largest torque the strip has seen* is set by the **commanded** row, which
+  `04-action-and-the-boundary.md` deliberately leaves unclipped. One spike to 500 draws every later
+  full-strength command as a single pixel at the zero line — *near-zero commanded torque*, fabricated
+  from a command at its limit.
+
+The obvious repair — divide each mark by its **own** running peak — is not one: a mark sits at its
+own peak whenever it is quiet, so the bar stands at 97% of full height through a completely quiet
+run, claiming a standing disagreement at all times. A bar rendering an absolute claim needs an
+absolute reference, and disagreement has no natural unit to supply one. **Unresolved; do not read
+the height of the standing bar as a quantity until it is.** The pair of *torque* bars is unaffected
+by this — a fill falling short of its outline is a comparison within one tick — and so is every mark
+on the colour channel, which is normalised per cell and documented as such.
+
 ### The drive mark
 
 The apex band carries a mark for the **drive boundary cell** at the internal rim, drawn like the
