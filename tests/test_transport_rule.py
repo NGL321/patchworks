@@ -661,7 +661,7 @@ class TestTheSparsityPressureComposesInTheSameStep:
         #
         # 1. **The floor's correction goes as `1/‖F‖²`, not as `1/‖F‖`.**
         #    Against the floorless form it is a relative
-        #    `NORM_FLOOR/(2‖F‖²(1 − h²))`, which passes `1e-9` at
+        #    `NORM_FLOOR/(2‖F‖²(1 − h²))`, which reaches `1e-9` at
         #    `‖F‖_F ≈ 4e-8` for a typical direction and is `1/2` or worse at
         #    the bottom of this sweep. A norm-scaled tolerance cannot rescue
         #    the floorless form there -- it is not imprecise but wrong -- and
@@ -709,9 +709,8 @@ class TestTheSparsityPressureComposesInTheSameStep:
             squared = weights.detach().pow(2).sum().item()
             norm = (squared + NORM_FLOOR) ** 0.5
             floorless = (taken.norm().item() * norm) ** 2 + value.item() ** 2
-            assert floorless + value.item() ** 2 * NORM_FLOOR / norm**2 == (
-                pytest.approx(1.0, abs=128 * 2.0**-53, rel=0.0)
-            )
+            summed = floorless + value.item() ** 2 * NORM_FLOOR / norm**2
+            assert summed == pytest.approx(1.0, abs=128 * 2.0**-53, rel=0.0)
             # **A tripwire on `NORM_FLOOR`, not a second claim.** The line
             # above follows the constant symbolically and would stay green
             # wherever it moved to; this one writes `1e-24` out, so a change
@@ -731,11 +730,11 @@ class TestTheSparsityPressureComposesInTheSameStep:
             # the round-off allowed above is `4p·128·2⁻⁵³` of it -- `2.2e-11`
             # at `p = 384`, against `2.7e-12` actually measured there.
             #
-            # Note this is `NORM_FLOOR`, an epsilon guarding
-            # `0/0` in a square root, and **not ADR-0007's disagreement
-            # floor** -- the irreducible static, lag and settling parts of an
-            # edge's disagreement, which are structural and at the scale of
-            # the configuration. The two are unrelated quantities that share a
+            # Note this is `NORM_FLOOR`, an epsilon guarding `0/0` in a square
+            # root, and **not ADR-0007's disagreement floor** -- the
+            # irreducible static, lag and settling parts of an edge's
+            # disagreement, which are structural and at the scale of the
+            # configuration. The two are unrelated quantities that share a
             # word.
             if NORM_FLOOR / norm**2 > 1e-6:
                 assert 1.0 - floorless == pytest.approx(
