@@ -219,7 +219,7 @@ class TestWhatADragOnALinkDelivers:
 
 
 class TestADragIsReadInThePlane:
-    """#123's first lever: an out-of-plane drag is refused, not projected.
+    """#123's enforcing lever: an out-of-plane drag is refused, not projected.
 
     The world has zero z degrees of freedom (`src/patchworks/sandbox/arena.xml`),
     so a drag with a z in it names nothing this world can do. #96 said so in a
@@ -228,14 +228,16 @@ class TestADragIsReadInThePlane:
     that gate and fired a hand with the residue as its argument. That is the
     bug this class pins -- the gate is on the out-of-plane component now.
 
-    The second lever, the camera held top-down, is
-    :class:`TestTheCameraIsHeldTopDown`. Neither of them can say whether the
-    gesture *feels* right, which is a human at the window.
+    Where such a drag comes from is :class:`TestTheDragMujocoHandsOver`: the
+    mouse's own up-the-screen axis, at any camera elevation. The camera hold
+    kept beside this one (:class:`TestTheCameraIsHeldTopDown`) holds the picture
+    rather than the gesture, so this is the lever that does the work. Neither
+    can say whether the gesture *feels* right, which is a human at the window.
     """
 
     def test_a_drag_in_the_plane_fires_its_hand(self, gestures, env):
-        """The gesture the demo is made of, unchanged: z is exactly zero when
-        the view is top-down, and that drag still fires."""
+        """The gesture the demo is made of, unchanged: a pull across the screen
+        has a z of exactly zero, and that drag still fires."""
         event = gestures.drag(dragged(env, "puck_0", (0.05, 0.02, 0.0)))
         assert event.kind is EventKind.PERTURB
 
@@ -309,8 +311,8 @@ class TestADragIsReadInThePlane:
 
     def test_the_tolerance_is_an_angle_off_the_plane(self, gestures, env):
         """A ratio, not a length: a drag is refused for the *direction* it went
-        in, so the same tilt of the view refuses a long drag and a short one
-        alike."""
+        in, so the same direction of pull is refused whether it was a long drag
+        or a short one."""
         just_inside = OUT_OF_PLANE_TOLERANCE * 0.9
         for planar in (0.01, 0.5):
             inside = gestures.drag(
@@ -1079,14 +1081,17 @@ class TestTheSceneWindowIsMujocosPassiveViewer:
 
 
 class TestTheCameraIsHeldTopDown:
-    """#123's second lever, and the reason the first one is not enough alone.
+    """#123's second constraint: the picture held in the arena's own plane.
 
-    A drag is read against the camera plane, so the tilt of the view decides
-    whether a gesture has a z in it at all. Set once at startup -- which is
-    what #96 did -- it is not a lock: MuJoCo lets the human rotate the view
-    freely, and the gestures then quietly change meaning. Here it is re-asserted
-    every tick, which is the most the passive viewer allows (see
-    :func:`~patchworks.surface.gestures.hold_top_down`).
+    **What it holds is the picture, not the gesture.** A drag carries a z
+    whatever the elevation (:class:`TestTheDragMujocoHandsOver`), so no camera
+    constraint can make one planar; what straight down buys is that the arena's
+    xy fills the screen, so the planar half of a drag is the motion the human
+    watches themselves make. #123 ruled for it beside the refusal, and these
+    tests pin the *holding* -- set once at startup, which is what #96 did, it
+    was not a hold at all: MuJoCo lets the human rotate the view freely, and
+    nothing put it back. Re-asserting it every tick is the most the passive
+    viewer allows (see :func:`~patchworks.surface.gestures.hold_top_down`).
 
     What no test here can settle is whether a view that will not tilt is
     pleasant to work at. That is the human at the window.
@@ -1106,8 +1111,9 @@ class TestTheCameraIsHeldTopDown:
         assert seen == [TOP_DOWN_ELEVATION]
 
     def test_a_rotated_view_is_put_back_on_the_next_tick(self, recorder, window):
-        """The bug the once-only assignment left: the human rotates, and every
-        drag after that carries a z nobody asked for."""
+        """What the once-only assignment left: the human rotates and the view
+        stays rotated, so the picture and the arena's plane part company for
+        the rest of the session with nothing saying so."""
         seen = []
 
         def rotate(handle):
