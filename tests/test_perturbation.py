@@ -580,8 +580,9 @@ class TestBothChecksRunInCI:
     that table inert — and an unfinishable blacklist that reads as complete is
     worse than none. So each assertion below pins the small number of shapes
     *known* to run the whole suite on every push: the trigger, the invocation,
-    the step's environment, and every configuration file pytest would read.
-    Anything else fails here and has to be re-argued rather than slipping past.
+    every environment block that reaches it, the workflow's top-level keys, and
+    every configuration file pytest would read. Anything else fails here and
+    has to be re-argued rather than slipping past.
 
     **What is outside their reach**, stated because a whitelist that reads as
     complete and is not would be this file's own failure mode: the run never
@@ -602,23 +603,23 @@ class TestBothChecksRunInCI:
     a sequence item's first key**, where the leading `- ` would hide them from
     a naive match; `PYTEST_ADDOPTS` in the step's `env:`, in a job-level `env:`
     written *after* `steps:`, in a workflow-level `env:` above `jobs:`, and in
-    a job-level flow mapping, `env: {PYTEST_ADDOPTS: …}` — all three of those
+    a job-level flow mapping, `env: {PYTEST_ADDOPTS: …}` — those last three
     reach the step as surely as the step's own block, and none of them is the
-    first `env:` in the file or even spelled `env:`; a `branches:` filter under `push:`; `push:` removed; an
-    `addopts`, a narrowed `testpaths`, and a `norecursedirs` in
-    `pyproject.toml`; each of the six files that outrank or rival that table —
-    `pytest.toml`, `.pytest.toml`, `pytest.ini`, `.pytest.ini`, `tox.ini`,
-    `setup.cfg` — carrying a narrowing configuration; and a `conftest.py`
-    narrowing collection through a `collect_ignore`, a `collect_ignore_glob`, a
-    `pytest_ignore_collect`, or a `pytest_collection_modifyitems` — that last
-    one in a sub-directory of `tests`, where it is handed the whole item list
-    just the same, and either hook reached by `import` rather than by `def`,
-    including the star import that binds it while naming nothing.
-    All thirty-one fail here, and a fixtures-only `conftest.py` — the one
-    shape of that file which narrows nothing — still passes. So does a harmless `-q`
-    *not*: the cost of the design is that a benign edit to the invocation has
-    to come with an edit to this class, which is the whitelist working rather
-    than a false positive.
+    first `env:` in the file, the last not even spelled `env:`; a `branches:`
+    filter under `push:`; `push:` removed; an `addopts`, a narrowed
+    `testpaths`, and a `norecursedirs` in `pyproject.toml`; each of the six
+    files that outrank or rival that table — `pytest.toml`, `.pytest.toml`,
+    `pytest.ini`, `.pytest.ini`, `tox.ini`, `setup.cfg` — carrying a narrowing
+    configuration; and a `conftest.py` narrowing collection through a
+    `collect_ignore`, a `collect_ignore_glob`, a `pytest_ignore_collect`, or a
+    `pytest_collection_modifyitems` — that last one in a sub-directory of
+    `tests`, where it is handed the whole item list just the same, and either
+    hook reached by `import` rather than by `def`, the star import that binds
+    it while naming nothing included. All thirty-one fail here, and a
+    fixtures-only `conftest.py` — the one shape of that file which narrows
+    nothing — still passes. So does a harmless `-q` *not*: the cost of the
+    design is that a benign edit to the invocation has to come with an edit to
+    this class, which is the whitelist working rather than a false positive.
     """
 
     ROOT = Path(__file__).resolve().parents[1]
