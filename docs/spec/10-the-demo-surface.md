@@ -25,6 +25,35 @@ already happened.
 
 The panel must be closable, and closing it changes nothing but the view.
 
+### What to run
+
+Both windows, live, with the hands bound to the scene one — and the same panel from a saved trace:
+
+```bash
+mjpython -m patchworks.surface.watch --ticks 2000 --save run.npz
+python   -m patchworks.surface.watch --replay run.npz
+```
+
+`--pitch` sizes a lattice slot, `--scale` sizes the window, `--edges` and `--raw` are the two toggles
+this file already describes, and `--fps` paces a replay. `mjpython` is MuJoCo's requirement for the
+passive viewer on macOS and applies to the live half only; a replay opens no scene window and runs
+under plain `python`. Built in #122; it was the visual half of #119, which becomes the dispatcher this
+hangs off.
+
+**The two windows are two processes, and on macOS they must be.** Under `mjpython` no Python thread is
+the Cocoa main thread — the launcher's own docstring says it runs the interpreter on a separate thread
+to leave the main one free for Cocoa — and Cocoa refuses to make a window off that thread, aborting
+the process out of GLFW rather than raising. Off `mjpython`, `glfw.init()` on a second thread does not
+return. So the panel is drawn by a child process that is its own Cocoa main thread, fed one uint8
+frame at a time down a pipe. All four facts were measured on the reference laptop in #122, and
+`src/patchworks/surface/window.py` is where they are written down.
+
+That split buys the rest of this section for free: the panel holds no agent, the pipe carries pixels
+one way, and a child that goes away is a closed window and nothing else. It also gives the *run never
+waits on the display* — each end holds a mailbox of one frame and drops rather than queues, so a
+window being dragged, which blocks that process's event loop on macOS for as long as the mouse is
+down, costs frames and not ticks.
+
 ## The dome panel
 
 **Stacked bands: the sensorimotor boundary at the bottom, the apex at the top**, one band per level,
@@ -348,6 +377,20 @@ demo itself. The cost is one extra capture from a trace already on disk.
   whatever is chosen — the encoding is what gives, not the record it reads.
 - **Per-cell normalisation hides chronic failure**, as above. The raw map exists; nothing enforces
   that anyone looks at it.
+- **A replay reconstructs the trail's time constants rather than reading them.** A trace is state and
+  the record's arrays, deliberately — the section above says so — and a measured persistence is a
+  number about the *biases*, which a trace does not hold. So `--replay` measures a sheaf of its own
+  and `--seed` is what makes that the run's own body. Every other mark on both panels comes off the
+  record and is exact; this one is a reconstruction, and a replay on the wrong seed draws a real run's
+  marks with another body's decay.
+- **On the untrained body the trail is not visible at all**, which is a fact about the body and not a
+  defect in the encoding. Measured in #122 on the default spec, seeded: every predicting cell's
+  measured persistence is between 0.5 and 1.7 ticks, and a capture is one tick in five, so a glow is
+  down to at most 6% of itself by the next frame. *Rim cells go dark almost immediately, core cells
+  stay lit for hundreds of ticks* is what the trail renders **once the body passes
+  [`05-timescales.md`](./05-timescales.md)'s go/no-go**, and until then the panel is drawing an honest
+  picture of a body with no timescale separation in it. Nothing on this surface should be changed to
+  hide that.
 - **The surface displays two levels because the interface supplies two.** `08` states this limit for
   the protocol and it is inherited here verbatim: a panel showing eight bands does not thereby show
   eight levels being used, and a reader who mistakes band count for demonstrated depth has been

@@ -164,6 +164,21 @@ python3.12 -m venv .venv
 .venv/bin/python -m patchworks                     # the dome, and what construction records
 ```
 
+**Watch it run.** Two windows: MuJoCo's viewer over the arena, and the dome panel beside it — prediction
+error per cell, the somatomotor strip, and `‖Δ(private component)‖` against depth
+([`docs/spec/10-the-demo-surface.md`](docs/spec/10-the-demo-surface.md)).
+
+```bash
+.venv/bin/mjpython -m patchworks.surface.watch --ticks 2000 --save run.npz
+.venv/bin/python   -m patchworks.surface.watch --replay run.npz
+```
+
+**Shift-ctrl-drag** a link or a puck and you are performing events 1 and 2 of the acceptance demo by
+hand; double-click a puck and then a zone for event 3, and `r` rearranges the world without resetting
+the arm. `mjpython` is MuJoCo's requirement for the live viewer on macOS — replay needs no scene
+window and runs under plain `python`. The panel is closable and closing it changes nothing but the
+view; `--pitch` sizes a lattice slot and `--scale` sizes the window.
+
 <sub>These instructions live here and only here. `prototypes/sandbox/README.md` describes what the
 files in that directory are and what broke while building them; it does not repeat setup.</sub>
 

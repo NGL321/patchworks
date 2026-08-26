@@ -1011,7 +1011,9 @@ def main(argv: list[str] | None = None) -> None:
 
     The dome panel is the other window and is not opened here. It reads the
     records this yields (`docs/spec/10-the-demo-surface.md`, *Two windows*),
-    which is the whole of the seam between them.
+    which is the whole of the seam between them. **Both windows** is
+    `mjpython -m patchworks.surface.watch` (#122), which is this loop plus that
+    one; what is here is the scene window on its own.
     """
     import argparse
 
