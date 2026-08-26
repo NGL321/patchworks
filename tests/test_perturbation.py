@@ -803,15 +803,17 @@ class TestBothChecksRunInCI:
     has to be re-argued rather than slipping past.
 
     **The workflow is parsed rather than read line by line** (#117). It used
-    to be read as text, and five review rounds across #90 and #109 each turned
-    up another way to spell a key that no text match recognised — `env:  # a
-    comment`, `env :`, `!!str env:`, `? env` / `:`, and a sequence item's
-    `-  if:` with more than one space after the dash. Every one of those was
-    found only after the round before it had closed the spelling before it,
-    which is the answer to whether a clause per spelling finishes the job: it
-    does not, because the ways to spell a YAML key are not enumerable in
-    advance. A parser resolves all of them to the same key before anything
-    here looks at it, so the checks below read keys of a mapping. `block`,
+    to be read as text, and every review round across #90 and #109 turned up
+    another way to spell a key that no text match recognised. Two were closed
+    by a clause each — the flow mapping and the quoted key — and five were
+    still open when #117 ruled: `env:  # a comment`, `env :`, `!!str env:`,
+    `? env` / `:`, and a sequence item's `-  if:` with more than one space
+    after the dash. Each of those arrived in a round that followed one which
+    had closed the spelling before it, which is the answer to whether a clause
+    per spelling finishes the job: it does not, because the ways to spell a
+    YAML key are not enumerable in advance. A parser resolves all of them to
+    the same key before anything here looks at it, so the checks below read
+    keys of a mapping rather than text of a line. `block`,
     `nested_under` and `top_level_keys` are gone with the text, and the
     sequence-item normalisation that lived in `block` — the `- ` strip, and
     the depth it left two columns out — is gone with them rather than fixed.
