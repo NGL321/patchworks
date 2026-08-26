@@ -183,9 +183,22 @@ python3.12 -m venv .venv
 
 `patchworks demo` opens a MuJoCo window, and on macOS a MuJoCo window has to own the process's main
 thread — which only MuJoCo's `mjpython` launcher gives it. **You do not have to know that**: `demo`
-finds `mjpython` and re-execs into it, or stops and prints the exact command. Inside the window,
-shift-ctrl-drag a link or a puck, left-double-click a puck and then a zone to set a goal, `r` to
-rearrange, `1`-`9` for the goal pairs.
+finds `mjpython` and re-execs into it, or stops and prints the exact command.
+
+**Watch it run.** Two windows: MuJoCo's viewer over the arena, and the dome panel beside it — prediction
+error per cell, the somatomotor strip, and `‖Δ(private component)‖` against depth
+([`docs/spec/10-the-demo-surface.md`](docs/spec/10-the-demo-surface.md)).
+
+```bash
+.venv/bin/mjpython -m patchworks.surface.watch --ticks 2000 --save run.npz
+.venv/bin/python   -m patchworks.surface.watch --replay run.npz
+```
+
+**Shift-ctrl-drag** a link or a puck and you are performing events 1 and 2 of the acceptance demo by
+hand; left-double-click a puck and then a zone for event 3, and `r` rearranges the world without
+resetting the arm. `1`-`9` cycle the goal pairs. Replay needs no scene window and runs under plain
+`python`. The panel is closable and closing it changes nothing but the view; `--pitch` sizes a
+lattice slot and `--scale` sizes the window.
 
 <sub>These instructions live here and only here. `prototypes/sandbox/README.md` describes what the
 files in that directory are and what broke while building them; it does not repeat setup.</sub>

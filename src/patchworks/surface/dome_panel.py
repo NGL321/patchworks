@@ -71,6 +71,12 @@ back for the scene, and what puts one on screen or into a capture is the
 caller's business. The bitmap font below exists for the same reason -- the
 warm-up notice has to reach the screen, and the dependency set has nothing that
 draws text.
+
+Since #122 there is a caller that does put one on a screen --
+:mod:`patchworks.surface.watch`, which is `patchworks watch` -- and it changed
+nothing here: it takes the array this returns and blits it in another process
+(:mod:`patchworks.surface.window`). The independence *Known exposure* was
+worried about held.
 """
 
 from __future__ import annotations
