@@ -465,8 +465,8 @@ class Gestures:
         mujoco.mj_jac(model, data, jacp, None, grip, self._body_of[joint])
         # In the plane, like both hands' arguments. What reaches here has
         # already been refused if it was out of the plane, so the z dropped is
-        # at most `OUT_OF_PLANE_TOLERANCE` of the pull -- the residue of a view
-        # a few degrees off top-down, not a gesture. Every arm joint in
+        # at most `OUT_OF_PLANE_TOLERANCE` of the pull -- a few degrees off the
+        # table, which is a pull along it and not a gesture. Every arm joint in
         # `arena.xml` is a z-hinge, so this column's own z entry is zero today
         # and the projection changes nothing either; it is here so that the
         # impulse stays planar the first time a joint is not a z-hinge.
