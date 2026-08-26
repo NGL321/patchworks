@@ -70,7 +70,9 @@ reading: this guard is falsifiable rather than merely tight.
 
 import ast
 import copy
+import locale
 import re
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -847,46 +849,72 @@ class TestBothChecksRunInCI:
     exactly here and still never run pytest. Neither of those is a spelling,
     so parsing does not reach either: refusing them means pinning every `run:`
     and every key under `jobs:`, a wider whitelist than #90 argued for and a
-    decision about this class rather than a gap in it. A third shape is
-    outside their reach and is *not* a decision — the `pyproject.toml` scan's,
-    described next, which is a gap and is recorded as one.
+    decision about this class rather than a gap in it. The third shape that
+    used to stand beside them — the `pyproject.toml` scan's — was a gap rather
+    than a decision, and #118 closed it. A different third shape took its
+    place on the same ticket, and it is the next paragraph.
 
-    **And `pyproject.toml` is still read as text, which is a known hole and
-    not merely a weaker claim.** `tomllib` arrives in 3.11 and this project's
-    floor is 3.10, so the rootdir table is scanned rather than parsed. Four
-    spellings were tried and each fails *closed* — a re-spelt table header
-    leaves the split with nothing to split on and raises, and a key written
-    across lines fails the whitelist — and they are named below and counted
-    apart from the routes.
+    **An installed pytest plugin reaches the run through the dependency set**,
+    found by `/code-review` on #118 and run rather than reasoned about. A
+    plugin whose `pytest_collection_modifyitems` deselects can be named in
+    `[project.optional-dependencies].dev`, which the pinned
+    `pip install -e ".[dev]"` step installs; appended to that step's own line;
+    or installed by a step of its own. All three were written into a scratch
+    copy and all three left every assertion here green — no key any of them
+    reads is written by any of them, and
+    `test_the_suite_runs_whole_and_unfiltered` asks only that *some* `run:`
+    in the job is exactly the string `pytest` — which pins that one step
+    tightly, `pytest -k nothing` failing it — while leaving any other `run:`
+    in the job unread. That
+    pytest honours such a hook was checked the same way: a plugin of this
+    shape, discovered by entry point, emptied the item list of a two-test
+    suite. **The selective form is the dangerous one.** Deselecting everything
+    exits 5 — "no tests ran" — and reddens CI, which is loud; deselecting only
+    this file exits 0, which is the silent, flattering failure this guard is
+    for.
 
-    But four spellings were never a proof about TOML, and #117 found a fifth
-    that does **not** fail closed. The scan ends at the first line that
-    begins `[`, reading it as the next table header; a value written as a
-    multi-line TOML string can put such a line inside itself, and every key
-    after it then goes unread. A `pythonpath` opened as a multi-line string
-    holding a bracketed line, followed by an `addopts`, is valid TOML that
-    pytest honours — checked against pytest itself, which collects the suite
-    and reports every test deselected — and it passes all five assertions
-    here with `-k nothing` live in the rootdir table. That is a live
-    narrowing route this class does not catch. Unlike the two shapes above it
-    is a **gap rather than a decision**: closing it means parsing TOML, so it
-    means `tomli` on the 3.10 floor or raising that floor to 3.11 for
-    `tomllib` — the dependency question #117 settled for the workflow and was
-    never asked for this file. It is recorded here rather than fixed quietly
-    or left implied by "four spellings", and it is why the count below is
-    forty-three caught of forty-four known. The scan is unchanged from before
-    #117; the parser rewrite neither caused it nor reaches it.
+    **Whether that shape is a decision or a gap is not settled here.** Closing
+    it means pinning the dependency set and every `run:` in the job, which is
+    the same widening #90 declined for `defaults:` — a ruling this record does
+    not carry, so it is escalated in #118 rather than filed beside the two
+    above. It is counted below rather than set apart from them, because until
+    it is ruled, counting it open is the direction that does not overstate.
+
+    **And `pyproject.toml` is parsed too, since #118.** It was read as text
+    until then, because `tomllib` arrives in 3.11 and this project's floor was
+    3.10. Four spellings of the *table* were tried against that scan and each
+    failed *closed*, which was the weaker claim it supported — but four
+    spellings were never a proof about TOML, and #117 found a fifth that did
+    **not** fail closed. The scan ended at the first line beginning `[`,
+    reading it as the next table header; a value written as a multi-line TOML
+    string can put such a line inside itself, and every key after it then went
+    unread. A `pythonpath` opened that way over an `addopts = "-k nothing"` is
+    valid TOML that pytest honours — checked against pytest itself, which
+    collected the suite and reported every test deselected — and it passed all
+    five assertions here. That was a live narrowing route, and closing it was
+    the same argument #117 made for `ci.yml`: the ways to write a TOML key are
+    no more enumerable by looking at a line than the ways to write a YAML one.
+    The floor moved to 3.11 for it, ruled on in #118 and cheaper than a second
+    test-only dependency, since CI already pins 3.12 and nothing in `src/` is
+    version-conditional. `configuration` reads the table now: the four
+    spellings of the table resolve to the one path it looks up, and a value
+    written across lines is a value rather than a place the reader stops.
 
     **Which is how the list below should be read.** These five assertions hold
     down every route that writes a key they read, in any spelling of it. That
-    is the forty-three named here, each one kill-tested on its own — written
-    into a scratch copy of this repository, the five assertions run against
-    that copy, and the route caught. It is not every route there is: the two
-    shapes above are outside it by decision, and the `pyproject.toml` scan has
-    one route outside it by gap, so the tally is forty-three caught of
-    forty-four known.
+    is the forty-four named here, each one kill-tested on its own — written
+    into a scratch copy of the files these assertions read, as an edit where
+    the file is already there and as a new file where it is not, since a rival
+    configuration and a `conftest.py` are routes precisely by appearing; the
+    five assertions run against that copy, unmutated first and then once per
+    route; and the route caught. It is not every route there is: the two
+    shapes above are outside it by decision, and the plugin's three vectors
+    are outside it unruled — counted as three rather than as one shape,
+    because that is how the environment's four are counted a paragraph down,
+    and because counting them open is the direction that does not overstate.
+    So the tally is forty-four caught of forty-seven known.
 
-    The forty-three, by where they reach. **The invocation**, five: `-k`, a
+    The forty-four, by where they reach. **The invocation**, five: `-k`, a
     positional path, `--collect-only`, `|| true`, `python -m pytest`. **A gate
     on the step**, four: `continue-on-error` and a step-level `if:`, each as
     an ordinary key *and as a sequence item's first key*, where the leading
@@ -914,8 +942,10 @@ class TestBothChecksRunInCI:
     that each is proven to run. A **tab** after the dash is still not in this
     class: YAML refuses it outright, "found character that cannot start any
     token", so it fails at the parser and loudly rather than here and quietly.
-    **The rootdir configuration**, three: an `addopts`, a narrowed `testpaths`,
-    and a `norecursedirs` in `pyproject.toml`. **A file that outranks or
+    **The rootdir configuration**, four: an `addopts`, a narrowed `testpaths`,
+    and a `norecursedirs` in `pyproject.toml`, and an `addopts` written below
+    a multi-line string holding a bracketed line, which the scan read as the
+    next table header and stopped at (#118). **A file that outranks or
     rivals that table**, six — `pytest.toml`, `.pytest.toml`, `pytest.ini`,
     `.pytest.ini`, `tox.ini`, `setup.cfg` — each carrying a narrowing
     configuration. And **a `conftest.py` narrowing collection**, ten: in
@@ -927,14 +957,30 @@ class TestBothChecksRunInCI:
     capture pattern, which binds the hook name without an assignment anywhere;
     and a root `conftest.py`.
 
-    All forty-three fail here. Four spellings of the `pyproject.toml` *table*
-    were run too and are not among them, because they are the weaker claim the
-    text scan supports: `[tool.pytest]` with a dotted `ini_options.addopts`,
-    the same with an inline `ini_options = {…}`, a header written
-    `[ tool.pytest.ini_options ]`, and an `addopts` opened as a multi-line
-    string. Each fails the check rather than passing it — three by raising on
-    the split, one by failing the whitelist — which is failing closed rather
-    than catching, and is counted separately for that reason.
+    All forty-four fail here. Four spellings of the `pyproject.toml` *table*
+    were run too and are counted apart from them, because they are four ways
+    of writing one table rather than four ways of reaching the run:
+    `[tool.pytest]` with a dotted `ini_options.addopts`, the same with an
+    inline `ini_options = {…}`, a header written `[ tool.pytest.ini_options ]`,
+    and an `addopts` opened as a multi-line string. What #118 changed is how
+    they are met. Against the scan, three of them left the split with nothing
+    to split on and raised, and the fourth failed the whitelist — failing
+    closed rather than catching. Parsed, each is read as the keys it writes
+    and its `addopts` fails the whitelist like any other, which is why the
+    same run that catches the forty-four reports these four as read.
+
+    **pytest's other table is counted there too, and is met three different
+    ways**: `[tool.pytest]` with native TOML types, which pytest 9 reads
+    and `configuration` does not. It cannot narrow the run quietly, in any of
+    the three ways it can be written: on its own the lookup here raises; beside
+    a `[tool.pytest.ini_options]` carrying keys pytest refuses the file, exit
+    4; and beside an empty header — which pytest does *not* refuse, since it
+    conflicts the two only when both hold something — the table this reads
+    answers `{}`, which is not the permitted set. All three were run;
+    `test_pytests_native_table_is_not_read_here_and_cannot_hide` holds them
+    down — the halves that are about this reader under any pytest, and the
+    halves that are about pytest's own reader under one that reads that table
+    at all.
 
     A fixtures-only `conftest.py` — the one shape of that file which narrows
     nothing — still passes, `tests/conftest.py` as #110 wrote it included. So
@@ -991,6 +1037,54 @@ class TestBothChecksRunInCI:
     def workflow(self):
         """`ci.yml`, parsed the way GitHub reads it. See `_WorkflowLoader`."""
         return yaml.load(self.WORKFLOW.read_text(), _WorkflowLoader)
+
+    @property
+    def configuration(self):
+        """The rootdir table pytest reads out of `pyproject.toml`, parsed.
+
+        `tomllib` rather than a scan over the lines, for the reason
+        `ci.yml` is parsed rather than matched: the ways to write a TOML key
+        are not enumerable by looking at a line, and the scan this replaced
+        proved it by missing one (#118). Every spelling of the table header
+        resolves to the same three-key path here, and a value written across
+        lines is that value rather than a boundary the reader stops at.
+
+        **What it does instead of answering is raise**, in more ways than one
+        and all of them this check going red: `KeyError` where nothing is at
+        that path, `TypeError` where something that is not a table is — a
+        `pytest = "x"` under `[tool]` is subscripted with a string, and an
+        `[[tool.pytest.ini_options]]` array of tables arrives as a list of
+        dicts and reaches `set(…)` unhashable — and `TOMLDecodeError` where
+        the file is not TOML at all. That is the direction the split this
+        replaced failed in too, and the property worth keeping from it.
+
+        **What it reads is `[tool.pytest.ini_options]`, in any spelling of
+        that path, and that is the whole of the claim.** pytest 9 also reads a
+        second table — `[tool.pytest]` with native TOML types — which this
+        does not, so "whatever pytest reads, this reads" would be false. It
+        cannot narrow the run quietly, and each way of writing it was checked
+        rather than argued. **On its own** it deselects the suite and the
+        lookup here raises `KeyError`, so this check goes red. **Beside a
+        `[tool.pytest.ini_options]` that carries keys** — this repository's,
+        say — pytest refuses the file outright, "Cannot use both …
+        simultaneously", exit 4. **Beside an empty
+        `[tool.pytest.ini_options]` header** pytest refuses nothing, because
+        it conflicts the two tables only when both hold something; the native
+        table is honoured with the header still written, and what catches that
+        is the whitelist rather than the raise — `configuration` answers `{}`,
+        and an empty table is not the permitted set.
+        `test_pytests_native_table_is_not_read_here_and_cannot_hide` pins all
+        three.
+
+        Opened in binary, which is `tomllib`'s own idiom rather than a
+        preference: TOML is UTF-8 by specification, and `read_text` would
+        decode it in whatever the process locale is instead —
+        `test_the_table_is_read_as_utf_8_whatever_the_locale_is` forces that
+        locale away from UTF-8 and is what fails if this goes back to text.
+        """
+        with (self.ROOT / "pyproject.toml").open("rb") as source:
+            parsed = tomllib.load(source)
+        return parsed["tool"]["pytest"]["ini_options"]
 
     def mappings(self, document):
         """Every mapping in *document*, itself included, outermost first.
@@ -1177,21 +1271,13 @@ class TestBothChecksRunInCI:
         # configuration on its own, so a table here could deselect this file
         # while `run: pytest` still reads as the whole suite.
         #
-        # Read as text rather than parsed -- `tomllib` is 3.11 and this
-        # project's floor is 3.10. A table header spelt any other way leaves
-        # the split below with nothing to split on and raises here, which is
-        # the direction that fails safely.
-        configuration = (self.ROOT / "pyproject.toml").read_text()
-        table = configuration.split("[tool.pytest.ini_options]", 1)[1]
-        keys = set()
-        for line in table.splitlines():
-            text = line.strip()
-            if text.startswith("["):
-                break
-            if text and not text.startswith("#") and "=" in text:
-                keys.add(text.split("=", 1)[0].strip())
-        assert keys == self.PERMITTED_CONFIGURATION
-        assert 'testpaths = ["tests"]' in table
+        # Parsed rather than scanned (#118), the same way and for the same
+        # reason `ci.yml` is: the scan ended the table at the first line
+        # beginning `[`, and a value written as a multi-line string can hold
+        # such a line and hide every key after it. See `configuration`.
+        configuration = self.configuration
+        assert set(configuration) == self.PERMITTED_CONFIGURATION
+        assert configuration["testpaths"] == ["tests"]
         # And nothing that outranks that table, or reaches collection from a
         # `conftest.py` pytest imports on its own.
         for name in self.RIVAL_CONFIGURATIONS:
@@ -1437,6 +1523,253 @@ class TestTheWorkflowReaderReadsWhatGitHubReads:
         removed = reordered.replace("name: CI\n", "")
         for broken in (added, removed):
             assert sorted(self.reader(tmp_path, broken).workflow) != sorted(keys)
+
+
+class TestTheConfigurationReaderReadsWhatPytestReads:
+    """`configuration`'s own behaviour, against tables written for the occasion.
+
+    The counterpart to :class:`TestTheWorkflowReaderReadsWhatGitHubReads`, one
+    format over and for the same reason: the five assertions in
+    :class:`TestBothChecksRunInCI` read this repository's own `pyproject.toml`,
+    which writes its table one way, so nothing else in this file exercises what
+    the reader does with any other way of writing it.
+
+    Until #118 that table was scanned line by line, and the scan ended at the
+    first line beginning `[` — so a value written as a multi-line string could
+    hold such a line and hide every key after it, which is the first test
+    below. Then the four spellings of the table that
+    :class:`TestBothChecksRunInCI`'s docstring names, all four covered here
+    rather than three: a header spelt with spaces, a dotted key and an inline
+    table, which the scan met by *raising* and which
+    `test_the_table_is_that_table_however_it_is_written` holds down together;
+    and an `addopts` opened as a multi-line string, which the scan met by
+    *reading* — it is the one of the four that failed the whitelist rather
+    than the split — and which is
+    `test_a_value_written_across_lines_is_that_value`. Then the two directions
+    the reader must not go wrong in on its own: another tool's table is not
+    this one, and a table that is not there fails closed rather than reading
+    as empty.
+
+    **And the name of this class is a claim, so it is checked.** Its YAML
+    counterpart ran its spellings through GitHub's own published parser rather
+    than trusting that a parser is a parser, and
+    `test_the_reader_agrees_with_the_reader_pytest_uses` does the same one
+    format over: `_pytest.config.findpaths.load_config_dict_from_file` is the
+    function pytest locates this table with, and every spelling here is put to
+    both. That import is private and is meant to be — if pytest moves the
+    table or reads it differently, this class going red is the notice, which
+    is the whole reason to compare against the thing itself rather than
+    against a belief about it.
+    """
+
+    def reader(self, tmp_path, configuration):
+        """A :class:`TestBothChecksRunInCI` reading *configuration* as the
+        rootdir's `pyproject.toml`."""
+        # `encoding` pinned rather than left to the process locale: one of
+        # the tables below is deliberately not ASCII, and the locale this
+        # runs under is the very thing another test here forces.
+        (tmp_path / "pyproject.toml").write_text(configuration, encoding="utf-8")
+        reader = TestBothChecksRunInCI()
+        reader.ROOT = tmp_path
+        return reader
+
+    def test_a_key_behind_a_multi_line_string_is_read(self, tmp_path):
+        # #118's route, and the whole reason the scan is gone. `[benchmarks]`
+        # inside a multi-line string is a line beginning `[`, which the scan
+        # took for the next table header and stopped at, leaving the `addopts`
+        # below it unread while pytest honoured it -- checked against pytest
+        # itself, which loads this table and reports every test deselected.
+        reader = self.reader(
+            tmp_path,
+            "[tool.pytest.ini_options]\n"
+            'testpaths = ["tests"]\n'
+            'pythonpath = """\n'
+            "[benchmarks]\n"
+            '"""\n'
+            'addopts = "-k nothing"\n',
+        )
+        assert set(reader.configuration) == {"testpaths", "pythonpath", "addopts"}
+        assert reader.configuration["addopts"] == "-k nothing"
+
+    def test_the_table_is_that_table_however_it_is_written(self, tmp_path):
+        # Three spellings of one table: a header with spaces in it, a dotted
+        # key, and an inline table. TOML gives all three the same path and
+        # pytest reads each of them, so a reader that recognised only the
+        # fourth would be back to enumerating spellings.
+        spellings = (
+            '[ tool.pytest.ini_options ]\ntestpaths = ["tests"]\n'
+            'addopts = "-k nothing"\n',
+            "[tool.pytest]\n"
+            'ini_options.testpaths = ["tests"]\n'
+            'ini_options.addopts = "-k nothing"\n',
+            "[tool.pytest]\n"
+            'ini_options = { testpaths = ["tests"], addopts = "-k nothing" }\n',
+        )
+        for spelling in spellings:
+            reader = self.reader(tmp_path, spelling)
+            assert reader.configuration == {
+                "testpaths": ["tests"],
+                "addopts": "-k nothing",
+            }, spelling
+
+    def test_a_value_written_across_lines_is_that_value(self, tmp_path):
+        # The other half of the multi-line string: not only does it stop
+        # hiding what follows it, it is read as the value it is. The scan saw
+        # `addopts = """` and recorded the key -- which was the one spelling of
+        # the four it happened to meet by reading rather than by raising.
+        reader = self.reader(
+            tmp_path, '[tool.pytest.ini_options]\naddopts = """\n-k nothing\n"""\n'
+        )
+        assert reader.configuration == {"addopts": "-k nothing\n"}
+
+    def test_another_tools_table_is_not_this_one(self, tmp_path):
+        # The false positive the parse must not introduce: pytest reads
+        # `tool.pytest.ini_options` and nothing else, so an `addopts` under
+        # some other tool's table is that tool's business. A reader that
+        # searched the document for the key would fail this.
+        reader = self.reader(
+            tmp_path,
+            "[tool.pytest.ini_options]\n"
+            'testpaths = ["tests"]\n'
+            "[tool.other]\n"
+            'addopts = "-k nothing"\n',
+        )
+        assert reader.configuration == {"testpaths": ["tests"]}
+
+    def test_a_table_that_is_not_there_fails_closed(self, tmp_path):
+        # Every way the reader can decline to answer, and each of them is this
+        # check going red rather than passing. Named exhaustively rather than
+        # sampled, because the docstring above claims the set: nothing at that
+        # path, something that is not a table at it -- a string, which is
+        # subscripted with a string, and an array of tables, which arrives as
+        # a list of dicts and is unhashable where the caller takes `set(...)`
+        # -- and a file TOML refuses outright. The split this replaced failed
+        # in the same direction, which is the one property of it worth
+        # keeping.
+        with pytest.raises(KeyError):
+            self.reader(tmp_path, '[project]\nname = "patchworks"\n').configuration
+        with pytest.raises(TypeError):
+            self.reader(tmp_path, '[tool]\npytest = "x"\n').configuration
+        # Split rather than wrapped together, so the mechanism the docstring
+        # names is the one pinned: the property *answers* with a list of
+        # dicts, and it is the caller's `set(...)` that refuses it. Wrapped,
+        # this would pass just as well if the property had raised.
+        table = self.reader(
+            tmp_path, '[[tool.pytest.ini_options]]\naddopts = "-k nothing"\n'
+        ).configuration
+        assert isinstance(table, list)
+        with pytest.raises(TypeError):
+            set(table)
+        with pytest.raises(tomllib.TOMLDecodeError):
+            self.reader(tmp_path, "[tool.pytest.ini_options\n").configuration
+
+    def test_the_reader_agrees_with_the_reader_pytest_uses(self, tmp_path):
+        # What makes the name of this class a claim rather than a wish. Every
+        # spelling above, put to `configuration` and to the function pytest
+        # locates this table with, and the two asked to agree on which keys
+        # the rootdir table holds. A private import on purpose: if pytest
+        # moves the table or reads it another way, this is what goes red.
+        from _pytest.config.findpaths import load_config_dict_from_file
+
+        spellings = (
+            '[tool.pytest.ini_options]\ntestpaths = ["tests"]\n'
+            'pythonpath = """\n[benchmarks]\n"""\naddopts = "-k nothing"\n',
+            '[ tool.pytest.ini_options ]\naddopts = "-k nothing"\n',
+            '[tool.pytest]\nini_options.addopts = "-k nothing"\n',
+            '[tool.pytest]\nini_options = { addopts = "-k nothing" }\n',
+            '[tool.pytest.ini_options]\naddopts = """\n-k nothing\n"""\n',
+            '[tool."pytest".ini_options]\naddopts = "-k nothing"\n',
+            '[tool.pytest.ini_options]\ntestpaths = ["tests"]\n'
+            '[tool.other]\naddopts = "-k nothing"\n',
+        )
+        for spelling in spellings:
+            reader = self.reader(tmp_path, spelling)
+            theirs = load_config_dict_from_file(reader.ROOT / "pyproject.toml")
+            # pytest 9 hands each value back wrapped in a `ConfigValue`
+            # carrying where it came from; unwrapped, both sides are the table
+            # itself. The keys are what the whitelist reads, so they are
+            # compared as a set as well as through the values.
+            assert set(reader.configuration) == set(theirs), spelling
+            assert reader.configuration == {
+                key: getattr(value, "value", value) for key, value in theirs.items()
+            }, spelling
+
+    def test_pytests_native_table_is_not_read_here_and_cannot_hide(self, tmp_path):
+        # pytest 9 reads a second table -- `[tool.pytest]` with native TOML
+        # types -- and this reader does not, so the scope of what it agrees
+        # with pytest about is pinned here rather than left to the class name.
+        # Three arrangements, met three different ways: on its own, the lookup
+        # here raises; beside a `[tool.pytest.ini_options]` carrying keys,
+        # pytest refuses the file, so the table this reads cannot be left in
+        # place next to it; beside an empty header, pytest refuses nothing --
+        # it conflicts the two only when both hold something -- and what
+        # catches that one is the whitelist, because the table this reads is
+        # there and is empty.
+        #
+        # Written in two halves. This reader's behaviour holds under any
+        # pytest and is asserted first; pytest's own is asserted after a probe
+        # that skips where the native table is not read at all, since there is
+        # no divergence to pin then. The `dev` extra names no pytest floor,
+        # and a red here is supposed to mean the run was narrowed.
+        native = '[tool.pytest]\naddopts = ["-k", "nothing"]\n'
+        beside_keys = native + '[tool.pytest.ini_options]\ntestpaths = ["tests"]\n'
+        beside_header = native + "[tool.pytest.ini_options]\n"
+
+        with pytest.raises(KeyError):
+            self.reader(tmp_path, native).configuration
+        empty = self.reader(tmp_path, beside_header)
+        assert empty.configuration == {}
+        assert set(empty.configuration) != TestBothChecksRunInCI.PERMITTED_CONFIGURATION
+
+        # And pytest's half. Each file is written again rather than reused:
+        # `reader` writes them all to the one `pyproject.toml`.
+        # Imported here rather than at the top of the body: a pytest that
+        # moved or renamed this helper should take pytest's half down and
+        # not the half above, which needs nothing of pytest's internals.
+        from _pytest.config.findpaths import load_config_dict_from_file
+
+        path = self.reader(tmp_path, native).ROOT / "pyproject.toml"
+        read_by_pytest = load_config_dict_from_file(path)
+        if not read_by_pytest:
+            pytest.skip("this pytest does not read the native [tool.pytest] table")
+        assert "addopts" in read_by_pytest
+        both = self.reader(tmp_path, beside_keys)
+        with pytest.raises(pytest.UsageError, match="Cannot use both"):
+            load_config_dict_from_file(both.ROOT / "pyproject.toml")
+        assert load_config_dict_from_file(
+            self.reader(tmp_path, beside_header).ROOT / "pyproject.toml"
+        )
+
+    def test_the_table_is_read_as_utf_8_whatever_the_locale_is(self, tmp_path):
+        # `configuration` opens the file in binary and lets `tomllib` decode
+        # it, which is the whole of what that costs and buys: TOML is UTF-8 by
+        # specification, and `read_text` would decode it in whatever the
+        # process locale happens to be. Forced away from UTF-8 here, because a
+        # difference that only shows on someone else's machine is one this
+        # file would otherwise leave uncovered -- and the premise is checked
+        # rather than assumed, since an interpreter in UTF-8 mode cannot be
+        # forced and there would then be nothing to test.
+        reader = self.reader(
+            tmp_path,
+            '[tool.pytest.ini_options]\ntestpaths = ["tests"]\n# a café comment\n',
+        )
+        path = reader.ROOT / "pyproject.toml"
+        previous = locale.setlocale(locale.LC_CTYPE)
+        try:
+            for name in ("C", "POSIX"):
+                try:
+                    locale.setlocale(locale.LC_CTYPE, name)
+                except locale.Error:
+                    continue
+                try:
+                    path.read_text()
+                except UnicodeDecodeError:
+                    break
+            else:
+                pytest.skip("no locale here decodes this file as anything but UTF-8")
+            assert reader.configuration == {"testpaths": ["tests"]}
+        finally:
+            locale.setlocale(locale.LC_CTYPE, previous)
 
 
 class TestEveryModuleAttributeBindingIsRead:
