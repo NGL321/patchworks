@@ -55,12 +55,15 @@ from patchworks.surface.dome_panel import (
 from patchworks.surface.gestures import (
     IMPULSE_PER_METRE,
     MINIMUM_DRAG,
+    OUT_OF_PLANE_TOLERANCE,
+    TOP_DOWN_ELEVATION,
     Drag,
     Gestures,
     Pointer,
     Referent,
     ReferentKind,
     drive,
+    hold_top_down,
 )
 from patchworks.surface.onset import Hands, OnsetCounter
 from patchworks.surface.private_component import (
@@ -87,8 +90,10 @@ __all__ = [
     "DEFAULT_PITCH",
     "IMPULSE_PER_METRE",
     "MINIMUM_DRAG",
+    "OUT_OF_PLANE_TOLERANCE",
     "PANEL_HEIGHT",
     "PANEL_WIDTH",
+    "TOP_DOWN_ELEVATION",
     "BandLayout",
     "DomePanel",
     "Drag",
@@ -109,6 +114,7 @@ __all__ = [
     "Trace",
     "colormap",
     "drive",
+    "hold_top_down",
     "hop_distance",
     "measured_persistence",
 ]
