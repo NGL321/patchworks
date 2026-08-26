@@ -651,11 +651,11 @@ class TestBothChecksRunInCI:
     and YAML's own style use, which is the spelling that is closed.
     **The environment**, four: `PYTEST_ADDOPTS` in the step's `env:`, in a
     job-level `env:` written *after* `steps:`, in a workflow-level `env:`
-    above `jobs:`, and in a job-level flow mapping,
-    `env: {PYTEST_ADDOPTS: …}` — those last three
-    reach the step as surely as the step's own block, and none of them is the
-    first `env:` in the file, the last not even spelled `env:`. **The
-    trigger**, two: a `branches:` filter under `push:`, and `push:` removed.
+    above `jobs:`, and in a job-level flow mapping, `env: {PYTEST_ADDOPTS: …}`
+    — those last three reach the step as surely as the step's own block, and
+    none of them is the first `env:` in the file, the last not even spelled
+    `env:`. **The trigger**, two: a `branches:` filter under `push:`, and
+    `push:` removed.
     **A quoted key**, four — the same key written so that no text match sees
     it: the job's `env:` in double quotes and in single, the step's
     `continue-on-error:`, and its `if:`. **The rootdir configuration**, three:
