@@ -867,12 +867,15 @@ class TestBothChecksRunInCI:
         handler and so cannot carry a hook; it is refused anyway, because the
         caller's rule is about the prefix rather than about reachability.
 
-        **What the list is of** is every form that binds a *module attribute*,
-        which is what pytest reads a hook off — not every name-binding form in
-        the language. A parameter (`ast.arg`) binds a name too and is left out
-        on purpose: it is local to its own call and can never be an attribute
-        of the module, so reading it would refuse a helper that happened to
-        take a `pytest_`-prefixed argument and find nothing in exchange.
+        **One form is left out on purpose**: a parameter, `ast.arg`. Not on the
+        principle that it is local — local bindings *are* read, and the caller
+        refuses a `pytest_tmp` inside a helper body, which the comment there
+        owns as a cost. It is the trade that differs. A local assignment could
+        in principle be the line that binds a hook; a parameter never reaches
+        the module's attributes at all, so reading it would refuse a helper
+        that happened to take a `pytest_`-prefixed argument and catch nothing
+        in exchange. That is a cost with no matching benefit, which is the one
+        kind this whitelist does decline.
         """
         names = set()
         for node in ast.walk(ast.parse(source)):
@@ -888,6 +891,53 @@ class TestBothChecksRunInCI:
             elif isinstance(node, ast.MatchMapping) and node.rest:
                 names.add(node.rest)
         return names
+
+    def conftests_under(self, root):
+        """Every `conftest.py` pytest would import, given the pinned paths.
+
+        The rootdir's own, and the whole `tests` tree: a
+        `pytest_collection_modifyitems` is a session hook wherever it sits, and
+        one in a sub-directory is handed the whole item list just the same. So
+        the walk is recursive rather than the two obvious paths.
+
+        It stops at that tree deliberately rather than sweeping the repository.
+        A checkout holding worktrees would otherwise read other checkouts --
+        their conftests are not this run's, and refusing them would make this
+        assertion fail for a reason that has nothing to do with CI. The
+        `testpaths = ["tests"]` pinned just above is what makes that safe:
+        collection never leaves the rootdir and that tree.
+
+        Only files that exist are returned, so the caller does not re-check.
+        """
+        found = [root / "conftest.py", *sorted((root / "tests").rglob("conftest.py"))]
+        return [conftest for conftest in found if conftest.exists()]
+
+    def refuse_narrowing(self, source, where="conftest.py"):
+        """Fail unless *source* is a `conftest.py` that narrows nothing.
+
+        A fixtures-only `conftest.py` is fine and this should not be the thing
+        standing in its way; what narrows collection is the `collect_ignore`
+        pair and pytest's hooks. So the file may bind what it likes except a
+        name pytest itself reads: every `pytest_` hook rather than the two that
+        narrow collection today, because `pytest_ignore_collect` and
+        `pytest_collection_modifyitems` are a list that the next release can
+        add to, and `pytest_plugins` loads a file that can carry any of them.
+
+        Fixtures are decorated rather than named, so the shape this permits is
+        untouched -- but the prefix is refused at every depth and in every
+        binding form, which refuses benign names too: `import pytest_asyncio`,
+        or a local `pytest_tmp` inside a helper. That is the whitelist's usual
+        cost rather than an oversight. What it cannot reach is a hook bound
+        past the syntax -- `globals()[...] = hook` -- which is evasion, and
+        this class is built against the quiet edit.
+        """
+        assert "collect_ignore" not in source, f"collect_ignore in {where}"
+        names = self.names_bound_by(source)
+        # `from _hooks import *` binds the hook while naming nothing, and a
+        # conftest has no benign use for the spelling.
+        assert "*" not in names, f"{where} imports *"
+        for name in names:
+            assert not name.startswith("pytest_"), f"{name} in {where}"
 
     def test_the_workflow_runs_on_every_push(self):
         # `push` a direct child of `on:`, and nothing nested under it: a
@@ -949,43 +999,9 @@ class TestBothChecksRunInCI:
         # `conftest.py` pytest imports on its own.
         for name in self.RIVAL_CONFIGURATIONS:
             assert not (self.ROOT / name).exists()
-        # Every `conftest.py` pytest imports, which the `testpaths` pinned
-        # above hold to the rootdir and the `tests` tree: a
-        # `pytest_collection_modifyitems` is a session hook wherever it sits,
-        # and one in a sub-directory is handed the whole item list. The walk
-        # stops at that tree deliberately rather than sweeping the repository,
-        # which on a checkout holding worktrees would read other checkouts.
-        conftests = [
-            self.ROOT / "conftest.py",
-            *sorted((self.ROOT / "tests").rglob("conftest.py")),
-        ]
-        for conftest in conftests:
-            if conftest.exists():
-                # A fixtures-only `conftest.py` is fine and this should not be
-                # the thing standing in its way; what narrows collection is the
-                # `collect_ignore` pair and pytest's hooks. So the file may
-                # bind what it likes except a name pytest itself reads: every
-                # `pytest_` hook rather than the two that narrow collection
-                # today, because `pytest_ignore_collect` and
-                # `pytest_collection_modifyitems` are a list that the next
-                # release can add to, and `pytest_plugins` loads a file that
-                # can carry any of them. Fixtures are decorated rather than
-                # named, so the shape this permits is untouched -- but the
-                # prefix is refused at every depth and in every binding form,
-                # which refuses benign names too: `import pytest_asyncio`, or a
-                # local `pytest_tmp` inside a helper. That is the whitelist's
-                # usual cost rather than an oversight. What it cannot reach is
-                # a hook bound past the syntax -- `globals()[...] = hook` --
-                # which is evasion, and this class is built against the quiet
-                # edit.
-                text = conftest.read_text()
-                assert "collect_ignore" not in text
-                names = self.names_bound_by(text)
-                # `from _hooks import *` binds the hook while naming nothing,
-                # and a conftest has no benign use for the spelling.
-                assert "*" not in names, f"{conftest} imports *"
-                for name in names:
-                    assert not name.startswith("pytest_"), name
+        # And every `conftest.py` pytest would import.
+        for conftest in self.conftests_under(self.ROOT):
+            self.refuse_narrowing(conftest.read_text(), conftest)
 
 
 class TestTheWorkflowReaderRefusesWhatItNames:
@@ -1054,6 +1070,27 @@ class TestTheWorkflowReaderRefusesWhatItNames:
         with pytest.raises(AssertionError, match="braces under"):
             reader.block("jobs")
 
+    def test_every_block_of_a_name_is_returned_not_the_first(self, tmp_path):
+        # `nested_under`'s whole point, and the real workflow cannot exercise
+        # it: `ci.yml` has one `env:`. A job-level `env:` written *after*
+        # `steps:` is route three of "the environment, four", and a first-match
+        # walk stops before reaching it while every other test stays green.
+        reader = self.reader(
+            tmp_path,
+            "jobs:\n"
+            "  test:\n"
+            "    env:\n"
+            "      MUJOCO_GL: osmesa\n"
+            "    steps:\n"
+            "      - run: pytest\n"
+            "    env:\n"
+            "      PYTEST_ADDOPTS: -k nothing\n",
+        )
+        assert reader.nested_under(reader.block("jobs"), "env:") == [
+            ["MUJOCO_GL: osmesa"],
+            ["PYTEST_ADDOPTS: -k nothing"],
+        ]
+
     def test_the_top_level_keys_are_pinned_without_their_order(self, tmp_path):
         # Reordering a mapping changes nothing about what runs, so it is not a
         # finding -- but a key added, removed, or repeated still is.
@@ -1076,8 +1113,10 @@ class TestEveryModuleAttributeBindingIsRead:
     test that can check it is.
 
     A module attribute rather than every name the grammar binds: a parameter
-    is a binding and is deliberately not read, because it is local to its call
-    and pytest can never reach a hook through it.
+    is a binding and is deliberately not read. Not because it is local —
+    local names are read, and refusing them is a documented cost — but because
+    a parameter can never become an attribute of the module, so reading it
+    would buy nothing for the benign helpers it would refuse.
 
     The form that carries a hook is the `match` capture pattern:
     `case pytest_ignore_collect:` binds that name at module scope and pytest
@@ -1144,3 +1183,84 @@ class TestEveryModuleAttributeBindingIsRead:
         # would refuse a benign helper for the name of its argument.
         source = "def helper(pytest_arg):\n    return pytest_arg\n"
         assert "pytest_arg" not in self.bound(source)
+
+    def test_a_local_binding_is_read_even_though_it_is_local(self):
+        # The other half of that trade, and the reason "local" is not the
+        # rule: a name bound inside a body is read and the caller refuses it.
+        source = "def helper():\n    pytest_tmp = 1\n    return pytest_tmp\n"
+        assert "pytest_tmp" in self.bound(source)
+
+    def test_a_star_import_is_recorded_as_a_star(self):
+        # It binds whatever the imported module holds, which cannot be read
+        # off the file, so it is handed to the caller to refuse by name.
+        assert "*" in self.bound("from _hooks import *\n")
+
+
+class TestTheConftestReaderRefusesWhatNarrows:
+    """`conftests_under` and `refuse_narrowing`, against a synthetic tree.
+
+    Neither runs against anything in this branch — there is no `conftest.py`
+    in it — so without these the recursive walk and the star-import refusal
+    are code the suite never executes, and reverting either stays green. The
+    docstring of :class:`TestBothChecksRunInCI` counts a sub-directory hook
+    and a star import among the routes it holds down, and this is where that
+    is checked rather than asserted.
+
+    `tests/conftest.py` exists on `action` as of #110, so the permitted case
+    below is the shape of a real file rather than an imagined one.
+    """
+
+    def guard(self):
+        return TestBothChecksRunInCI()
+
+    def test_the_walk_reaches_a_sub_directory_of_tests(self, tmp_path):
+        # The rootdir's own file, and the whole `tests` tree rather than its
+        # top level: a `pytest_collection_modifyitems` in a sub-directory is
+        # handed the whole item list just the same.
+        (tmp_path / "conftest.py").write_text("")
+        (tmp_path / "tests" / "sub").mkdir(parents=True)
+        (tmp_path / "tests" / "conftest.py").write_text("")
+        (tmp_path / "tests" / "sub" / "conftest.py").write_text("")
+        found = self.guard().conftests_under(tmp_path)
+        assert found == [
+            tmp_path / "conftest.py",
+            tmp_path / "tests" / "conftest.py",
+            tmp_path / "tests" / "sub" / "conftest.py",
+        ]
+
+    def test_the_walk_stops_at_that_tree(self, tmp_path):
+        # A checkout holding worktrees would otherwise read other checkouts,
+        # whose conftests are not this run's.
+        (tmp_path / ".claude" / "worktrees" / "other").mkdir(parents=True)
+        (tmp_path / ".claude" / "worktrees" / "other" / "conftest.py").write_text(
+            "def pytest_ignore_collect(collection_path, config):\n    return True\n"
+        )
+        (tmp_path / "tests").mkdir()
+        assert self.guard().conftests_under(tmp_path) == []
+
+    def test_a_fixtures_only_conftest_is_permitted(self):
+        # The one shape of the file that narrows nothing, and the reason the
+        # check is not simply "no conftest.py".
+        self.guard().refuse_narrowing(
+            "import pytest\n"
+            "from patchworks.graph import DomeSpec\n"
+            "SMALL = DomeSpec(patch_grid=4)\n"
+            "@pytest.fixture\n"
+            "def dome():\n"
+            "    return SMALL\n"
+        )
+
+    def test_every_shape_that_narrows_is_refused(self):
+        narrowing = [
+            'collect_ignore = ["test_tick.py"]',
+            'collect_ignore_glob = ["test_t*.py"]',
+            "def pytest_ignore_collect(collection_path, config): return True",
+            "def pytest_collection_modifyitems(config, items): items[:] = []",
+            "from _hooks import pytest_collection_modifyitems",
+            "from _hooks import *",
+            "match hook:\n    case pytest_ignore_collect:\n        pass",
+            'pytest_plugins = ["_hooks"]',
+        ]
+        for source in narrowing:
+            with pytest.raises(AssertionError):
+                self.guard().refuse_narrowing(source)
