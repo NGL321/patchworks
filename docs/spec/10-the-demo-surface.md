@@ -37,21 +37,23 @@ python   -m patchworks.surface.watch --replay run.npz
 `--pitch` sizes a lattice slot, `--scale` sizes the window, `--edges` and `--raw` are the two toggles
 this file already describes, and `--fps` paces a replay. `mjpython` is MuJoCo's requirement for the
 passive viewer on macOS and applies to the live half only; a replay opens no scene window and runs
-under plain `python`. Built in #122; it was the visual half of #119, which becomes the dispatcher this
-hangs off.
+under plain `python`. Built in #122, **ahead of** #119 rather than on top of it: the dispatcher that
+was to own the command does not exist yet, so this ships its own `argparse` entry point with the
+parsing and the doing in separate functions. When #119 lands, `patchworks watch` becomes its
+subcommand by calling `patchworks.surface.watch`'s `live` and `replay` directly.
 
 **The two windows are two processes, and on macOS they must be.** Under `mjpython` no Python thread is
 the Cocoa main thread — the launcher's own docstring says it runs the interpreter on a separate thread
 to leave the main one free for Cocoa — and Cocoa refuses to make a window off that thread, aborting
 the process out of GLFW rather than raising. Off `mjpython`, `glfw.init()` on a second thread does not
 return. So the panel is drawn by a child process that is its own Cocoa main thread, fed one uint8
-frame at a time down a pipe. All four facts were measured on the reference laptop in #122, and
+frame at a time down a pipe. Each of those was measured on the reference laptop in #122, and
 `src/patchworks/surface/window.py` is where they are written down.
 
 That split buys the rest of this section for free: the panel holds no agent, the pipe carries pixels
-one way, and a child that goes away is a closed window and nothing else. It also gives the *run never
-waits on the display* — each end holds a mailbox of one frame and drops rather than queues, so a
-window being dragged, which blocks that process's event loop on macOS for as long as the mouse is
+one way, and a child that goes away is a closed window and nothing else. On top of it, **each end
+holds a mailbox of one frame and drops rather than queues**, so the run never waits on the display —
+a window being dragged, which blocks that process's event loop on macOS for as long as the mouse is
 down, costs frames and not ticks.
 
 ## The dome panel
