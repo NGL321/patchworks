@@ -602,8 +602,8 @@ class TestBothChecksRunInCI:
     `pytest_ignore_collect`, or a `pytest_collection_modifyitems` — that last
     one in a sub-directory of `tests`, where it is handed the whole item list
     just the same, and either hook reached by `import` rather than by `def`.
-    All twenty-nine fail here, and a fixtures-only `conftest.py` — the one shape of
-    that file which narrows nothing — still passes. So does a harmless `-q`
+    All twenty-nine fail here, and a fixtures-only `conftest.py` — the one
+    shape of that file which narrows nothing — still passes. So does a harmless `-q`
     *not*: the cost of the design is that a benign edit to the invocation has
     to come with an edit to this class, which is the whitelist working rather
     than a false positive.
@@ -771,8 +771,8 @@ class TestBothChecksRunInCI:
         # `conftest.py` pytest imports on its own.
         for name in self.RIVAL_CONFIGURATIONS:
             assert not (self.ROOT / name).exists()
-        # Every `conftest.py` pytest imports, which the line above has just
-        # pinned down to the rootdir and the `tests` tree: a
+        # Every `conftest.py` pytest imports, which the `testpaths` pinned
+        # above hold to the rootdir and the `tests` tree: a
         # `pytest_collection_modifyitems` is a session hook wherever it sits,
         # and one in a sub-directory is handed the whole item list. The walk
         # stops at that tree deliberately rather than sweeping the repository,
