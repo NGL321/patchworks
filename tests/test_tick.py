@@ -827,13 +827,14 @@ class TestTheGammaASheafIsBuiltWith:
             Sheaf(dome, gamma=RefusesToBeQuoted())
 
     def test_a_proxy_that_raises_on_every_access_leaves_as_what_it_raised(self, dome):
-        # The other half of the same shape, and the boundary of what the rule
-        # claims. #107 promised that nothing but a `ValueError` escapes; #112
-        # withdrew that rather than restructure the function around an arrival
-        # no caller produces. The guard is `hasattr`, which swallows only
-        # `AttributeError`, and it cannot be widened for free -- it is also
-        # what refuses `memoryview(b"0.5")`, whose `float()` is `0.5`. So this
-        # is the refusal path's actual reach, pinned rather than promised away.
+        # The other half of the same shape. #107 promised that nothing but a
+        # `ValueError` escapes; #112 withdrew that rather than restructure the
+        # function around arrivals no caller produces. The guard is `hasattr`,
+        # which swallows only `AttributeError`, and it cannot be widened for
+        # free -- it is also what refuses `memoryview(b"0.5")`, whose `float()`
+        # is `0.5`. This is one arrival of that family -- a proxy that raises
+        # at the lookup; one that raises inside `__float__` escapes the same
+        # way -- pinned rather than promised away.
 
         class RaisesOnEveryAccess:
             def __getattr__(self, name):

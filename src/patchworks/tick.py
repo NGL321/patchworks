@@ -92,8 +92,8 @@ def _would_be_misread(gamma: object) -> bool:
     except Exception:
         # Whatever a stand-in for a value does when asked for one, it is not
         # this function's to diagnose: fall through, and the rule refuses it in
-        # its own words — unless every attribute access raises, in which case it
-        # leaves as what it raised rather than as a refusal (`_checked_gamma`).
+        # its own words — unless it raises on the way to being a number there
+        # too, in which case it leaves as what it raised (`_checked_gamma`).
         return False
     # `float` is not a `complex` subclass — that relation holds in the
     # `numbers` tower, not between the built-in types — so this refuses the
@@ -154,15 +154,16 @@ def _checked_gamma(gamma: object) -> float:
     **That is a claim about its refusals, not about everything that can leave.**
     #107 wrote the stronger one — nothing but a `ValueError` escapes — and #112
     withdrew it rather than restructure the function around shapes no caller
-    produces. Two things still leave as themselves. A config proxy standing in
-    for an absent key by *raising* on attribute access escapes as whatever it
-    raised, because the guard below asks `hasattr` and `hasattr` swallows only
-    `AttributeError` — and widening that guard costs more than it buys, since
-    `float(memoryview(b"0.5"))` is `0.5` and the guard is what keeps a buffer
-    from passing as a `γ`. Separately, under `-W error::DeprecationWarning`,
-    which nothing in this repo sets, a 1-element array leaks one out of
-    `float()`. What stands is the smaller, true claim: **reach a refusal and it
-    is a `ValueError`.**
+    produces. A stand-in for a number that raises on its way to being one
+    leaves as what it raised: the guard below asks `hasattr`, which swallows
+    only `AttributeError`, and the coercion catches only the four classes it
+    names, so a proxy for an absent config key comes back out as its own
+    `KeyError` whether it raises at the lookup or at the `__float__` call.
+    Widening the guard costs more than it buys — it is also what keeps a buffer
+    out, since `float(memoryview(b"0.5"))` is `0.5`. Separately, under
+    `-W error::DeprecationWarning`, which nothing in this repo sets, a
+    1-element array leaks one out of `float()`. What stands is the smaller,
+    true claim: **reach a refusal and it is a `ValueError`.**
     """
     rule = (
         "gamma is a single global scalar in (0, 1] "
