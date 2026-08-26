@@ -557,6 +557,55 @@ class Window:
 
 
 @pytest.fixture
+def clock(monkeypatch):
+    """The loop's clock, supplied rather than read (#113).
+
+    `realtime=True` is the only thing in this file that reads a wall clock, and
+    what it computes off one is exact arithmetic: sleep out `period` minus
+    however long the iteration took. Timed against a real clock that exact
+    statement becomes a race with whatever else the machine is doing -- and
+    this laptop runs three build agents at once, so the loop routinely overruns
+    its period, never sleeps, and the assertion fails for a reason that is not
+    about the code. Held against a supplied clock the statement is exact, the
+    race is gone, and the overrun becomes a case with an assertion of its own.
+
+    Time moves here only where a test says it does: by the work a scripted
+    iteration declares, and by whatever the loop itself sleeps.
+
+    Substituted for the `time` module `drive` looked up, rather than for
+    `time.sleep` on the stdlib module itself. The two are the same object, so
+    patching the attribute would hold the whole process still for the length of
+    the test, and any other sleep in it -- a library's retry, a thread -- would
+    land in :attr:`slept` and fail an exact assertion for a reason that is not
+    about the code. Which is the shape of failure this fixture exists to remove.
+    """
+
+    class Clock:
+        def __init__(self):
+            self.now = 0.0
+            self.slept: list[float] = []
+
+        def time(self) -> float:
+            return self.now
+
+        def sleep(self, seconds: float) -> None:
+            self.slept.append(seconds)
+            self.now += seconds
+
+        def costing(self, seconds: float):
+            """What one iteration costs, as a step for the window's script."""
+
+            def spend(_handle):
+                self.now += seconds
+
+            return spend
+
+    held = Clock()
+    monkeypatch.setattr("patchworks.surface.gestures.time", held)
+    return held
+
+
+@pytest.fixture
 def window(monkeypatch):
     import mujoco.viewer
 
@@ -691,32 +740,68 @@ class TestTheSceneWindowIsMujocosPassiveViewer:
             records = list(drive(recorder, ticks=6, realtime=False, gestures=gestures))
         assert len(records) == 5
 
-    def test_realtime_paces_the_loop_to_the_worlds_own_tick(
-        self, recorder, window, env, monkeypatch
+    def test_realtime_sleeps_out_the_rest_of_the_worlds_own_tick(
+        self, recorder, window, env, clock
     ):
         """The default, and the one the demo runs -- every other test here
         turns it off, so nothing otherwise executes the sleep at all.
 
-        The period is the world's two numbers rather than the advertised frame
-        rate, so a `frame_skip` change carries into it.
+        An iteration that cost nothing owes the whole period, and the period is
+        the world's own two numbers.
         """
-        slept = []
-        monkeypatch.setattr(
-            "patchworks.surface.gestures.time.sleep", lambda s: slept.append(s)
-        )
         list(drive(recorder, ticks=4, realtime=True))
         period = env.model.opt.timestep * env.frame_skip
-        assert slept, "realtime=True never slept"
-        assert all(0 < s <= period for s in slept), slept
-        assert max(slept) == pytest.approx(period, rel=0.5)
+        assert clock.slept == [pytest.approx(period)] * 4
 
-    def test_no_realtime_never_sleeps(self, recorder, window, monkeypatch):
-        slept = []
-        monkeypatch.setattr(
-            "patchworks.surface.gestures.time.sleep", lambda s: slept.append(s)
-        )
+    def test_an_iteration_that_took_time_sleeps_out_only_the_remainder(
+        self, recorder, window, env, clock
+    ):
+        """Pacing, rather than a fixed delay bolted onto the end of a tick.
+
+        A quarter of the period spent inside the loop leaves three quarters to
+        sleep, which is the whole of what `realtime` means: the demo runs at
+        the world's speed however long the graph took to think.
+        """
+        period = env.model.opt.timestep * env.frame_skip
+        window.script = {sync: clock.costing(0.25 * period) for sync in range(1, 6)}
+        list(drive(recorder, ticks=4, realtime=True))
+        assert clock.slept == [pytest.approx(0.75 * period)] * 4
+
+    def test_an_iteration_that_overran_its_period_does_not_sleep_backwards(
+        self, recorder, window, env, clock
+    ):
+        """The case a busy machine is always in, asserted rather than suffered.
+
+        This is what used to make the pacing test flake (#113): three build
+        agents on one laptop push a tick past its period, the loop rightly
+        declines to sleep, and a test that demanded a sleep failed for a reason
+        that was never about the code. Overrunning is *correct* behaviour --
+        there is no time left to give back -- so it is a case with an
+        assertion of its own, and the run carries on unpaced.
+        """
+        period = env.model.opt.timestep * env.frame_skip
+        window.script = {sync: clock.costing(2.0 * period) for sync in range(1, 6)}
+        records = list(drive(recorder, ticks=4, realtime=True))
+        assert clock.slept == []
+        assert records, "the run stopped rather than falling behind"
+
+    def test_the_pace_is_the_worlds_two_numbers_not_the_control_rate(
+        self, recorder, window, env, clock, monkeypatch
+    ):
+        """`frame_skip` is a knob, and a pace taken from the nominal control
+        rate would run the demo at the wrong speed the moment anyone turned it.
+
+        Halving it halves the period, and nothing else here changes.
+        """
+        monkeypatch.setattr(env, "frame_skip", env.frame_skip // 2)
+        list(drive(recorder, ticks=2, realtime=True))
+        assert clock.slept == [
+            pytest.approx(env.model.opt.timestep * env.frame_skip)
+        ] * 2
+
+    def test_no_realtime_never_sleeps(self, recorder, window, clock):
         list(drive(recorder, ticks=4, realtime=False))
-        assert slept == []
+        assert clock.slept == []
 
     def test_closing_the_window_ends_the_run(self, recorder, window):
         def shut(handle):

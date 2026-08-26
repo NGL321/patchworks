@@ -662,26 +662,53 @@ class TestOneRenderer:
 class TestTheLiveBudget:
     """A 10 Hz capture decimated off a state log does not threaten the run.
 
-    What is measured is the capture's **own** cost against the cost of the tick
+    What is measured is the surface's **own** cost against the cost of the tick
     it is watching, both taken in the same loop on the same run. That is the
     quantity `10-the-demo-surface.md`'s budget argument is about -- *it keeps
     the live budget near zero* -- and it is the only form of this measurement
     that survives the machine it runs on: a watched run timed against an
     unwatched one measures the arm wandering into contact and whatever else the
     laptop is doing at least as much as it measures the recorder.
+    `09-the-build-stack.md` makes the same point about the tick, that the ratio
+    rather than the absolute figure is the thing to read.
 
-    The statistic is the **median**, for the same reason: a laptop running the
-    rest of a build alongside this stalls a tick now and then, and a total lets
-    one such stall decide the answer.
+    **Two medians, not one, and never a total** (#113). :meth:`Recorder.observe`
+    does two jobs at two very different costs: it reads `‖Δ private‖` on every
+    tick, because a difference between consecutive ticks has to, and it builds a
+    record on one tick in :data:`CAPTURE_EVERY`. A single median over all of
+    them is a median of the four-in-five cheap ones, so **the capture proper
+    never enters the statistic at all** -- which is what the assertion here used
+    to be: a capture that started rendering per record would not have moved it
+    by a microsecond. The two jobs are therefore timed apart and put back
+    together as the per-tick cost the run actually pays,
+    `(kept + (every - 1) * plain) / every`.
 
-    What the assertion catches is a capture that has started doing real work
-    per tick -- a render, a copy of the graph, a write to disk. Each of those
-    is an order of magnitude, not the few per cent the reading actually shows.
+    Medians rather than sums, for the load: a laptop running the rest of a build
+    alongside this stalls a tick now and then, and a total lets one such stall
+    decide the answer. Amortising from medians keeps a total's arithmetic
+    without inheriting its worst case. The quotient is what survives a busy
+    machine in the other direction too: under three agents' load the tick
+    stretches by an order and the surface's own work barely moves, so the
+    reading falls rather than rises.
+
+    What the assertion catches is a surface that has started doing real work --
+    a render, a copy of the graph, a write to disk -- on **either** of its two
+    paths. Each of those is an order of magnitude against the ~2% the reading
+    actually shows, so the budget is deliberately loose: a smoke check against a
+    regression of *order*, not a benchmark.
     """
 
-    TICKS = 60
+    #: Long enough that the one-in-`CAPTURE_EVERY` kept ticks are a sample
+    #: rather than a handful, short enough to stay a fraction of a second.
+    TICKS = 80
 
-    def test_the_capture_is_a_small_fraction_of_the_tick_it_watches(
+    #: The surface may cost a tenth of the tick it watches. Honest headroom
+    #: over a reading of ~2%: what is being excluded is an order of magnitude,
+    #: and a bound drawn tight around the reading would be a reading of the
+    #: machine.
+    BUDGET = 0.1
+
+    def test_the_surface_costs_a_small_fraction_of_the_tick_it_watches(
         self, dome, capsys
     ):
         import statistics
@@ -694,24 +721,33 @@ class TestTheLiveBudget:
             for _ in range(5):  # warm the renderer and the graph up
                 agent.tick()
                 recorder.observe()
-            ticking, capturing = [], []
+            warmed = len(recorder.trace)
+            ticking, kept, plain = [], [], []
             for _ in range(self.TICKS):
                 start = time.perf_counter()
                 agent.tick()
                 middle = time.perf_counter()
-                recorder.observe()
+                record = recorder.observe()
                 ticking.append(middle - start)
-                capturing.append(time.perf_counter() - middle)
+                (kept if record is not None else plain).append(
+                    time.perf_counter() - middle
+                )
         finally:
             env.close()
+
+        # Both statistics are real ones, and the capture really did run over
+        # the measured stretch: a median of two samples would be a reading of
+        # whichever two ticks the scheduler was kindest to.
+        assert len(kept) >= 10 and len(plain) >= 10, (len(kept), len(plain))
+        assert len(recorder.trace) - warmed == len(kept)
         tick = statistics.median(ticking)
-        capture = statistics.median(capturing)
-        # The capture really did run over the measured stretch.
-        assert len(recorder.trace) >= self.TICKS // CAPTURE_EVERY
+        capture, per_tick = statistics.median(kept), statistics.median(plain)
+        surface = (capture + (CAPTURE_EVERY - 1) * per_tick) / CAPTURE_EVERY
         with capsys.disabled():
             print(
-                f"\n  live tick {1e6 * tick:.0f} us, "
-                f"{CAPTURE_HZ:.0f} Hz capture {1e6 * capture:.0f} us "
-                f"({100 * capture / tick:.1f}% of a tick)"
+                f"\n  live tick {1e6 * tick:.0f} us; surface "
+                f"{1e6 * per_tick:.0f} us a tick and {1e6 * capture:.0f} us a "
+                f"{CAPTURE_HZ:.0f} Hz capture, {1e6 * surface:.0f} us amortised "
+                f"({100 * surface / tick:.1f}% of a tick)"
             )
-        assert capture < 0.1 * tick
+        assert surface < self.BUDGET * tick

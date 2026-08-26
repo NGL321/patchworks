@@ -636,4 +636,12 @@ resolution, task breadth, and three dimensions. Those belong to that effort. Wha
 here is not the world's richness but the two falsification conditions in `06-graph-topology.md` and
 the demo's obligation to exercise both of the human's hands at two latencies.
 
-The env runs at roughly **400 ticks/s** with rendering on a single laptop CPU core.
+The env runs at roughly **400 ticks/s** with rendering on a single laptop CPU core. The run lives at
+**`benchmarks/sandbox_throughput.py`**, which reports the camera-drawn and camera-blanked step side
+by side, so how much of that figure is the render is visible rather than inferred. It sits in
+`benchmarks/` rather than in the suite for the reason `body_forward.py` and `agent_tick.py` do: a
+wall-clock threshold in CI measures the runner, not the sandbox
+([#113](https://github.com/NGL321/patchworks/issues/113)). What the suite holds instead is an
+operation count — one camera draw per step, off one renderer built once — and a floor an order below
+the reading, which is a smoke check against a sandbox become unusable rather than a measurement of
+one.
