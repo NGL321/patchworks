@@ -636,17 +636,111 @@ class TestTheSparsityPressureComposesInTheSameStep:
         stacked = torch.stack([permitted, penalty[free_pairs]])
         assert abs(torch.corrcoef(stacked)[0, 1].item()) < 0.2
 
-    def test_the_pressures_gradient_is_free_of_the_mask_size(self):
+    @pytest.mark.parametrize("scale", [1e-12, 1e-8, 1e-4, 1.0, 1e4])
+    def test_the_pressures_gradient_is_free_of_the_mask_size(self, scale):
         # The identity the ruling in #89 turned on, checked directly rather
         # than inferred from a correlation: for `h = ‖F‖₁/(√p‖F‖_F)`,
-        # `‖∇h‖ = √(1 − h²)/‖F‖_F`, in which `p` does not appear.
+        # `‖∇h‖ = √(1 − h²)/‖F‖_F`, in which `p` does not appear (ADR-0010,
+        # amended in #89).
+        #
+        # **The scale is swept and only the direction is drawn** (#115), for
+        # the reason the sibling test one class up records (#111): `h` is
+        # invariant under a map's own scale and `∇h` is homogeneous of degree
+        # −1 in it, so a draw buys no coverage on that axis -- except that
+        # `NORM_FLOOR` breaks the invariance, which is what these assertions
+        # have to survive, so it is swept deliberately. A bare `randn(p)`
+        # never visits the small end at all: it lands at `‖F‖_F ≈ √p` every
+        # time, so the end where the floor lives went unchecked.
+        #
+        # **Two corrections to the identity as ADR-0010 writes it, both
+        # derived from `_norm` rather than measured.** The code's `‖F‖_F` is
+        # `n = √(FᵀF + NORM_FLOOR)`, so `∇h = (sign(F) − (‖F‖₁/n²)F)/(n√p)`
+        # and, using `FᵀF = n² − NORM_FLOOR` and `‖F‖₁ = √p·h·n`,
+        #
+        #     ‖∇h‖² = (1 − h²(1 + NORM_FLOOR/n²)) / n²
+        #
+        # 1. **The floor's correction goes as `1/‖F‖²`, not as `1/‖F‖`.**
+        #    Against the floorless form it is a relative
+        #    `NORM_FLOOR/(2‖F‖²(1 − h²))`, which passes `1e-9` at
+        #    `‖F‖_F ≈ 4e-8` for a typical direction and is `1/2` or worse at
+        #    the bottom of this sweep. A norm-scaled tolerance cannot rescue
+        #    the floorless form there -- it is not imprecise but wrong -- and
+        #    carrying the term instead is what makes the small end assertable
+        #    at all. From `1e-4` upward the term is below round-off and costs
+        #    nothing.
+        # 2. **The identity is asserted as a sum of squares rather than as the
+        #    ratio it is written as**, because `√(1 − h²)` cannot be recovered
+        #    from `h` in float64 near a flat map: `h` is 1 exactly when every
+        #    open weight has the same magnitude, and `1 − h²` cancels to
+        #    nothing there. That is the flake this rewrite came from -- 5 of
+        #    40000 global RNG states, every one at `p = 2`, where `|a| = |b|`
+        #    is a whole locus rather than a point -- and it was a failure of
+        #    the test's own reference expression, not of `normalised_l1`.
+        #    Multiplied out, both terms below are `O(1)` and no small number
+        #    is formed by cancelling large ones, so the residue is round-off
+        #    and nothing else, at every direction including the flat map.
+        #
+        # The tolerance is therefore a multiple of float64's unit round-off
+        # `2⁻⁵³`, which is fixed by the dtype this test pins. **The multiple
+        # is a measurement, not a bound**: how much error the `p`-term sum in
+        # `‖F‖₁` accumulates depends on the order torch adds in. Worst residue
+        # over 4000 drawn directions at each of 5 scales × 5 mask sizes is
+        # `8·2⁻⁵³`, and `18·2⁻⁵³` once flat maps (`h = 1`) and maps
+        # concentrated to within `1e-16` of one direction (`h → 1/√p`) are
+        # added at every scale, which is both ends of `h`'s own range. The
+        # `128·2⁻⁵³` asserted is the latter with 7x of headroom.
+        #
+        # **The identity wants every open weight nonzero**, and that is a
+        # condition rather than an approximation: `sign(0) = 0`, so an exactly
+        # zero weight contributes to neither `‖F‖₁` nor its gradient, and the
+        # `p` in `‖sign(F)‖² = p` is really the count of nonzeros `k`. The sum
+        # below reads `k/p` and not `1` -- exactly, at every scale. It does
+        # not weaken the claim, because `p` is read off the structural mask,
+        # so a masked or padded entry is excluded from `p` rather than sitting
+        # in it as a zero, and a descent step reaches exactly zero with
+        # probability zero. It does mean the draws here have to be dense,
+        # which `randn` is.
         for permitted in (2, 8, 13, 96, 384):
-            weights = torch.randn(permitted, dtype=torch.float64).requires_grad_(True)
+            direction = torch.randn(permitted, dtype=torch.float64)
+            weights = (direction / direction.norm() * scale).requires_grad_(True)
             count = torch.tensor([float(permitted)], dtype=torch.float64)
             value = normalised_l1(weights.reshape(1, 1, -1), count)[0]
             (taken,) = torch.autograd.grad(value, weights)
-            expected = (1 - value.item() ** 2) ** 0.5 / weights.detach().norm().item()
-            assert taken.norm().item() == pytest.approx(expected, rel=1e-9)
+            squared = weights.detach().pow(2).sum().item()
+            norm = (squared + NORM_FLOOR) ** 0.5
+            floorless = (taken.norm().item() * norm) ** 2 + value.item() ** 2
+            assert floorless + value.item() ** 2 * NORM_FLOOR / norm**2 == (
+                pytest.approx(1.0, abs=128 * 2.0**-53, rel=0.0)
+            )
+            # **A tripwire on `NORM_FLOOR`, not a second claim.** The line
+            # above follows the constant symbolically and would stay green
+            # wherever it moved to; this one writes `1e-24` out, so a change
+            # of the floor in either direction turns it red. What it reads is
+            # the amount the *floorless* identity falls short by, which the
+            # algebra above gives exactly as `h²·NORM_FLOOR/n²`.
+            #
+            # It runs at the bottom scale of the sweep and nowhere else in it,
+            # because at `‖F‖_F = 1e-12` the floor is half of `n²` and the
+            # shortfall is `h²/2` -- 0.07 to 0.25 for a drawn direction --
+            # while at unit scale it is `1e-24`, nine orders below the
+            # round-off it would have to be read out of.
+            #
+            # `rel` is derived at the concentrated end, not measured at a
+            # typical one: with the floor carrying half of `n²`, `h` bottoms
+            # out at `1/√(2p)`, so the shortfall bottoms out at `1/(4p)` and
+            # the round-off allowed above is `4p·128·2⁻⁵³` of it -- `2.2e-11`
+            # at `p = 384`, against `2.7e-12` actually measured there.
+            #
+            # Note this is `NORM_FLOOR`, an epsilon guarding
+            # `0/0` in a square root, and **not ADR-0007's disagreement
+            # floor** -- the irreducible static, lag and settling parts of an
+            # edge's disagreement, which are structural and at the scale of
+            # the configuration. The two are unrelated quantities that share a
+            # word.
+            if NORM_FLOOR / norm**2 > 1e-6:
+                assert 1.0 - floorless == pytest.approx(
+                    value.item() ** 2 * 1e-24 / norm**2, rel=1e-9
+                )
 
     def test_the_penalty_is_blind_to_a_maps_magnitude(self, running):
         maps = running.maps.maps.detach()
