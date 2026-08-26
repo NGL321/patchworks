@@ -157,17 +157,18 @@ A_SPREAD = [
 # -- the rows and endpoints these tests name by hand -----------------------
 #
 # Two of the index sets below are not cell ids and are not derived: the bias
-# rows, which number the predicting cells in `dome.predicting` order, and the
-# edge endpoints, which number the two ends of every edge (see
-# :func:`perturb_the_biases_of`). Neither numbering offers anything to select
-# on — a bias row is not of a kind and an endpoint is not the widest of
-# anything — so these are arbitrary representatives, spread across their array
-# and no more meaningful than any other. Picking them by a rule would dress a
-# choice up as a derivation, and what each stands in for reads the same at
-# every row and every endpoint: the bias rows have the whole-population sweep
-# beside them and are parametrised so that a failure names one, and the four
-# endpoints are four samples of a claim :class:`TestThePermittedChannel` makes
-# about that numbering as a whole.
+# rows, which number the predicting cells in `dome.predicting` order (see
+# :func:`perturb_the_biases_of`), and the edge endpoints, which number the two
+# ends of every edge as `2 * edge.id + side` — what the `running` fixture
+# writes through and what `endpoint ^ 1` flips. Neither numbering offers
+# anything to select on — a bias row is not of a kind and an endpoint is not
+# the widest of anything — so these are arbitrary representatives, spread
+# across their array and no more meaningful than any other. Picking them by a
+# rule would dress a choice up as a derivation, and what each stands in for
+# reads the same at every row and every endpoint: the bias rows have the
+# whole-population sweep beside them and are parametrised so that a failure
+# names one, and the four endpoints are four samples of a claim
+# :class:`TestThePermittedChannel` makes about that numbering as a whole.
 #
 # What typing them costs is that a dome retuned smaller can leave one off the
 # end of its array, where it fails as an `IndexError` from inside a helper
@@ -414,8 +415,8 @@ class TestTheCellsTheseTestsName:
 
     The two index sets that are *not* derived — the bias rows and the edge
     endpoints — have no premise to pin, being arbitrary representatives of
-    their numberings. What they have is a bound, and that is what the last
-    test here holds.
+    their numberings. What they have is a bound, and that is what
+    :meth:`test_the_rows_and_endpoints_named_by_hand_fit_this_dome` holds.
     """
 
     def test_the_dome_is_the_size_the_shared_spec_claims(self, dome):
