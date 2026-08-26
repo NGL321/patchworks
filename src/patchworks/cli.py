@@ -104,14 +104,30 @@ class Finding:
         return first if not self.remedy else f"{first}\n         -> {self.remedy}"
 
 
-def _venv_hint() -> str:
-    """The install command, written against wherever this interpreter lives.
+def in_a_virtual_environment() -> bool:
+    """Is this interpreter a venv's? The stdlib's own test, from `sys`."""
+    return sys.prefix != sys.base_prefix
 
-    Named from `sys.prefix` rather than hard-coded as `.venv`, because the
-    reader running a doctor that says `.venv/bin/pip` while standing in a tree
-    whose venv is elsewhere has been given the wrong command, which is worse
-    than a long one.
+
+def _venv_hint() -> str:
+    """The install command to print, written against where this interpreter is.
+
+    Two cases, because the fresh clone is the one this whole entry point exists
+    for. **Inside a venv** the command names that venv's own `pip` — read from
+    `sys.prefix` rather than hard-coded as `.venv`, since a reader told
+    `.venv/bin/pip` while standing in a tree whose venv is somewhere else has
+    been given the wrong command, which is worse than a long one. **Outside
+    one** — a fresh clone run as `PYTHONPATH=src python3 -m patchworks doctor`,
+    which is exactly how someone finds out they have not set up yet — naming
+    this interpreter's `pip` would tell them to install torch and MuJoCo into
+    the system Python. So the command is to make the venv first.
     """
+    if not in_a_virtual_environment():
+        return (
+            f"python{MINIMUM_PYTHON[0]}.{BELOW_PYTHON[1] - 1} -m venv .venv "
+            f"&& .venv/bin/pip install -e '.[dev]'   "
+            f"(this interpreter is not in a virtual environment)"
+        )
     return f"{Path(sys.prefix) / 'bin' / 'pip'} install -e '.[dev]'"
 
 
@@ -272,15 +288,19 @@ def check_mujoco_gl() -> Finding:
     )
 
 
-def mjpython_launcher() -> Path | None:
+def mjpython_launcher(executable: str = sys.executable) -> Path | None:
     """The `mjpython` this interpreter should use, or `None` if there is none.
 
-    Beside `sys.executable` first and `PATH` second, because `mjpython` must be
-    the one from the same environment as the `mujoco` being imported: it embeds
-    an interpreter, and one from a different venv would run a different
+    Beside `executable` first and `PATH` second, because `mjpython` must be the
+    one from the same environment as the `mujoco` being imported: it embeds an
+    interpreter, and one from a different venv would run a different
     installation of everything.
+
+    `executable` is an argument, and :func:`window_plan` passes its own, so
+    that where this looked and where the refusal *says* it looked cannot come
+    apart.
     """
-    beside = Path(sys.executable).parent / MJPYTHON
+    beside = Path(executable).parent / MJPYTHON
     if beside.exists():
         return beside
     on_path = shutil.which(MJPYTHON)
@@ -454,7 +474,7 @@ def window_plan(
     the rules can be exercised for a platform that is not the one running.
     """
     if isinstance(launcher, _Unset):
-        launcher = mjpython_launcher()
+        launcher = mjpython_launcher(executable)
 
     if not needs_mjpython(platform):
         return WindowPlan(reexec=(executable, "-m", module, *argv))

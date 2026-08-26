@@ -298,6 +298,42 @@ class TestDoctorsChecks:
         assert "re-execs into it by itself" in finding.detail
 
 
+class TestTheInstallCommandDoctorPrints:
+    """The fresh clone is what this entry point is for, so its case is the one to get right."""
+
+    def test_inside_a_venv_it_names_that_venvs_pip(self, monkeypatch):
+        monkeypatch.setattr(cli, "in_a_virtual_environment", lambda: True)
+        monkeypatch.setattr(sys, "prefix", "/somewhere/.venv")
+        assert cli._venv_hint() == "/somewhere/.venv/bin/pip install -e '.[dev]'"
+
+    def test_outside_one_it_says_to_make_one_first(self, monkeypatch):
+        """Naming this interpreter's pip would say to install torch into the system Python.
+
+        Which is what someone gets who runs `PYTHONPATH=src python3 -m
+        patchworks doctor` from a fresh clone -- exactly the person the check
+        is written for.
+        """
+        monkeypatch.setattr(cli, "in_a_virtual_environment", lambda: False)
+        hint = cli._venv_hint()
+        assert "-m venv .venv" in hint
+        assert ".venv/bin/pip install -e '.[dev]'" in hint
+        assert "not in a virtual environment" in hint
+
+    def test_the_venv_test_is_the_stdlibs_own(self, monkeypatch):
+        monkeypatch.setattr(sys, "prefix", "/a")
+        monkeypatch.setattr(sys, "base_prefix", "/a")
+        assert not cli.in_a_virtual_environment()
+        monkeypatch.setattr(sys, "prefix", "/a/.venv")
+        assert cli.in_a_virtual_environment()
+
+    def test_the_venv_it_names_is_a_python_requires_python_allows(self, monkeypatch):
+        """The version in the `venv` command is derived, not typed twice."""
+        monkeypatch.setattr(cli, "in_a_virtual_environment", lambda: False)
+        monkeypatch.setattr(cli, "MINIMUM_PYTHON", (3, 11))
+        monkeypatch.setattr(cli, "BELOW_PYTHON", (3, 13))
+        assert "python3.12 -m venv .venv" in cli._venv_hint()
+
+
 class TestDoctorsVerdict:
     """What the report says, and what the exit code is."""
 
