@@ -844,7 +844,7 @@ class TestTheGammaASheafIsBuiltWith:
             def __getattr__(self, name):
                 raise RuntimeError(f"no value under this key ({name})")
 
-        with pytest.raises(RuntimeError, match="no value under this key"):
+        with pytest.raises(RuntimeError, match=r"no value under this key \(__float__\)"):
             Sheaf(dome, gamma=RaisesOnEveryAccess())
 
     def test_an_integer_too_long_to_print_is_still_refused_by_the_rule(self, dome):
