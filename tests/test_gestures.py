@@ -754,9 +754,9 @@ def retargets_on_iteration(window, env, at, puck=1, zone=2):
     """Script a retarget whose second pointing lands in iteration `at`.
 
     The loop's order within one iteration is *tick, capture, gesture*, and the
-    fake viewer runs its script from `sync()` -- which is between the two -- so
-    a step filed under `at` is read by the pointer during iteration `at` and by
-    nothing before it.
+    fake viewer runs its script from `sync()`, which falls between the capture
+    and the gesture. So a step filed under `at` is read by the pointer during
+    iteration `at` and by nothing before it.
     """
     named = body(env, f"puck_{puck}")
 
@@ -787,7 +787,7 @@ class TestAMarkerFiredOnTheRunsLastTick:
             for record in drive(recorder, ticks=4, realtime=False)
             for event in record.events
         ]
-        assert fired == [], "the trace grew a record no tick produced"
+        assert fired == [], "a marker fired after the last capture reached the trace"
         # Nothing is mis-recorded: the hand landed, the marker exists, it says
         # what it did, and it carries the tick it fired on -- the last one.
         assert [marker.kind for marker in recorder.pending] == [EventKind.RETARGET]
