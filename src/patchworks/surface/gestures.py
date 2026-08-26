@@ -51,7 +51,7 @@ import warnings
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 
 import mujoco
 import numpy as np
@@ -72,12 +72,15 @@ from .record import Event, Recorder, TickRecord
 __all__ = [
     "IMPULSE_PER_METRE",
     "MINIMUM_DRAG",
+    "OUT_OF_PLANE_TOLERANCE",
+    "TOP_DOWN_ELEVATION",
     "Drag",
     "Gestures",
     "Pointer",
     "Referent",
     "ReferentKind",
     "drive",
+    "hold_top_down",
 ]
 
 #: Newton-metre-seconds of joint impulse per metre the drag pulls a link along
@@ -90,7 +93,9 @@ __all__ = [
 #: nudge rather than a launch.
 IMPULSE_PER_METRE = 1.0
 
-#: Metres of drag below which nothing fires. A ctrl-press without a pull is not
+#: Metres of drag below which nothing fires, read on the larger of the drag's
+#: planar and out-of-plane components: a press that went nowhere went nowhere in
+#: either. A ctrl-press without a pull is not
 #: a gesture, and firing on one would teleport a puck to where it already is --
 #: leaving a marker that onset latency would then be measured from
 #: (`docs/spec/10-the-demo-surface.md`, *Onset, and the near-misses*). It also
@@ -101,6 +106,57 @@ IMPULSE_PER_METRE = 1.0
 #: is the *translating* one, `mjPERT_TRANSLATE` -- ctrl + the right button (see
 #: :func:`drive`, *What the viewer reports*).
 MINIMUM_DRAG = 1e-3
+
+#: How far a ctrl-drag may stray out of the plane before it is no gesture at
+#: all, **as a fraction of how far it went in the plane**. A ratio rather than a
+#: length, because what makes a drag out-of-plane is the direction it went in
+#: and not how long it was: at 0.1 a drag more than about six degrees off the
+#: table is refused, so a view within six degrees of top-down still works and
+#: one visibly tilted does not.
+#:
+#: **This is the first of #123's two levers, and it is redundant with the second
+#: on purpose** -- see :meth:`Gestures.drag` and :func:`hold_top_down`.
+#: :class:`Gestures` takes its own, so a world with a third dimension in it can
+#: lift the refusal by handing in `float("inf")` without this line moving.
+OUT_OF_PLANE_TOLERANCE = 0.1
+
+#: The camera elevation that makes the screen and the world's plane the same
+#: plane: straight down. The second of #123's two levers, applied by
+#: :func:`hold_top_down` and re-applied every tick by :func:`drive`.
+TOP_DOWN_ELEVATION = -90.0
+
+
+def hold_top_down(cam) -> None:
+    """Put the scene camera's tilt back to straight down. #123's second lever.
+
+    Takes MuJoCo's own :class:`~mujoco.MjvCamera` -- `viewer.cam` -- and writes
+    one field. :func:`drive` calls it every tick, under the viewer's lock,
+    which is what makes it a hold rather than the startup pose #96 set and #123
+    found had never held anything.
+
+    **Re-assertion, not prevention, and the difference is worth stating.** The
+    passive viewer's mouse handling lives inside MuJoCo's own `Simulate` on its
+    UI thread, and `launch_passive` hands back a camera and no way to turn any
+    of it off -- so nothing here can stop the human rotating the view. What it
+    can do is put the view back, and it does, every tick: at this world's 50 Hz
+    a rotation survives at most 20 ms, which is a flicker rather than a regime.
+    **A drag taken inside that flicker is exactly what the other lever is for**
+    (:meth:`Gestures.drag`): the two overlap on purpose, and neither is dead
+    weight -- lift one and the other is what is left holding the plane.
+
+    **Only the tilt is held.** Elevation is the whole of what makes screen and
+    plane coincide: at ±90 degrees both of the camera's screen axes lie in the
+    world's own xy plane, so a drag moves `refselpos` in xy alone whatever the
+    azimuth is. Panning, zooming and spinning the view cannot put a z on the
+    screen, so they are left to the human. The arena's one fixed camera
+    (`topdown` in `src/patchworks/sandbox/arena.xml`) looks straight down too,
+    so the viewer's own camera keys cannot leave the plane either.
+
+    **Relaxable in one place**: `drive(..., hold_camera=None)` leaves the view
+    entirely to the human, and a world that wants a different constraint passes
+    its own callable rather than editing this loop.
+    """
+    cam.elevation = TOP_DOWN_ELEVATION
 
 
 class ReferentKind(str, Enum):
@@ -180,10 +236,15 @@ class Gestures:
     """
 
     def __init__(
-        self, hands: Hands, *, impulse_per_metre: float = IMPULSE_PER_METRE
+        self,
+        hands: Hands,
+        *,
+        impulse_per_metre: float = IMPULSE_PER_METRE,
+        out_of_plane_tolerance: float = OUT_OF_PLANE_TOLERANCE,
     ) -> None:
         self.hands = hands
         self.impulse_per_metre = float(impulse_per_metre)
+        self.out_of_plane_tolerance = float(out_of_plane_tolerance)
         model = self.world.model
         name2id = mujoco.mj_name2id
         joints = mujoco.mjtObj.mjOBJ_JOINT
@@ -268,16 +329,62 @@ class Gestures:
         plus how far the drag went -- which is where the viewer has been
         drawing the ghost of it all the while.
 
-        **Both read the drag in the plane.** This world is planar by
-        construction (`src/patchworks/sandbox/arena.xml`) and both hands take a
-        planar argument, so an out-of-plane pull -- which a camera turned off
-        the top-down view will happily produce -- is not a small gesture but no
-        gesture at all, and firing on one would leave a marker for a teleport
-        to where the puck already was.
+        **An out-of-plane drag is refused, and said so.** This world is planar
+        by construction (`src/patchworks/sandbox/arena.xml`: every joint is a
+        hinge about z or a slide in x/y, and there is no z slide anywhere), and
+        both hands take a planar argument -- so an out-of-plane pull is not a
+        small gesture but no gesture at all. The gate is on the out-of-plane
+        component, measured against the planar one
+        (:data:`OUT_OF_PLANE_TOLERANCE`), and **that is the whole of #123's
+        fix**: #96 wrote the sentence above and gated on the planar magnitude
+        instead, which is a different set. A drag that was mostly z with a
+        millimetre of planar residue cleared that gate and fired a hand with
+        the residue as its argument -- a puck teleported a millimetre in a
+        direction the human never expressed, which is the "random directions"
+        the report describes. Nothing arbitrary reaches the world now: the
+        refusal warns, because a human who is given nothing and told nothing is
+        left wondering which of the two happened.
+
+        **Redundant with the camera hold, on purpose.** :func:`hold_top_down`
+        keeps the view straight down, where a drag has no z in it to refuse;
+        this refuses one anyway. Either alone is a single point of failure --
+        the hold stops the situation arising, the refusal catches it if the
+        hold is ever lifted, bypassed, or dropped by a later ticket that does
+        not know why it was there -- so **neither is dead weight and neither
+        should be removed as such** (#123). Both are relaxable in one place: a
+        world with a third dimension in it lifts this one by constructing
+        :class:`Gestures` with a larger `out_of_plane_tolerance`.
+
+        **The perturbation ghost stays 3D.** MuJoCo draws the drag as a spring
+        in three dimensions and nothing here can make it do otherwise. With the
+        view held top-down the two agree on screen, so the mismatch is
+        invisible in practice; what is left is that a drag taken in the flicker
+        after a rotation is drawn going somewhere and then fires nothing. The
+        warning is what closes that gap, and it is the reason this refusal
+        speaks rather than passing over the drag in silence.
         """
-        moved = drag.moved
-        if float(np.linalg.norm(moved[:2])) < MINIMUM_DRAG:
+        moved = np.asarray(drag.moved, dtype=np.float64)
+        planar = float(np.linalg.norm(moved[:2]))
+        out_of_plane = abs(float(moved[2]))
+        # Whether the mouse moved at all, asked of the whole displacement: a
+        # press that went nowhere is not a gesture in any dimension, and this is
+        # where MuJoCo's rotating drag -- a displacement of exactly zero -- is
+        # passed over. Only then is it worth saying which way it went.
+        if max(planar, out_of_plane) < MINIMUM_DRAG:
             return None
+        if out_of_plane > self.out_of_plane_tolerance * planar:
+            warnings.warn(
+                f"a ctrl-drag {out_of_plane:.3g} m out of the plane against "
+                f"{planar:.3g} m in it is no gesture at all: this world has no "
+                "third dimension for it to mean anything in, so no hand fired. "
+                "Take the drag with the view top-down (#123).",
+                stacklevel=2,
+            )
+            return None
+        # Clearing both gates leaves the planar component at or above
+        # `MINIMUM_DRAG`, which is what both hands are about to be handed: a
+        # planar residue smaller than that has an out-of-plane component more
+        # than ten times its own size beside it, and was refused above.
         referent = self.referent(drag.body, drag.grip)
         if referent.kind is ReferentKind.LINK:
             return self.hands.disturb_arm(
@@ -299,11 +406,13 @@ class Gestures:
         model, data = world.model, world.data
         jacp = np.zeros((3, model.nv))
         mujoco.mj_jac(model, data, jacp, None, grip, self._body_of[joint])
-        # In the plane, like the gate in `drag` and like both hands' arguments.
-        # Every arm joint in `arena.xml` is a z-hinge, so this column's own z
-        # entry is zero today and the projection changes nothing -- it is here
-        # so that "both read the drag in the plane" stays true of this line and
-        # not only of the gate, the first time a joint is not a z-hinge.
+        # In the plane, like both hands' arguments. What reaches here has
+        # already been refused if it was out of the plane, so the z dropped is
+        # at most `OUT_OF_PLANE_TOLERANCE` of the pull -- the residue of a view
+        # a few degrees off top-down, not a gesture. Every arm joint in
+        # `arena.xml` is a z-hinge, so this column's own z entry is zero today
+        # and the projection changes nothing either; it is here so that the
+        # impulse stays planar the first time a joint is not a z-hinge.
         moved = np.asarray(moved, dtype=np.float64).copy()
         moved[2] = 0.0
         direction = jacp[:, self._dofadr[joint]]
@@ -592,6 +701,7 @@ def drive(
     seed: int | None = None,
     realtime: bool = True,
     gestures: Gestures | None = None,
+    hold_camera: Callable[[Any], None] | None = hold_top_down,
 ) -> Iterator[TickRecord]:
     """Run the agent in MuJoCo's passive viewer, with the hands bound to it.
 
@@ -725,8 +835,9 @@ def drive(
         with viewer.lock():
             viewer.cam.lookat[:] = [0.0, 0.0, 0.0]
             viewer.cam.distance = 1.6
-            viewer.cam.elevation = -90.0
             viewer.cam.azimuth = 90.0
+            if hold_camera is not None:
+                hold_camera(viewer.cam)
         last = time.time()
         for _outcome in ticking:
             record = recorder.observe()
@@ -740,6 +851,13 @@ def drive(
             # holds while it reads the model and the data: a hand that fires
             # writes to both, and `r` rewrites the whole world.
             with viewer.lock():
+                # The tilt, put back before anything is read off it. A drag is
+                # measured against the camera plane, so this line and the
+                # refusal in `Gestures.drag` are the same guarantee twice over
+                # (#123): the human is free to rotate, and both the picture and
+                # the gesture are back in the plane a tick later.
+                if hold_camera is not None:
+                    hold_camera(viewer.cam)
                 while keys:
                     try:
                         gestures.key(keys.popleft())

@@ -10,6 +10,7 @@ viewer's handle, and rests in the end on the window being driven by hand.
 """
 
 import contextlib
+import warnings
 
 import mujoco
 import numpy as np
@@ -38,7 +39,13 @@ from patchworks.surface import (
     ReferentKind,
     drive,
 )
-from patchworks.surface.gestures import IMPULSE_PER_METRE, MINIMUM_DRAG
+from patchworks.surface.gestures import (
+    IMPULSE_PER_METRE,
+    MINIMUM_DRAG,
+    OUT_OF_PLANE_TOLERANCE,
+    TOP_DOWN_ELEVATION,
+    hold_top_down,
+)
 
 
 @pytest.fixture(scope="module")
@@ -210,11 +217,122 @@ class TestWhatADragOnALinkDelivers:
         assert gestures.drag(dragged(env, "puck_0", (short, 0.0, 0.0))) is None
         assert recorder.pending == ()
 
-    def test_a_drag_out_of_the_plane_is_no_gesture_at_all(self, gestures, recorder, env):
-        """This world is planar, and both hands take a planar argument."""
-        assert gestures.drag(dragged(env, "puck_0", (0.0, 0.0, 0.5))) is None
-        assert gestures.drag(dragged(env, "link0", (0.0, 0.0, 0.5), grip=(0.1, 0.0, 0.0))) is None
+
+class TestADragIsReadInThePlane:
+    """#123's first lever: an out-of-plane drag is refused, not projected.
+
+    The world has zero z degrees of freedom (`src/patchworks/sandbox/arena.xml`),
+    so a drag with a z in it names nothing this world can do. #96 said so in a
+    docstring and gated on the *planar* magnitude instead, which is a different
+    set: a drag that was mostly z with a millimetre of planar residue passed
+    that gate and fired a hand with the residue as its argument. That is the
+    bug this class pins -- the gate is on the out-of-plane component now.
+
+    The second lever, the camera held top-down, is
+    :class:`TestTheCameraIsHeldTopDown`. Neither of them can say whether the
+    gesture *feels* right, which is a human at the window.
+    """
+
+    def test_a_drag_in_the_plane_fires_its_hand(self, gestures, env):
+        """The gesture the demo is made of, unchanged: z is exactly zero when
+        the view is top-down, and that drag still fires."""
+        event = gestures.drag(dragged(env, "puck_0", (0.05, 0.02, 0.0)))
+        assert event.kind is EventKind.PERTURB
+
+    def test_a_mostly_out_of_plane_drag_fires_nothing(self, gestures, recorder, env):
+        """**The reported bug.** Half a metre of z, two millimetres of planar
+        residue: enough planar travel to clear :data:`MINIMUM_DRAG`, and the
+        residue is the "random direction" the human saw the puck take."""
+        before = np.array(env.puck_pose(0)[:2])
+        with pytest.warns(UserWarning, match="out of the plane"):
+            assert gestures.drag(dragged(env, "puck_0", (0.002, 0.0, 0.5))) is None
+        assert env.puck_pose(0)[:2] == pytest.approx(before, abs=1e-12)
+
+        before = np.array(env.data.qvel)
+        with pytest.warns(UserWarning, match="out of the plane"):
+            pull = dragged(env, "link0", (0.0, 0.002, 0.4), grip=(0.1, 0.0, 0.0))
+            assert gestures.drag(pull) is None
+        assert env.data.qvel == pytest.approx(before)
         assert recorder.pending == ()
+
+    def test_a_purely_out_of_plane_drag_fires_nothing(self, gestures, recorder, env):
+        """The case #96's docstring already claimed, now enforced rather than
+        reached by way of the planar magnitude being zero."""
+        with pytest.warns(UserWarning, match="out of the plane"):
+            assert gestures.drag(dragged(env, "puck_0", (0.0, 0.0, 0.5))) is None
+        with pytest.warns(UserWarning, match="out of the plane"):
+            pull = dragged(env, "link0", (0.0, 0.0, 0.5), grip=(0.1, 0.0, 0.0))
+            assert gestures.drag(pull) is None
+        assert recorder.pending == ()
+
+    def test_the_refusal_says_why_and_names_both_components(self, gestures, env):
+        """A human who is told nothing is left wondering, which is the
+        complaint. The numbers are in the message because they are what makes
+        one refusal different from the next -- and, incidentally, what stops
+        the default warning filter from showing only the first."""
+        with pytest.warns(UserWarning) as refusals:
+            gestures.drag(dragged(env, "puck_0", (0.002, 0.0, 0.5)))
+            gestures.drag(dragged(env, "puck_0", (0.004, 0.0, 0.3)))
+        said = [str(refusal.message) for refusal in refusals]
+        assert len(said) == 2 and said[0] != said[1]
+        for message in said:
+            assert "no hand fired" in message
+            assert "top-down" in message
+
+    def test_a_drag_that_moved_in_neither_is_short_rather_than_refused(
+        self, gestures, recorder, env
+    ):
+        """A press that went nowhere is not an out-of-plane gesture: it is not
+        a gesture. It fires nothing and says nothing -- including MuJoCo's
+        rotating drag, which arrives here as a displacement of zero."""
+        short = MINIMUM_DRAG / 2
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            assert gestures.drag(dragged(env, "puck_0", (0.0, 0.0, short))) is None
+            assert gestures.drag(dragged(env, "puck_0", (0.0, 0.0, 0.0))) is None
+        assert recorder.pending == ()
+
+    def test_a_hand_never_fires_on_a_planar_residue_below_the_minimum(
+        self, gestures, recorder, env
+    ):
+        """Whatever the z, what reaches a hand cleared :data:`MINIMUM_DRAG` in
+        the plane. The two gates leave no gap between them for the residue that
+        started this ticket to come through."""
+        residue = MINIMUM_DRAG / 2
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter("always")
+            for z in (0.0, MINIMUM_DRAG, 0.05, 0.5, 5.0):
+                assert gestures.drag(dragged(env, "puck_0", (residue, 0.0, z))) is None
+        assert recorder.pending == ()
+
+    def test_the_tolerance_is_an_angle_off_the_plane(self, gestures, env):
+        """A ratio, not a length: a drag is refused for the *direction* it went
+        in, so the same tilt of the view refuses a long drag and a short one
+        alike."""
+        just_inside = OUT_OF_PLANE_TOLERANCE * 0.9
+        for planar in (0.01, 0.5):
+            inside = gestures.drag(
+                dragged(env, "puck_0", (planar, 0.0, planar * just_inside))
+            )
+            assert inside is not None and inside.kind is EventKind.PERTURB
+            with pytest.warns(UserWarning, match="out of the plane"):
+                outside = gestures.drag(
+                    dragged(env, "puck_0", (planar, 0.0, planar * 2.0))
+                )
+            assert outside is None
+
+    def test_the_refusal_lifts_in_one_place_for_a_world_with_a_third_dimension(
+        self, recorder, env
+    ):
+        """Relaxable, not welded shut (#123). A world whose pucks could move in
+        z would hand its own tolerance in, and the drag that is refused here
+        fires there -- with its planar part, which is all either hand takes."""
+        pull = dragged(env, "puck_0", (0.002, 0.0, 0.5))
+        relaxed = Gestures(Hands(recorder), out_of_plane_tolerance=float("inf"))
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            event = relaxed.drag(pull)
+        assert event is not None and event.kind is EventKind.PERTURB
 
 
 def zone_point(zone, offset=0.0):
@@ -833,6 +951,102 @@ class TestTheSceneWindowIsMujocosPassiveViewer:
 
         window.script[4] = shut
         assert len(list(drive(recorder, ticks=50, realtime=False))) == 3
+
+
+class TestTheCameraIsHeldTopDown:
+    """#123's second lever, and the reason the first one is not enough alone.
+
+    A drag is read against the camera plane, so the tilt of the view decides
+    whether a gesture has a z in it at all. Set once at startup -- which is
+    what #96 did -- it is not a lock: MuJoCo lets the human rotate the view
+    freely, and the gestures then quietly change meaning. Here it is re-asserted
+    every tick, which is the most the passive viewer allows (see
+    :func:`~patchworks.surface.gestures.hold_top_down`).
+
+    What no test here can settle is whether a view that will not tilt is
+    pleasant to work at. That is the human at the window.
+    """
+
+    def opens(self, window):
+        (handle,) = window.handles
+        return handle
+
+    def test_the_view_opens_looking_straight_down(self, recorder, window):
+        list(drive(recorder, ticks=2, realtime=False))
+        assert self.opens(window).cam.elevation == TOP_DOWN_ELEVATION
+
+    def test_a_rotated_view_is_put_back_on_the_next_tick(self, recorder, window):
+        """The bug the once-only assignment left: the human rotates, and every
+        drag after that carries a z nobody asked for."""
+        seen = []
+
+        def rotate(handle):
+            handle.cam.elevation = -20.0
+            seen.append(handle.cam.elevation)
+
+        def read(handle):
+            seen.append(handle.cam.elevation)
+
+        window.script.update({2: rotate, 3: read, 4: read})
+        list(drive(recorder, ticks=6, realtime=False))
+        assert seen == [-20.0, TOP_DOWN_ELEVATION, TOP_DOWN_ELEVATION]
+        assert self.opens(window).cam.elevation == TOP_DOWN_ELEVATION
+
+    def test_the_hold_leaves_panning_and_zooming_alone(self, recorder, window):
+        """Only the tilt decides whether screen and plane coincide. Pan, zoom
+        and spin cannot put a z on the screen, so they are not taken away."""
+
+        def look_elsewhere(handle):
+            handle.cam.lookat[:] = [0.2, -0.1, 0.0]
+            handle.cam.distance = 0.7
+            handle.cam.azimuth = 15.0
+
+        window.script[2] = look_elsewhere
+        list(drive(recorder, ticks=6, realtime=False))
+        camera = self.opens(window).cam
+        assert list(camera.lookat) == [0.2, -0.1, 0.0]
+        assert (camera.distance, camera.azimuth) == (0.7, 15.0)
+        assert camera.elevation == TOP_DOWN_ELEVATION
+
+    def test_the_hold_lifts_in_one_place_for_a_world_worth_tilting(
+        self, recorder, window
+    ):
+        """Relaxable, not welded shut (#123): a world with a third dimension
+        passes `hold_camera=None` and the view is the human's again."""
+
+        def rotate(handle):
+            handle.cam.elevation = -20.0
+
+        window.script[2] = rotate
+        list(drive(recorder, ticks=6, realtime=False, hold_camera=None))
+        assert self.opens(window).cam.elevation == -20.0
+
+    def test_the_hold_is_one_call_the_loop_makes_and_not_a_pose_of_its_own(
+        self, recorder, window
+    ):
+        """What is held is whatever :func:`hold_top_down` says, so a different
+        constraint is that function's business and not the loop's."""
+        held = []
+
+        def hold(cam):
+            held.append(cam)
+            hold_top_down(cam)
+
+        list(drive(recorder, ticks=4, realtime=False, hold_camera=hold))
+        # Once as the window opens -- the startup pose is this call, not a
+        # second copy of the elevation -- and once for each of the four ticks.
+        assert held == [self.opens(window).cam] * 5
+
+    def test_the_camera_is_only_touched_under_the_viewers_lock(self, recorder, window):
+        """The render thread reads the camera every frame it draws."""
+        under = []
+
+        def hold(cam):
+            under.append(window.handles[0].locked)
+            hold_top_down(cam)
+
+        list(drive(recorder, ticks=4, realtime=False, hold_camera=hold))
+        assert under == [1] * 5
 
 
 def retargets_on_iteration(window, env, at, puck=1, zone=2):
