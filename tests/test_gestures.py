@@ -406,6 +406,48 @@ class TestThePointerReadsWholeGestures:
         assert event.kind is EventKind.PERTURB
         assert [marker.kind for marker in recorder.pending] == [EventKind.PERTURB]
 
+    def test_a_pick_the_release_elbowed_aside_is_deferred_and_not_dropped(
+        self, gestures, recorder, env
+    ):
+        """The wrong-puck retarget: a selection that changes on the very sample
+        a drag ends on is still a pointing, and must survive to the next one.
+
+        Latching it would leave `pointed_at` on the puck named *before* the
+        drag, so the human's next zone click reassigns a puck they stopped
+        pointing at -- and the marker in the record would say they meant it.
+        """
+        pointer = Pointer(gestures)
+        first, second = body(env, "puck_0"), body(env, "puck_2")
+        pointer.sample(0, 0, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
+        pointer.sample(0, first, (0.0, 0.0, 0.0), self.grip(env, "puck_0"))
+        assert gestures.pointed_at == 0
+        held = self.grip(env, "puck_0")
+        pointer.sample(1, first, (0.0, 0.0, 0.0), held)
+        # Pulled while still on puck 0, so the drag has travel of its own to end
+        # with once the selection moves off it.
+        pointer.sample(1, first, (0.0, 0.0, 0.0), held + [0.05, 0.0, 0.0])
+        # One sample: the drag on puck 0 ends and puck 2 becomes the selection.
+        ended = pointer.sample(0, second, (0.0, 0.0, 0.0), self.grip(env, "puck_2"))
+        assert ended.kind is EventKind.PERTURB
+        # The next sample is where that pointing gets read.
+        pointer.sample(0, second, (0.0, 0.0, 0.0), self.grip(env, "puck_2"))
+        assert gestures.pointed_at == 2, "the human's last pointing was lost"
+        event = pointer.sample(0, 0, zone_point(1), zone_point(1))
+        assert event.detail == (2.0, 1.0)
+        assert (env.task.goal_puck, env.task.goal_zone) == (2, 1)
+
+    def test_two_zones_running_are_two_pointings(self, gestures, env):
+        """Both clicks land on the table, so the body is 0 for each and only
+        *where* on it tells them apart. Without the click point in what counts
+        as a pick, the second zone would never register as one."""
+        pointer = Pointer(gestures)
+        pointer.sample(0, 0, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
+        for puck, zone in ((0, 0), (2, 1)):
+            named = body(env, f"puck_{puck}")
+            pointer.sample(0, named, (0.0, 0.0, 0.0), self.grip(env, f"puck_{puck}"))
+            pointer.sample(0, 0, zone_point(zone), zone_point(zone))
+            assert (env.task.goal_puck, env.task.goal_zone) == (puck, zone)
+
     def test_one_stream_carries_a_pick_and_a_drag_and_a_pick(
         self, gestures, recorder, env
     ):

@@ -493,7 +493,13 @@ class Pointer:
         """
         select = int(select)
         localpos = np.asarray(localpos, dtype=np.float64)
-        refselpos = np.asarray(refselpos, dtype=np.float64)
+        # Copied, not referenced: `np.asarray` does not copy, and `_Grab` holds
+        # `grabbed` for the whole life of the drag. A caller who hands over
+        # `viewer.perturb.refselpos` itself -- which is what the struct offers,
+        # and what this class's own example reads like -- would otherwise have
+        # the start of the drag follow the mouse, leaving `moved` identically
+        # zero and no drag ever firing.
+        refselpos = np.array(refselpos, dtype=np.float64)
         holding = active and select > 0
 
         fired: Event | None = None
@@ -517,9 +523,17 @@ class Pointer:
                 self._grab.reached = refselpos
 
         picked = (select, tuple(float(value) for value in localpos))
-        if fired is None and self._picked is not None and picked != self._picked:
-            fired = self.gestures.pick(select, self._point(select, localpos))
-        self._picked = picked
+        if fired is None:
+            if self._picked is not None and picked != self._picked:
+                fired = self.gestures.pick(select, self._point(select, localpos))
+            self._picked = picked
+        # A pick the release elbowed aside is **deferred, not dropped**. What
+        # was selected is left unlatched, so the next sample still reads it as
+        # a change and the pointing lands one tick late. Latching it here would
+        # lose it for good: the human would have named a puck the struct agrees
+        # is selected and this would never have seen it, so the zone click
+        # after it would retarget whichever puck was named before -- the wrong
+        # one, with a marker in the record saying otherwise.
         return fired
 
     def _release(self) -> Event | None:
