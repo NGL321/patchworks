@@ -193,7 +193,13 @@ def by_level(agent: Agent, per_component: torch.Tensor) -> list[float]:
 # -- characterise ----------------------------------------------------------
 
 
-def settle(agent: Agent, ticks: int, seed: int, window: int = 300):
+#: How many ticks at the end of a run the fixed point is read off. Long enough
+#: that a command still moving reads as still moving -- #120's own window, and
+#: the one its numbers are quoted over.
+WINDOW = 300
+
+
+def settle(agent: Agent, ticks: int, seed: int, window: int = WINDOW):
     """Run, and report what the last `window` ticks did."""
     poses, commands = [], []
     for outcome in run(agent, ticks, seed=seed):
@@ -214,9 +220,8 @@ def settle(agent: Agent, ticks: int, seed: int, window: int = 300):
 def characterise(domes, splits, seeds, ticks: int) -> None:
     """The fixed point across seeds, splits and domes."""
     for name in domes:
-        spec, _ = dome_named(name)
         limits = None
-        print(f"\n{name} dome, {ticks} ticks, last 300 summarised")
+        print(f"\n{name} dome, {ticks} ticks, last {min(ticks, WINDOW)} summarised")
         header = (
             f"  {'split':14s} {'seed':>4s}  {'pose':>26s}  {'at a stop':>9s}  "
             f"{'command':>28s}  {'command sd':>10s}  {'travel':>8s}  {'disagreement':>22s}"
