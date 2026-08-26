@@ -472,6 +472,7 @@ class TestTheMjpythonProblem:
         plan = cli.window_plan(
             "a.module",
             ("--seed=3",),
+            spoken_as="patchworks demo",
             platform="darwin",
             launcher=None,
             executable="/v/bin/python",
@@ -481,6 +482,38 @@ class TestTheMjpythonProblem:
         assert "/v/bin/python" in plan.refusal, "and where it looked"
         assert "pip" in plan.refusal, "and how to get one in the first place"
         assert "main thread" in plan.refusal, "and why, so it is not folklore"
+
+    def test_the_refusal_leads_with_the_command_the_human_typed(self):
+        """Not with the module path, which they have never seen and do not need.
+
+        Someone who ran `patchworks demo` should not have to work out that
+        `patchworks.surface.gestures` is the same thing. The module path is
+        still offered, below, for a worktree with no console script installed.
+        """
+        refusal = cli.window_plan(
+            "patchworks.surface.gestures",
+            (),
+            spoken_as="patchworks demo",
+            platform="darwin",
+            launcher=None,
+            executable="/v/bin/python",
+        ).refusal
+        first, _, rest = refusal.partition("\n")
+        assert "patchworks demo" in first
+        assert "patchworks.surface.gestures" not in first
+        assert "Then `patchworks demo` will work" in rest
+        assert "mjpython -m patchworks.surface.gestures" in rest
+
+    def test_the_demo_subcommand_says_its_own_name_in_a_refusal(self, monkeypatch):
+        seen = {}
+        monkeypatch.setattr(
+            cli,
+            "open_window",
+            lambda module, argv, *, spoken_as: seen.update(spoken_as=spoken_as) or 0,
+        )
+        arguments = cli.build_parser().parse_args(["demo"])
+        arguments.handler(arguments)
+        assert seen == {"spoken_as": "patchworks demo"}
 
     def test_launcher_none_means_there_is_none_not_go_and_look(self, monkeypatch):
         """The defect the suite found while this file was being written.
@@ -516,7 +549,11 @@ class TestTheMjpythonProblem:
         from that, not only the absence of a line.
         """
         seen = []
-        monkeypatch.setattr(cli, "open_window", lambda module, argv: seen.append((module, argv)) or 0)
+        monkeypatch.setattr(
+            cli,
+            "open_window",
+            lambda module, argv, *, spoken_as: seen.append((module, argv)) or 0,
+        )
         monkeypatch.delitem(sys.modules, "patchworks.surface.gestures", raising=False)
         arguments = cli.build_parser().parse_args(["demo", "--seed=2"])
         assert arguments.handler(arguments) == 0
@@ -536,7 +573,7 @@ class TestTheMjpythonProblem:
 
         monkeypatch.setattr(cli.os, "execv", fake_execv)
         with pytest.raises(SystemExit):
-            cli.open_window("m", ())
+            cli.open_window("m", (), spoken_as="patchworks demo")
         assert execed == [("/bin/x", ["/bin/x", "-m", "m"])]
 
     def test_a_refusal_goes_to_stderr_and_exits_one_without_exec(self, monkeypatch, capsys):
@@ -548,7 +585,7 @@ class TestTheMjpythonProblem:
             raise AssertionError("a refused window must not exec anything anyway")
 
         monkeypatch.setattr(cli.os, "execv", must_not_exec)
-        assert cli.open_window("m", ()) == 1
+        assert cli.open_window("m", (), spoken_as="patchworks demo") == 1
         captured = capsys.readouterr()
         assert "run this instead" in captured.err
         assert captured.out == ""

@@ -477,6 +477,7 @@ def window_plan(
     module: str,
     argv: tuple[str, ...],
     *,
+    spoken_as: str = "this",
     platform: str = sys.platform,
     launcher: Path | None | _Unset = _UNSET,
     executable: str = sys.executable,
@@ -492,6 +493,12 @@ def window_plan(
     there is none the refusal says what it is for, where it was looked for, how
     to get one, and what to run afterwards.
 
+    `spoken_as` is what the human typed — `patchworks demo` — as distinct from
+    `module`, which is what gets exec'd. The refusal leads with the first,
+    because someone who ran one command should not have to work out that the
+    thing being talked about is the same thing; the module path is offered
+    after it, for a worktree where there is no console script to run.
+
     Every input the decision turns on is an argument with a live default, so
     the rules can be exercised for a platform that is not the one running.
     """
@@ -501,29 +508,31 @@ def window_plan(
     if not needs_mjpython(platform):
         return WindowPlan(reexec=(executable, "-m", module, *argv))
     if launcher is None:
-        command = " ".join((MJPYTHON, "-m", module, *argv))
+        direct = " ".join((MJPYTHON, "-m", module, *argv))
         return WindowPlan(
             refusal=(
-                f"This opens a MuJoCo window, and on macOS a MuJoCo window has to own "
-                f"the process's main thread -- which only MuJoCo's `mjpython` launcher "
-                f"gives it.\n\n"
-                f"No `mjpython` was found beside {executable} or on PATH. It ships with "
-                f"the `mujoco` wheel, so installing the dependencies puts one there:\n\n"
+                f"`{spoken_as}` opens a MuJoCo window, and on macOS a MuJoCo window "
+                f"has to own the process's main thread -- which only MuJoCo's "
+                f"`mjpython` launcher gives it.\n\n"
+                f"No `mjpython` was found beside {executable} or on PATH. It ships "
+                f"with the `mujoco` wheel, so installing the dependencies puts one "
+                f"there:\n\n"
                 f"    {_venv_hint()}\n\n"
-                f"and then run:\n\n    {command}\n"
+                f"Then `{spoken_as}` will work. From a worktree, where there is no "
+                f"console script, the same thing is:\n\n    {direct}\n"
             )
         )
     return WindowPlan(reexec=(str(launcher), "-m", module, *argv))
 
 
-def open_window(module: str, argv: tuple[str, ...]) -> int:
+def open_window(module: str, argv: tuple[str, ...], *, spoken_as: str) -> int:
     """Carry out a :class:`WindowPlan`: exec, or print the refusal and fail.
 
     The exec replaces this process, so on the success path nothing after it
     runs and there is no exit code to return. The refusal goes to stderr and
     exits 1.
     """
-    plan = window_plan(module, argv)
+    plan = window_plan(module, argv, spoken_as=spoken_as)
     if plan.reexec:
         os.execv(plan.reexec[0], list(plan.reexec))
     print(plan.refusal, file=sys.stderr)
@@ -853,6 +862,7 @@ def _demo(arguments: argparse.Namespace) -> int:
             f"--seed={arguments.seed}",
             f"--split={arguments.split}",
         ),
+        spoken_as="patchworks demo",
     )
 
 
