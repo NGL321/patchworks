@@ -172,6 +172,18 @@ class TestWhatADragOnALinkDelivers:
         event = gestures.drag(dragged(env, "link0", (0.0, -0.06, 0.0), grip=(0.1, 0.0, 0.0)))
         assert event.detail[1] == pytest.approx(-0.06 * IMPULSE_PER_METRE)
 
+    def test_the_drag_is_scaled_by_the_feel_constant(self, recorder, env):
+        """The constant is 1.0, so every other assertion here would hold with
+        the scaling dropped entirely. This is the one that would not: a hand
+        built with a different feel delivers a proportionally different shove
+        from the very same pull."""
+        pull = dragged(env, "link0", (0.0, 0.06, 0.0), grip=(0.1, 0.0, 0.0))
+        default = Gestures(Hands(recorder)).drag(pull)
+        firmer = Gestures(Hands(recorder), impulse_per_metre=4.0).drag(pull)
+        assert default.detail[1] == pytest.approx(0.06 * IMPULSE_PER_METRE)
+        assert firmer.detail[1] == pytest.approx(0.06 * 4.0)
+        assert firmer.detail[1] == pytest.approx(4.0 * default.detail[1])
+
     def test_a_pull_along_the_link_delivers_nothing(self, gestures, env):
         """A hinge has no answer to a pull with no moment arm, and says zero."""
         event = gestures.drag(dragged(env, "link0", (0.06, 0.0, 0.0), grip=(0.1, 0.0, 0.0)))
