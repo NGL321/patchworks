@@ -817,9 +817,17 @@ class TestBothChecksRunInCI:
     def nested_under(self, block, key):
         """The entries indented under *every* `key` in a block, one list each.
 
-        Every, not the first: YAML puts no order on a mapping's keys, so a
-        second block of the same name is ordinary rather than exotic, and the
-        one that narrows the run is the one a first-match check stops short of.
+        Every, not the first. `block` flattens the whole tree, so one name
+        appears in it once per place it is written — and `env:` is written in
+        more than one place in an ordinary workflow: once on the step, once on
+        the job, at different depths and reaching the run by different paths.
+        A first-match walk returns whichever comes first in the file and stops,
+        which is how a job-level `env:` put *after* `steps:` slips through: the
+        step's own block satisfies the check, and the one carrying
+        `PYTEST_ADDOPTS` is never looked at. (Two of the same key at the same
+        depth is a different thing and not the case this is for — a duplicate
+        mapping key is a YAML spec violation that GitHub's parser rejects
+        outright, so it is not a quiet route into CI.)
         """
         found = []
         for position, (depth, text) in enumerate(block):
@@ -1072,17 +1080,22 @@ class TestTheWorkflowReaderRefusesWhatItNames:
 
     def test_every_block_of_a_name_is_returned_not_the_first(self, tmp_path):
         # `nested_under`'s whole point, and the real workflow cannot exercise
-        # it: `ci.yml` has one `env:`. A job-level `env:` written *after*
-        # `steps:` is route three of "the environment, four", and a first-match
-        # walk stops before reaching it while every other test stays green.
+        # it: `ci.yml` writes `env:` once. This is route three of "the
+        # environment, four" -- the step's own `env:` first, then a job-level
+        # one written *after* `steps:`, which GitHub hands to every step in the
+        # job. Two different keys at two different depths that share a name
+        # once `block` has flattened them, not a duplicate mapping key. A
+        # first-match walk is satisfied by the step's block and never reaches
+        # the one carrying `PYTEST_ADDOPTS`.
         reader = self.reader(
             tmp_path,
             "jobs:\n"
             "  test:\n"
-            "    env:\n"
-            "      MUJOCO_GL: osmesa\n"
             "    steps:\n"
-            "      - run: pytest\n"
+            "      - name: Run tests\n"
+            "        env:\n"
+            "          MUJOCO_GL: osmesa\n"
+            "        run: pytest\n"
             "    env:\n"
             "      PYTEST_ADDOPTS: -k nothing\n",
         )
@@ -1206,8 +1219,11 @@ class TestTheConftestReaderRefusesWhatNarrows:
     and a star import among the routes it holds down, and this is where that
     is checked rather than asserted.
 
-    `tests/conftest.py` exists on `action` as of #110, so the permitted case
-    below is the shape of a real file rather than an imagined one.
+    `tests/conftest.py` exists on `action` as of #110, which is what makes the
+    permitted case worth pinning. The source below is a superset of it rather
+    than a copy — #110's file is shared definitions only, with no `import
+    pytest` and no fixture in it — so it covers that file and the fixtures the
+    name leads a reader to expect.
     """
 
     def guard(self):
