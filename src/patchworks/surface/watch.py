@@ -109,7 +109,9 @@ def readout_for(panel: DomePanel, dome: Dome) -> PrivateComponentPanel:
     have (`PANEL_WIDTH`/`PANEL_HEIGHT`), which is the proportion the scatter was
     drawn to read at.
     """
-    return PrivateComponentPanel(dome, width=panel.width, height=max(16, panel.width // 2))
+    return PrivateComponentPanel(
+        dome, width=panel.width, height=max(16, panel.width // 2)
+    )
 
 
 def compose(dome_frame: np.ndarray, readout_frame: np.ndarray) -> np.ndarray:
@@ -354,24 +356,56 @@ def main(argv: list[str] | None = None) -> None:
 
     parser = argparse.ArgumentParser(
         prog="patchworks watch",
-        description="The dome panel, in a window: live beside the scene, or from a trace.",
+        description="The dome panel, in a window: live beside the scene, or "
+        "from a trace.",
     )
     parser.add_argument(
         "--replay",
         metavar="TRACE.npz",
         help="replay a saved trace instead of running live; no scene window, no agent",
     )
-    parser.add_argument("--ticks", type=int, default=100_000, help="live: how many ticks to run")
-    parser.add_argument("--seed", type=int, default=0, help="the run's seed; on replay, the body whose persistences the trail decays at")
-    parser.add_argument("--split", default="train", help="live: the sandbox's task split")
-    parser.add_argument("--save", metavar="TRACE.npz", help="live: write the run's trace here")
-    parser.add_argument("--fps", type=float, default=CAPTURE_HZ, help="replay: records a second; 0 for as fast as they come")
-    parser.add_argument("--pitch", type=int, default=DEFAULT_PITCH, help="pixels per lattice slot")
-    parser.add_argument("--scale", type=int, default=DEFAULT_SCALE, help="screen pixels per frame pixel")
-    parser.add_argument("--capture", type=int, default=IMAGE_SIZE, help="the scene render the boundary band is tiled from, in pixels")
-    parser.add_argument("--edges", action="store_true", help="draw the thresholded edge overlay")
-    parser.add_argument("--raw", action="store_true", help="the un-normalised prediction-error map, behind the debug flag")
-    parser.add_argument("--no-hold", action="store_true", help="close the panel window when the feed ends instead of leaving the last frame up")
+    add = parser.add_argument
+    add("--ticks", type=int, default=100_000, help="live: how many ticks to run")
+    add(
+        "--seed",
+        type=int,
+        default=0,
+        help="the run's seed; on replay, the body whose persistences the trail "
+        "decays at (a trace holds no biases)",
+    )
+    add("--split", default="train", help="live: the sandbox's task split")
+    add("--save", metavar="TRACE.npz", help="live: write the run's trace here")
+    add(
+        "--fps",
+        type=float,
+        default=CAPTURE_HZ,
+        help="replay: records a second; 0 for as fast as they come",
+    )
+    add("--pitch", type=int, default=DEFAULT_PITCH, help="pixels per lattice slot")
+    add(
+        "--scale",
+        type=int,
+        default=DEFAULT_SCALE,
+        help="screen pixels per frame pixel",
+    )
+    add(
+        "--capture",
+        type=int,
+        default=IMAGE_SIZE,
+        help="the scene render the boundary band is tiled from, in pixels",
+    )
+    add("--edges", action="store_true", help="draw the thresholded edge overlay")
+    add(
+        "--raw",
+        action="store_true",
+        help="the un-normalised prediction-error map, behind the debug flag",
+    )
+    add(
+        "--no-hold",
+        action="store_true",
+        help="close the panel window when the feed ends, rather than leaving the "
+        "last frame up until it is closed by hand",
+    )
     arguments = parser.parse_args(argv)
 
     common = dict(
@@ -386,7 +420,12 @@ def main(argv: list[str] | None = None) -> None:
     if arguments.replay is not None:
         replay(arguments.replay, fps=arguments.fps, **common)
     else:
-        live(ticks=arguments.ticks, split=arguments.split, save=arguments.save, **common)
+        live(
+            ticks=arguments.ticks,
+            split=arguments.split,
+            save=arguments.save,
+            **common,
+        )
 
 
 if __name__ == "__main__":

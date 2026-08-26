@@ -77,7 +77,7 @@ from typing import BinaryIO, Iterator
 
 import numpy as np
 
-__all__ = ["FrameWindow", "frames", "open_window", "serve"]
+__all__ = ["MAGIC", "FrameWindow", "frames", "open_window", "serve"]
 
 #: The stream's first eight bytes: a magic, then the frame shape. Every frame
 #: after it is exactly `height * width * 3` bytes of C-ordered RGB, and there is
@@ -162,11 +162,13 @@ class FrameWindow:
     of what this class does with it -- :func:`open_window` is the one that knows
     about a child, and a test hands in a pipe instead.
 
-    **:meth:`show` never blocks and never raises.** It leaves the frame in a
-    mailbox of one and returns; a sender thread writes whatever is in the
-    mailbox down the stream, and a frame that arrives while one is still waiting
-    replaces it. So the caller's pace is its own, and a window that has stopped
-    reading costs frames rather than ticks. :attr:`dropped` counts them.
+    **:meth:`show` never blocks, and nothing the display does makes it raise.**
+    It leaves the frame in a mailbox of one and returns; a sender thread writes
+    whatever is in the mailbox down the stream, and a frame that arrives while
+    one is still waiting replaces it. So the caller's pace is its own, and a
+    window that has stopped reading costs frames rather than ticks
+    (:attr:`dropped` counts them). What it *does* raise on is a frame of the
+    wrong shape, which is the caller's mistake and not the window's state.
     """
 
     def __init__(
@@ -179,7 +181,9 @@ class FrameWindow:
     ) -> None:
         for name, size in (("height", height), ("width", width)):
             if isinstance(size, bool) or not isinstance(size, int) or size < 1:
-                raise ValueError(f"a frame is a positive number of pixels {name}; got {size!r}")
+                raise ValueError(
+                    f"a frame is a positive number of pixels {name}; got {size!r}"
+                )
         if height > 0xFFFF or width > 0xFFFF:
             raise ValueError(
                 f"a frame stream carries a shape in two 16-bit fields, so a frame is "
@@ -191,7 +195,6 @@ class FrameWindow:
         """Frames :meth:`show` was handed while an unsent one was still waiting."""
         self._stream = stream
         self._process = process
-        self._bytes = height * width * 3
         self._state = threading.Condition()
         self._pending: bytes | None = None
         self._stopping = False
@@ -204,12 +207,17 @@ class FrameWindow:
             stream.flush()
         except (BrokenPipeError, OSError, ValueError):
             self._closed = True
-        self._sender = threading.Thread(target=self._send, name="patchworks-frames", daemon=True)
+        self._sender = threading.Thread(
+            target=self._send, name="patchworks-frames", daemon=True
+        )
         self._sender.start()
 
     def __repr__(self) -> str:
         state = "closed" if self._closed else "open"
-        return f"FrameWindow({self.width}x{self.height}, {state}, {self.dropped} dropped)"
+        return (
+            f"FrameWindow({self.width}x{self.height}, {state}, "
+            f"{self.dropped} dropped)"
+        )
 
     def __enter__(self) -> "FrameWindow":
         return self
@@ -245,9 +253,9 @@ class FrameWindow:
         array = np.asarray(frame)
         if array.dtype != np.uint8 or array.shape != (self.height, self.width, 3):
             raise ValueError(
-                f"this window draws {self.height}x{self.width} uint8 RGB frames and was "
-                f"handed {array.shape} of {array.dtype}. A window's frame size is fixed "
-                "when it opens, as a panel's is."
+                f"this window draws {self.height}x{self.width} uint8 RGB frames "
+                f"and was handed {array.shape} of {array.dtype}. A window's frame "
+                "size is fixed when it opens, as a panel's is."
             )
         payload = np.ascontiguousarray(array).tobytes()
         with self._state:
@@ -350,7 +358,10 @@ def open_window(
     dispatch `mjpython` exists to provide.
     """
     if isinstance(scale, bool) or not isinstance(scale, int) or scale < 1:
-        raise ValueError(f"a window opens at a whole number of screen pixels per frame pixel >= 1; got {scale!r}")
+        raise ValueError(
+            "a window opens at a whole number of screen pixels per frame pixel, at "
+            f"least 1; got {scale!r}"
+        )
     command = [
         executable or sys.executable,
         os.path.abspath(__file__),
@@ -391,7 +402,10 @@ def serve(stream: BinaryIO, *, title: str = "patchworks", scale: int = 2) -> int
     from OpenGL import GL
 
     if not glfw.init():
-        print("could not initialise GLFW; the panel window cannot open", file=sys.stderr)
+        print(
+            "could not initialise GLFW; the panel window cannot open",
+            file=sys.stderr,
+        )
         return 1
 
     state = threading.Condition()
@@ -497,7 +511,9 @@ def main(argv: list[str] | None = None) -> int:
     """
     import argparse
 
-    parser = argparse.ArgumentParser(description="Draw a patchworks frame stream from stdin.")
+    parser = argparse.ArgumentParser(
+        description="Draw a patchworks frame stream from stdin."
+    )
     parser.add_argument("--title", default="patchworks")
     parser.add_argument("--scale", type=int, default=2)
     arguments = parser.parse_args(argv)
