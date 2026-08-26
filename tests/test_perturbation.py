@@ -68,6 +68,7 @@ untouched — left every test here passing, which is the other half of the
 reading: this guard is falsifiable rather than merely tight.
 """
 
+import ast
 import copy
 from pathlib import Path
 
@@ -697,25 +698,113 @@ class TestBothChecksRunInCI:
     that table inert — and an unfinishable blacklist that reads as complete is
     worse than none. So each assertion below pins the small number of shapes
     *known* to run the whole suite on every push: the trigger, the invocation,
-    the step's environment, and every configuration file pytest would read.
-    Anything else fails here and has to be re-argued rather than slipping past.
-    The one thing outside their reach is the run never starting at all — a
-    runner outage, or the workflow file deleted — and neither of those is
-    silent.
+    every environment block that reaches it, the workflow's top-level keys, and
+    every configuration file pytest would read. Anything else fails here and
+    has to be re-argued rather than slipping past.
 
-    Kill-tested against seventeen ways of narrowing the run: `-k`, a positional
-    path, `--collect-only`, `|| true`, `python -m pytest`, `continue-on-error`
-    and a step-level `if:` both as an ordinary key **and as a sequence item's
-    first key**, where the leading `- ` would hide them from a naive match;
-    `PYTEST_ADDOPTS` beside `MUJOCO_GL`; a `branches:` filter under `push:`;
-    `push:` removed; an `addopts`, a narrowed `testpaths`, and a
-    `norecursedirs` in `pyproject.toml`; a root `pytest.ini` that takes
-    precedence over it; and a `conftest.py` with a `collect_ignore`. All
-    seventeen fail here, and a fixtures-only `conftest.py` — the one shape of
-    that file which narrows nothing — still passes. So does a harmless `-q`
-    *not*: the cost of the design is that a benign edit to the invocation has
-    to come with an edit to this class, which is the whitelist working rather
-    than a false positive.
+    **What is outside their reach**, stated because a whitelist that reads as
+    complete and is not would be this file's own failure mode: the run never
+    starting at all — a runner outage, or the workflow file deleted — neither
+    of which is silent; and two shapes that are, both found while closing the
+    routes below and both left open rather than chosen alone (#109). A step
+    earlier in the job can write `PYTEST_ADDOPTS` into `$GITHUB_ENV`, which
+    reaches the pytest step with no `env:` block anywhere for the check below
+    to see. And a `defaults: run: shell:` under `jobs:` replaces the shell
+    `run: pytest` is handed to, so that line can be pinned exactly here and
+    still never run pytest. Refusing either means pinning every `run:` line
+    and every key under `jobs:` — a wider whitelist than #90 argued for, and a
+    decision about this class rather than a gap in it.
+
+    And these checks read lines rather than parsed YAML, so a spelling of a
+    key that no text match recognises gets past them until a clause is added
+    for it. Two are closed in `block` — the flow mapping and the quoted key —
+    and **five are open, every one of them reproduced**. Four are spellings of
+    the key itself. Each of these, written under the job and carrying
+    `PYTEST_ADDOPTS: -k nothing`, passes all five assertions here while
+    reaching the step:
+
+        env:  # any trailing comment at all
+        env :
+        !!str env:
+        ? env
+        :
+
+    The fifth is the whitespace after a sequence item's dash. `block` strips
+    the exact text `- `, so a gate written with two or more spaces is left
+    unnormalised and reaches the checks in a spelling they do not match:
+
+        -  if: false
+           name: Run tests
+
+    Two spaces rather than one — or three, or any number. Each parses to the
+    key `if` and skips the step with all five assertions green. A **tab**
+    after the dash is *not* in this class: YAML refuses it outright, "found
+    character that cannot start any token", so it fails at the parser and
+    loudly rather than here and quietly.
+
+    All four of the key spellings parse to the key `env` under a real YAML
+    parser, which is what "reaching the step" rests on. For the first two that
+    settles it. For `!!str env:` and the explicit key it settles the YAML and
+    not GitHub's own workflow parser, which cannot be exercised from this
+    repository without pushing a branch — so those two carry that caveat, and
+    the escalation should not be read as claiming more.
+
+    They are left open on purpose, and #109 escalates them rather than adding
+    a clause for each. Three were found in a single review round, and the
+    fifth in the round after that, each round following one that had closed
+    the spelling before it. That is the answer to whether reading lines can be
+    finished by adding clauses. It cannot: these checks match key text, YAML
+    has more ways to spell a key than anyone enumerates in advance, and each
+    clause added leaves this file reading more finished than it is. The repair
+    is to parse the workflow, which is immune to the whole class at once
+    rather than to one spelling of it — and that means a YAML parser, which
+    the dev extra does not name (`pytest` is all of it) and which nothing
+    installs on its own: neither `torch`, `mujoco`, `gymnasium`, `numpy` nor
+    `pytest` pulls one in, so `import yaml` fails in this environment today.
+    So it is a real dependency decision rather than a free one, and #109
+    carries it rather than this class taking it in passing.
+
+    **Which is how the list below should be read.** These five assertions hold
+    down every route that does not turn on a novel spelling of a key. That is
+    the thirty-eight named here, each one kill-tested on its own — written
+    into this repository, the five assertions run against it, and the route
+    caught. It is not every route there is, and the five spellings above are
+    the ones known to be outside it.
+
+    The thirty-eight, by where they reach. **The invocation**, five: `-k`, a
+    positional path, `--collect-only`, `|| true`, `python -m pytest`. **A gate
+    on the step**, four: `continue-on-error` and a step-level `if:`, each as
+    an ordinary key *and as a sequence item's first key*, where the leading
+    `- ` would hide it from a naive match — with the one space this workflow
+    and YAML's own style use, which is the spelling that is closed.
+    **The environment**, four: `PYTEST_ADDOPTS` in the step's `env:`, in a
+    job-level `env:` written *after* `steps:`, in a workflow-level `env:`
+    above `jobs:`, and in a job-level flow mapping, `env: {PYTEST_ADDOPTS: …}`
+    — those last three reach the step as surely as the step's own block, and
+    none of them is the first `env:` in the file, the last not even spelled
+    `env:`. **The trigger**, two: a `branches:` filter under `push:`, and
+    `push:` removed.
+    **A quoted key**, four — the same key written so that no text match sees
+    it: the job's `env:` in double quotes and in single, the step's
+    `continue-on-error:`, and its `if:`. **The rootdir configuration**, three:
+    an `addopts`, a narrowed `testpaths`, and a `norecursedirs` in
+    `pyproject.toml`. **A file that outranks or rivals that table**, six —
+    `pytest.toml`, `.pytest.toml`, `pytest.ini`, `.pytest.ini`, `tox.ini`,
+    `setup.cfg` — each carrying a narrowing configuration. And **a
+    `conftest.py` narrowing collection**, ten: in `tests/conftest.py`, a
+    `collect_ignore`, a `collect_ignore_glob`, a `pytest_ignore_collect` and a
+    `pytest_collection_modifyitems`; that last hook again in a sub-directory
+    of `tests`, where it is handed the whole item list just the same; either
+    hook reached by `import` rather than by `def`; the star import that binds
+    one while naming nothing; a `match` statement's capture pattern, which
+    binds the hook name without an assignment anywhere; and a root
+    `conftest.py`.
+
+    All thirty-eight fail here. A fixtures-only `conftest.py` — the one shape
+    of that file which narrows nothing — still passes, `tests/conftest.py` as
+    #110 wrote it included. So does a harmless `-q` *not*: the cost of the
+    design is that a benign edit to the invocation has to come with an edit to
+    this class, which is the whitelist working rather than a false positive.
     """
 
     ROOT = Path(__file__).resolve().parents[1]
@@ -731,10 +820,34 @@ class TestBothChecksRunInCI:
     #: would narrow the run from outside the invocation entirely.
     PERMITTED_ENVIRONMENT = ["MUJOCO_GL: osmesa"]
 
+    #: The workflow's top-level keys, pinned. An `env:` here is inherited by
+    #: every step of every job, so it reaches the run as surely as the step's
+    #: own -- and it sits above `jobs:`, where a check that walked the job
+    #: would never see it. Whitelisted rather than named, because `defaults:`
+    #: reaches the run too, through the shell it wraps `run:` in.
+    #:
+    #: Compared as a **multiset** rather than in this order. YAML puts no
+    #: order on a mapping's keys, so moving `concurrency:` above `on:` changes
+    #: nothing about what runs -- and an ordered comparison would fail that
+    #: edit while reporting it as an environment finding. Sorting both sides
+    #: still catches a key added, a key removed, and a key written twice,
+    #: which is every bit of the guarding this pin is for.
+    PERMITTED_WORKFLOW_KEYS = ("name", "on", "concurrency", "jobs")
+
     #: The other files pytest reads a rootdir configuration from, in the order
-    #: it prefers them. Any one of these outranks `pyproject.toml`'s table and
-    #: would make the whitelist above inert.
-    RIVAL_CONFIGURATIONS = ("pytest.ini", "tox.ini", "setup.cfg")
+    #: it prefers them -- `pyproject.toml` sits between the fourth and the
+    #: fifth. Any one of these outranks or displaces `pyproject.toml`'s table
+    #: and would make the whitelist above inert. The dotted spellings are read
+    #: exactly as the undotted ones are, and the `.toml` pair outranks
+    #: everything here.
+    RIVAL_CONFIGURATIONS = (
+        "pytest.toml",
+        ".pytest.toml",
+        "pytest.ini",
+        ".pytest.ini",
+        "tox.ini",
+        "setup.cfg",
+    )
 
     @property
     def lines(self):
@@ -743,11 +856,57 @@ class TestBothChecksRunInCI:
     def block(self, key):
         """The YAML under a top-level `key:`, as `(indent, text)` pairs.
 
-        Comments are dropped — they are not configuration, and a comment that
-        happened to read `run: pytest` should not satisfy anything here. The
+        Whole-line comments are dropped — they are not configuration, and a
+        comment that happened to read `run: pytest` should not satisfy anything
+        here. A **trailing** comment is not dropped, and that is one of the
+        open spellings the class docstring lists rather than a detail: it
+        leaves `env:  # a note` recorded with the comment attached, which is
+        not the text `env:` that the checks match on. The
         leading `- ` of a sequence item is stripped too: YAML lets any mapping
         key go first in a sequence item, so `- if:` and `if:` are the same key
         and a check that only knew the second spelling would miss the first.
+        **Exactly that text, one space.** `-  if:` — two spaces, or more — is
+        the same key again and is not normalised here. That is the fifth open
+        spelling the class docstring records, and it is open for the reason
+        the other four are, not because a wider strip would be hard. A tab
+        after the dash is not part of it: YAML rejects that outright, so it
+        cannot be a quiet route.
+
+        Stripping the dash also leaves the recorded depth two columns left of
+        the item's own siblings, since the depth is the line's raw indent. So
+        a step that put `env:` first — `- env:` — would have its `name:` and
+        `run:` read as nested under that `env:`, and
+        `test_nothing_reaches_the_run_through_its_environment` would fail on a
+        reflow that narrows nothing, blaming the environment. It fails closed,
+        which is the safe direction, and it is listed here rather than fixed
+        because the fix and the strip above are one decision about how this
+        helper normalises a sequence item — the decision #109 escalates.
+
+        Two spellings are refused outright rather than parsed, because each
+        writes a key the checks below would not recognise as that key -- and
+        those checks all match on key text. A **flow mapping**, `env: {A: b}`,
+        writes the key with its value inline, so the text recorded here is not
+        `env:`; braces are refused wholesale, which takes GitHub's `${{ }}`
+        expressions with them. A **quoted key**, `"env":` or `'env':`, is the
+        same key in a spelling no `== "env:"` matches, and it hides a step's
+        `"continue-on-error":` from a `startswith` just as well. This workflow
+        needs neither, so both get the whitelist's usual answer: fail, and be
+        re-argued.
+
+        A quoted **key** is what is refused, and not every line that opens with
+        a quote: what marks the key is the closing quote with a colon after it,
+        so `- "3.12"` under a `python-version:` stays permitted. It is an
+        ordinary scalar, it hides no key from anything, and refusing it would
+        be a false positive dressed as a finding.
+        :class:`TestTheWorkflowReaderRefusesWhatItNames` holds both
+        halves of that distinction down.
+
+        **These are a class rather than a list, and reading lines cannot
+        finish it.** Five more spellings are open: three found in a single
+        review round after the two above were closed, and one more in the
+        round after that. The class docstring lists them, and makes the
+        argument they add up to: parse the file rather than add a clause here
+        for each.
         """
         lines = self.lines
         block = []
@@ -757,22 +916,154 @@ class TestBothChecksRunInCI:
             text = line.strip()
             if not text or text.startswith("#"):
                 continue
-            block.append((len(line) - len(line.lstrip()), text.removeprefix("- ")))
+            text = text.removeprefix("- ")
+            if text[:1] in ('"', "'"):
+                # A quoted *key* -- the closing quote followed by its colon.
+                # A quoted scalar is not one: `- "3.12"` under a
+                # `python-version:` is an ordinary sequence item, and refusing
+                # it would be a false positive dressed as a finding.
+                closed = text.find(text[0], 1)
+                after = text[closed + 1 :].lstrip() if closed != -1 else ""
+                assert not after.startswith(":"), f"quoted key under {key}: {text}"
+            assert "{" not in text, (
+                f"braces under {key}: {text} — a flow mapping hides the key "
+                f"from every check here, and an expression goes with it"
+            )
+            block.append((len(line) - len(line.lstrip()), text))
         return block
 
     def nested_under(self, block, key):
-        """The text of the entries indented under the first `key` in a block."""
-        depth, position = next(
-            (depth, position)
-            for position, (depth, text) in enumerate(block)
-            if text == key
+        """The entries indented under *every* `key` in a block, one list each.
+
+        Every, not the first. `block` flattens the whole tree, so one name
+        appears in it once per place it is written — and `env:` is written in
+        more than one place in an ordinary workflow: once on the step, once on
+        the job, at different depths and reaching the run by different paths.
+        A first-match walk returns whichever comes first in the file and stops,
+        which is how a job-level `env:` put *after* `steps:` slips through: the
+        step's own block satisfies the check, and the one carrying
+        `PYTEST_ADDOPTS` is never looked at. (Two of the same key at the same
+        depth is a different thing and not the case this is for — a duplicate
+        mapping key is a YAML spec violation that GitHub's parser rejects
+        outright, so it is not a quiet route into CI.)
+        """
+        found = []
+        for position, (depth, text) in enumerate(block):
+            if text != key:
+                continue
+            nested = []
+            for entry_depth, entry_text in block[position + 1 :]:
+                if entry_depth <= depth:
+                    break
+                nested.append(entry_text)
+            found.append(nested)
+        return found
+
+    @property
+    def top_level_keys(self):
+        """The workflow's keys at column zero, in order."""
+        return tuple(
+            line.split(":", 1)[0]
+            for line in self.lines
+            if line and not line[0].isspace() and not line.startswith("#")
         )
-        nested = []
-        for entry_depth, text in block[position + 1 :]:
-            if entry_depth <= depth:
-                break
-            nested.append(text)
-        return nested
+
+    def names_bound_by(self, source):
+        """Every name a module binds: `def`, `class`, assignment, **import**.
+
+        Import included because pytest reads hooks as attributes of the
+        imported module and does not care how they got there: `from _hooks
+        import pytest_ignore_collect` binds the attribute as surely as a `def`
+        does. At any depth, too — a hook defined inside an `if` is a hook.
+
+        A star import binds whatever the imported module holds, which cannot be
+        read off this file, and is recorded as `*` for the caller to refuse.
+
+        **This list is finishable, and that is why it is a list.** The spellings
+        `block` refuses are YAML key text, which nothing enumerates in advance;
+        the binding forms here are Python grammar, which `ast` enumerates for
+        us. So they are all named rather than sampled: the three statements
+        above, a `Name` in `Store` context — which covers assignment, `for`,
+        `with … as`, and the walrus — an import alias, the three capture
+        patterns of a `match` statement, and an `except … as`. A capture
+        pattern is the one that matters: `case pytest_ignore_collect:` binds
+        that name at module scope and pytest reads the hook, which a walk over
+        `Name` nodes never sees, because `MatchAs.name` is a bare string rather
+        than a node. The `except … as` name is unbound again at the end of its
+        handler and so cannot carry a hook; it is refused anyway, because the
+        caller's rule is about the prefix rather than about reachability.
+
+        **One form is left out on purpose**: a parameter, `ast.arg`. Not on the
+        principle that it is local — local bindings *are* read, and the caller
+        refuses a `pytest_tmp` inside a helper body, which the comment there
+        owns as a cost. It is the trade that differs. A local assignment could
+        in principle be the line that binds a hook; a parameter never reaches
+        the module's attributes at all, so reading it would refuse a helper
+        that happened to take a `pytest_`-prefixed argument and catch nothing
+        in exchange. That is a cost with no matching benefit, which is the one
+        kind this whitelist does decline.
+        """
+        names = set()
+        for node in ast.walk(ast.parse(source)):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                names.add(node.name)
+            elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+                names.add(node.id)
+            elif isinstance(node, ast.alias):
+                names.add(node.asname or node.name.split(".")[0])
+            elif isinstance(node, (ast.MatchAs, ast.MatchStar, ast.ExceptHandler)):
+                if node.name:
+                    names.add(node.name)
+            elif isinstance(node, ast.MatchMapping) and node.rest:
+                names.add(node.rest)
+        return names
+
+    def conftests_under(self, root):
+        """Every `conftest.py` pytest would import, given the pinned paths.
+
+        The rootdir's own, and the whole `tests` tree: a
+        `pytest_collection_modifyitems` is a session hook wherever it sits, and
+        one in a sub-directory is handed the whole item list just the same. So
+        the walk is recursive rather than the two obvious paths.
+
+        It stops at that tree deliberately rather than sweeping the repository.
+        A checkout holding worktrees would otherwise read other checkouts --
+        their conftests are not this run's, and refusing them would make this
+        assertion fail for a reason that has nothing to do with CI. The
+        `testpaths = ["tests"]` pinned just above is what makes that safe:
+        collection never leaves the rootdir and that tree.
+
+        Only files that exist are returned, so the caller does not re-check.
+        """
+        found = [root / "conftest.py", *sorted((root / "tests").rglob("conftest.py"))]
+        return [conftest for conftest in found if conftest.exists()]
+
+    def refuse_narrowing(self, source, where="conftest.py"):
+        """Fail unless *source* is a `conftest.py` that narrows nothing.
+
+        A fixtures-only `conftest.py` is fine and this should not be the thing
+        standing in its way; what narrows collection is the `collect_ignore`
+        pair and pytest's hooks. So the file may bind what it likes except a
+        name pytest itself reads: every `pytest_` hook rather than the two that
+        narrow collection today, because `pytest_ignore_collect` and
+        `pytest_collection_modifyitems` are a list that the next release can
+        add to, and `pytest_plugins` loads a file that can carry any of them.
+
+        Fixtures are decorated rather than named, so the shape this permits is
+        untouched -- but the prefix is refused at every depth and in every
+        binding form, which refuses benign names too: `import pytest_asyncio`,
+        or a local `pytest_tmp` inside a helper. That is the whitelist's usual
+        cost rather than an oversight. What it cannot reach is a hook bound
+        past the syntax -- `globals()[...] = hook` -- which is evasion, and
+        this class is built against the quiet edit.
+        """
+        assert "collect_ignore" not in source, f"collect_ignore in {where}"
+        names = self.names_bound_by(source)
+        # `from _hooks import *` binds the hook while naming nothing, and a
+        # conftest has no benign use for the spelling.
+        assert "*" not in names, f"{where} imports *"
+        for name in names:
+            assert not name.startswith("pytest_"), f"{name} in {where}"
 
     def test_the_workflow_runs_on_every_push(self):
         # `push` a direct child of `on:`, and nothing nested under it: a
@@ -781,7 +1072,7 @@ class TestBothChecksRunInCI:
         entries = self.block("on")
         indent = min(depth for depth, _ in entries)
         assert (indent, "push:") in entries
-        assert self.nested_under(entries, "push:") == []
+        assert self.nested_under(entries, "push:") == [[]]
 
     def test_the_suite_runs_whole_and_unfiltered(self):
         # The invocation is pinned exactly. Every way of narrowing it -- a
@@ -794,7 +1085,18 @@ class TestBothChecksRunInCI:
         # pytest reads `PYTEST_ADDOPTS` from the environment, so an entry here
         # narrows the run without touching the invocation at all. The one
         # variable the suite needs is the software GL context.
-        assert self.nested_under(self.block("jobs"), "env:") == self.PERMITTED_ENVIRONMENT
+        #
+        # Every `env:` under `jobs:`, not the first one: GitHub hands a
+        # job-level block to every step in the job, and YAML is happy to have
+        # it written after `steps:`, past the point a first-match check stops.
+        jobs = self.block("jobs")
+        assert self.nested_under(jobs, "env:") == [self.PERMITTED_ENVIRONMENT]
+        # And the level above, which `jobs:` does not contain: a workflow-level
+        # `env:` reaches every step of every job. The top-level keys are pinned
+        # rather than that one name refused, so it has nowhere to land. Sorted
+        # on both sides -- see `PERMITTED_WORKFLOW_KEYS`, which says why the
+        # order is not part of the pin.
+        assert sorted(self.top_level_keys) == sorted(self.PERMITTED_WORKFLOW_KEYS)
 
     def test_nothing_lets_a_failing_step_pass(self):
         # `continue-on-error` at either level, and an `if:` that would skip the
@@ -823,11 +1125,276 @@ class TestBothChecksRunInCI:
         # `conftest.py` pytest imports on its own.
         for name in self.RIVAL_CONFIGURATIONS:
             assert not (self.ROOT / name).exists()
-        for directory in (self.ROOT, self.ROOT / "tests"):
-            conftest = directory / "conftest.py"
-            if conftest.exists():
-                # A fixtures-only `conftest.py` is fine and this should not be
-                # the thing standing in its way; what narrows collection is
-                # these two hooks.
-                text = conftest.read_text()
-                assert "collect_ignore" not in text
+        # And every `conftest.py` pytest would import.
+        for conftest in self.conftests_under(self.ROOT):
+            self.refuse_narrowing(conftest.read_text(), conftest)
+
+
+class TestTheWorkflowReaderRefusesWhatItNames:
+    """The reader's own clauses, against a synthetic workflow.
+
+    Split out from :class:`TestBothChecksRunInCI` rather than added to it: the
+    five assertions there are the whitelist itself, read off this repository's
+    own files, and these read a workflow written for the occasion. Each clause
+    that refuses something gets a test here, so that deleting the clause goes
+    red in this suite rather than in a later review round -- which is not
+    hypothetical: the quoted-key clause had that cover and the braces clause
+    did not, and the braces clause could be deleted with every other test in
+    this file still green.
+
+    The quoted key is the one with a distinction to keep. `"env":` is the key
+    `env` written so that no `== "env:"` sees it, and is refused. `- "3.12"` is
+    an ordinary string that happens to begin with a quote, hides no key from
+    anything, and is permitted -- a clause that refused it too would report a
+    benign line as a finding, which is a false positive dressed as a guard.
+
+    The last test is the same concern one level up: the workflow's top-level
+    keys are pinned as a multiset, so reordering them is not a finding either.
+    """
+
+    def reader(self, tmp_path, workflow):
+        """A :class:`TestBothChecksRunInCI` reading *workflow*, not `ci.yml`."""
+        path = tmp_path / "ci.yml"
+        path.write_text(workflow)
+        reader = TestBothChecksRunInCI()
+        reader.WORKFLOW = path
+        return reader
+
+    def test_a_quoted_scalar_is_not_a_quoted_key(self, tmp_path):
+        # The shape this repository's own workflow would reach for if the
+        # `python-version:` under `setup-python` ever listed more than one:
+        # sequence items that are quoted strings, in either quote.
+        reader = self.reader(
+            tmp_path,
+            'jobs:\n'
+            '  test:\n'
+            '    with:\n'
+            '      python-version:\n'
+            '        - "3.12"\n'
+            "        - '3.13'\n",
+        )
+        recorded = [text for _, text in reader.block("jobs")]
+        assert '"3.12"' in recorded and "'3.13'" in recorded
+
+    def test_a_quoted_key_is_refused_in_either_quote(self, tmp_path):
+        # Each of these is a key the checks in `TestBothChecksRunInCI` match on
+        # by text, written so that the text is not the one they match.
+        spellings = ('"env":', "'env':", '"continue-on-error": true', "'if': false")
+        for spelling in spellings:
+            reader = self.reader(tmp_path, f"jobs:\n  test:\n    {spelling}\n")
+            with pytest.raises(AssertionError, match="quoted key"):
+                reader.block("jobs")
+
+    def test_a_flow_mapping_is_refused(self, tmp_path):
+        # The quoted key's sibling clause. It writes the key with its value
+        # inline, so the text recorded is not `env:` and every check that
+        # matches on key text misses it -- which is the job-level
+        # `env: {PYTEST_ADDOPTS: ...}` route, one of the thirty-eight.
+        reader = self.reader(
+            tmp_path, "jobs:\n  test:\n    env: {PYTEST_ADDOPTS: -k nothing}\n"
+        )
+        with pytest.raises(AssertionError, match="braces under"):
+            reader.block("jobs")
+
+    def test_every_block_of_a_name_is_returned_not_the_first(self, tmp_path):
+        # `nested_under`'s whole point, and the real workflow cannot exercise
+        # it: `ci.yml` writes `env:` once. This is route three of "the
+        # environment, four" -- the step's own `env:` first, then a job-level
+        # one written *after* `steps:`, which GitHub hands to every step in the
+        # job. Two different keys at two different depths that share a name
+        # once `block` has flattened them, not a duplicate mapping key. A
+        # first-match walk is satisfied by the step's block and never reaches
+        # the one carrying `PYTEST_ADDOPTS`.
+        reader = self.reader(
+            tmp_path,
+            "jobs:\n"
+            "  test:\n"
+            "    steps:\n"
+            "      - name: Run tests\n"
+            "        env:\n"
+            "          MUJOCO_GL: osmesa\n"
+            "        run: pytest\n"
+            "    env:\n"
+            "      PYTEST_ADDOPTS: -k nothing\n",
+        )
+        assert reader.nested_under(reader.block("jobs"), "env:") == [
+            ["MUJOCO_GL: osmesa"],
+            ["PYTEST_ADDOPTS: -k nothing"],
+        ]
+
+    def test_the_top_level_keys_are_pinned_without_their_order(self, tmp_path):
+        # Reordering a mapping changes nothing about what runs, so it is not a
+        # finding -- but a key added, removed, or repeated still is.
+        keys = TestBothChecksRunInCI.PERMITTED_WORKFLOW_KEYS
+        reordered = "concurrency:\n  a: 1\njobs:\n  b: 2\nname: CI\non:\n  push:\n"
+        assert sorted(self.reader(tmp_path, reordered).top_level_keys) == sorted(keys)
+        added = reordered + "env:\n  C: d\n"
+        removed = reordered.replace("name: CI\n", "")
+        for broken in (added, removed):
+            assert sorted(self.reader(tmp_path, broken).top_level_keys) != sorted(keys)
+
+
+class TestEveryModuleAttributeBindingIsRead:
+    """`names_bound_by` reads every form that binds a **module attribute**.
+
+    A companion to :class:`TestTheWorkflowReaderRefusesWhatItNames`, and the
+    counterpart to what that class's docstring escalates. The YAML spellings
+    `block` matches cannot be enumerated in advance; these forms can, because
+    `ast` is a closed grammar — so this is a list that can be finished, and a
+    test that can check it is.
+
+    A module attribute rather than every name the grammar binds: a parameter
+    is a binding and is deliberately not read. Not because it is local —
+    local names are read, and refusing them is a documented cost — but because
+    a parameter can never become an attribute of the module, so reading it
+    would buy nothing for the benign helpers it would refuse.
+
+    The form that carries a hook is the `match` capture pattern:
+    `case pytest_ignore_collect:` binds that name at module scope and pytest
+    reads the hook off it, while `ast.MatchAs.name` is a bare string that no
+    walk over `Name` nodes ever reaches.
+    """
+
+    def bound(self, source):
+        return TestBothChecksRunInCI().names_bound_by(source)
+
+    def test_a_match_capture_pattern_binds_the_name_it_writes(self):
+        # The live route: pytest honours a hook bound this way -- verified by
+        # running a `conftest.py` of exactly this shape against a two-file
+        # suite and watching one file go uncollected.
+        source = (
+            "from _hooks import hook\n"
+            "match hook:\n"
+            "    case pytest_ignore_collect:\n"
+            "        pass\n"
+        )
+        assert "pytest_ignore_collect" in self.bound(source)
+
+    def test_the_other_capture_patterns_bind_too(self):
+        # A sequence pattern's rest and a mapping pattern's rest are the same
+        # binding written two other ways.
+        assert "pytest_a" in self.bound(
+            "match x:\n    case [*pytest_a]:\n        pass\n"
+        )
+        assert "pytest_b" in self.bound(
+            "match x:\n    case {1: v, **pytest_b}:\n        pass\n"
+        )
+
+    def test_an_except_handler_binds_its_name(self):
+        # Unbound again at the end of the handler, so it cannot carry a hook.
+        # Read anyway: the caller's rule is about the prefix, not reachability.
+        source = "try:\n    pass\nexcept ValueError as pytest_c:\n    pass\n"
+        assert "pytest_c" in self.bound(source)
+
+    def test_the_forms_that_were_already_read_still_are(self):
+        source = (
+            "import pytest_plugin_one\n"
+            "from _hooks import pytest_ignore_collect\n"
+            "def pytest_collection_modifyitems(config, items): pass\n"
+            "class pytest_klass: pass\n"
+            "pytest_assigned = 1\n"
+            "for pytest_loop in ():\n"
+            "    pass\n"
+            "with open('x') as pytest_ctx:\n"
+            "    pass\n"
+        )
+        assert {
+            "pytest_plugin_one",
+            "pytest_ignore_collect",
+            "pytest_collection_modifyitems",
+            "pytest_klass",
+            "pytest_assigned",
+            "pytest_loop",
+            "pytest_ctx",
+        } <= self.bound(source)
+
+    def test_a_parameter_is_not_a_module_attribute(self):
+        # Left out on purpose: a parameter cannot be an attribute of the
+        # module, so pytest can never read a hook off one, and reading it
+        # would refuse a benign helper for the name of its argument.
+        source = "def helper(pytest_arg):\n    return pytest_arg\n"
+        assert "pytest_arg" not in self.bound(source)
+
+    def test_a_local_binding_is_read_even_though_it_is_local(self):
+        # The other half of that trade, and the reason "local" is not the
+        # rule: a name bound inside a body is read and the caller refuses it.
+        source = "def helper():\n    pytest_tmp = 1\n    return pytest_tmp\n"
+        assert "pytest_tmp" in self.bound(source)
+
+    def test_a_star_import_is_recorded_as_a_star(self):
+        # It binds whatever the imported module holds, which cannot be read
+        # off the file, so it is handed to the caller to refuse by name.
+        assert "*" in self.bound("from _hooks import *\n")
+
+
+class TestTheConftestReaderRefusesWhatNarrows:
+    """`conftests_under` and `refuse_narrowing`, against a synthetic tree.
+
+    Neither runs against anything in this branch — there is no `conftest.py`
+    in it — so without these the recursive walk and the star-import refusal
+    are code the suite never executes, and reverting either stays green. The
+    docstring of :class:`TestBothChecksRunInCI` counts a sub-directory hook
+    and a star import among the routes it holds down, and this is where that
+    is checked rather than asserted.
+
+    `tests/conftest.py` exists on `action` as of #110, which is what makes the
+    permitted case worth pinning. The source below is a superset of it rather
+    than a copy — #110's file is shared definitions only, with no `import
+    pytest` and no fixture in it — so it covers that file and the fixtures the
+    name leads a reader to expect.
+    """
+
+    def guard(self):
+        return TestBothChecksRunInCI()
+
+    def test_the_walk_reaches_a_sub_directory_of_tests(self, tmp_path):
+        # The rootdir's own file, and the whole `tests` tree rather than its
+        # top level: a `pytest_collection_modifyitems` in a sub-directory is
+        # handed the whole item list just the same.
+        (tmp_path / "conftest.py").write_text("")
+        (tmp_path / "tests" / "sub").mkdir(parents=True)
+        (tmp_path / "tests" / "conftest.py").write_text("")
+        (tmp_path / "tests" / "sub" / "conftest.py").write_text("")
+        found = self.guard().conftests_under(tmp_path)
+        assert found == [
+            tmp_path / "conftest.py",
+            tmp_path / "tests" / "conftest.py",
+            tmp_path / "tests" / "sub" / "conftest.py",
+        ]
+
+    def test_the_walk_stops_at_that_tree(self, tmp_path):
+        # A checkout holding worktrees would otherwise read other checkouts,
+        # whose conftests are not this run's.
+        (tmp_path / ".claude" / "worktrees" / "other").mkdir(parents=True)
+        (tmp_path / ".claude" / "worktrees" / "other" / "conftest.py").write_text(
+            "def pytest_ignore_collect(collection_path, config):\n    return True\n"
+        )
+        (tmp_path / "tests").mkdir()
+        assert self.guard().conftests_under(tmp_path) == []
+
+    def test_a_fixtures_only_conftest_is_permitted(self):
+        # The one shape of the file that narrows nothing, and the reason the
+        # check is not simply "no conftest.py".
+        self.guard().refuse_narrowing(
+            "import pytest\n"
+            "from patchworks.graph import DomeSpec\n"
+            "SMALL = DomeSpec(patch_grid=4)\n"
+            "@pytest.fixture\n"
+            "def dome():\n"
+            "    return SMALL\n"
+        )
+
+    def test_every_shape_that_narrows_is_refused(self):
+        narrowing = [
+            'collect_ignore = ["test_tick.py"]',
+            'collect_ignore_glob = ["test_t*.py"]',
+            "def pytest_ignore_collect(collection_path, config): return True",
+            "def pytest_collection_modifyitems(config, items): items[:] = []",
+            "from _hooks import pytest_collection_modifyitems",
+            "from _hooks import *",
+            "match hook:\n    case pytest_ignore_collect:\n        pass",
+            'pytest_plugins = ["_hooks"]',
+        ]
+        for source in narrowing:
+            with pytest.raises(AssertionError):
+                self.guard().refuse_narrowing(source)
