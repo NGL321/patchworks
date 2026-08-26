@@ -630,8 +630,11 @@ class TestBothChecksRunInCI:
     clause added leaves this file reading more finished than it is. The repair
     is to parse the workflow, which is immune to the whole class at once
     rather than to one spelling of it — and that means a YAML parser, which
-    the dev extra does not name (`pytest` is all of it). So it is a dependency
-    decision, and #109 carries it rather than this class taking it in passing.
+    the dev extra does not name (`pytest` is all of it) and which nothing
+    installs on its own: neither `torch`, `mujoco`, `gymnasium`, `numpy` nor
+    `pytest` pulls one in, so `import yaml` fails in this environment today.
+    So it is a real dependency decision rather than a free one, and #109
+    carries it rather than this class taking it in passing.
 
     **Which is how the list below should be read.** These five assertions hold
     down every route that does not turn on a novel spelling of a key. That is
