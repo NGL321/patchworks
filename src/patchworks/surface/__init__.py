@@ -9,7 +9,7 @@ implements, and its opening constraint governs every module in it:
     for looking at, never fed back. No cell reads anything the surface
     computes, and switching the whole surface off must change no trajectory.
 
-Four modules, and the seam between them is the record:
+Seven modules, and the seam between them is the record:
 
 * :mod:`patchworks.surface.record` -- the tick record. The snapshot/restore
   contract, unchanged, plus per-cell prediction error and `‖Δ private‖`, plus
@@ -34,6 +34,14 @@ Four modules, and the seam between them is the record:
 * :mod:`patchworks.surface.onset` -- what the surface owes onset latency: the
   hands, bound so that firing one drops its marker, and the tick counter the
   motor strip runs from the most recent one.
+* :mod:`patchworks.surface.window` -- the second window: a child process with a
+  GLFW window in it, fed `[height, width, 3]` uint8 frames down a pipe. On macOS
+  the two windows share no thread and no process, because under `mjpython` no
+  Python thread is the Cocoa main thread and Cocoa will not make a window off
+  one; that module is where the measurement is.
+* :mod:`patchworks.surface.watch` -- `patchworks watch`: the panel drawn into
+  that window, live beside the scene or from a trace off disk. The two differ in
+  the feed and in nothing else.
 * :mod:`patchworks.surface.gestures` -- the gestures those hands are bound to,
   and the live viewer they are bound in: shift-ctrl-drag a link or a puck --
   the shift is MuJoCo's horizontal-plane translate, and a drag that left this
@@ -84,6 +92,8 @@ from patchworks.surface.record import (
     Trace,
 )
 from patchworks.surface.renderer import Renderer
+from patchworks.surface.watch import compose, live, replay, show
+from patchworks.surface.window import FrameWindow, open_window
 
 __all__ = [
     "CAPTURE_EVERY",
@@ -100,6 +110,7 @@ __all__ = [
     "Drag",
     "Event",
     "EventKind",
+    "FrameWindow",
     "Gestures",
     "Hands",
     "OnsetCounter",
@@ -114,8 +125,13 @@ __all__ = [
     "TickRecord",
     "Trace",
     "colormap",
+    "compose",
     "drive",
     "hold_top_down",
     "hop_distance",
+    "live",
     "measured_persistence",
+    "open_window",
+    "replay",
+    "show",
 ]
