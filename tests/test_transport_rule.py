@@ -690,6 +690,16 @@ class TestTheSparsityPressureComposesInTheSameStep:
         # added at every scale, which is both ends of `h`'s own range. The
         # `128·2⁻⁵³` asserted is the latter with 7x of headroom.
         #
+        # **Neither end of the sweep is near where this breaks**, which is what
+        # says the ends are chosen for what they exercise rather than for where
+        # the assertion runs out: measured, the sum stays inside a tenth of
+        # that tolerance from `1e-200` -- where the weights themselves have
+        # underflowed and `h` is 0 -- up to `1e153`, a few orders short of
+        # `FᵀF` overflowing, past which there is nothing to assert at all. The
+        # sweep is `1e-12` to `1e4` because that spans the floor's regime, the
+        # gauge band `[1/ρ, ρ]` the maps actually live in, and four orders
+        # above it.
+        #
         # **The identity wants every open weight nonzero**, and that is a
         # condition rather than an approximation: `sign(0) = 0`, so an exactly
         # zero weight contributes to neither `‖F‖₁` nor its gradient, and the
@@ -720,17 +730,24 @@ class TestTheSparsityPressureComposesInTheSameStep:
             #
             # It runs at the bottom scale of the sweep and nowhere else in it,
             # because at `‖F‖_F = 1e-12` the floor is half of `n²` and the
-            # shortfall is `h²/2` -- 0.07 to 0.25 for a drawn direction --
-            # while at unit scale it is `1e-24`, nine orders below the
-            # round-off it would have to be read out of.
+            # shortfall is `h²/2` -- at least `1/(4p)` for any direction, and
+            # measured between 0.06 and 0.25 over 200000 draws -- while at
+            # unit scale it is `1e-24`, nine orders below the round-off it
+            # would have to be read out of. Nothing asserts against the 0.06:
+            # it is the low end of a sample and moves with the sample, which
+            # the `1/(4p)` beside it does not.
             #
-            # **The condition is on the sweep, not on the floor**, and that is
-            # the whole of why it is written this way. Asking instead whether
-            # `NORM_FLOOR/n²` is large enough to read hands the tripwire's own
-            # switch to the constant it exists to watch: measured here, a floor
-            # dropped to `1e-32` turned the test green by skipping this line
-            # rather than by satisfying it. `scale` is a sweep coordinate and
-            # nothing under test can move it.
+            # **The condition is on the sweep, not on the floor**, and the
+            # window it has to select is narrow at both ends: above about
+            # `1e-11` the shortfall drops under round-off -- at `1e-8` this
+            # line reads a relative `9e-8` against its own `1e-9` -- and below
+            # about `1e-15` `h` has collapsed toward zero and taken the
+            # shortfall with it. Asking whether `NORM_FLOOR/n²` is large
+            # enough to read selects that same window, and hands the
+            # tripwire's own switch to the constant it exists to watch:
+            # measured, a floor dropped to `1e-32` then turns the test green
+            # by skipping this line rather than by satisfying it. `scale` is a
+            # sweep coordinate and nothing under test can move it.
             #
             # `rel` is derived at the concentrated end, not measured at a
             # typical one: with the floor carrying half of `n²`, `h` bottoms
