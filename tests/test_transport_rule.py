@@ -450,10 +450,15 @@ class TestTheObjectiveExcludesTheTrivialSolution:
         # `NORM_FLOOR` breaks that invariance, which is exactly what these
         # bounds have to survive, so it is swept deliberately instead. The
         # *direction* is still drawn unseeded, which is where the geometry
-        # varies. The old form drew both together and hand-set the bounds for a
-        # typical draw: `taken[0] < 1e-12` failed below `‖agreed‖ ≈ 0.5` and the
-        # factor-of-two bound below `≈ 0.25`, a 1-in-125 flake on whatever
-        # global RNG state the suite happened to arrive in.
+        # varies.
+        #
+        # The old form drew scale and direction together from the global RNG
+        # and hand-set all three bounds for a typical draw. Each was wrong at
+        # one end and none of them said so: `taken[0] < 1e-12` failed below
+        # `‖agreed‖ ≈ 0.5` -- 35 of 4000 global RNG states, the flake #111 was
+        # opened on -- `> 0.1` fails above `≈ 5`, and the factor of two fails
+        # below `≈ 0.3` for some directions. A draw of `randn(1, 4)` lands
+        # outside `[0.5, 5]` about once in 110 times.
         direction = torch.randn(1, 4, dtype=torch.float64)
         agreed = direction / direction.norm() * scale
         norm = agreed.norm().item()
