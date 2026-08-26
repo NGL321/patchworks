@@ -293,6 +293,13 @@ class Gestures:
         model, data = world.model, world.data
         jacp = np.zeros((3, model.nv))
         mujoco.mj_jac(model, data, jacp, None, grip, self._body_of[joint])
+        # In the plane, like the gate in `drag` and like both hands' arguments.
+        # Every arm joint in `arena.xml` is a z-hinge, so this column's own z
+        # entry is zero today and the projection changes nothing -- it is here
+        # so that "both read the drag in the plane" stays true of this line and
+        # not only of the gate, the first time a joint is not a z-hinge.
+        moved = np.asarray(moved, dtype=np.float64).copy()
+        moved[2] = 0.0
         direction = jacp[:, self._dofadr[joint]]
         length = float(np.linalg.norm(direction))
         if length == 0.0:
@@ -606,19 +613,31 @@ def drive(
     already makes a human perform before it will let them drag anything
     (`prototypes/sandbox/watch.py`: "double-click a puck and ctrl-drag it").
     A raw right-click, as `10-the-demo-surface.md` names it, is not observable
-    through this API at all; the pointing it asks for is.
+    through this API at all; the pointing it asks for is. **What a human
+    actually does** is therefore: *left-double-click* the puck, then
+    *left-double-click* the zone. MuJoCo writes `pert.select` only on a double
+    click and only for the left button -- a right double-click sets the
+    camera's `lookat` instead -- and the second click lands on the table geom
+    under the zone, since a zone is a site and no ray hits one. The spec's
+    "right-click" is met in its substance, which is *point, then point*, and
+    not in its button. That substitution is the one thing here a human at the
+    window has to confirm; nothing in the test suite can.
 
     **The keys are drained here, not handled in the callback.** MuJoCo calls
     `key_callback` on its own UI thread, and `r` rearranges the world -- so
     handling it there would have two threads inside one `MjData`. The callback
     appends a code and returns; this loop is where a key does anything.
 
-    **The hand is the only thing that moves the world.** MuJoCo's own
-    perturbation force is cleared out of `xfrc_applied` before each tick, so a
-    drag reaches the world once, through the hand, on the tick it was released
-    -- rather than also as a force nobody recorded and no marker accounts for.
-    The arena uses `xfrc_applied` for nothing else
-    (`tests/test_sandbox_env.py`), so there is nothing else to clear away.
+    **The hand is the only thing that moves the world.** `xfrc_applied` is
+    cleared every tick, so a drag reaches the world once -- through the hand,
+    on the tick it was released -- and never also as a force nobody recorded
+    and no marker accounts for. This is **insurance rather than a correction**:
+    `launch_passive` runs with no physics thread of its own, and MuJoCo applies
+    its perturbation force from that thread, so in this mode nothing upstream
+    writes that field. What the viewer does draw is the perturbation spring,
+    which is a picture and not a force. The arena uses `xfrc_applied` for
+    nothing else (`tests/test_sandbox_env.py`), so clearing it costs nothing
+    and stops the day a caller wraps this loop around a viewer that does.
     """
     import mujoco.viewer
 
@@ -632,6 +651,15 @@ def drive(
     # adjusts its advertised frame rate for it.
     period = world.model.opt.timestep * world.frame_skip
 
+    # **The world is arranged before the render thread exists.** `run()` resets
+    # when it is *called*, not on the first `next()` (:func:`patchworks.agent.run`),
+    # and a reset rewrites every puck's `qpos` and runs `mj_forward` -- the same
+    # wholesale rewrite the `r` key takes the lock for. Building the iterator
+    # inside the viewer block would do all of that while the render thread was
+    # already reading `MjData`, so the window would open on a torn frame at
+    # best. Built here, it opens on the world the run starts from.
+    ticking = run(agent, ticks, seed=seed)
+
     with mujoco.viewer.launch_passive(
         world.model, world.data, key_callback=keys.append
     ) as viewer:
@@ -643,7 +671,7 @@ def drive(
             viewer.cam.elevation = -90.0
             viewer.cam.azimuth = 90.0
         last = time.time()
-        for _outcome in run(agent, ticks, seed=seed):
+        for _outcome in ticking:
             record = recorder.observe()
             if record is not None:
                 yield record

@@ -189,6 +189,21 @@ class TestWhatADragOnALinkDelivers:
         event = gestures.drag(dragged(env, "link0", (0.06, 0.0, 0.0), grip=(0.1, 0.0, 0.0)))
         assert event.detail[1] == pytest.approx(0.0, abs=1e-12)
 
+    def test_a_grip_on_the_joints_own_axis_delivers_zero_and_does_not_raise(
+        self, gestures, env
+    ):
+        """No moment arm, so no impulse -- and a number rather than an
+        exception. `drive` reads this under the viewer's lock, so a raised
+        `ZeroDivisionError` would come out through the generator and end the
+        session over one badly-aimed click."""
+        joint = mujoco.mj_name2id(env.model, mujoco.mjtObj.mjOBJ_JOINT, ARM_JOINTS[0])
+        on_the_axis = np.array(env.data.xanchor[joint])
+        event = gestures.drag(
+            dragged(env, "link0", (0.0, 0.06, 0.0), grip=on_the_axis)
+        )
+        assert event.kind is EventKind.DISTURB_ARM
+        assert event.detail[1] == pytest.approx(0.0, abs=1e-12)
+
     def test_a_drag_too_short_to_be_one_fires_nothing(self, gestures, recorder, env):
         short = MINIMUM_DRAG / 2
         assert gestures.drag(dragged(env, "link0", (0.0, short, 0.0), grip=(0.1, 0.0, 0.0))) is None
@@ -273,7 +288,14 @@ class TestTheKeys:
             event = gestures.key(key)
             assert event.kind is EventKind.RETARGET
             seen.append((env.task.goal_puck, env.task.goal_zone))
-        assert seen == [(puck, zone) for puck in range(N_PUCKS) for zone in range(N_ZONES)]
+        # Spelled out rather than rebuilt from `N_PUCKS`/`N_ZONES`: they are
+        # both 3, so a comprehension over them restates `divmod` and would
+        # agree with a column-major reading of the very same grid.
+        assert seen == [
+            (0, 0), (0, 1), (0, 2),
+            (1, 0), (1, 1), (1, 2),
+            (2, 0), (2, 1), (2, 2),
+        ]
 
     def test_a_pair_off_the_grid_is_refused(self, gestures):
         with pytest.raises(ValueError, match="0 .. 8"):
@@ -436,10 +458,9 @@ class TestThePointerReadsWholeGestures:
         assert event.detail == (2.0, 1.0)
         assert (env.task.goal_puck, env.task.goal_zone) == (2, 1)
 
-    def test_two_zones_running_are_two_pointings(self, gestures, env):
-        """Both clicks land on the table, so the body is 0 for each and only
-        *where* on it tells them apart. Without the click point in what counts
-        as a pick, the second zone would never register as one."""
+    def test_two_retargets_running_do_not_poison_each_other(self, gestures, env):
+        """Point, assign, point again, assign again. The second gesture must
+        start from nothing the first left behind."""
         pointer = Pointer(gestures)
         pointer.sample(0, 0, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
         for puck, zone in ((0, 0), (2, 1)):
@@ -447,6 +468,22 @@ class TestThePointerReadsWholeGestures:
             pointer.sample(0, named, (0.0, 0.0, 0.0), self.grip(env, f"puck_{puck}"))
             pointer.sample(0, 0, zone_point(zone), zone_point(zone))
             assert (env.task.goal_puck, env.task.goal_zone) == (puck, zone)
+
+    def test_the_struct_is_one_buffer_the_viewer_edits_in_place(self, gestures, env):
+        """`MjvPerturb.refselpos` is not a new array per tick -- it is one field
+        MuJoCo overwrites. A pointer that kept a reference to it rather than a
+        copy would have the start of the drag follow the mouse, so `moved`
+        would be zero however far the human pulled, and no drag would fire."""
+        pointer = Pointer(gestures)
+        puck, start = body(env, "puck_1"), self.grip(env, "puck_1")
+        refselpos = np.array(start)  # the one buffer, as the struct holds it
+        pointer.sample(1, puck, (0.0, 0.0, 0.0), refselpos)
+        for reach in (0.03, 0.06, 0.09):
+            refselpos[:] = start + [reach, 0.0, 0.0]
+            pointer.sample(1, puck, (0.0, 0.0, 0.0), refselpos)
+        event = pointer.sample(0, puck, (0.0, 0.0, 0.0), refselpos)
+        assert event is not None, "the drag was read as going nowhere"
+        assert env.puck_pose(1)[:2] == pytest.approx(start[:2] + [0.09, 0.0], abs=1e-9)
 
     def test_one_stream_carries_a_pick_and_a_drag_and_a_pick(
         self, gestures, recorder, env
@@ -515,6 +552,8 @@ class Window:
     def __init__(self):
         self.script = {}
         self.handles = []
+        self.qpos_at_open = None
+        """`qpos` as it stood the instant `launch_passive` was called."""
 
 
 @pytest.fixture
@@ -524,6 +563,7 @@ def window(monkeypatch):
     made = Window()
 
     def launch_passive(model, data, *, key_callback=None, **kwargs):
+        made.qpos_at_open = np.array(data.qpos)
         made.handles.append(FakeViewer(model, data, key_callback, made.script))
         return made.handles[-1]
 
@@ -536,6 +576,22 @@ class TestTheSceneWindowIsMujocosPassiveViewer:
         list(drive(recorder, ticks=2, realtime=False))
         (opened,) = window.handles
         assert opened.model is env.model and opened.data is env.data
+
+    def test_the_world_is_arranged_before_the_window_opens(self, recorder, window, env):
+        """`run()` resets when it is *called*, and a reset rewrites every puck's
+        `qpos` and runs `mj_forward`.
+
+        Left inside the viewer block, that rewrite would run while the render
+        thread was already reading the same `MjData` -- the wholesale rewrite
+        the `r` key deliberately takes the lock for, done with no lock at all.
+        So it has to have happened by the time the window opens.
+        """
+        before = np.array(env.data.qpos)
+        list(drive(recorder, ticks=2, realtime=False))
+        assert window.qpos_at_open is not None, "the window never opened"
+        assert not np.allclose(before, window.qpos_at_open), (
+            "the world was still un-arranged when the render thread started"
+        )
 
     def test_a_ctrl_drag_through_the_struct_fires_a_hand(self, recorder, window, env):
         puck = body(env, "puck_0")
@@ -580,8 +636,17 @@ class TestTheSceneWindowIsMujocosPassiveViewer:
         assert np.array_equal(before, during), "the callback rearranged the world itself"
         assert not np.allclose(before, pucks(env)), "the loop never drained the key"
 
-    def test_mujocos_own_perturbation_never_reaches_the_world(self, recorder, window, env):
-        """A drag reaches the world once, through the hand, and not as a force."""
+    def test_the_loop_clears_any_applied_force_before_each_tick(
+        self, recorder, window, env
+    ):
+        """A drag reaches the world once, through the hand, and not as a force.
+
+        Named for what this checks rather than for what it would like to prove:
+        the force written here is the *fake's*, so what is shown is that the
+        loop clears `xfrc_applied` every tick -- not that MuJoCo's passive
+        viewer ever writes it. It does not, having no physics thread; see
+        :func:`drive`. This pins the clearing line, which is the insurance.
+        """
         puck = body(env, "puck_1")
 
         def shove(handle):
@@ -625,6 +690,33 @@ class TestTheSceneWindowIsMujocosPassiveViewer:
         with pytest.warns(UserWarning, match="clear of the arm"):
             records = list(drive(recorder, ticks=6, realtime=False, gestures=gestures))
         assert len(records) == 5
+
+    def test_realtime_paces_the_loop_to_the_worlds_own_tick(
+        self, recorder, window, env, monkeypatch
+    ):
+        """The default, and the one the demo runs -- every other test here
+        turns it off, so nothing otherwise executes the sleep at all.
+
+        The period is the world's two numbers rather than the advertised frame
+        rate, so a `frame_skip` change carries into it.
+        """
+        slept = []
+        monkeypatch.setattr(
+            "patchworks.surface.gestures.time.sleep", lambda s: slept.append(s)
+        )
+        list(drive(recorder, ticks=4, realtime=True))
+        period = env.model.opt.timestep * env.frame_skip
+        assert slept, "realtime=True never slept"
+        assert all(0 < s <= period for s in slept), slept
+        assert max(slept) == pytest.approx(period, rel=0.5)
+
+    def test_no_realtime_never_sleeps(self, recorder, window, monkeypatch):
+        slept = []
+        monkeypatch.setattr(
+            "patchworks.surface.gestures.time.sleep", lambda s: slept.append(s)
+        )
+        list(drive(recorder, ticks=4, realtime=False))
+        assert slept == []
 
     def test_closing_the_window_ends_the_run(self, recorder, window):
         def shut(handle):
