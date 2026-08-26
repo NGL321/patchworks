@@ -607,11 +607,11 @@ class TestBothChecksRunInCI:
           PYTEST_ADDOPTS: -k nothing
 
     under the job, passes all five assertions here while reaching the step.
-    It is left open on purpose. Three spellings found in three rounds is the
-    line-matching reading its limit, and the repair is to parse the file
-    rather than to add a fourth clause — which means a YAML parser, and the
-    dev extra has none (`pytest` is all of it), so it is a dependency
-    decision and #109 carries it rather than this class deciding in passing.
+    It is left open on purpose. Three spellings in three rounds is reading
+    lines reaching the limit of what it can do, and the repair is to parse the
+    file rather than to add a fourth clause — which means a YAML parser, and
+    the dev extra has none (`pytest` is all of it), so it is a dependency
+    decision that #109 carries rather than one this class takes in passing.
 
     Kill-tested against thirty-five ways of narrowing the run: `-k`, a
     positional path, `--collect-only`, `|| true`, `python -m pytest`,
