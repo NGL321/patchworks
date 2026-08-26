@@ -18,7 +18,14 @@ import torch
 
 from patchworks.agent import Agent
 from patchworks.graph import build_graph
-from patchworks.sandbox import N_PUCKS, N_ZONES, ZONE_RADIUS, ZONE_XY, PlanarPushSandbox
+from patchworks.sandbox import (
+    N_PUCKS,
+    N_ZONES,
+    ZONE_RADIUS,
+    ZONE_XY,
+    BlockedAnnulusError,
+    PlanarPushSandbox,
+)
 from patchworks.sandbox.env import ARM_JOINTS
 from patchworks.surface import (
     Drag,
@@ -298,9 +305,10 @@ class TestThePointerReadsWholeGestures:
     ):
         pointer = Pointer(gestures)
         puck, start = body(env, "puck_0"), self.grip(env, "puck_0")
-        for step in range(1, 6):
-            reach = start + [0.01 * step, 0.0, 0.0]
+        reach = start
+        for step in range(6):
             assert pointer.sample(1, puck, (0.0, 0.0, 0.0), reach) is None
+            reach = start + [0.01 * step, 0.0, 0.0]
         event = pointer.sample(0, puck, (0.0, 0.0, 0.0), reach)
         assert event.kind is EventKind.PERTURB
         assert len(recorder.pending) == 1
@@ -308,7 +316,7 @@ class TestThePointerReadsWholeGestures:
     def test_the_release_uses_where_the_drag_ended(self, gestures, env):
         pointer = Pointer(gestures)
         puck, start = body(env, "puck_1"), self.grip(env, "puck_1")
-        for reach in (0.02, 0.09):
+        for reach in (0.0, 0.02, 0.09):
             pointer.sample(1, puck, (0.0, 0.0, 0.0), start + [reach, 0.0, 0.0])
         pointer.sample(0, puck, (0.0, 0.0, 0.0), start + [0.09, 0.0, 0.0])
         assert env.puck_pose(1)[:2] == pytest.approx(start[:2] + [0.09, 0.0], abs=1e-9)
@@ -321,6 +329,41 @@ class TestThePointerReadsWholeGestures:
         env.perturb(2, start[:2] + [0.10, 0.0])  # the world moves it, mid-drag
         assert pointer.sample(0, puck, (0.0, 0.0, 0.0), start) is None
         assert recorder.pending == ()
+
+    def test_a_drag_over_a_swinging_link_is_still_the_mouse_that_pulled(
+        self, gestures, recorder, env
+    ):
+        """The arm moves under a held mouse, because the agent is driving it.
+
+        Including between the press and the first sample that sees it: MuJoCo
+        froze `refselpos` at the press, and a tick of the world happens before
+        anything here looks.
+        """
+        pointer = Pointer(gestures)
+        link, localpos = body(env, "link0"), np.array([0.1, 0.0, 0.0])
+        pressed = np.array(env.data.xpos[link] + env.data.xmat[link].reshape(3, 3) @ localpos)
+        env.data.ctrl[:] = 0.0
+        env.data.qvel[:3] = [2.0, 0.0, 0.0]
+        # A whole control tick passes between MuJoCo's press and the first
+        # sample of it, and another between every sample after that.
+        for _ in range(10):
+            for _ in range(env.frame_skip):
+                mujoco.mj_step(env.model, env.data)
+            assert pointer.sample(1, link, localpos, pressed) is None
+        assert arm_qpos(env)[0] > 0.05, "the arm did not swing far enough to matter"
+        assert pointer.sample(0, link, localpos, pressed) is None
+        assert recorder.pending == ()
+
+    def test_a_drag_ends_where_it_itself_reached(self, gestures, recorder, env):
+        """`refselpos` is one field successive drags take turns owning."""
+        pointer = Pointer(gestures)
+        first, second = body(env, "puck_0"), body(env, "puck_2")
+        held = self.grip(env, "puck_0")
+        pointer.sample(1, first, (0.0, 0.0, 0.0), held)
+        # Let go and grab the far puck, both between one sample and the next.
+        pointer.sample(1, second, (0.0, 0.0, 0.0), self.grip(env, "puck_2"))
+        assert recorder.pending == ()
+        assert env.puck_pose(0)[:2] == pytest.approx(held[:2], abs=1e-9)
 
     def test_a_puck_is_placed_from_where_the_drag_began(self, gestures, env):
         """Not from wherever the puck drifted to while the drag was held."""
@@ -345,6 +388,7 @@ class TestThePointerReadsWholeGestures:
         puck, start = body(env, "puck_0"), self.grip(env, "puck_0")
         pointer.sample(0, 0, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
         pointer.sample(0, puck, (0.0, 0.0, 0.0), start)  # the pick: points at it
+        pointer.sample(1, puck, (0.0, 0.0, 0.0), start)  # ctrl down: the grab
         pointer.sample(1, puck, (0.0, 0.0, 0.0), start + [0.05, 0.0, 0.0])
         event = pointer.sample(0, 0, zone_point(1), start + [0.05, 0.0, 0.0])
         assert event.kind is EventKind.PERTURB
@@ -358,6 +402,7 @@ class TestThePointerReadsWholeGestures:
         puck, here = body(env, "puck_0"), self.grip(env, "puck_0")
         pointer.sample(0, 0, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
         pointer.sample(0, puck, (0.0, 0.0, 0.0), here)  # double-click: the pick
+        pointer.sample(1, puck, (0.0, 0.0, 0.0), here)  # ctrl down: the grab
         for _ in range(3):
             pointer.sample(1, puck, (0.0, 0.0, 0.0), here + [0.05, 0.0, 0.0])
         pointer.sample(0, puck, (0.0, 0.0, 0.0), here + [0.05, 0.0, 0.0])
@@ -383,6 +428,7 @@ class FakeViewer:
         self.perturb = mujoco.MjvPerturb()
         self.cam = mujoco.MjvCamera()
         self.syncs = 0
+        self.locked = 0
         self.running = True
 
     def __enter__(self):
@@ -394,8 +440,13 @@ class FakeViewer:
     def is_running(self):
         return self.running
 
+    @contextlib.contextmanager
     def lock(self):
-        return contextlib.nullcontext()
+        self.locked += 1
+        try:
+            yield
+        finally:
+            self.locked -= 1
 
     def sync(self):
         self.syncs += 1
@@ -439,14 +490,17 @@ class TestTheSceneWindowIsMujocosPassiveViewer:
         def grab(handle):
             handle.perturb.select = puck
             handle.perturb.localpos[:] = [0.0, 0.0, 0.0]
-            handle.perturb.refselpos[:] = env.data.xpos[puck] + [0.05, 0.0, 0.0]
+            handle.perturb.refselpos[:] = env.data.xpos[puck]
             handle.perturb.active = 1
+
+        def pull(handle):
+            handle.perturb.refselpos[:] += [0.05, 0.0, 0.0]
             dropped.append(np.array(handle.perturb.refselpos[:2]))
 
         def release(handle):
             handle.perturb.active = 0
 
-        window.script.update({2: grab, 4: release})
+        window.script.update({2: grab, 3: pull, 4: release})
         fired = [
             event
             for record in drive(recorder, ticks=8, realtime=False)
@@ -485,6 +539,38 @@ class TestTheSceneWindowIsMujocosPassiveViewer:
             if start is None:
                 start = np.array(env.puck_pose(1)[:2])
         assert env.puck_pose(1)[:2] == pytest.approx(start, abs=1e-6)
+
+    def test_the_world_is_only_touched_under_the_viewers_lock(
+        self, recorder, window, monkeypatch
+    ):
+        """The render thread reads the same model and data a hand writes to."""
+        gestures = Gestures(Hands(recorder))
+        under = []
+        rearrange = gestures.rearrange
+
+        def watched():
+            under.append(window.handles[0].locked)
+            rearrange()
+
+        monkeypatch.setattr(gestures, "rearrange", watched)
+        window.script[2] = lambda handle: handle.key_callback(ord("R"))
+        list(drive(recorder, ticks=4, realtime=False, gestures=gestures))
+        assert under == [1]
+
+    def test_a_rearrangement_the_world_refuses_does_not_end_the_run(
+        self, recorder, window, monkeypatch
+    ):
+        """`r` is setup. A refused one owes a message, not the end of a session."""
+        gestures = Gestures(Hands(recorder))
+
+        def refuse():
+            raise BlockedAnnulusError("no layout clear of the arm")
+
+        monkeypatch.setattr(gestures, "rearrange", refuse)
+        window.script[2] = lambda handle: handle.key_callback(ord("R"))
+        with pytest.warns(UserWarning, match="clear of the arm"):
+            records = list(drive(recorder, ticks=6, realtime=False, gestures=gestures))
+        assert len(records) == 5
 
     def test_closing_the_window_ends_the_run(self, recorder, window):
         def shut(handle):

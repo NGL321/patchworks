@@ -43,6 +43,7 @@ measure cannot be lost to a gesture nobody recorded.
 from __future__ import annotations
 
 import time
+import warnings
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
@@ -54,6 +55,7 @@ import numpy as np
 from patchworks.agent import Agent, run
 from patchworks.sandbox.env import (
     ARM_JOINTS,
+    BlockedAnnulusError,
     N_PUCKS,
     N_ZONES,
     ZONE_RADIUS,
@@ -384,8 +386,10 @@ class Gestures:
         move the arm to make room for a layout, so an arm parked across the
         spawn annulus raises
         :class:`~patchworks.sandbox.env.BlockedAnnulusError` and says so.
-        Swallowing that here would leave a human pressing `r` at a world that
-        quietly declines to rearrange.
+        Swallowing it here would leave a human pressing `r` at a world that
+        quietly declines to rearrange. :func:`drive` turns it into a warning at
+        the one place that knows the difference between a refused key and a
+        session worth ending.
         """
         self.world.reset()
 
@@ -402,6 +406,21 @@ class Gestures:
         if ord("1") <= code <= ord("9"):
             return self.pair(code - ord("1"))
         return None
+
+
+@dataclass
+class _Grab:
+    """A ctrl-drag in flight, as :class:`Pointer` is watching it happen."""
+
+    body: int
+    origin: np.ndarray
+    """Where the body was when this drag was first seen."""
+    grabbed: np.ndarray
+    """`refselpos` then: MuJoCo froze it at the press and the mouse moves it."""
+    localpos: np.ndarray
+    """The grabbed point, in the body's own frame."""
+    reached: np.ndarray
+    """`refselpos` as of the last sample of **this** drag."""
 
 
 class Pointer:
@@ -432,6 +451,13 @@ class Pointer:
     MuJoCo's own perturbation spring, which is drawn whether or not anything
     reads it.
 
+    **Every drag is measured against its own start, and ends where it itself
+    reached.** `refselpos` is one field that successive drags take turns
+    owning, so a drag whose end and a next drag's start both land between two
+    samples would otherwise be read as one enormous pull from the first body to
+    the second -- a teleport of a puck onto whatever was grabbed next, and a
+    marker for it in the record. Each drag keeps its own two numbers instead.
+
     **A pick is an edge.** MuJoCo reports a selection as a state, not an event:
     the struct simply holds whichever body was picked last. A new pick is
     therefore a *change* in that state, read off the body-local click point --
@@ -441,11 +467,11 @@ class Pointer:
 
     def __init__(self, gestures: Gestures) -> None:
         self.gestures = gestures
-        self._grab: tuple[int, np.ndarray, np.ndarray, np.ndarray] | None = None
+        self._grab: _Grab | None = None
         self._picked: tuple[int, tuple[float, ...]] | None = None
 
     def __repr__(self) -> str:
-        held = None if self._grab is None else self._grab[0]
+        held = None if self._grab is None else self._grab.body
         return f"Pointer(holding={held!r}, picked={self._picked!r})"
 
     def sample(self, active: int, select: int, localpos, refselpos) -> Event | None:
@@ -468,41 +494,57 @@ class Pointer:
         select = int(select)
         localpos = np.asarray(localpos, dtype=np.float64)
         refselpos = np.asarray(refselpos, dtype=np.float64)
-        picked = (select, tuple(float(value) for value in localpos))
+        holding = active and select > 0
 
         fired: Event | None = None
-        if not active or select <= 0:
-            fired = self._release(refselpos)
-        elif self._grab is None or self._grab[0] != select:
-            fired = self._release(refselpos)
-            # Where the body was, and where it had the grabbed point, at the
-            # moment of the grab. MuJoCo sets `refselpos` to that same grabbed
-            # point when a drag begins, so the gap between the two from here on
-            # is the mouse's own travel and nothing else.
-            self._grab = (
-                select,
-                np.array(self.gestures.world.data.xpos[select]),
-                self._point(select, localpos),
-                localpos,
-            )
+        held = self._grab
+        if held is not None and not (holding and held.body == select):
+            if held.body == select:
+                # Its own last word: the drag ended where the mouse was when it
+                # was let go, which is this sample if it is still this body's.
+                held.reached = refselpos
+            fired = self._release()
+        if holding:
+            if self._grab is None:
+                self._grab = _Grab(
+                    body=select,
+                    origin=np.array(self.gestures.world.data.xpos[select]),
+                    grabbed=refselpos,
+                    localpos=localpos,
+                    reached=refselpos,
+                )
+            else:
+                self._grab.reached = refselpos
 
+        picked = (select, tuple(float(value) for value in localpos))
         if fired is None and self._picked is not None and picked != self._picked:
             fired = self.gestures.pick(select, self._point(select, localpos))
         self._picked = picked
         return fired
 
-    def _release(self, refselpos: np.ndarray) -> Event | None:
-        """The drag in flight, if there is one, ending where the mouse is now."""
+    def _release(self) -> Event | None:
+        """The drag in flight, if there is one, as one completed gesture.
+
+        The mouse's travel is `refselpos` now against `refselpos` when this
+        drag was first seen -- **both mouse-side**, so the body's own motion
+        under a held mouse cannot get into it. Anchoring on where the body had
+        the grabbed point instead would put an arm the agent is driving into
+        the measurement, and a mouse held perfectly still over a swinging link
+        would fire a hand nobody pulled.
+
+        The one thing lost is whatever the mouse did between MuJoCo's press and
+        the first sample that saw it, which is under a tick and comes off the
+        near end of the human's own pull.
+        """
         grab, self._grab = self._grab, None
         if grab is None:
             return None
-        body, origin, grabbed, localpos = grab
         return self.gestures.drag(
             Drag(
-                body=body,
-                grip=self._point(body, localpos),
-                origin=origin,
-                moved=refselpos - grabbed,
+                body=grab.body,
+                grip=self._point(grab.body, grab.localpos),
+                origin=grab.origin,
+                moved=grab.reached - grab.grabbed,
             )
         )
 
@@ -595,11 +637,19 @@ def drive(
             if not viewer.is_running():
                 break
 
-            while keys:
-                gestures.key(keys.popleft())
-            # Under the lock as well, and for a second reason: a hand that fires
-            # here writes to the same `MjData` the render thread is reading.
+            # All of it under the lock, which is the mutex the render thread
+            # holds while it reads the model and the data: a hand that fires
+            # writes to both, and `r` rewrites the whole world.
             with viewer.lock():
+                while keys:
+                    try:
+                        gestures.key(keys.popleft())
+                    except BlockedAnnulusError as refused:
+                        # The world declining to rearrange is a refusal, not the
+                        # end of the session: `r` is setup, and a human who
+                        # pressed it with the arm across the annulus is owed the
+                        # message and the run they were in the middle of.
+                        warnings.warn(str(refused), stacklevel=2)
                 perturb = viewer.perturb
                 pointer.sample(
                     int(perturb.active),
@@ -607,7 +657,7 @@ def drive(
                     np.array(perturb.localpos),
                     np.array(perturb.refselpos),
                 )
-            world.data.xfrc_applied[:] = 0.0
+                world.data.xfrc_applied[:] = 0.0
 
             if realtime:
                 slack = period - (time.time() - last)
