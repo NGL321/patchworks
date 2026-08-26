@@ -51,7 +51,7 @@ from typing import Any, Iterator
 import mujoco
 import numpy as np
 
-from patchworks.agent import run
+from patchworks.agent import Agent, run
 from patchworks.sandbox.env import (
     ARM_JOINTS,
     CONTROL_HZ,
@@ -538,3 +538,36 @@ def drive(
                 if slack > 0:
                     time.sleep(slack)
                 last = time.time()
+
+
+def main(argv: list[str] | None = None) -> None:
+    """`mjpython -m patchworks.surface.gestures` -- the demo, drivable by hand.
+
+    An agent, a world, and the window: enough to sit in front of and perturb.
+    Ctrl-drag a link or a puck, click a puck and then a zone, `r` to rearrange,
+    `1` - `9` for the pairs. On macOS the passive viewer needs `mjpython`.
+
+    The dome panel is the other window and is not opened here. It reads the
+    records this yields (`docs/spec/10-the-demo-surface.md`, *Two windows*),
+    which is the whole of the seam between them.
+    """
+    import argparse
+
+    from patchworks.graph import build_graph
+    from patchworks.sandbox import PlanarPushSandbox
+
+    parser = argparse.ArgumentParser(description=main.__doc__)
+    parser.add_argument("--ticks", type=int, default=100_000)
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--split", default="train")
+    arguments = parser.parse_args(argv)
+
+    world = PlanarPushSandbox(split=arguments.split)
+    agent = Agent(world, dome=build_graph())
+    for _record in drive(Recorder(agent), arguments.ticks, seed=arguments.seed):
+        pass
+    world.close()
+
+
+if __name__ == "__main__":
+    main()
