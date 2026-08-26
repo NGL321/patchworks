@@ -40,4 +40,10 @@ packages = ["src/patchworks"]
 testpaths = ["tests"]
 # benchmarks/ holds scripts rather than a package; on the path so the suite can
 # smoke-test them and they do not rot silently against the code they measure.
-pythonpath = ["benchmarks"]
+#
+# tests/ is on it so `from conftest import SMALL` is an import rather than an
+# accident: without this the eight files that share the small dome resolve it
+# only through the sys.path entry pytest's default "prepend" import mode
+# happens to leave behind, and adding a tests/__init__.py -- or running under
+# --import-mode=importlib -- takes it away again.
+pythonpath = ["benchmarks", "tests"]

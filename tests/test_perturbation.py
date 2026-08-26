@@ -74,7 +74,7 @@ from pathlib import Path
 import pytest
 import torch
 
-from patchworks.graph import DomeSpec, build_graph
+from patchworks.graph import CellKind, build_graph
 from patchworks.learning import (
     MAPS_PARAMETER,
     BiasRule,
@@ -85,17 +85,72 @@ from patchworks.learning import (
 )
 from patchworks.tick import Sheaf
 
-# The same small dome tests/test_learning.py and tests/test_transport_rule.py
-# run on: 39 cells, 15 of them predicting, 54 edges. Small enough to sweep
-# every cell in the graph twice, built by the same rules as the real one.
-SMALL = DomeSpec(
-    patch_grid=4,
-    vision_sides=(2,),
-    somatomotor_sizes=(4,),
-    core_sizes=(4, 3),
-    core_degree=4,
-    apex_degree=3,
-)
+from conftest import SMALL
+
+# -- the cells these tests name --------------------------------------------
+#
+# Every cell id below is **read off the dome the spec builds**, never typed.
+# The distinction is this file's own failure mode one level down: a cell id
+# typed here and a spec edited elsewhere do not disagree loudly, they just
+# leave the sweep perturbing some other cell, and a guard aimed at the wrong
+# cell goes on passing. Deriving them means the spec cannot move without
+# taking them with it, and :class:`TestTheCellsTheseTestsName` pins what each
+# one is for, so a derivation that started selecting a cell of the wrong kind
+# fails rather than quietly changing what is being guarded.
+#
+# All of it runs at import, because `parametrize` needs the ids at collection.
+# That puts this module's collection -- `TestBothChecksRunInCI` with it -- on
+# the far side of `build_graph` succeeding, so the derivations below are
+# written to state what went wrong rather than to raise a bare `StopIteration`
+# a reader has to work backwards from. Everything they can defer to a real
+# assertion, they do: `DRIVE_CELLS` is a tuple here and *how many* there are is
+# :class:`TestTheCellsTheseTestsName`'s to say.
+
+_DOME = build_graph(SMALL)
+
+
+def _cells_of(kind):
+    """Every cell of one kind, lowest id first."""
+    return tuple(cell.id for cell in _DOME.cells if cell.kind is kind)
+
+
+def _first(kind):
+    """The lowest-numbered cell of one kind."""
+    cells = _cells_of(kind)
+    if not cells:
+        raise AssertionError(
+            f"the shared spec (tests/conftest.py) builds no {kind.value} cell, "
+            f"which this file names one of; see TestTheCellsTheseTestsName"
+        )
+    return cells[0]
+
+
+#: This dome's widest cell — seven edges — and a predicting cell, so the
+#: transport rule's per-edge path is exercised where it has most to reach.
+#: Several cells tie at the widest degree and `.index` takes the lowest, which
+#: is a rule rather than a choice: the same spec always yields the same cell.
+WIDEST = _DOME.degrees.index(max(_DOME.degrees))
+
+#: The drive boundary cells, and the one this file perturbs: three edges, each
+#: of mask width 1. `CONTEXT.md` has one cell to one drive, so the tuple should
+#: hold exactly one — asserted rather than unpacked, so that a dome carrying
+#: two fails as a sentence about drives instead of aborting this module.
+DRIVE_CELLS = _cells_of(CellKind.DRIVE)
+DRIVE_CELL = _first(CellKind.DRIVE)
+
+
+#: A spread to perturb one at a time: a sensory cell the world writes, a
+#: proprioceptive one, the actuator, the widest predicting cell, and the drive.
+#: The whole-graph sweep beside it makes the standing claim; this spread is
+#: what makes a failure readable, so it wants one cell of each shape rather
+#: than every cell.
+A_SPREAD = [
+    _first(CellKind.PATCH),
+    _first(CellKind.PROPRIOCEPTIVE),
+    _first(CellKind.ACTUATOR),
+    WIDEST,
+    DRIVE_CELL,
+]
 
 #: How hard a perturbation pushes. Large enough that the perturbed cell's own
 #: update moves well clear of float32's last bits -- a perturbation too small
@@ -309,6 +364,69 @@ def readings(sheaf, cell, read, perturb, rule):
     return read(baseline, rule), read(perturbed, rule)
 
 
+class TestTheCellsTheseTestsName:
+    """What each derived cell id is *for*, pinned.
+
+    Deriving an index off the shared spec (`tests/conftest.py`) stops it going
+    stale, but it does not stop it drifting: `WIDEST` would go on naming some
+    cell whatever the spec said, and if that cell stopped being a wide
+    predicting one the tests below would still pass while guarding something
+    else. So each derivation's premise is asserted here, and the counts the
+    shared spec's comment claims with it. This is the class that fails when the
+    dome is retuned, which is the point: retuning it should send someone back
+    through this file rather than pass quietly.
+    """
+
+    def test_the_dome_is_the_size_the_shared_spec_claims(self, dome):
+        assert (len(dome.cells), len(dome.predicting), len(dome.edges)) == (39, 15, 54)
+
+    def test_the_widest_cell_is_a_predicting_cell_with_seven_edges(self, dome):
+        # Both halves are load-bearing. Predicting, because the transport
+        # tests that name it are about a cell that runs the body; widest,
+        # because it is the cell with the most endpoints for a leak to reach.
+        assert dome.cells[WIDEST].kind is CellKind.PREDICTING
+        assert dome.degrees[WIDEST] == 7
+        assert dome.degrees[WIDEST] == max(dome.degrees)
+
+    def test_there_is_exactly_one_drive_cell(self, dome):
+        # `CONTEXT.md`, *Drive boundary cell*: one cell is one drive. Held here
+        # rather than in the derivation above so that a second drive is a
+        # readable failure and not a collection error.
+        assert DRIVE_CELLS == (DRIVE_CELL,)
+
+    def test_the_drive_cell_is_a_boundary_cell_on_three_edges_of_width_one(self, dome):
+        # `test_a_flat_endpoint_is_the_objective_not_a_missing_signal` reads
+        # the objective's flat point off a one-dimensional edge stalk, so the
+        # mask width is the premise of that test rather than a detail.
+        assert dome.cells[DRIVE_CELL].kind is CellKind.DRIVE
+        assert dome.cells[DRIVE_CELL].is_boundary
+        assert dome.degrees[DRIVE_CELL] == 3
+        assert [dome.edges[edge].m for edge in dome.incident[DRIVE_CELL]] == [1, 1, 1]
+
+    def test_the_spread_is_five_distinct_cells_of_five_kinds(self, dome):
+        # A spread that had collapsed onto one kind would still sweep, and
+        # would still pass, having stopped being a spread.
+        assert len(set(A_SPREAD)) == len(A_SPREAD)
+        kinds = [dome.cells[cell].kind for cell in A_SPREAD]
+        assert kinds == [
+            CellKind.PATCH,
+            CellKind.PROPRIOCEPTIVE,
+            CellKind.ACTUATOR,
+            CellKind.PREDICTING,
+            CellKind.DRIVE,
+        ]
+
+    def test_the_other_two_numberings_are_the_sizes_this_file_indexes_into(
+        self, running
+    ):
+        # The bias rows and the edge endpoints are numbered separately from
+        # dome cell ids (see `perturb_the_biases_of`), and the tests below
+        # index into both by hand. Pinned here so a smaller dome fails as a
+        # statement about the dome rather than as an `IndexError` somewhere.
+        assert running.biases.cells == len(running.dome.predicting)
+        assert running.incoming.shape[0] == 2 * len(running.dome.edges)
+
+
 class TestPerturbingOneCellsBiases:
     """The bias rule's per-cell path. Prediction error is a cell's own quantity
     and crosses no edge, so the claim here admits no exception at all.
@@ -359,7 +477,7 @@ class TestPerturbingOneCellsRestrictionMaps:
     of **both** its maps and each belongs to a different cell, so this is the
     half where a cross-cell parameter is genuinely in the objective."""
 
-    @pytest.mark.parametrize("cell", [0, 16, 22, 23, 38])
+    @pytest.mark.parametrize("cell", A_SPREAD)
     def test_no_endpoint_the_cell_does_not_own_moves(self, running, cell):
         owned = owned_endpoints(running, cell)
         before, after = readings(
@@ -386,7 +504,7 @@ class TestPerturbingOneCellsRestrictionMaps:
         # ago, which the tick has since written into `incoming`. Over a fixed
         # tick state it is unreachable rather than severed, so the partner's
         # update is bit-identical too.
-        cell = 23  # a predicting cell, and this dome's widest: seven edges
+        cell = WIDEST  # a predicting cell, and this dome's widest: seven edges
         owned = owned_endpoints(running, cell)
         partners = frozenset(endpoint ^ 1 for endpoint in owned)
         assert partners.isdisjoint(owned)
@@ -406,7 +524,7 @@ class TestPerturbingOneCellsRestrictionMaps:
         # specified (tests/test_transport_rule.py holds it down directly), not
         # a perturbation nobody could feel, and this test says so out loud so
         # the weaker containment is not read as a weaker claim.
-        cell = 38  # the drive boundary cell: three edges, each of mask width 1
+        cell = DRIVE_CELL  # the drive boundary cell: three edges, each of width 1
         before, after = readings(
             running, cell, map_update, perturb_the_restriction_maps_of, TransportRule
         )
@@ -433,7 +551,7 @@ class TestThePermittedChannel:
         # its own edge stalks and nothing else; the delay is an index flip, so
         # what lands in a neighbour's `incoming` next tick is the partner slot
         # of exactly those endpoints.
-        cell = 23
+        cell = WIDEST
         owned = owned_endpoints(running, cell)
         baseline, perturbed = copy.deepcopy(running), copy.deepcopy(running)
         perturb_the_restriction_maps_of(perturbed, cell)
@@ -545,7 +663,7 @@ class TestTheSharedStorageCase:
         assert moved == frozenset(range(running.biases.cells))
 
     def test_the_perturbation_test_catches_the_transport_leak(self, running):
-        cell = 23
+        cell = WIDEST
         owned = owned_endpoints(running, cell)
         before, after = readings(
             running,

@@ -21,7 +21,7 @@ from unittest import mock
 import pytest
 import torch
 
-from patchworks.graph import DomeSpec, build_graph
+from patchworks.graph import build_graph
 from patchworks.learning import (
     DEFAULT_ANNEAL_HORIZON,
     DEFAULT_LEARNING_RATE,
@@ -38,17 +38,7 @@ from patchworks.learning import (
 from patchworks.restriction import GAUGE_RHO, RestrictionMaps
 from patchworks.tick import Sheaf
 
-# The same small dome tests/test_tick.py and tests/test_learning.py run on:
-# small enough to take a gradient endpoint by endpoint, built by the same rules
-# as the real one.
-SMALL = DomeSpec(
-    patch_grid=4,
-    vision_sides=(2,),
-    somatomotor_sizes=(4,),
-    core_sizes=(4, 3),
-    core_degree=4,
-    apex_degree=3,
-)
+from conftest import SMALL
 
 
 @pytest.fixture

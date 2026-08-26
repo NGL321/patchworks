@@ -42,34 +42,15 @@ import pytest
 import torch
 
 from patchworks.agent import Agent, run
-from patchworks.graph import DomeSpec, build_graph
+from patchworks.graph import build_graph
 from patchworks.learning import BiasRule, SparsityAnneal, TransportRule
 from patchworks.sandbox import PlanarPushSandbox
 
-#: The small dome the learning tests run on: 39 cells, 15 of them predicting,
-#: 54 edges, built by the same rules as the real one. The full dome is not the
-#: point here — every seam this exercises is present at this size, and runtime
-#: is a hard constraint rather than a preference, since this stands in CI on
-#: every push.
-#:
-#: This is the **seventh** byte-identical copy of the literal, after
-#: `tests/test_tick.py`, `tests/test_restriction.py`, `tests/test_learning.py`,
-#: `tests/test_transport_rule.py`, `tests/test_timescale.py` and
-#: `tests/test_perturbation.py`. (`tests/test_bias_selection.py`'s `SMALL` is a
-#: genuinely different dome and is not one of them.) Nothing holds the seven in
-#: step: retuning one leaves the other six on the old dome silently, and
-#: `tests/test_perturbation.py`'s hardcoded cell indices are derived from this
-#: exact spec. One `SMALL` in a `tests/conftest.py` would fix it; that edits
-#: six existing files, which #105 has no business touching while other tickets
-#: are in flight.
-SMALL = DomeSpec(
-    patch_grid=4,
-    vision_sides=(2,),
-    somatomotor_sizes=(4,),
-    core_sizes=(4, 3),
-    core_degree=4,
-    apex_degree=3,
-)
+# The small dome, shared (tests/conftest.py). The full dome is not the point
+# here -- every seam this exercises is present at this size, and runtime is a
+# hard constraint rather than a preference, since this stands in CI on every
+# push.
+from conftest import SMALL
 
 #: The render the small dome tiles. A patch cell's node stalk is 48 numbers —
 #: a 4x4 RGB patch, written raw — and this dome lays 4x4 of them over the
