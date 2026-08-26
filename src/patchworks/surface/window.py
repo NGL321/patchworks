@@ -58,6 +58,12 @@ window already has both, at a version that pin fixes. Neither is imported until
 a window is actually opened (:func:`serve`), for the reason
 :func:`~patchworks.surface.gestures.drive` defers `mujoco.viewer`.
 
+Neither is **named** in `pyproject.toml`, and that follows the file's own
+recorded rule rather than being an omission: `pyyaml` is listed there because
+"nothing else in the dependency set brings a YAML parser with it". Something
+else brings these two, and an exact pin is what makes that a guarantee instead
+of a hope.
+
 **Run as a script, not as a module.** The child is started as
 `python .../surface/window.py`, a path rather than `-m`, so it imports this file
 alone and not the package around it: what the child needs is numpy, glfw and
