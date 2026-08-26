@@ -331,16 +331,27 @@ class TestTheFrameIsFittedToTheWindowWithoutFallingOutOfIt:
         """
         for fb_width in range(1, 2000):
             for fb_height in (1, 3, 1080, 4000):
-                _zoom, x, y = window_module.fitted(424, 480, fb_width, fb_height)
+                zoom, x, y = window_module.fitted(424, 480, fb_width, fb_height)
                 where = f"{fb_width}x{fb_height}"
                 assert -1.0 <= x <= 1.0, f"x = {x!r} at {where}"
                 assert -1.0 <= y <= 1.0, f"y = {y!r} at {where}"
+                # Fitted rather than stretched: the drawn extent is inside the
+                # framebuffer in **both** axes, which is what letterboxing is.
+                assert 480 * zoom <= fb_width + 1e-9, where
+                assert 424 * zoom <= fb_height + 1e-9, where
 
     def test_an_exact_fit_starts_at_the_top_left_corner(self):
         """The common case, and the one the orientation depends on."""
         zoom, x, y = window_module.fitted(40, 24, 48, 80)
         assert zoom == 2.0
         assert (x, y) == (-1.0, 1.0)
+
+    def test_a_frame_narrower_than_its_window_is_centred_in_it(self):
+        """Letterboxed on the sides, and still starting at the top."""
+        zoom, x, y = window_module.fitted(40, 24, 96, 80)
+        assert zoom == 2.0  # height-limited: 80/40 beats 96/24
+        assert x == pytest.approx(-0.5)  # 24 pixels of margin each side of 96
+        assert y == 1.0
 
 
 class TestTheRunNeverWaitsOnTheDisplay:
