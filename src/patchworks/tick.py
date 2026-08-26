@@ -91,8 +91,9 @@ def _would_be_misread(gamma: object) -> bool:
         unwrapped = gamma.item() if hasattr(gamma, "item") else gamma
     except Exception:
         # Whatever a stand-in for a value does when asked for one, it is not
-        # this function's to diagnose: fall through to the coercion, which
-        # refuses in the rule's own words.
+        # this function's to diagnose: fall through, and the rule refuses it in
+        # its own words — unless every attribute access raises, in which case it
+        # leaves as what it raised rather than as a refusal (`_checked_gamma`).
         return False
     # `float` is not a `complex` subclass — that relation holds in the
     # `numbers` tower, not between the built-in types — so this refuses the
@@ -149,6 +150,19 @@ def _checked_gamma(gamma: object) -> float:
     `γ` sweep reading its points from a config meets `None` and `1.5` the same
     way, and `Agent`'s adjacent refusal of a misplaced `gamma=None` is already
     a `ValueError`.
+
+    **That is a claim about its refusals, not about everything that can leave.**
+    #107 wrote the stronger one — nothing but a `ValueError` escapes — and #112
+    withdrew it rather than restructure the function around shapes no caller
+    produces. Two things still leave as themselves. A config proxy standing in
+    for an absent key by *raising* on attribute access escapes as whatever it
+    raised, because the guard below asks `hasattr` and `hasattr` swallows only
+    `AttributeError` — and widening that guard costs more than it buys, since
+    `float(memoryview(b"0.5"))` is `0.5` and the guard is what keeps a buffer
+    from passing as a `γ`. Separately, under `-W error::DeprecationWarning`,
+    which nothing in this repo sets, a 1-element array leaks one out of
+    `float()`. What stands is the smaller, true claim: **reach a refusal and it
+    is a `ValueError`.**
     """
     rule = (
         "gamma is a single global scalar in (0, 1] "

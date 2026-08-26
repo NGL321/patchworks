@@ -739,8 +739,8 @@ class TestTheGammaASheafIsBuiltWith:
 
     def test_a_magnitude_no_float_can_hold_is_refused_as_one_rule_too(self, dome, drawn):
         # `float(10**400)` raises `OverflowError`, which is neither of the two
-        # the coercion catches -- so this leaked as a bare `OverflowError`,
-        # past the one thing the rule promises a caller can catch.
+        # the coercion catches -- so this arrived at the rule and left as a
+        # bare `OverflowError` rather than as the refusal it is.
         with pytest.raises(ValueError, match="gamma"):
             Sheaf(dome, gamma=10**400)
         assert drawn == []
@@ -793,8 +793,8 @@ class TestTheGammaASheafIsBuiltWith:
         # a `RuntimeError` subclass, which is why the coercion catches that
         # class at all. It is the one arrival that reaches the coercion's
         # `RuntimeError` arm: the complex tensor above never gets that far.
-        # Left uncaught this escaped as a bare `NotImplementedError`, past the
-        # one thing the rule promises a caller can catch.
+        # Left uncaught this arrived at the rule and left as a bare
+        # `NotImplementedError` rather than as the refusal it is.
         with pytest.raises(ValueError, match="gamma"):
             Sheaf(dome, gamma=torch.tensor(0.5, device="meta"))
         assert drawn == []
@@ -825,6 +825,22 @@ class TestTheGammaASheafIsBuiltWith:
 
         with pytest.raises(ValueError, match="gamma"):
             Sheaf(dome, gamma=RefusesToBeQuoted())
+
+    def test_a_proxy_that_raises_on_every_access_leaves_as_what_it_raised(self, dome):
+        # The other half of the same shape, and the boundary of what the rule
+        # claims. #107 promised that nothing but a `ValueError` escapes; #112
+        # withdrew that rather than restructure the function around an arrival
+        # no caller produces. The guard is `hasattr`, which swallows only
+        # `AttributeError`, and it cannot be widened for free -- it is also
+        # what refuses `memoryview(b"0.5")`, whose `float()` is `0.5`. So this
+        # is the refusal path's actual reach, pinned rather than promised away.
+
+        class RaisesOnEveryAccess:
+            def __getattr__(self, name):
+                raise RuntimeError(f"no value under this key ({name})")
+
+        with pytest.raises(RuntimeError, match="no value under this key"):
+            Sheaf(dome, gamma=RaisesOnEveryAccess())
 
     def test_an_integer_too_long_to_print_is_still_refused_by_the_rule(self, dome):
         # `repr` of an integer over 4300 digits raises `ValueError` itself, so
