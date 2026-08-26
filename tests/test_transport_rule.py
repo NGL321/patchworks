@@ -724,6 +724,14 @@ class TestTheSparsityPressureComposesInTheSameStep:
             # while at unit scale it is `1e-24`, nine orders below the
             # round-off it would have to be read out of.
             #
+            # **The condition is on the sweep, not on the floor**, and that is
+            # the whole of why it is written this way. Asking instead whether
+            # `NORM_FLOOR/n²` is large enough to read hands the tripwire's own
+            # switch to the constant it exists to watch: measured here, a floor
+            # dropped to `1e-32` turned the test green by skipping this line
+            # rather than by satisfying it. `scale` is a sweep coordinate and
+            # nothing under test can move it.
+            #
             # `rel` is derived at the concentrated end, not measured at a
             # typical one: with the floor carrying half of `n²`, `h` bottoms
             # out at `1/√(2p)`, so the shortfall bottoms out at `1/(4p)` and
@@ -736,7 +744,7 @@ class TestTheSparsityPressureComposesInTheSameStep:
             # disagreement, which are structural and at the scale of the
             # configuration. The two are unrelated quantities that share a
             # word.
-            if NORM_FLOOR / norm**2 > 1e-6:
+            if scale <= 1e-11:
                 assert 1.0 - floorless == pytest.approx(
                     value.item() ** 2 * 1e-24 / norm**2, rel=1e-9
                 )
