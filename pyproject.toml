@@ -29,8 +29,18 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Test-only, and deliberately not in `dependencies` above: nothing under
+# `src/patchworks` imports either of these, and installing patchworks does not
+# install them.
 dev = [
     "pytest",
+    # The CI half of the locality guard reads `.github/workflows/ci.yml` and
+    # has to agree with GitHub about what key each line writes. It used to
+    # match the text, and five review rounds across #90 and #109 each turned up
+    # another spelling it did not recognise; #117 ruled that it parses instead.
+    # Nothing else in the dependency set brings a YAML parser with it --
+    # neither torch, mujoco, gymnasium, numpy nor pytest -- so it is named here.
+    "pyyaml",
 ]
 
 [tool.hatch.build.targets.wheel]
