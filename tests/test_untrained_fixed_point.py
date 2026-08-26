@@ -63,6 +63,14 @@ def test_attenuation_runs(capsys):
     fixed_point.attenuation("small", "train", 0, ticks=TICKS, epsilon=1e-3)
     out = capsys.readouterr().out
     assert "one hop, one tick" in out
+    assert "untrained" in out
+
+
+def test_attenuation_runs_on_a_taught_surface(capsys):
+    fixed_point.attenuation("small", "train", 0, ticks=0, epsilon=1e-3, learn=TICKS)
+    out = capsys.readouterr().out
+    assert "with both rules on" in out
+    assert "one hop, one tick" in out
 
 
 def test_drive_runs(capsys):

@@ -50,7 +50,9 @@ its two factors: the shared body's evidence-to-prediction gain, and one
 message-passing step's transfer of a neighbour's belief into a node stalk. The
 second is the one with a ceiling in the record — the reconciliation gain is
 `γ / max(Σ_e m_e, ρ²·deg)` and ADR-0010 caps every map at `‖F‖_F ≤ ρ` — so the
-run reports what the transport rule could grow it to as well as what it is.
+run reports what the transport rule could grow it to as well as what it is. It
+takes `--learn N` too, which is how to see *which* factor learning moves: the
+gauge bounds the edge one and nothing in the record bounds the body's.
 
 **`drive`** asks the same question from the other end: the world back in the
 loop, the run entire, and the drive's assertion held at one value against
@@ -407,12 +409,23 @@ def sensitivity(
 # -- attenuation -----------------------------------------------------------
 
 
-def attenuation(name: str, split: str, seed: int, ticks: int, epsilon: float) -> None:
-    """The two factors of one hop: the body's gain, and one edge's."""
+def attenuation(
+    name: str, split: str, seed: int, ticks: int, epsilon: float, learn: int = 0
+) -> None:
+    """The two factors of one hop: the body's gain, and one edge's.
+
+    `learn` takes the reading after that many ticks of both rules, which is what
+    says *which* of the two factors learning can move. The gauge bounds the edge
+    factor and nothing in the record bounds the body's, so the answer is not
+    derivable and has to be measured.
+    """
     env, agent = build(name, split, seed)
     try:
-        for _ in run(agent, ticks, seed=seed):
-            pass
+        if learn:
+            taught(agent, learn, seed)
+        else:
+            for _ in run(agent, ticks, seed=seed):
+                pass
         sheaf = agent.sheaf
         base = snapshot(sheaf)
         generator = torch.Generator().manual_seed(seed)
@@ -473,7 +486,10 @@ def attenuation(name: str, split: str, seed: int, ticks: int, epsilon: float) ->
         # `‖F‖_F ≤ ρ` after every step, so the headroom is the ratio and no more.
         headroom = sheaf.maps.rho / float(sheaf.maps.norms().mean())
 
-        print(f"\n{name} dome, split {split!r}, seed {seed}, after {ticks} ticks")
+        after = (
+            f"{learn} ticks with both rules on" if learn else f"{ticks} ticks, untrained"
+        )
+        print(f"\n{name} dome, split {split!r}, seed {seed}, after {after}")
         print(
             f"  nudge {epsilon:g}, over {len(body)} predicting cells and "
             f"{len(edge)} edge endpoints whose far end runs a body"
@@ -644,6 +660,12 @@ def main(argv: list[str] | None = None) -> None:
     p = sub.add_parser("attenuation", parents=[one], help="the two factors of one hop")
     p.add_argument("--ticks", type=int, default=1500)
     p.add_argument("--epsilon", type=float, default=1e-3)
+    p.add_argument(
+        "--learn",
+        type=int,
+        default=0,
+        help="run this many ticks with both rules on first, instead of --ticks untrained",
+    )
 
     p = sub.add_parser("drive", parents=[one], help="the assertion, end to end")
     p.add_argument("--ticks", type=int, default=1500)
@@ -662,7 +684,9 @@ def main(argv: list[str] | None = None) -> None:
             args.dome, args.split, args.seed, args.ticks, args.hold, args.learn
         )
     elif args.measurement == "attenuation":
-        attenuation(args.dome, args.split, args.seed, args.ticks, args.epsilon)
+        attenuation(
+            args.dome, args.split, args.seed, args.ticks, args.epsilon, args.learn
+        )
     elif args.measurement == "drive":
         drive(args.dome, args.split, args.seeds, args.ticks, args.assertions)
     else:
