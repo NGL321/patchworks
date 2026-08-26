@@ -75,6 +75,7 @@ import sys
 import time
 from pathlib import Path
 
+import mujoco
 import numpy as np
 import torch
 
@@ -83,6 +84,7 @@ from patchworks.diagnostics import Condition, Diagnostics
 from patchworks.graph import DEFAULT_SPEC, Dome, DomeSpec, build_graph
 from patchworks.learning import BiasRule, SparsityAnneal, TransportRule
 from patchworks.sandbox import PlanarPushSandbox
+from patchworks.sandbox.env import ARM_JOINTS
 from patchworks.tick import Sheaf
 
 # The small dome the suite shares, from the one place it is defined
@@ -122,6 +124,23 @@ _TICK_STATE = (
 #: #120 measured off a stop, a link resting on a puck 0.04 rad short of one,
 #: reads as off it.
 AT_LIMIT = 1e-2
+
+
+def arm_limits(env: PlanarPushSandbox) -> np.ndarray:
+    """`[joints, 2]`: each arm joint's stops, read off the arena.
+
+    Off the model rather than off a constant, because a stop is a fact about
+    the body and `tests/test_sandbox_world.py` is where the arena is held to
+    the recorded ranges. The env exposes no accessor for them -- deliberately,
+    per its `observation_space`, which declines to bound `qpos` because
+    `disturb_arm()` takes an impulse of any size -- so they are looked up by
+    the joints' names, the way that test does.
+    """
+    ids = [
+        mujoco.mj_name2id(env.model, mujoco.mjtObj.mjOBJ_JOINT, name)
+        for name in ARM_JOINTS
+    ]
+    return env.model.jnt_range[ids].copy()
 
 
 def dome_named(name: str) -> tuple[DomeSpec, int]:
@@ -208,7 +227,7 @@ def characterise(domes, splits, seeds, ticks: int) -> None:
                 env, agent = build(name, split, seed)
                 try:
                     if limits is None:
-                        limits = env.model.jnt_range[agent.env._arm_jid].copy()
+                        limits = arm_limits(env)
                     r = settle(agent, ticks, seed)
                 finally:
                     env.close()
@@ -464,12 +483,13 @@ def learning(name: str, split: str, seed: int, ticks: int, every: int) -> None:
     try:
         bias = BiasRule(agent.sheaf)
         transport = TransportRule(agent.sheaf, anneal=SparsityAnneal())
-        # `whole_graph_every` is set past the run so the expensive reading never
-        # fires: one is a `3764 x 3764` eigendecomposition on the real dome and
-        # this run is long. The pair below is the reading the ticket asks for.
-        diagnostics = Diagnostics(
-            agent.sheaf, every=every, whole_graph_every=every * max(1, ticks)
-        )
+        # Every reading below passes `whole_graph=False`, which is the override
+        # `read` offers and is what keeps the expensive half off this run
+        # entirely: one whole-graph reading is a `3764 x 3764` eigendecomposition
+        # on the real dome, ~9 s, and this run is 100k ticks. The cadence still
+        # has to satisfy the multiple-of rule, so it is set to `every` and never
+        # consulted.
+        diagnostics = Diagnostics(agent.sheaf, every=every, whole_graph_every=every)
         print(f"\n{name} dome, split {split!r}, seed {seed}, both rules on, {ticks} ticks")
         print(
             f"  {'tick':>8s}  {'command':>28s}  {'|d cmd|':>9s}  {'pose':>24s}  "
