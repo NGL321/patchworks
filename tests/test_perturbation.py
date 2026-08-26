@@ -618,21 +618,20 @@ class TestBothChecksRunInCI:
         -  if: false
            name: Run tests
 
-    Two spaces rather than one — and a tab does it too. Both are ordinary
-    YAML, and the step is skipped with all five assertions green.
+    Two spaces rather than one, and a tab does it as well. Each is ordinary
+    YAML, and each skips the step with all five assertions green.
 
     They are left open on purpose, and #109 escalates them rather than adding
     a clause for each. Three were found in a single review round, and the
     fifth in the round after that, each round following one that had closed
     the spelling before it. That is the answer to whether reading lines can be
-    finished by adding clauses. It cannot: these
-    checks match key text, YAML has more ways to spell a key than anyone
-    enumerates in advance, and each clause added leaves this file reading more
-    finished than it is. The repair is to parse the workflow, which is immune
-    to the whole class at once rather than to one spelling of it — and that
-    means a YAML parser, which the dev extra does not name (`pytest` is all of
-    it). So it is a dependency decision, and #109 carries it rather than this
-    class taking it in passing.
+    finished by adding clauses. It cannot: these checks match key text, YAML
+    has more ways to spell a key than anyone enumerates in advance, and each
+    clause added leaves this file reading more finished than it is. The repair
+    is to parse the workflow, which is immune to the whole class at once
+    rather than to one spelling of it — and that means a YAML parser, which
+    the dev extra does not name (`pytest` is all of it). So it is a dependency
+    decision, and #109 carries it rather than this class taking it in passing.
 
     **Which is how the list below should be read.** These five assertions hold
     down every route that does not turn on a novel spelling of a key. That is
@@ -646,11 +645,11 @@ class TestBothChecksRunInCI:
     on the step**, four: `continue-on-error` and a step-level `if:`, each as
     an ordinary key *and as a sequence item's first key*, where the leading
     `- ` would hide it from a naive match — with the one space this workflow
-    and YAML's own style use, which is the spelling that is closed. **The
-    environment**, four:
-    `PYTEST_ADDOPTS` in the step's `env:`, in a job-level `env:` written
-    *after* `steps:`, in a workflow-level `env:` above `jobs:`, and in a
-    job-level flow mapping, `env: {PYTEST_ADDOPTS: …}` — those last three
+    and YAML's own style use, which is the spelling that is closed.
+    **The environment**, four: `PYTEST_ADDOPTS` in the step's `env:`, in a
+    job-level `env:` written *after* `steps:`, in a workflow-level `env:`
+    above `jobs:`, and in a job-level flow mapping,
+    `env: {PYTEST_ADDOPTS: …}` — those last three
     reach the step as surely as the step's own block, and none of them is the
     first `env:` in the file, the last not even spelled `env:`. **The
     trigger**, two: a `branches:` filter under `push:`, and `push:` removed.
