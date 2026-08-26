@@ -34,6 +34,11 @@ Four modules, and the seam between them is the record:
 * :mod:`patchworks.surface.onset` -- what the surface owes onset latency: the
   hands, bound so that firing one drops its marker, and the tick counter the
   motor strip runs from the most recent one.
+* :mod:`patchworks.surface.gestures` -- the gestures those hands are bound to,
+  and the live viewer they are bound in: ctrl-drag a link or a puck, click a
+  puck and then a zone, `r` to rearrange, and the number keys as the headless
+  and scripted path. The scene window is MuJoCo's passive viewer, so the
+  picking and the drag are inherited rather than re-implemented.
 
 Not imported by :mod:`patchworks`; import it directly, as with
 :mod:`patchworks.sandbox`.
@@ -46,6 +51,16 @@ from patchworks.surface.dome_panel import (
     Slot,
     colormap,
     measured_persistence,
+)
+from patchworks.surface.gestures import (
+    IMPULSE_PER_METRE,
+    MINIMUM_DRAG,
+    Drag,
+    Gestures,
+    Pointer,
+    Referent,
+    ReferentKind,
+    drive,
 )
 from patchworks.surface.onset import Hands, OnsetCounter
 from patchworks.surface.private_component import (
@@ -70,22 +85,30 @@ __all__ = [
     "CAPTURE_EVERY",
     "CAPTURE_HZ",
     "DEFAULT_PITCH",
+    "IMPULSE_PER_METRE",
+    "MINIMUM_DRAG",
     "PANEL_HEIGHT",
     "PANEL_WIDTH",
     "BandLayout",
     "DomePanel",
+    "Drag",
     "Event",
     "EventKind",
+    "Gestures",
     "Hands",
     "OnsetCounter",
+    "Pointer",
     "PrivateComponentPanel",
     "Recorder",
+    "Referent",
+    "ReferentKind",
     "Renderer",
     "Scatter",
     "Slot",
     "TickRecord",
     "Trace",
     "colormap",
+    "drive",
     "hop_distance",
     "measured_persistence",
 ]
