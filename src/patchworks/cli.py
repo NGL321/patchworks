@@ -912,8 +912,8 @@ report -- the interpreter, platform and dependency versions are printed above
 the numbers for exactly that. An untrained agent swings the arm and barely
 moves a puck; that is the expected picture, not a failure.
 
-Exit code is 0 normally and 1 if anything went non-finite, which is a bug
-rather than an untrained agent.
+Exit code is 0 normally, 1 if anything went non-finite -- which is a bug
+rather than an untrained agent -- and 2 if the arguments were wrong.
 """
 
 DOME_DESCRIPTION = """\
