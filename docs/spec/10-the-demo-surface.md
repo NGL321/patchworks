@@ -235,7 +235,7 @@ So there are two constraints, they do different jobs, and **both are kept**:
   outside it fires no hand, leaves no marker, and **warns**, naming the shifted drag as the way to
   express a planar pull. A human given nothing and told nothing is left wondering which of the two
   happened, and "look from above" would have been advice that does not help. The warning is for a
-  pull that would otherwise have fired a hand: a drag that named the table, a wall, or nothing is a
+  pull that named a link or a puck: a drag that named the table, a wall, or nothing is a
   **miss**, fires nothing as it always did, and says nothing — blaming the pull for what was an aim
   would teach the human the wrong lesson about their own gesture.
 - **The camera's tilt is held straight down**, re-asserted every tick rather than set once at

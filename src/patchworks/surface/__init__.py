@@ -35,9 +35,10 @@ Four modules, and the seam between them is the record:
   hands, bound so that firing one drops its marker, and the tick counter the
   motor strip runs from the most recent one.
 * :mod:`patchworks.surface.gestures` -- the gestures those hands are bound to,
-  and the live viewer they are bound in: ctrl-drag a link or a puck, click a
-  puck and then a zone, `r` to rearrange, and the number keys as the headless
-  and scripted path. The scene window is MuJoCo's passive viewer, so the
+  and the live viewer they are bound in: shift-ctrl-drag a link or a puck --
+  the shift is MuJoCo's horizontal-plane translate, and a drag that left this
+  planar world's plane fires nothing (#123) -- click a puck and then a zone,
+  `r` to rearrange, and the number keys as the headless and scripted path. The scene window is MuJoCo's passive viewer, so the
   picking and the drag are inherited rather than re-implemented.
 
 Not imported by :mod:`patchworks`; import it directly, as with

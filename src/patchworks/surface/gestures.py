@@ -15,9 +15,9 @@ reports*, is where the whole of that reading lives.
 
 **The scene window is MuJoCo's passive viewer**, as `prototypes/sandbox/watch.py`
 already runs it -- its camera, its picking, its drag. :func:`drive` opens that
-viewer and writes one field of it: the camera's tilt, held straight down
-(:func:`hold_top_down`). It does nothing else to the picture. A single composed
-window was considered and rejected because it pays for one tidy capture frame with the
+viewer and writes its camera: the opening pose once, as it always did, and the
+tilt back on every tick (:func:`hold_top_down`). It does nothing else to the
+picture. A single composed window was considered and rejected because it pays for one tidy capture frame with the
 exact interaction that already works, so nothing here selects a body, casts a
 ray, or tracks a mouse: MuJoCo does all three, into
 :class:`~mujoco.MjvPerturb`, and what this module reads is that struct.
@@ -40,9 +40,9 @@ binding and read as one motion with two targets.
 world has no third dimension -- `arena.xml` has hinges about z and slides in x
 and y, and no z slide anywhere -- so a drag with a z in it names nothing the
 world can do. :meth:`Gestures.drag` refuses one that went more than a few
-degrees out of the plane, and tells the human why -- when the drag would
-otherwise have fired a hand; a pull that named nothing is a miss and is passed
-over in silence, as it always was.
+degrees out of the plane, and tells the human why -- when the drag named a link
+or a puck; one that named the table, a wall or nothing is a miss, and is passed
+over in silence as it always was.
 
 **Where the z comes from is the mouse, not the camera.** MuJoCo's plain
 ctrl-drag is `mjMOUSE_MOVE_V`, which translates the grabbed point in the
@@ -178,8 +178,10 @@ def hold_top_down(cam) -> None:
     inside MuJoCo's own `Simulate` on its UI thread, and `launch_passive` hands
     back a camera and no way to turn any of it off -- so nothing here can stop
     the human rotating the view. What it can do is put the view back, and it
-    does, every tick: at this world's 50 Hz a rotation survives at most 20 ms,
-    which is a flicker rather than a regime.
+    does, once per iteration of :func:`drive`'s loop -- nominally 20 ms at this
+    world's 50 Hz, and in fact however long the consumer of that generator takes
+    to come back for the next record. A rotation is a flicker rather than a
+    regime, but how long a flicker is not something this can promise.
 
     **Only the tilt is held.** Panning, zooming and spinning the view leave the
     arena's plane square to the screen, so they are left to the human; and the
@@ -882,8 +884,9 @@ def drive(
     with the arena's plane. So the tilt is re-asserted on every iteration, under
     the same lock as everything else the render thread reads. It is
     **re-assertion and not prevention**: the passive viewer exposes no way to
-    disable its own mouse camera, so a rotation lasts until the next tick --
-    20 ms here -- and then goes back.
+    disable its own mouse camera, so a rotation lasts until the next iteration
+    of this loop -- nominally 20 ms, in fact whatever pace the caller draws
+    records at -- and then goes back.
 
     What it buys is the *picture*: the arena's xy fills the screen, so a drag's
     planar half is the motion the human watches themselves make. It does not
