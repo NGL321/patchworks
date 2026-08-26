@@ -599,9 +599,19 @@ class TestBothChecksRunInCI:
 
     And these checks read lines rather than parsed YAML, so a spelling of a
     key that no text match recognises gets past them until a clause is added
-    for it. Two have been, in `block` — the flow mapping and the quoted key —
-    and that helper says why the next one is an argument for parsing the file
-    instead.
+    for it. Two have been closed in `block` — the flow mapping and the quoted
+    key — and **a third is open and reproduced**: YAML's explicit key,
+
+        ? env
+        :
+          PYTEST_ADDOPTS: -k nothing
+
+    under the job, passes all five assertions here while reaching the step.
+    It is left open on purpose. Three spellings found in three rounds is the
+    line-matching reading its limit, and the repair is to parse the file
+    rather than to add a fourth clause — which means a YAML parser, and the
+    dev extra has none (`pytest` is all of it), so it is a dependency
+    decision and #109 carries it rather than this class deciding in passing.
 
     Kill-tested against thirty-five ways of narrowing the run: `-k`, a
     positional path, `--collect-only`, `|| true`, `python -m pytest`,
@@ -690,11 +700,10 @@ class TestBothChecksRunInCI:
         re-argued.
 
         **These are a class rather than a list, and reading lines cannot
-        finish it.** YAML has further ways to write the same key — a block
-        scalar, an anchor and its alias, an explicit `? ` key — and the two
-        above were each found after this helper was written, one round apart.
-        A third is a reason to parse the file rather than to add a clause;
-        #109 carries that argument, and it is not settled here.
+        finish it.** The explicit key — `? env` on its own line, then `:` —
+        is a third spelling, and it is open: see the class docstring, which
+        records it and the argument for parsing the file rather than adding a
+        fourth clause here.
         """
         lines = self.lines
         block = []
