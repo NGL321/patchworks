@@ -10,15 +10,18 @@ whoever acts on the answer.
 What is worth holding is that the measurement keeps a reproduction. The numbers
 in #120's verdict came out of that script, and a script that stopped running
 against the current API would leave them unreproducible while every test stayed
-green. So this asks the four measurements to complete on the small dome at tick
-counts far too short to settle anything, in the same shape and for the same
-reason `tests/test_agent.py::TestBenchmark` asks it of `benchmarks/agent_tick.py`.
+green. So this asks all five measurements to complete on the small dome at tick
+counts far too short to settle anything -- and the two that take `--learn` on
+that path too -- in the same shape and for the same reason
+`tests/test_agent.py::TestBenchmark` asks it of `benchmarks/agent_tick.py`.
 
 The one thing it does assert about the code under test is a shape invariant of
 `sensitivity`'s protocol rather than of its result: restoring the tick state and
 re-running has to leave the sheaf where it found it, or the six variants are
 measured against six different starting points and the table means nothing.
 """
+
+import re
 
 import numpy as np
 import pytest
@@ -73,6 +76,26 @@ def test_attenuation_runs_on_a_taught_surface(capsys):
     assert "one hop, one tick" in out
 
 
+@pytest.mark.parametrize(
+    "measurement, extra",
+    (
+        (fixed_point.characterise, None),
+        (fixed_point.sensitivity, {"hold_ticks": 2}),
+        (fixed_point.attenuation, {"epsilon": 1e-3}),
+    ),
+)
+def test_nothing_to_measure_is_refused_in_words(measurement, extra):
+    """The two `--learn` tests above pass `ticks=0`, which is the shape a reader
+    copies. Forget the `learn` and there is nothing to settle a fixed point --
+    which used to arrive as `IndexError` on an empty list, or an `AttributeError`
+    on a `None` nobody named. Neither says what was wrong with the call."""
+    with pytest.raises(ValueError, match="ticks"):
+        if extra is None:
+            measurement(["small"], ["train"], [0], ticks=0)
+        else:
+            measurement("small", "train", 0, ticks=0, **extra)
+
+
 def test_drive_runs(capsys):
     fixed_point.drive("small", "train", [0], ticks=TICKS, assertions=[0.0])
     out = capsys.readouterr().out
@@ -83,6 +106,25 @@ def test_learning_runs(capsys):
     fixed_point.learning("small", "train", 0, ticks=TICKS, every=3)
     out = capsys.readouterr().out
     assert out.count("\n") > 4
+
+
+def test_learning_never_reports_a_nan(capsys):
+    """At `every == 1` a window holds one row, and a window of one row has no
+    difference to take: `|d cmd|` printed `nan` out of an empty slice, in the
+    column that says whether the command is still moving. Every window after
+    the first now opens on the previous one's last row, and the first prints a
+    dash -- there being nothing to print is worth saying, and a fabricated
+    number is not."""
+    fixed_point.learning("small", "train", 0, ticks=3, every=1)
+    out = capsys.readouterr().out
+    assert "nan" not in out
+    # The `|d cmd|` column sits between the command vector and the pose vector,
+    # which is what makes it findable without parsing the whole row: a lone dash
+    # on the first, a number on every one after it.
+    rows = [line for line in out.splitlines() if re.search(r"\]\s+\S+\s+\[", line)]
+    assert len(rows) == 3
+    assert re.search(r"\]\s+-\s+\[", rows[0])
+    assert all(re.search(r"\]\s+\d\.\d+e[-+]\d+\s+\[", row) for row in rows[1:])
 
 
 @pytest.fixture

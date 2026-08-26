@@ -74,7 +74,8 @@ the small dome and ~1 min on the real one, `sensitivity` ~1 min and
 `attenuation` ~20 s on the real dome, `drive` ~1 min a seed, and `learning` runs
 at ~105 ticks/s on the small dome with both rules on and ~50 ticks/s on the real
 one. `attenuation` is the one whose cost is not ticks: it runs one
-message-passing phase per edge endpoint, 1364 of them on the real dome.
+message-passing phase per edge endpoint whose far end runs a body, 1091 of
+them on the real dome and 80 on the small one.
 """
 
 from __future__ import annotations
@@ -212,6 +213,10 @@ WINDOW = 300
 
 def settle(agent: Agent, ticks: int, seed: int, window: int = WINDOW):
     """Run, and report what the last `window` ticks did."""
+    if ticks < 1:
+        raise ValueError(
+            f"a fixed point is read off ticks that happened; got ticks={ticks}"
+        )
     poses, commands = [], []
     for outcome in run(agent, ticks, seed=seed):
         poses.append(outcome.observation["qpos"].copy())
@@ -300,16 +305,22 @@ def teaching(agent: Agent, ticks: int, seed: int):
     Written once because two measurements want the same loop: `learning`
     watches it go by, and `sensitivity --learn` only wants the adapting surface
     it leaves behind. The shape is the one `tests/test_assembled_loop.py` fixes
-    -- `agent.tick()`, then the rules, never the reverse -- and both rules join
-    on the second tick: the first leaves `incoming` at the constructor's zeros,
-    which is the unit delay, and leaves the bias rule with no previous
-    prediction to have erred against.
+    -- `agent.tick()`, then the rules, never the reverse.
+
+    **The two rules join on different ticks, and the rules themselves say so.**
+    The bias rule joins on the first: prediction error is a cell's own quantity
+    and crosses no edge, and `BiasRule.gradient` refuses only at `ticks == 0`.
+    The transport rule joins on the second, because the first tick reconciles
+    against the constructor's zeros and leaves `incoming` zero -- the unit
+    delay -- and `TransportRule.gradient` refuses below `ticks < 2` in those
+    words. Holding both back to the second tick would drop a legitimate bias
+    step for a reason that belongs to the other rule.
     """
     bias = BiasRule(agent.sheaf)
     transport = TransportRule(agent.sheaf, anneal=SparsityAnneal())
     for outcome in run(agent, ticks, seed=seed):
+        bias.step()
         if agent.sheaf.ticks > 1:
-            bias.step()
             transport.step()
         yield outcome
 
@@ -338,6 +349,11 @@ def sensitivity(
         if learn:
             outcome = taught(agent, learn, seed)
         else:
+            if ticks < 1:
+                raise ValueError(
+                    "there is no fixed point to be sensitive at without ticks to "
+                    f"settle it; got ticks={ticks} and learn={learn}"
+                )
             outcome = None
             for outcome in run(agent, ticks, seed=seed):
                 pass
@@ -424,6 +440,12 @@ def attenuation(
         if learn:
             taught(agent, learn, seed)
         else:
+            if ticks < 1:
+                raise ValueError(
+                    "the gains are read at a settled configuration, and a sheaf "
+                    f"that has not ticked has none; got ticks={ticks} and "
+                    f"learn={learn}"
+                )
             for _ in run(agent, ticks, seed=seed):
                 pass
         sheaf = agent.sheaf
@@ -463,7 +485,8 @@ def attenuation(
         restore(sheaf, base)
         sheaf.message_passing_phase()
         quiet = sheaf.stalks.clone()
-        transfers = []
+        norms = sheaf.maps.norms()
+        transfers, ceilings = [], []
         for e in agent.dome.edges:
             for side in (0, 1):
                 receiver = (e.v, e.u)[side]
@@ -476,15 +499,27 @@ def attenuation(
                     sheaf.broadcast[pair_index(e.id, side), : e.m] += nudge((e.m,))
                 sheaf.message_passing_phase()
                 where = sheaf.layout.slice(receiver)
-                transfers.append(
-                    float((sheaf.stalks[where] - quiet[where]).norm() / epsilon)
-                )
+                moved = float((sheaf.stalks[where] - quiet[where]).norm() / epsilon)
+                transfers.append(moved)
+                # What ADR-0010's gauge leaves the transport rule room to grow
+                # *this* transfer to. The step is linear in the receiver's own
+                # map -- `gain_r · F_{p^1}ᵀ δ` -- so the ceiling is this
+                # endpoint's transfer scaled by its own map's room to `ρ`, and
+                # the fleet's ceiling is the mean of those. A ratio of means
+                # would be a different number, and on a taught surface a wrong
+                # one: the maps do not grow together.
+                #
+                # The receiver runs a body, so the map governing this transfer
+                # is an interior one and genuinely has room. Averaging over
+                # every map in the graph would fold in the boundary cells'
+                # ~20-26% that are pinned at exactly 1 by the exact gauge and
+                # can never move, and would report headroom that does not exist
+                # for anything measured here.
+                partner = pair_index(e.id, side) ^ 1
+                ceilings.append(moved * sheaf.maps.rho / float(norms[partner]))
         edge = np.array(transfers)
-
-        # What ADR-0010's gauge leaves the transport rule room to grow that to.
-        # The maps are drawn at `INITIAL_NORM = 1` and projected back inside
-        # `‖F‖_F ≤ ρ` after every step, so the headroom is the ratio and no more.
-        headroom = sheaf.maps.rho / float(sheaf.maps.norms().mean())
+        ceiling = np.array(ceilings)
+        interior = norms[~sheaf.maps.pinned]
 
         after = (
             f"{learn} ticks with both rules on" if learn else f"{ticks} ticks, untrained"
@@ -504,10 +539,12 @@ def attenuation(
             )
         print(f"  one hop, one tick: mean {body.mean() * edge.mean():.4g}")
         print(
-            f"  map norms mean {float(sheaf.maps.norms().mean()):.4g} against "
-            f"rho = {sheaf.maps.rho:g}, so the transport rule has {headroom:.3g}x "
-            f"of edge gain\n  to grow into and the hop cannot exceed about "
-            f"{body.mean() * edge.mean() * headroom:.4g} on the body's present gain."
+            f"  interior map norms mean {float(interior.mean()):.4g} against rho = "
+            f"{sheaf.maps.rho:g} ({int((~sheaf.maps.pinned).sum())} of "
+            f"{sheaf.maps.pairs} maps;\n  the rest are boundary cells' and pinned at 1 "
+            f"by the exact gauge). Grown to rho, the edge\n  gain would reach "
+            f"{ceiling.mean():8.4f} and the hop {body.mean() * ceiling.mean():.4g}, "
+            f"on the body's present gain."
         )
         restore(sheaf, base)
     finally:
@@ -606,9 +643,20 @@ def learning(name: str, split: str, seed: int, ticks: int, every: int) -> None:
                 continue
             reading = diagnostics.read(Condition.DRIVEN, whole_graph=False)
             command, pose = np.array(commands), np.array(poses)
+            # A window of one row has no difference in it. That is only the
+            # first window, since the carry-over below opens every later one on
+            # the previous row -- and only at `every == 1` -- but the honest
+            # thing to print is that there is nothing to print, not a `nan` out
+            # of an empty slice in the column that says whether the command is
+            # still moving.
+            rate = (
+                f"{np.abs(np.diff(command, axis=0)).mean():9.2e}"
+                if len(command) > 1
+                else f"{'-':>9s}"
+            )
             print(
                 f"  {i:8d}  {np.round(command[-1], 5)!s:>28s}  "
-                f"{np.abs(np.diff(command, axis=0)).mean():9.2e}  "
+                f"{rate}  "
                 f"{np.round(pose[-1], 3)!s:>24s}  "
                 f"{np.abs(np.diff(pose, axis=0)).sum():8.4f}  "
                 f"{float(reading.edges.energy.mean()):9.4g}  "
@@ -617,7 +665,12 @@ def learning(name: str, split: str, seed: int, ticks: int, every: int) -> None:
                 f"{i / (time.time() - started):5.0f}",
                 flush=True,
             )
-            commands, poses = [], []
+            # The last row of the window opens the next one rather than being
+            # dropped, which is what leaves every window after the first with a
+            # difference to take however small `every` is. It also fixes a
+            # quieter thing: the pose step *between* two windows used to belong
+            # to neither, so `travel` was not a partition of the run's travel.
+            commands, poses = commands[-1:], poses[-1:]
         print(
             "\n  Read energy and effective rank together, never apart: energy falling\n"
             "  with rank sliding toward 1 is collapse, energy falling with the world\n"
@@ -642,7 +695,12 @@ def main(argv: list[str] | None = None) -> None:
     one.add_argument("--seed", type=int, default=0)
 
     p = sub.add_parser("characterise", help="the fixed point across seeds and splits")
-    p.add_argument("--domes", nargs="+", default=["small", "full"])
+    # Constrained for the reason the small dome is imported rather than
+    # copied: `dome_named` reads anything that is not "small" as the real dome,
+    # so `--domes smal` would measure 682 edges and head the table `smal`. A
+    # benchmark aimed at the wrong dome does not fail; it reports someone
+    # else's numbers.
+    p.add_argument("--domes", nargs="+", default=["small", "full"], choices=("small", "full"))
     p.add_argument("--splits", nargs="+", default=["train", "heldout_pair"])
     p.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
     p.add_argument("--ticks", type=int, default=1500)
@@ -669,7 +727,11 @@ def main(argv: list[str] | None = None) -> None:
 
     p = sub.add_parser("drive", parents=[one], help="the assertion, end to end")
     p.add_argument("--ticks", type=int, default=1500)
-    p.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
+    # `None` rather than a list, so that `--seed 5` -- inherited from the
+    # shared parent and otherwise silently ignored here -- means what it says.
+    # Three ~1-minute runs under seed numbers the caller did not ask for is a
+    # quiet way to waste three minutes.
+    p.add_argument("--seeds", nargs="+", type=int, default=None)
     p.add_argument("--assertions", nargs="+", type=float, default=[0.0, 10.0])
 
     p = sub.add_parser("learning", parents=[one], help="both rules on, long")
@@ -688,7 +750,13 @@ def main(argv: list[str] | None = None) -> None:
             args.dome, args.split, args.seed, args.ticks, args.epsilon, args.learn
         )
     elif args.measurement == "drive":
-        drive(args.dome, args.split, args.seeds, args.ticks, args.assertions)
+        drive(
+            args.dome,
+            args.split,
+            args.seeds if args.seeds is not None else [args.seed],
+            args.ticks,
+            args.assertions,
+        )
     else:
         learning(args.dome, args.split, args.seed, args.ticks, args.every)
 
