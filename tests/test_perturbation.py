@@ -600,18 +600,30 @@ class TestBothChecksRunInCI:
     And these checks read lines rather than parsed YAML, so a spelling of a
     key that no text match recognises gets past them until a clause is added
     for it. Two have been closed in `block` — the flow mapping and the quoted
-    key — and **a third is open and reproduced**: YAML's explicit key,
+    key — and **four are open, each one reproduced**. Every one of these,
+    written under the job and carrying `PYTEST_ADDOPTS: -k nothing`, passes
+    all five assertions here while reaching the step:
 
+        env:  # any trailing comment at all
+        env :
+        !!str env:
         ? env
         :
-          PYTEST_ADDOPTS: -k nothing
 
-    under the job, passes all five assertions here while reaching the step.
-    It is left open on purpose. Three spellings in three rounds is reading
-    lines reaching the limit of what it can do, and the repair is to parse the
-    file rather than to add a fourth clause — which means a YAML parser, and
-    the dev extra has none (`pytest` is all of it), so it is a dependency
-    decision that #109 carries rather than one this class takes in passing.
+    They are left open on purpose. Three of the four were found in one review
+    round, after two rounds had each closed one — which is the answer to
+    whether reading lines can be finished by adding clauses. It cannot: these
+    checks match key text, YAML has more ways to write a key than anyone
+    enumerates in advance, and each clause makes the file read more finished
+    than it is. The repair is to parse the workflow, which is immune to the
+    whole class at once. That means a YAML parser, and the dev extra has none
+    — `pytest` is all of it — so it is a dependency decision, and #109 carries
+    it rather than this class taking it in passing.
+
+    Until it is taken, what these five assertions still hold down is every
+    route that does **not** turn on a novel spelling of a key: the thirty-five
+    below, which are the ones anyone narrowing the run by ordinary means would
+    reach for.
 
     Kill-tested against thirty-five ways of narrowing the run: `-k`, a
     positional path, `--collect-only`, `|| true`, `python -m pytest`,
@@ -622,9 +634,10 @@ class TestBothChecksRunInCI:
     a job-level flow mapping, `env: {PYTEST_ADDOPTS: …}` — those last three
     reach the step as surely as the step's own block, and none of them is the
     first `env:` in the file, the last not even spelled `env:`; a `branches:`
-    filter under `push:`; `push:` removed; the job's `env:` and the step's
-    `continue-on-error:` and `if:` each written with the key in quotes, where
-    the key is the same key and the text is not; an `addopts`, a narrowed
+    filter under `push:`; `push:` removed; a quoted key, which is the same key
+    written so no text match sees it — the job's `env:` in double quotes and
+    in single, the step's `continue-on-error:`, and its `if:`; an `addopts`, a
+    narrowed
     `testpaths`, and a `norecursedirs` in `pyproject.toml`; each of the six
     files that outrank or rival that table — `pytest.toml`, `.pytest.toml`,
     `pytest.ini`, `.pytest.ini`, `tox.ini`, `setup.cfg` — carrying a narrowing
@@ -682,8 +695,12 @@ class TestBothChecksRunInCI:
     def block(self, key):
         """The YAML under a top-level `key:`, as `(indent, text)` pairs.
 
-        Comments are dropped — they are not configuration, and a comment that
-        happened to read `run: pytest` should not satisfy anything here. The
+        Whole-line comments are dropped — they are not configuration, and a
+        comment that happened to read `run: pytest` should not satisfy anything
+        here. A **trailing** comment is not dropped, and that is one of the
+        open spellings the class docstring lists rather than a detail: it
+        leaves `env:  # a note` recorded with the comment attached, which is
+        not the text `env:` that the checks match on. The
         leading `- ` of a sequence item is stripped too: YAML lets any mapping
         key go first in a sequence item, so `- if:` and `if:` are the same key
         and a check that only knew the second spelling would miss the first.
@@ -699,11 +716,19 @@ class TestBothChecksRunInCI:
         needs neither, so both get the whitelist's usual answer: fail, and be
         re-argued.
 
+        A quoted **key** is what is refused, and not every line that opens with
+        a quote: what marks the key is the closing quote with a colon after it,
+        so `- "3.12"` under a `python-version:` stays permitted. It is an
+        ordinary scalar, it hides no key from anything, and refusing it would
+        be a false positive dressed as a finding.
+        :class:`TestTheWorkflowReaderRefusesKeysRatherThanQuotes` holds both
+        halves of that distinction down.
+
         **These are a class rather than a list, and reading lines cannot
-        finish it.** The explicit key — `? env` on its own line, then `:` —
-        is a third spelling, and it is open: see the class docstring, which
-        records it and the argument for parsing the file rather than adding a
-        fourth clause here.
+        finish it.** Four more spellings are open, three of them found in a
+        single review round after the two above were closed. The class
+        docstring lists them, and makes the argument they add up to: parse the
+        file rather than add a clause here for each.
         """
         lines = self.lines
         block = []
@@ -714,7 +739,14 @@ class TestBothChecksRunInCI:
             if not text or text.startswith("#"):
                 continue
             text = text.removeprefix("- ")
-            assert not text.startswith(('"', "'")), f"quoted key under {key}: {text}"
+            if text[:1] in ('"', "'"):
+                # A quoted *key* -- the closing quote followed by its colon.
+                # A quoted scalar is not one: `- "3.12"` under a
+                # `python-version:` is an ordinary sequence item, and refusing
+                # it would be a false positive dressed as a finding.
+                closed = text.find(text[0], 1)
+                after = text[closed + 1 :].lstrip() if closed != -1 else ""
+                assert not after.startswith(":"), f"quoted key under {key}: {text}"
             assert "{" not in text, (
                 f"braces under {key}: {text} — a flow mapping hides the key "
                 f"from every check here, and an expression goes with it"
@@ -866,3 +898,52 @@ class TestBothChecksRunInCI:
                 assert "*" not in names, f"{conftest} imports *"
                 for name in names:
                     assert not name.startswith("pytest_"), name
+
+
+class TestTheWorkflowReaderRefusesKeysRatherThanQuotes:
+    """`block` refuses a quoted **key**, and permits a quoted **scalar**.
+
+    Split out from :class:`TestBothChecksRunInCI` rather than added to it: the
+    five assertions there are the whitelist itself, read off this repository's
+    own files, and these read a synthetic workflow instead. What they pin is
+    the one distinction the quoted-key clause turns on. `"env":` is the key
+    `env` written so that no `== "env:"` sees it, and is refused. `- "3.12"` is
+    an ordinary string that happens to begin with a quote, hides no key from
+    anything, and is permitted -- a clause that refused it too would report a
+    benign line as a finding, which is a false positive dressed as a guard.
+
+    The distinction lives here rather than in a comment so that losing it goes
+    red in this suite rather than in a later review round.
+    """
+
+    def reader(self, tmp_path, workflow):
+        """A :class:`TestBothChecksRunInCI` reading *workflow*, not `ci.yml`."""
+        path = tmp_path / "ci.yml"
+        path.write_text(workflow)
+        reader = TestBothChecksRunInCI()
+        reader.WORKFLOW = path
+        return reader
+
+    def test_a_quoted_scalar_is_not_a_quoted_key(self, tmp_path):
+        # The shape this repository's own workflow would reach for if the
+        # `python-version:` under `setup-python` ever listed more than one:
+        # sequence items that are quoted strings, in either quote.
+        reader = self.reader(
+            tmp_path,
+            'jobs:\n'
+            '  test:\n'
+            '    with:\n'
+            '      python-version:\n'
+            '        - "3.12"\n'
+            "        - '3.13'\n",
+        )
+        recorded = [text for _, text in reader.block("jobs")]
+        assert '"3.12"' in recorded and "'3.13'" in recorded
+
+    def test_a_quoted_key_is_refused_in_either_quote(self, tmp_path):
+        # Each of these is a key the checks in `TestBothChecksRunInCI` match on
+        # by text, written so that the text is not the one they match.
+        for spelling in ('"env":', "'env':", '"continue-on-error": true', "'if': false"):
+            reader = self.reader(tmp_path, f"jobs:\n  test:\n    {spelling}\n")
+            with pytest.raises(AssertionError, match="quoted key"):
+                reader.block("jobs")
