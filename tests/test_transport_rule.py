@@ -456,7 +456,9 @@ class TestTheObjectiveExcludesTheTrivialSolution:
         # so: `taken[0] < 1e-12` failed below `‖agreed‖ ≈ 0.5` -- 35 of 4000
         # global RNG states, the flake this came from -- `> 0.1` fails above
         # `≈ 5`, and the factor of two fails below `≈ 0.3` for some directions.
-        # A draw of `randn(1, 4)` lands outside `[0.5, 5]` about once in 110.
+        # A draw of `randn(1, 4)` lands outside `[0.5, 5]` once in 138 --
+        # `‖·‖² ~ χ²₄`, so the rate is closed-form, not the `35/4000` above,
+        # which was one high sample of it.
         direction = torch.randn(1, 4, dtype=torch.float64)
         agreed = direction / direction.norm() * scale
         norm = agreed.norm().item()
@@ -477,13 +479,14 @@ class TestTheObjectiveExcludesTheTrivialSolution:
         # comes from. It is an approximation only in dropping the floor inside
         # the denominator's own square roots, which costs a relative
         # `1.5·NORM_FLOOR/‖agreed‖²` -- 1.5e-20 at the smallest scale swept,
-        # and not negligible below `‖agreed‖ ≈ 1e-7`.
+        # and reaching the `rel=1e-9` asserted here at `‖agreed‖ ≈ 3.9e-8`.
         #
-        # `abs=0.0` because the expected value runs from `2.5e-9` down to
-        # `2.5e-19` across the sweep, so from `scale = 1` down it sits under
+        # `abs=0.0` matters at the top of the sweep, not the bottom: the
+        # residue grows as `agreed` shrinks, so it is `2.5e-9` at `scale =
+        # 1e-2` but `2.5e-13` and below from `scale = 1` **upward**, under
         # `approx`'s own default absolute tolerance of `1e-12`. Left at the
-        # default, this line would accept a residue of exactly zero, which is
-        # the fixed point it exists to deny.
+        # default, those three scales would accept a residue of exactly zero,
+        # which is the fixed point this line exists to deny.
         assert taken[0] == pytest.approx(
             NORM_FLOOR**0.5 / (2 * norm) ** 2, rel=1e-9, abs=0.0
         )
@@ -531,6 +534,7 @@ class TestTheObjectiveExcludesTheTrivialSolution:
         # ratio at `1.235/0.826 = 1.494`, so the two is headroom now rather
         # than a bound a small `agreed` could walk through.
         assert max(taken[1:]) < 2 * min(taken[1:])
+
     def test_the_normaliser_is_the_current_magnitudes_not_a_running_average(
         self, running
     ):
