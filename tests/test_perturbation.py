@@ -68,6 +68,7 @@ untouched — left every test here passing, which is the other half of the
 reading: this guard is falsifiable rather than merely tight.
 """
 
+import ast
 import copy
 from pathlib import Path
 
@@ -585,15 +586,21 @@ class TestBothChecksRunInCI:
     runner outage, or the workflow file deleted — and neither of those is
     silent.
 
-    Kill-tested against seventeen ways of narrowing the run: `-k`, a positional
-    path, `--collect-only`, `|| true`, `python -m pytest`, `continue-on-error`
-    and a step-level `if:` both as an ordinary key **and as a sequence item's
-    first key**, where the leading `- ` would hide them from a naive match;
-    `PYTEST_ADDOPTS` beside `MUJOCO_GL`; a `branches:` filter under `push:`;
-    `push:` removed; an `addopts`, a narrowed `testpaths`, and a
-    `norecursedirs` in `pyproject.toml`; a root `pytest.ini` that takes
-    precedence over it; and a `conftest.py` with a `collect_ignore`. All
-    seventeen fail here, and a fixtures-only `conftest.py` — the one shape of
+    Kill-tested against twenty-six ways of narrowing the run: `-k`, a
+    positional path, `--collect-only`, `|| true`, `python -m pytest`,
+    `continue-on-error` and a step-level `if:` both as an ordinary key **and as
+    a sequence item's first key**, where the leading `- ` would hide them from
+    a naive match; `PYTEST_ADDOPTS` in the step's `env:`, in a job-level `env:`
+    written *after* `steps:`, and in a workflow-level `env:` above `jobs:` —
+    the last two reach the step just as well, and neither is the first `env:`
+    in the file; a `branches:` filter under `push:`; `push:` removed; an
+    `addopts`, a narrowed `testpaths`, and a `norecursedirs` in
+    `pyproject.toml`; each of the six files that outrank or rival that table —
+    `pytest.toml`, `.pytest.toml`, `pytest.ini`, `.pytest.ini`, `tox.ini`,
+    `setup.cfg` — carrying a narrowing configuration; and a `conftest.py`
+    narrowing collection through a `collect_ignore`, a `collect_ignore_glob`, a
+    `pytest_ignore_collect`, or a `pytest_collection_modifyitems`. All
+    twenty-six fail here, and a fixtures-only `conftest.py` — the one shape of
     that file which narrows nothing — still passes. So does a harmless `-q`
     *not*: the cost of the design is that a benign edit to the invocation has
     to come with an edit to this class, which is the whitelist working rather
@@ -613,10 +620,27 @@ class TestBothChecksRunInCI:
     #: would narrow the run from outside the invocation entirely.
     PERMITTED_ENVIRONMENT = ["MUJOCO_GL: osmesa"]
 
+    #: The workflow's top-level keys, pinned. An `env:` here is inherited by
+    #: every step of every job, so it reaches the run as surely as the step's
+    #: own -- and it sits above `jobs:`, where a check that walked the job
+    #: would never see it. Whitelisted rather than named, because `defaults:`
+    #: reaches the run too, through the shell it wraps `run:` in.
+    PERMITTED_WORKFLOW_KEYS = ("name", "on", "concurrency", "jobs")
+
     #: The other files pytest reads a rootdir configuration from, in the order
-    #: it prefers them. Any one of these outranks `pyproject.toml`'s table and
-    #: would make the whitelist above inert.
-    RIVAL_CONFIGURATIONS = ("pytest.ini", "tox.ini", "setup.cfg")
+    #: it prefers them -- `pyproject.toml` sits between the fourth and the
+    #: fifth. Any one of these outranks or displaces `pyproject.toml`'s table
+    #: and would make the whitelist above inert. The dotted spellings are read
+    #: exactly as the undotted ones are, and the `.toml` pair outranks
+    #: everything here.
+    RIVAL_CONFIGURATIONS = (
+        "pytest.toml",
+        ".pytest.toml",
+        "pytest.ini",
+        ".pytest.ini",
+        "tox.ini",
+        "setup.cfg",
+    )
 
     @property
     def lines(self):
@@ -643,18 +667,46 @@ class TestBothChecksRunInCI:
         return block
 
     def nested_under(self, block, key):
-        """The text of the entries indented under the first `key` in a block."""
-        depth, position = next(
-            (depth, position)
-            for position, (depth, text) in enumerate(block)
-            if text == key
+        """The entries indented under *every* `key` in a block, one list each.
+
+        Every, not the first: YAML puts no order on a mapping's keys, so a
+        second block of the same name is ordinary rather than exotic, and the
+        one that narrows the run is the one a first-match check stops short of.
+        """
+        found = []
+        for position, (depth, text) in enumerate(block):
+            if text != key:
+                continue
+            nested = []
+            for entry_depth, entry_text in block[position + 1 :]:
+                if entry_depth <= depth:
+                    break
+                nested.append(entry_text)
+            found.append(nested)
+        return found
+
+    @property
+    def top_level_keys(self):
+        """The workflow's keys at column zero, in order."""
+        return tuple(
+            line.split(":", 1)[0]
+            for line in self.lines
+            if line and not line[0].isspace() and not line.startswith("#")
         )
-        nested = []
-        for entry_depth, text in block[position + 1 :]:
-            if entry_depth <= depth:
-                break
-            nested.append(text)
-        return nested
+
+    def names_bound_by(self, source):
+        """Every name a module binds, at any depth: `def`, `class`, assignment.
+
+        At any depth because a hook defined inside an `if` is a hook: pytest
+        finds it by name on the imported module either way.
+        """
+        names = set()
+        for node in ast.walk(ast.parse(source)):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                names.add(node.name)
+            elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+                names.add(node.id)
+        return names
 
     def test_the_workflow_runs_on_every_push(self):
         # `push` a direct child of `on:`, and nothing nested under it: a
@@ -663,7 +715,7 @@ class TestBothChecksRunInCI:
         entries = self.block("on")
         indent = min(depth for depth, _ in entries)
         assert (indent, "push:") in entries
-        assert self.nested_under(entries, "push:") == []
+        assert self.nested_under(entries, "push:") == [[]]
 
     def test_the_suite_runs_whole_and_unfiltered(self):
         # The invocation is pinned exactly. Every way of narrowing it -- a
@@ -676,7 +728,15 @@ class TestBothChecksRunInCI:
         # pytest reads `PYTEST_ADDOPTS` from the environment, so an entry here
         # narrows the run without touching the invocation at all. The one
         # variable the suite needs is the software GL context.
-        assert self.nested_under(self.block("jobs"), "env:") == self.PERMITTED_ENVIRONMENT
+        #
+        # Every `env:` under `jobs:`, not the first one: GitHub hands a
+        # job-level block to every step in the job, and YAML is happy to have
+        # it written after `steps:`, past the point a first-match check stops.
+        assert self.nested_under(self.block("jobs"), "env:") == [self.PERMITTED_ENVIRONMENT]
+        # And the level above, which `jobs:` does not contain: a workflow-level
+        # `env:` reaches every step of every job. The top-level keys are pinned
+        # rather than that one name refused, so it has nowhere to land.
+        assert self.top_level_keys == self.PERMITTED_WORKFLOW_KEYS
 
     def test_nothing_lets_a_failing_step_pass(self):
         # `continue-on-error` at either level, and an `if:` that would skip the
@@ -709,7 +769,16 @@ class TestBothChecksRunInCI:
             conftest = directory / "conftest.py"
             if conftest.exists():
                 # A fixtures-only `conftest.py` is fine and this should not be
-                # the thing standing in its way; what narrows collection is
-                # these two hooks.
+                # the thing standing in its way; what narrows collection is the
+                # `collect_ignore` pair and pytest's hooks. So the file may
+                # bind what it likes except a name pytest itself reads: every
+                # `pytest_` hook rather than the two that narrow collection
+                # today, because `pytest_ignore_collect` and
+                # `pytest_collection_modifyitems` are a list that the next
+                # release can add to, and `pytest_plugins` loads a file that
+                # can carry any of them. Fixtures are decorated, not named, so
+                # nothing about this stands in a benign conftest's way.
                 text = conftest.read_text()
                 assert "collect_ignore" not in text
+                for name in self.names_bound_by(text):
+                    assert not name.startswith("pytest_"), name
