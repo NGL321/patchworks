@@ -277,7 +277,9 @@ class TestADragIsReadInThePlane:
         assert len(said) == 2 and said[0] != said[1]
         for message in said:
             assert "no hand fired" in message
-            assert "top-down" in message
+            # And what to do instead, which is the shifted drag: the plain one
+            # is MuJoCo's vertical-plane translate, and no view makes it planar.
+            assert "shift" in message
 
     def test_a_drag_that_moved_in_neither_is_short_rather_than_refused(
         self, gestures, recorder, env
@@ -321,6 +323,17 @@ class TestADragIsReadInThePlane:
                 )
             assert outside is None
 
+    def test_a_drag_on_nothing_is_a_miss_and_not_a_refusal(
+        self, gestures, recorder, env
+    ):
+        """No hand takes the table, whatever plane the pull was in, so there is
+        nothing to refuse and nobody to tell: a message saying "no hand fired"
+        would blame the pull for what was an aim."""
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            assert gestures.drag(dragged(env, "base", (0.002, 0.0, 0.5))) is None
+        assert recorder.pending == ()
+
     def test_the_refusal_lifts_in_one_place_for_a_world_with_a_third_dimension(
         self, recorder, env
     ):
@@ -333,6 +346,118 @@ class TestADragIsReadInThePlane:
             warnings.simplefilter("error")
             event = relaxed.drag(pull)
         assert event is not None and event.kind is EventKind.PERTURB
+
+    def test_a_lifted_refusal_still_hands_no_hand_a_drag_of_nothing(
+        self, recorder, env
+    ):
+        """The minimum survives the relaxation. `inf * 0.0` is `nan` and every
+        comparison with one is False, so a straight-up drag would otherwise
+        fall through a lifted refusal and teleport a puck to where it already
+        is -- with a marker onset latency would then be measured from, which is
+        the whole reason :data:`MINIMUM_DRAG` exists."""
+        was = np.array(env.puck_pose(0)[:2])
+        relaxed = Gestures(Hands(recorder), out_of_plane_tolerance=float("inf"))
+        assert relaxed.drag(dragged(env, "puck_0", (0.0, 0.0, 0.5))) is None
+        assert recorder.pending == ()
+        assert env.puck_pose(0)[:2] == pytest.approx(was, abs=1e-12)
+
+
+class TestTheDragMujocoHandsOver:
+    """Where a drag's z actually comes from, asked of MuJoCo (#123).
+
+    #123 was filed on the reading that a drag carries a z when the camera is
+    off top-down, and that a top-down view therefore has none. **It is not the
+    view.** MuJoCo's plain ctrl-drag is `mjMOUSE_MOVE_V`, which translates the
+    grabbed point in the *vertical* plane -- the mouse's own vertical axis is
+    world z -- at every elevation, top-down included; the **shifted** one is
+    `mjMOUSE_MOVE_H`, which is planar at every elevation. The window's own help
+    table says as much in one line: *Object Translate: Ctrl [Shift] right drag*.
+
+    So the human's up-the-screen pull is the z, and no camera constraint can
+    take it out of one. That is why :meth:`Gestures.drag`'s refusal is the lever
+    that does the work here, and why its message names the shift rather than the
+    view. Pinned in the suite because the whole refusal rests on it and because
+    it is a fact about MuJoCo 3.10 that a version bump could move.
+
+    Nothing here is a stand-in for MuJoCo's picking: this calls MuJoCo's own
+    `mjv_movePerturb` with MuJoCo's own scene, which is what the viewer does
+    with the mouse on its UI thread.
+    """
+
+    def translated(self, env, action, mouse, elevation=TOP_DOWN_ELEVATION):
+        """`refselpos`'s travel for one mouse move, as MuJoCo computes it."""
+        camera = mujoco.MjvCamera()
+        camera.type = mujoco.mjtCamera.mjCAMERA_FREE
+        camera.lookat[:] = [0.0, 0.0, 0.0]
+        camera.distance = 1.6
+        camera.azimuth = 90.0
+        camera.elevation = elevation
+        perturb = mujoco.MjvPerturb()
+        perturb.select = body(env, "puck_0")
+        perturb.active = mujoco.mjtPertBit.mjPERT_TRANSLATE
+        perturb.localpos[:] = [0.0, 0.0, 0.0]
+        scene = mujoco.MjvScene(env.model, maxgeom=1000)
+        mujoco.mjv_updateScene(
+            env.model,
+            env.data,
+            mujoco.MjvOption(),
+            perturb,
+            camera,
+            mujoco.mjtCatBit.mjCAT_ALL,
+            scene,
+        )
+        mujoco.mjv_initPerturb(env.model, env.data, scene, perturb)
+        before = np.array(perturb.refselpos)
+        mujoco.mjv_movePerturb(env.model, env.data, action, *mouse, scene, perturb)
+        return np.array(perturb.refselpos) - before
+
+    def test_a_plain_drag_up_the_screen_is_pure_z_even_top_down(self, env):
+        """The reported bug, at its source: the view is straight down and the
+        pull still names a place this world cannot put anything."""
+        moved = self.translated(env, mujoco.mjtMouse.mjMOUSE_MOVE_V, (0.0, 0.1))
+        assert abs(moved[2]) > 0.1
+        assert np.linalg.norm(moved[:2]) == pytest.approx(0.0, abs=1e-12)
+
+    def test_a_plain_drag_across_the_screen_is_planar(self, env):
+        """Which is why the gesture works at all, and why what the human sees
+        is a puck that follows sideways and refuses to follow upwards."""
+        moved = self.translated(env, mujoco.mjtMouse.mjMOUSE_MOVE_V, (0.1, 0.0))
+        assert np.linalg.norm(moved[:2]) > 0.1
+        assert moved[2] == pytest.approx(0.0, abs=1e-12)
+
+    def test_the_view_is_not_what_puts_the_z_in(self, env):
+        """Tilt the camera as far as you like: the plain drag's z is the
+        mouse's vertical axis, and it is world z at every elevation."""
+        for elevation in (TOP_DOWN_ELEVATION, -80.0, -45.0, 0.0):
+            moved = self.translated(
+                env, mujoco.mjtMouse.mjMOUSE_MOVE_V, (0.07, 0.07), elevation
+            )
+            planar = float(np.linalg.norm(moved[:2]))
+            assert abs(moved[2]) == pytest.approx(planar, rel=1e-6), elevation
+
+    def test_the_shifted_drag_is_planar_whatever_the_view(self, env):
+        """`mjMOUSE_MOVE_H`: the one MuJoCo's help puts the shift in brackets
+        for, and the one this world's gesture actually wants."""
+        for elevation in (TOP_DOWN_ELEVATION, -80.0, -45.0, 0.0):
+            for mouse in ((0.1, 0.0), (0.0, 0.1), (0.07, 0.07)):
+                moved = self.translated(
+                    env, mujoco.mjtMouse.mjMOUSE_MOVE_H, mouse, elevation
+                )
+                assert np.linalg.norm(moved[:2]) > 0.09, (elevation, mouse)
+                assert moved[2] == pytest.approx(0.0, abs=1e-12), (elevation, mouse)
+
+    def test_the_gesture_layer_fires_a_hand_on_what_a_shifted_drag_hands_it(
+        self, gestures, env
+    ):
+        """End to end on MuJoCo's own numbers: the shifted drag clears the
+        refusal and moves the puck by what the mouse asked for."""
+        moved = self.translated(env, mujoco.mjtMouse.mjMOUSE_MOVE_H, (0.07, 0.07))
+        was = np.array(env.puck_pose(0)[:2])
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            event = gestures.drag(dragged(env, "puck_0", moved))
+        assert event.kind is EventKind.PERTURB
+        assert env.puck_pose(0)[:2] == pytest.approx(was + moved[:2], abs=1e-9)
 
 
 def zone_point(zone, offset=0.0):

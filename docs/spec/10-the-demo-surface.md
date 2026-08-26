@@ -215,34 +215,50 @@ hand.
 
 **A gesture is planar, and an out-of-plane drag fires nothing — corrected in #123.** The world has
 zero z degrees of freedom (`03-the-sandbox.md`; `arena.xml` has hinges about z and slides in x and y,
-and no z slide anywhere), while MuJoCo computes a drag in three dimensions against the camera plane.
-So a view that is not straight down puts a z into a gesture that has nowhere to mean anything. Taking
-the planar shadow of such a drag was the bug reported: a drag that was mostly z with a millimetre of
-planar residue passed the minimum-drag gate and fired a hand with the residue as its argument, a puck
-teleported a millimetre in a direction the human never expressed.
+and no z slide anywhere), while MuJoCo hands over a drag in three dimensions. Taking the planar
+shadow of one was the bug reported: a drag that was mostly z with a millimetre of planar residue
+passed the minimum-drag gate and fired a hand with the residue as its argument — a puck teleported a
+millimetre in a direction the human never expressed.
 
-Two constraints answer it, and **both are kept, deliberately redundant**:
+**Where the z comes from is the mouse, not the camera**, which is what #123 assumed and the
+implementation had to correct. MuJoCo's plain ctrl-drag is `mjMOUSE_MOVE_V`, a translate in the
+*vertical* plane: pull across the screen and the grabbed point moves in the world's xy, pull up the
+screen and it moves in world z — **at every camera elevation, straight down included**. The shifted
+drag, `mjMOUSE_MOVE_H`, is planar whichever way it goes; MuJoCo's own help table says as much in one
+line, *Object Translate: Ctrl [Shift] right drag*. `tests/test_gestures.py` pins both against
+`mjv_movePerturb` itself, because the wrong reading is easy to hold and hard to notice.
 
-- **The drag is refused.** The gate is on the out-of-plane component measured against the planar one
-  — about six degrees off the table — not on the planar magnitude alone. A drag outside it fires no
-  hand, leaves no marker, and **warns**, because a human given nothing and told nothing is left
-  wondering which of the two happened.
+So there are two constraints, they do different jobs, and **both are kept**:
+
+- **The drag is refused, and this is the enforcement.** The gate is on the out-of-plane component
+  measured against the planar one — about six degrees — not on the planar magnitude alone. A drag
+  outside it fires no hand, leaves no marker, and **warns**, naming the shifted drag as the way to
+  express a planar pull. A human given nothing and told nothing is left wondering which of the two
+  happened, and "look from above" would have been advice that does not help.
 - **The camera's tilt is held straight down**, re-asserted every tick rather than set once at
-  startup. It is re-assertion and not prevention: the passive viewer offers no way to disable its own
-  mouse camera, so a rotation lasts until the next tick — 20 ms — and is then put back. Only the tilt
-  is held; panning, zooming and spinning the view cannot put a z on the screen and stay the human's.
+  startup, and what it holds is the **picture**: the arena's plane fills the screen, so a drag's
+  planar half is the motion the human watches themselves make. It is re-assertion and not
+  prevention — the passive viewer offers no way to disable its own mouse camera, so a rotation lasts
+  until the next tick, 20 ms, and is then put back. Only the tilt is held; panning, zooming and
+  spinning leave the plane square to the screen and stay the human's.
 
-Either alone is a single point of failure — the hold stops the situation arising, the refusal catches
-it if the hold is ever lifted or bypassed — so **neither is to be removed as redundant with the
-other**. Both are relaxable in one place for a world that has a third dimension: the tolerance the
-gesture layer is built with, and the loop's `hold_camera`.
+The table above still names the ctrl-drag, unchanged: **which of MuJoCo's two translates the demo
+should teach** — the plain one, which fires only when it is pulled across the screen, or the shifted
+one, which is planar in every direction — is a binding question #123 did not settle, and is left open
+rather than decided in passing.
+
+#123 ruled for both constraints, for the redundancy, and **neither is to be removed as redundant with
+the other** — but the division of labour is the one above, and the camera hold must not be read as
+enforcing the plane, because it cannot. Both are relaxable in one place for a world that has a third
+dimension: the tolerance the gesture layer is built with, and the loop's `hold_camera`.
 
 **The perturbation ghost stays three-dimensional.** MuJoCo draws the drag as a spring in 3D and
-nothing on this surface can make it do otherwise. With the view held top-down the picture and the
-effect agree on screen, so the mismatch is invisible in practice; what remains is that a drag taken
-in the flicker after a rotation is drawn going somewhere and then fires nothing, which is what the
-warning is for. Whether the refusal and the un-tiltable view *feel* right at the window is, like the
-double-click below, a claim only a human at the window can settle.
+nothing on this surface can make it do otherwise. Held top-down that is mostly harmless — the planar
+half of a drag is drawn where the puck would go — but an out-of-plane pull is drawn going somewhere,
+towards or away from the camera, and then fires nothing at all. That gap is MuJoCo's and cannot be
+closed here; the warning is what stands in for closing it. Whether the refusal, the message and the
+un-tiltable view read well at the window is, like the double-click below, a claim only a human at the
+window can settle.
 
 Retarget is the one that needed designing, because it has no world-side handle to grab. Click-then-
 click is chosen over a keypress because it reads to a bystander with no caption — you point at the
