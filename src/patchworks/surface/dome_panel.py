@@ -131,6 +131,21 @@ _ZERO_LINE = (72, 74, 84)
 _COMMANDED = (150, 200, 236)
 _APPLIED = (64, 132, 190)
 
+#: What a full-height torque bar means, and it is **the environment's own
+#: contract rather than anything chosen here**: the sandbox declares
+#: `spaces.Box(-1.0, 1.0, (nu,))` (`patchworks.sandbox.env`) and
+#: :meth:`patchworks.agent.Agent.act` clips the command to it before the arm
+#: reads it, so the *applied* row is bounded by this on every tick of every run.
+#:
+#: Drawing both rows against it is what makes `04-action-and-the-boundary.md`'s
+#: *near-zero commanded torque* an absolute claim: near zero means near zero,
+#: on every tick, with no dependence on what the run has happened to see. A
+#: running maximum here -- what #94 first shipped -- is a ratchet that one
+#: unclipped command raises for the rest of the run, after which a command at
+#: the limit draws at the zero line and the stall signature is fabricated out
+#: of a full-strength swing. Ruled on in #94.
+_ACTION_BOUND = 1.0
+
 #: The onset counter the motor strip is sized to fit. Six digits is a run of
 #: hours at the sandbox's 50 Hz control rate. The count is always drawn in
 #: full: one that outgrew this runs off the strip and is clipped at the frame,
@@ -663,6 +678,10 @@ class DomePanel:
         self._mark_scale = _RunningScale(len(self._marks))
         self._mark_value = np.zeros(len(self._marks))
         self._mark_raw = np.zeros(len(self._marks))
+        #: `[marks]` in `[0, 1]`: each mark against **this tick's** largest
+        #: boundary mark, which is what the strip's standing bar is drawn from.
+        #: See :meth:`_observe_disagreement`.
+        self._mark_standing = np.zeros(len(self._marks))
         self._last_disagreement = np.zeros(len(dome.edges))
         #: Whether the **last** record carried disagreement at all. What the
         #: marks are drawn from is a fact about that record, not about the run:
@@ -696,7 +715,6 @@ class DomePanel:
         self._unread_edges: tuple[int, ...] = ()
         self._threshold = 0.0
         self._torque = np.zeros((2, 0))
-        self._torque_scale = 0.0
 
         self._notice_scale = max(1, pitch // DEFAULT_PITCH)
         self._notice_height = _FONT_HEIGHT * self._notice_scale + 2 * self._notice_scale
@@ -1270,6 +1288,7 @@ class DomePanel:
         if disagreement is None:
             self._mark_value = np.zeros(len(self._marks))
             self._mark_raw = np.zeros(len(self._marks))
+            self._mark_standing = np.zeros(len(self._marks))
             self._last_disagreement = np.zeros(len(self.dome.edges))
             self._drawn_edges, self._unread_edges, self._threshold = (), (), 0.0
             return
@@ -1285,6 +1304,20 @@ class DomePanel:
         self._mark_value = (
             self._mark_raw if self.raw else self._mark_scale.normalised(readable)
         )
+        # And the strip's standing bar: every mark against **this tick's**
+        # largest, shared across the marks and recomputed each tick. Shared,
+        # because comparison between the marks is what that bar is for; per
+        # tick, because an all-time maximum is a ratchet -- one spike on the
+        # drive permanently flattened the actuator's bar beside it, which is
+        # the signature `04` is read off. A mark with no reading is kept out of
+        # the divisor as it is kept out of everything else here.
+        read = ~self._mark_scale.no_reading
+        loudest = float(readable[read].max(initial=0.0)) if read.any() else 0.0
+        self._mark_standing = (
+            np.where(read, readable / loudest, 0.0)
+            if loudest > 0.0
+            else np.zeros(len(self._marks))
+        )
         self._last_disagreement = disagreement
         (
             self._threshold,
@@ -1293,24 +1326,18 @@ class DomePanel:
         ) = _above_the_ticks_own_scale(disagreement)
 
     def _observe_torque(self, actuator: np.ndarray | None) -> None:
-        """The actuator's commanded and applied rows, and the scale they share.
+        """The actuator's commanded and applied rows, held for the strip to draw.
 
-        **One scale for all six numbers**, because they are torques in the same
-        units and the point of the pair is that a fill falls short of its own
-        outline. It is the largest magnitude seen anywhere on the strip so far,
-        the same rule the raw map's scale follows and for the same reason: a
-        tick's own maximum would rescale the strip under the viewer and put a
-        resting arm at full height. Zero stays zero under it, which is what
-        keeps *near-zero commanded torque* -- half of `04`'s stall signature --
-        legible as near zero.
+        There is no scale to accumulate: both rows are drawn against
+        :data:`_ACTION_BOUND`, which is the environment's declared action space
+        and not a quantity this panel measures. The six numbers share it because
+        they are components of one action in the contract's own units -- **not**
+        because they are torques in the same physical units, which they are not:
+        the arm multiplies each by its own limit (3 / 2 / 1 N·m), so equal bar
+        heights on two joints are equal *fractions of each joint's own limit*
+        and not equal torques.
         """
-        if actuator is None:
-            self._torque = np.zeros((2, 0))
-            return
-        self._torque = actuator
-        finite = actuator[np.isfinite(actuator)]
-        largest = float(np.abs(finite).max(initial=0.0))
-        self._torque_scale = max(self._torque_scale, largest)
+        self._torque = np.zeros((2, 0)) if actuator is None else actuator
 
     # -- pixels ------------------------------------------------------------
 
@@ -1446,16 +1473,34 @@ class DomePanel:
         """The actuator, decomposed: three paired bars and its disagreement.
 
         **Commanded as an outline, applied as a fill** -- efference copy made
-        visible, so saturation reads as the fill falling short of its outline
-        and needs no second mark to say so. The fourth bar is the actuator's own
-        motor-side disagreement, and it is drawn **raw**, against the largest a
-        boundary mark has shown: `04-action-and-the-boundary.md`'s
-        route-selection signature is *near-zero commanded torque with standing
-        motor-side disagreement*, and standing is an absolute claim. On the
-        normalised map that bar would habituate -- a chronic stall would settle
-        to its own baseline and render calm, which is the consequence
-        `10-the-demo-surface.md` accepts for the colour channel and cannot be
-        accepted for the one bar a falsification test is read off.
+        visible. Both rows are drawn against :data:`_ACTION_BOUND`, the
+        environment's declared action space, so a height here is an absolute
+        reading: *near-zero commanded torque* means near zero on every tick of
+        every run. Since the applied row is the command clipped to that same
+        bound, the two rows can only differ once the command has passed it --
+        so **saturation is an outline running off the top of the strip, left
+        open, beside a fill standing at the bound**, which is the shortfall the
+        pair exists to show.
+
+        The fourth bar is the actuator's own motor-side disagreement, and it is
+        drawn **relative to the other boundary marks on this tick**: each mark
+        against the largest of them, recomputed every tick.
+        `04-action-and-the-boundary.md`'s route-selection signature is
+        *near-zero commanded torque with standing motor-side disagreement*, and
+        on the normalised colour map that bar would habituate -- a chronic stall
+        would settle to its own baseline and render calm, which is the
+        consequence `10-the-demo-surface.md` accepts for the colour channel and
+        cannot be accepted for the one bar a falsification test is read off.
+
+        **That height is a comparison, never a quantity**, and the difference
+        matters. Disagreement has no natural unit, so there is no absolute
+        reference to draw it against -- an all-time maximum looks like one and
+        is a ratchet, where one spike anywhere on the boundary flattens every
+        later tick, and a mark's *own* peak is worse still, since a mark sits at
+        its own peak whenever it is quiet and the bar would stand through a
+        silent run. What is honest is which boundary mark is loudest now, so
+        some mark is at full height on every tick and that is the reading rather
+        than a defect. Ruled on in #94.
 
         **A bar with no reading spans the whole strip in its own colour**
         (:data:`_NO_READING`) rather than standing at zero. A bar encodes its
@@ -1487,6 +1532,13 @@ class DomePanel:
         bottom = top + height - self._notice_height
         zero = (top + bottom) // 2
         half = max(1, (bottom - top) // 2 - 1)
+        # :data:`_ACTION_BOUND` draws to one row short of the bar's full reach,
+        # and the row that leaves is entered **only** by a command that passed
+        # the bound. So a saturating command stands one row above the fill that
+        # met the bound beside it, and *the fill falls short of its outline* is
+        # what the strip literally draws -- no second ink, and no rescaling of
+        # the strip around an overrun.
+        reach = max(1, half - 1)
         canvas[zero, left + self._bar_margin : left + width - self._bar_margin] = _ZERO_LINE
 
         for joint in range(self._torque.shape[1]):
@@ -1500,7 +1552,7 @@ class DomePanel:
                 zero=zero,
                 left=self._bar_left(left, joint),
                 width=self._bar,
-                height=self._scaled(commanded, half),
+                height=self._scaled(commanded, reach, half),
                 colour=_COMMANDED,
                 fill=False,
             )
@@ -1509,7 +1561,7 @@ class DomePanel:
                 zero=zero,
                 left=self._bar_left(left, joint) + 1,
                 width=max(1, self._bar - 2),
-                height=self._scaled(applied, half),
+                height=self._scaled(applied, reach, half),
                 colour=_APPLIED,
                 fill=True,
             )
@@ -1522,7 +1574,7 @@ class DomePanel:
             if self._mark_scale.no_reading[row]:
                 canvas[top:bottom, x : x + self._bar] = _NO_READING
             else:
-                standing = float(self._mark_raw[row])
+                standing = float(self._mark_standing[row])
                 _draw_bar(
                     canvas,
                     zero=zero,
@@ -1551,15 +1603,20 @@ class DomePanel:
         """Where one of the strip's bars starts, counting from the strip's edge."""
         return left + self._bar_margin + index * (self._bar + self._bar_gap)
 
-    def _scaled(self, torque: float, half: int) -> int:
+    def _scaled(self, torque: float, reach: int, limit: int) -> int:
         """One torque, in pixels above the strip's zero line.
+
+        Against :data:`_ACTION_BOUND`, absolutely -- see there. `reach` is the
+        height that bound draws to and `limit` the height the bar has, and they
+        differ by the row reserved for an overrun: a command is deliberately
+        unclipped, so its outline can ask for more than the bound, and that
+        asks for the reserved row rather than rescaling the strip around it
+        (:meth:`_draw_motor_strip`).
 
         Only ever called on a reading: a non-finite one is drawn as no reading
         rather than reduced to a height, and its caller has already left.
         """
-        if self._torque_scale <= 0.0:
-            return 0
-        return int(np.clip(round(torque / self._torque_scale * half), -half, half))
+        return int(np.clip(round(torque / _ACTION_BOUND * reach), -limit, limit))
 
     def _notice(self, warming: int, marks: int = 0) -> str:
         """What the panel says while the statistics are warming up.

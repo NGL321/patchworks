@@ -1348,18 +1348,66 @@ class TestTheActuatorDrawsDecomposed:
         return panel, frame
 
     def test_saturation_reads_as_the_fill_falling_short_of_its_outline(self, small):
-        panel, frame = self.bars(small, [5.0, 0.0, 0.0], [3.0, 0.0, 0.0])
+        """The one shape saturation can take, under the contract that makes it.
+
+        `Agent.act` sets `applied = clip(command, -1, 1)`, so the two rows can
+        differ **only** once the command has passed the bound -- and when they
+        do, the applied row is exactly *at* it. The bound draws to one row short
+        of the bar's reach, so the overrun takes the row the fill cannot, and
+        the outline stands above its own fill.
+        """
+        panel, frame = self.bars(small, [1.6, 0.0, 0.0], [1.0, 0.0, 0.0])
         outline = painted(panel, frame, dome_panel_module._COMMANDED)
         fill = painted(panel, frame, dome_panel_module._APPLIED)
         assert outline is not None and fill is not None
         # Up from the zero line, so a shorter bar starts lower down the frame.
         assert fill[0] > outline[0]
 
-    def test_an_unclipped_command_fills_its_outline(self, small):
-        panel, frame = self.bars(small, [3.0, 0.0, 0.0], [3.0, 0.0, 0.0])
+    def test_a_command_the_body_could_meet_fills_its_outline(self, small):
+        """No overrun, so the fill reaches the outline exactly."""
+        panel, frame = self.bars(small, [0.5, 0.0, 0.0], [0.5, 0.0, 0.0])
         outline = painted(panel, frame, dome_panel_module._COMMANDED)
         fill = painted(panel, frame, dome_panel_module._APPLIED)
         assert outline[0] == fill[0]
+
+    def test_a_command_at_the_bound_does_not_take_the_overrun_row(self, small):
+        """The reserved row is what *past* the bound means, not *at* it."""
+        _panel, at = self.bars(small, [1.0, 0.0, 0.0], [1.0, 0.0, 0.0])
+        panel, past = self.bars(small, [1.6, 0.0, 0.0], [1.0, 0.0, 0.0])
+        assert (
+            painted(panel, past, dome_panel_module._COMMANDED)[0]
+            < painted(panel, at, dome_panel_module._COMMANDED)[0]
+        )
+
+    def test_a_full_command_draws_full_height_whatever_the_run_has_seen(self, small):
+        """The bound is absolute, so no earlier tick can rescale a later one.
+
+        #94 first drew both rows against the largest magnitude the strip had
+        ever seen. That is a ratchet, and the commanded row is deliberately
+        unclipped (`04-action-and-the-boundary.md`), so one spike compressed
+        every later tick: a command at the limit then drew as a single pixel at
+        the zero line, which is *near-zero commanded torque* -- half of `04`'s
+        stall signature -- fabricated out of a full-strength swing.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+
+        def draw(tick, commanded):
+            return panel.frame(
+                full(
+                    tick,
+                    cells,
+                    edges,
+                    disagreement=1.0,
+                    actuator=np.array([[commanded, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+                )
+            )
+
+        draw(1, 1.0)
+        before = painted(panel, draw(2, 1.0), dome_panel_module._COMMANDED)
+        draw(3, 500.0)
+        after = painted(panel, draw(4, 1.0), dome_panel_module._COMMANDED)
+        assert after == before, "a spike three ticks ago is not this tick's scale"
 
     def test_the_fill_is_drawn_inside_its_outline_at_every_pitch(self, small):
         """A pair is one bar, and the fill falls short *within* the outline.
@@ -1462,6 +1510,46 @@ class TestTheActuatorDrawsDecomposed:
         # is the habituation this bar is drawn raw to escape.
         assert struck > 0.99
         assert panel.boundary_lit[row] < 0.75 * struck
+
+    def test_a_spike_on_another_mark_does_not_flatten_this_one_afterwards(
+        self, small
+    ):
+        """The divisor is this tick's, so nothing it saw before is in it.
+
+        #94 first drew the standing bar against the largest **any** boundary
+        mark had **ever** shown. Sharing the divisor is the point -- the bar is
+        a comparison among the marks -- but an all-time maximum makes it a
+        ratchet: one tick in which the drive spiked took the actuator's bar from
+        most of the strip to a single pixel and it never came back, erasing the
+        very signature `04` is read off. Per tick, the spike raises the bar on
+        the tick it happens and is gone on the next.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        (actuator,) = only(small, "actuator")
+        panel = DomePanel(small, np.full(cells, 4.0))
+        stalled = np.full(edges, 0.05)
+        for edge in small.incident[actuator]:
+            stalled[edge] = 6.0
+        spiked = stalled.copy()
+        for drive in only(small, "drive"):
+            for edge in small.incident[drive]:
+                spiked[edge] = 60.0
+
+        def draw(tick, disagreement):
+            return panel.frame(
+                full(
+                    tick, cells, edges, disagreement=disagreement, actuator=np.zeros((2, 3))
+                )
+            )
+
+        draw(1, stalled)
+        before = standing_bar(panel, draw(2, stalled))
+        during = standing_bar(panel, draw(3, spiked))
+        after = standing_bar(panel, draw(4, stalled))
+        assert before is not None and during is not None and after is not None
+        # The spike is a fact about its own tick, and only about its own tick.
+        assert during[1] - during[0] < before[1] - before[0]
+        assert after == before
 
     def test_the_onset_count_is_drawn_on_the_strip(self, small):
         """Onset is read off the strip rather than reconstructed afterward."""

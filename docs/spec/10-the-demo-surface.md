@@ -105,34 +105,33 @@ the arm **stalling mid-swing** — near-zero commanded torque with standing moto
 and that is an outline near zero beside a disagreement bar that stands. `04` already assumes this
 readout exists; here is where it exists.
 
-**That bar is the one mark drawn raw rather than normalised**, and it has to be. Per-cell
-normalisation makes a chronically-wrong mark render calm — accepted above for the colour channel,
-where the raw map behind the debug flag is the answer — but a stall that *stands* is exactly a
-chronic reading, and a bar that faded as the stall persisted would be the display absorbing the
-failure it exists to show. So the three torque bars are drawn against the largest torque the strip
-has seen and the disagreement bar against the largest a boundary mark has shown; zero stays zero
-under both, which is what keeps *near-zero commanded* legible as near zero. Settled in #94.
+**The two bars beside each other are scaled differently, and they have to be.** One has an absolute
+reference available and the other does not.
 
-**That last sentence is wrong, and the divisor it names is an open question.** Both scales are
-running maxima, so both are ratchets that one tick can raise for the rest of the run, and #94's
-review demonstrated each one erasing the signature this bar exists to render:
+**The three torque bars are absolute, against the action space's own bound.** The sandbox declares
+`spaces.Box(-1.0, 1.0, (nu,))` and `Agent.act` clips the command to it before the arm reads it, so
+the *applied* row is bounded by that on every tick of every run. Drawing both rows against it is what
+makes `04`'s *near-zero commanded torque* an absolute claim — near zero means near zero, always, with
+no dependence on what the run has happened to see. The commanded row is deliberately unclipped, so it
+can ask for more than the bound; the bound draws to one row short of the bar's reach and the overrun
+takes the row that leaves, so a saturating command stands one row above the fill that met the bound
+beside it. That is *the fill falling short of its outline*, drawn. Note this is the only shape
+saturation can take: the rows can differ only once the command has passed the bound, and when they do
+the applied row is exactly *at* it.
 
-- *The largest a boundary mark has shown* is shared across every boundary mark, so a single tick in
-  which the **drive** edge spikes permanently flattens the **actuator's** bar — 18 px to 1 px on the
-  small dome, and the drive is already the largest boundary mark within 120 ticks of a real run. The
-  two marks the panel most needs to read independently are coupled through one divisor.
-- *The largest torque the strip has seen* is set by the **commanded** row, which
-  `04-action-and-the-boundary.md` deliberately leaves unclipped. One spike to 500 draws every later
-  full-strength command as a single pixel at the zero line — *near-zero commanded torque*, fabricated
-  from a command at its limit.
+**The disagreement bar is relative, and shared: each boundary mark against the largest of them on the
+tick being drawn.** Disagreement has no natural unit, so no absolute reference exists to supply, and
+comparison between the marks is what this bar is for. Sharing one divisor is what makes them
+comparable; recomputing it every tick is what stops it being a ratchet. **Its height is therefore a
+comparison and never a quantity** — some mark is at full height on every tick, and under a relative
+reading that is the reading rather than a defect. Do not read it as a magnitude.
 
-The obvious repair — divide each mark by its **own** running peak — is not one: a mark sits at its
-own peak whenever it is quiet, so the bar stands at 97% of full height through a completely quiet
-run, claiming a standing disagreement at all times. A bar rendering an absolute claim needs an
-absolute reference, and disagreement has no natural unit to supply one. **Unresolved; do not read
-the height of the standing bar as a quantity until it is.** The pair of *torque* bars is unaffected
-by this — a fill falling short of its outline is a comparison within one tick — and so is every mark
-on the colour channel, which is normalised per cell and documented as such.
+Both replace an earlier attempt to drive these bars from running maxima, which #94's review showed
+erasing the signature they exist to render: one tick in which the drive spiked flattened the
+actuator's bar for the rest of the run, and one unclipped command drew every later full-strength one
+at the zero line. The obvious repair — each mark against its *own* peak — is worse, since a mark sits
+at its own peak whenever it is quiet and the bar would then stand through a silent run. Ruled on in
+#94.
 
 ### The drive mark
 
