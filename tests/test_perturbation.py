@@ -97,8 +97,33 @@ from conftest import SMALL
 # taking them with it, and :class:`TestTheCellsTheseTestsName` pins what each
 # one is for, so a derivation that started selecting a cell of the wrong kind
 # fails rather than quietly changing what is being guarded.
+#
+# All of it runs at import, because `parametrize` needs the ids at collection.
+# That puts this module's collection -- `TestBothChecksRunInCI` with it -- on
+# the far side of `build_graph` succeeding, so the derivations below are
+# written to state what went wrong rather than to raise a bare `StopIteration`
+# a reader has to work backwards from. Everything they can defer to a real
+# assertion, they do: `DRIVE_CELLS` is a tuple here and *how many* there are is
+# :class:`TestTheCellsTheseTestsName`'s to say.
 
 _DOME = build_graph(SMALL)
+
+
+def _cells_of(kind):
+    """Every cell of one kind, lowest id first."""
+    return tuple(cell.id for cell in _DOME.cells if cell.kind is kind)
+
+
+def _first(kind):
+    """The lowest-numbered cell of one kind."""
+    cells = _cells_of(kind)
+    if not cells:
+        raise AssertionError(
+            f"the shared spec (tests/conftest.py) builds no {kind.value} cell, "
+            f"which this file names one of; see TestTheCellsTheseTestsName"
+        )
+    return cells[0]
+
 
 #: This dome's widest cell — seven edges — and a predicting cell, so the
 #: transport rule's per-edge path is exercised where it has most to reach.
@@ -106,15 +131,12 @@ _DOME = build_graph(SMALL)
 #: is a rule rather than a choice: the same spec always yields the same cell.
 WIDEST = _DOME.degrees.index(max(_DOME.degrees))
 
-#: The dome's one drive boundary cell: three edges, each of mask width 1. The
-#: unpacking is the assertion that it is one cell — `CONTEXT.md`: one cell is
-#: one drive.
-(DRIVE_CELL,) = (cell.id for cell in _DOME.cells if cell.kind is CellKind.DRIVE)
-
-
-def _first(kind):
-    """The lowest-numbered cell of one kind."""
-    return next(cell.id for cell in _DOME.cells if cell.kind is kind)
+#: The drive boundary cells, and the one this file perturbs: three edges, each
+#: of mask width 1. `CONTEXT.md` has one cell to one drive, so the tuple should
+#: hold exactly one — asserted rather than unpacked, so that a dome carrying
+#: two fails as a sentence about drives instead of aborting this module.
+DRIVE_CELLS = _cells_of(CellKind.DRIVE)
+DRIVE_CELL = _first(CellKind.DRIVE)
 
 
 #: A spread to perturb one at a time: a sensory cell the world writes, a
@@ -365,6 +387,12 @@ class TestTheCellsTheseTestsName:
         assert dome.cells[WIDEST].kind is CellKind.PREDICTING
         assert dome.degrees[WIDEST] == 7
         assert dome.degrees[WIDEST] == max(dome.degrees)
+
+    def test_there_is_exactly_one_drive_cell(self, dome):
+        # `CONTEXT.md`, *Drive boundary cell*: one cell is one drive. Held here
+        # rather than in the derivation above so that a second drive is a
+        # readable failure and not a collection error.
+        assert DRIVE_CELLS == (DRIVE_CELL,)
 
     def test_the_drive_cell_is_a_boundary_cell_on_three_edges_of_width_one(self, dome):
         # `test_a_flat_endpoint_is_the_objective_not_a_missing_signal` reads

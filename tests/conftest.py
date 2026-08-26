@@ -9,8 +9,8 @@ nothing.
 from patchworks.graph import DomeSpec
 
 #: The small dome most of the suite runs on: 39 cells, 15 of them predicting,
-#: 54 edges. Small enough to sweep every cell in twice, and built by the same
-#: rules as the real one, so every seam is present at this size.
+#: 54 edges. Small enough to sweep every cell in the graph twice, and built by
+#: the same rules as the real one, so every seam is present at this size.
 #:
 #: Shared rather than copied because `tests/test_perturbation.py` reads cell
 #: indices off it. A second copy drifting from this one would leave the
