@@ -153,6 +153,39 @@ A_SPREAD = [
     DRIVE_CELL,
 ]
 
+
+# -- the rows and endpoints these tests name by hand -----------------------
+#
+# Two of the index sets below are not cell ids and are not derived: the bias
+# rows, which number the predicting cells in `dome.predicting` order, and the
+# edge endpoints, which number the two ends of every edge (see
+# :func:`perturb_the_biases_of`). Neither numbering offers anything to select
+# on — a bias row is not of a kind and an endpoint is not the widest of
+# anything — so these are arbitrary representatives, spread across their array
+# and no more meaningful than any other. Picking them by a rule would dress a
+# choice up as a derivation, and the sweep beside each already makes the
+# standing claim over every row and every endpoint; these are what make a
+# failure name one.
+#
+# What typing them costs is that a dome retuned smaller can leave one off the
+# end of its array, where it fails as an `IndexError` from inside a helper
+# rather than as anything about the dome. They are gathered here, and typed
+# nowhere else, so that :class:`TestTheCellsTheseTestsName` can bound all of
+# them against the arrays they index.
+
+#: A bias row well inside the population, for the tests that want a single row
+#: rather than a spread.
+A_BIAS_ROW = 7
+
+#: The bias rows perturbed one at a time: on this dome the first two, one
+#: mid-population, and the last.
+NAMED_BIAS_ROWS = (0, 1, A_BIAS_ROW, 14)
+
+#: The `incoming` rows :class:`TestThePermittedChannel` perturbs directly: two
+#: at the start of the numbering and two well into it, of both parities, since
+#: an endpoint's parity is which end of its edge it is.
+NAMED_ENDPOINTS = (0, 1, 43, 100)
+
 #: How hard a perturbation pushes. Large enough that the perturbed cell's own
 #: update moves well clear of float32's last bits -- a perturbation too small
 #: to be felt would make every assertion below pass on nothing -- and small
@@ -376,6 +409,11 @@ class TestTheCellsTheseTestsName:
     shared spec's comment claims with it. This is the class that fails when the
     dome is retuned, which is the point: retuning it should send someone back
     through this file rather than pass quietly.
+
+    The two index sets that are *not* derived — the bias rows and the edge
+    endpoints — have no premise to pin, being arbitrary representatives of
+    their numberings. What they have is a bound, and that is what the last
+    test here holds.
     """
 
     def test_the_dome_is_the_size_the_shared_spec_claims(self, dome):
@@ -417,15 +455,15 @@ class TestTheCellsTheseTestsName:
             CellKind.DRIVE,
         ]
 
-    def test_the_other_two_numberings_are_the_sizes_this_file_indexes_into(
-        self, running
-    ):
-        # The bias rows and the edge endpoints are numbered separately from
-        # dome cell ids (see `perturb_the_biases_of`), and the tests below
-        # index into both by hand. Pinned here so a smaller dome fails as a
-        # statement about the dome rather than as an `IndexError` somewhere.
-        assert running.biases.cells == len(running.dome.predicting)
-        assert running.incoming.shape[0] == 2 * len(running.dome.edges)
+    def test_the_rows_and_endpoints_named_by_hand_fit_this_dome(self, running):
+        # The two numberings this file types rather than derives (see *the
+        # rows and endpoints these tests name by hand*), bounded against the
+        # arrays the tests that name them index — the biases' leading
+        # dimension and `incoming`'s. A dome retuned below either then fails
+        # here, as a sentence about the dome, beside whatever `IndexError`
+        # those tests raise from inside a helper rather than instead of it.
+        assert max(NAMED_BIAS_ROWS) < running.biases.cells
+        assert max(NAMED_ENDPOINTS) < running.incoming.shape[0]
 
 
 class TestPerturbingOneCellsBiases:
@@ -436,7 +474,7 @@ class TestPerturbingOneCellsBiases:
     :func:`perturb_the_biases_of`.
     """
 
-    @pytest.mark.parametrize("cell", [0, 1, 7, 14])
+    @pytest.mark.parametrize("cell", NAMED_BIAS_ROWS)
     def test_no_other_cells_update_moves(self, running, cell):
         before, after = readings(
             running, cell, bias_update, perturb_the_biases_of, BiasRule
@@ -456,7 +494,7 @@ class TestPerturbingOneCellsBiases:
         # The teeth. Without this the assertions above would pass just as
         # happily on a perturbation nothing could see, and a guard that cannot
         # tell "no leak" from "no signal" is not a guard.
-        cell = 7
+        cell = A_BIAS_ROW
         before, after = readings(
             running, cell, bias_update, perturb_the_biases_of, BiasRule
         )
@@ -570,7 +608,7 @@ class TestThePermittedChannel:
         # perturbing the row directly is the strongest form of the permitted
         # exception -- and even then it reaches the endpoint whose own term it
         # is, never the cell's other edges and never the partner's update.
-        for endpoint in (0, 1, 43, 100):
+        for endpoint in NAMED_ENDPOINTS:
             baseline, perturbed = copy.deepcopy(running), copy.deepcopy(running)
             with torch.no_grad():
                 perturbed.incoming[endpoint] += NUDGE
@@ -655,7 +693,7 @@ class TestTheSharedStorageCase:
     def test_the_perturbation_test_catches_the_bias_leak(self, running):
         # The same comparison the standing tests make, on the same helper, so
         # "this test catches it" is demonstrated rather than asserted.
-        cell = 7
+        cell = A_BIAS_ROW
         before, after = readings(
             running, cell, bias_update, perturb_the_biases_of, LeakingBiasRule
         )
