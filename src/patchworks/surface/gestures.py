@@ -35,6 +35,16 @@ and it is the part that decides nothing.
 grabbed and nothing else, which is why `08`'s first two events need no new
 binding and read as one motion with two targets.
 
+**A gesture is planar, and twice over** (#123). The world has no third
+dimension -- `arena.xml` has hinges about z and slides in x and y, and no z
+slide anywhere -- so a drag with a z in it names nothing the world can do.
+:meth:`Gestures.drag` refuses one and says why, and :func:`hold_top_down` keeps
+the view straight down so that a drag has no z in it to refuse. The two overlap
+**on purpose**: the hold stops the situation arising, the refusal catches it if
+the hold is ever lifted or bypassed, and either alone is a single point of
+failure. What no test can settle is whether the gesture then *feels* right,
+which is a human at the window.
+
 **Nothing here is part of the architecture.** These are the *human's* hands
 (`docs/spec/03-the-sandbox.md`, *The human's hand*), fired from outside on the
 footing any experimenter is on: no cell reads anything this module computes,
@@ -94,9 +104,9 @@ __all__ = [
 IMPULSE_PER_METRE = 1.0
 
 #: Metres of drag below which nothing fires, read on the larger of the drag's
-#: planar and out-of-plane components: a press that went nowhere went nowhere in
-#: either. A ctrl-press without a pull is not
-#: a gesture, and firing on one would teleport a puck to where it already is --
+#: planar and out-of-plane components -- a press that went nowhere went nowhere
+#: in either. A ctrl-press without a pull is not a gesture, and firing on one
+#: would teleport a puck to where it already is --
 #: leaving a marker that onset latency would then be measured from
 #: (`docs/spec/10-the-demo-surface.md`, *Onset, and the near-misses*). It also
 #: happens to be what leaves MuJoCo's *rotate* drag alone: ctrl + the left
@@ -789,6 +799,23 @@ def drive(
     sweep's obligation, alongside the per-trial
     :meth:`~patchworks.surface.onset.OnsetCounter.restart` that #95 handed
     forward, and neither is a thing this loop can check for its caller.
+
+    **The camera is held top-down, every tick** (#123). The view decides what a
+    ctrl-drag *means*: a drag is measured against the camera plane, so a view
+    that is not straight down puts a z into a gesture in a world that has no z
+    in it. #96 set the pose once, here, before the loop -- which is not a hold,
+    since MuJoCo lets the human rotate the view freely and nothing said the
+    gestures had quietly changed meaning. So the tilt is re-asserted on every
+    iteration, under the same lock as everything else the render thread reads.
+    It is **re-assertion and not prevention**, and :func:`hold_top_down` says so
+    at length: the passive viewer exposes no way to disable its own mouse
+    camera, so a rotation lasts until the next tick -- 20 ms here -- and then
+    goes back. A drag taken inside that window is refused by
+    :meth:`Gestures.drag`, which is the point of having both.
+
+    `hold_camera=None` lifts the hold in one place, for a world worth looking
+    at from an angle; a different constraint is a different callable, and this
+    loop stays one line either way.
 
     **The keys are drained here, not handled in the callback.** MuJoCo calls
     `key_callback` on its own UI thread, and `r` rearranges the world -- so

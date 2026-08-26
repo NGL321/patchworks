@@ -15,7 +15,7 @@ the whole surface off must change no trajectory.
 
 | | |
 |---|---|
-| **Scene** | MuJoCo's passive viewer, as `prototypes/sandbox/watch.py` already runs it. Its camera, its picking, its drag. |
+| **Scene** | MuJoCo's passive viewer, as `prototypes/sandbox/watch.py` already runs it. Its picking, its drag, and its camera — held top-down, for the reason *The hands* gives. |
 | **Panel** | A second window: the dome, the private-component readout, and the motor strip. |
 
 A single composed window was considered and rejected. It buys one tidy frame for capture and pays for
@@ -212,6 +212,37 @@ which is why events 1 and 2 need no new binding and read as one motion with two 
 *translating* ctrl-drag — MuJoCo's `mjPERT_TRANSLATE`, ctrl + the right button. Ctrl + the left
 button is `mjPERT_ROTATE`, which turns a reference orientation and moves nothing, so it fires no
 hand.
+
+**A gesture is planar, and an out-of-plane drag fires nothing — corrected in #123.** The world has
+zero z degrees of freedom (`03-the-sandbox.md`; `arena.xml` has hinges about z and slides in x and y,
+and no z slide anywhere), while MuJoCo computes a drag in three dimensions against the camera plane.
+So a view that is not straight down puts a z into a gesture that has nowhere to mean anything. Taking
+the planar shadow of such a drag was the bug reported: a drag that was mostly z with a millimetre of
+planar residue passed the minimum-drag gate and fired a hand with the residue as its argument, a puck
+teleported a millimetre in a direction the human never expressed.
+
+Two constraints answer it, and **both are kept, deliberately redundant**:
+
+- **The drag is refused.** The gate is on the out-of-plane component measured against the planar one
+  — about six degrees off the table — not on the planar magnitude alone. A drag outside it fires no
+  hand, leaves no marker, and **warns**, because a human given nothing and told nothing is left
+  wondering which of the two happened.
+- **The camera's tilt is held straight down**, re-asserted every tick rather than set once at
+  startup. It is re-assertion and not prevention: the passive viewer offers no way to disable its own
+  mouse camera, so a rotation lasts until the next tick — 20 ms — and is then put back. Only the tilt
+  is held; panning, zooming and spinning the view cannot put a z on the screen and stay the human's.
+
+Either alone is a single point of failure — the hold stops the situation arising, the refusal catches
+it if the hold is ever lifted or bypassed — so **neither is to be removed as redundant with the
+other**. Both are relaxable in one place for a world that has a third dimension: the tolerance the
+gesture layer is built with, and the loop's `hold_camera`.
+
+**The perturbation ghost stays three-dimensional.** MuJoCo draws the drag as a spring in 3D and
+nothing on this surface can make it do otherwise. With the view held top-down the picture and the
+effect agree on screen, so the mismatch is invisible in practice; what remains is that a drag taken
+in the flicker after a rotation is drawn going somewhere and then fires nothing, which is what the
+warning is for. Whether the refusal and the un-tiltable view *feel* right at the window is, like the
+double-click below, a claim only a human at the window can settle.
 
 Retarget is the one that needed designing, because it has no world-side handle to grab. Click-then-
 click is chosen over a keypress because it reads to a bystander with no caption — you point at the
