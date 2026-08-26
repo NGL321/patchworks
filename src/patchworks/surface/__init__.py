@@ -41,7 +41,11 @@ Seven modules, and the seam between them is the record:
   one; that module is where the measurement is.
 * :mod:`patchworks.surface.watch` -- `patchworks watch`: the panel drawn into
   that window, live beside the scene or from a trace off disk. The two differ in
-  the feed and in nothing else.
+  the feed and in nothing else. It is **not** re-exported here, and that is not
+  an oversight: it is a runnable module, and a package that imported it would
+  put it in `sys.modules` before `python -m patchworks.surface.watch` got to
+  execute it -- which runpy warns about, in the command the README tells a
+  human to type.
 * :mod:`patchworks.surface.gestures` -- the gestures those hands are bound to,
   and the live viewer they are bound in: shift-ctrl-drag a link or a puck --
   the shift is MuJoCo's horizontal-plane translate, and a drag that left this
@@ -92,7 +96,6 @@ from patchworks.surface.record import (
     Trace,
 )
 from patchworks.surface.renderer import Renderer
-from patchworks.surface.watch import compose, live, replay, show
 from patchworks.surface.window import FrameWindow, open_window
 
 __all__ = [
@@ -125,13 +128,9 @@ __all__ = [
     "TickRecord",
     "Trace",
     "colormap",
-    "compose",
     "drive",
     "hold_top_down",
     "hop_distance",
-    "live",
     "measured_persistence",
     "open_window",
-    "replay",
-    "show",
 ]
