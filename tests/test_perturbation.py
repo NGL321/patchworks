@@ -1009,8 +1009,13 @@ class TestBothChecksRunInCI:
         and an unparseable file raises `TOMLDecodeError`, which are both this
         check going red — the direction that fails safely, and the one the
         split it replaced failed in too.
+
+        Opened in binary, which is `tomllib`'s own idiom rather than a
+        preference: TOML is UTF-8 by specification, and `read_text` would
+        decode it in whatever the locale is instead.
         """
-        parsed = tomllib.loads((self.ROOT / "pyproject.toml").read_text())
+        with (self.ROOT / "pyproject.toml").open("rb") as source:
+            parsed = tomllib.load(source)
         return parsed["tool"]["pytest"]["ini_options"]
 
     def mappings(self, document):
