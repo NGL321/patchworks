@@ -351,6 +351,12 @@ def open_window(
     child fits the frame to whatever size the window ends up, so resizing it, or
     a display with a scale factor of its own, costs nothing here.
 
+    The child is started by **path** rather than by `-m` (see this module's
+    docstring), which assumes this file is on a filesystem the child can open --
+    true of an editable install and of an unpacked wheel, and not of a zipped
+    one. A zipped install fails at `Popen` with the interpreter's own complaint
+    about the path; nothing here can draw pixels out of a zip either way.
+
     `executable` is the interpreter to start it with, defaulting to this one.
     Under `mjpython` that default is already the plain interpreter -- the
     trampoline sets `sys.executable` to the venv's python before it execs --

@@ -56,6 +56,13 @@ implying the number came off the file: with `--seed` matching the run's, the
 biases are the same draw and the trail is the one the live panel drew; with a
 different seed it is a different body's trail over the recorded run's marks.
 Every other mark on both panels comes off the record and is exact.
+
+On the **untrained** body none of that is visible, which is worth knowing before
+anyone goes looking for it: every measured persistence is under two ticks
+against a five-tick capture, so a glow has decayed to at most 6% of itself by
+the next frame whichever body was measured. That is `05-timescales.md`'s go/no-go
+showing through an honest picture rather than anything to fix here, and
+`10-the-demo-surface.md`'s *Known exposure* is where it is written down.
 """
 
 from __future__ import annotations
