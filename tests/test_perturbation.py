@@ -70,10 +70,12 @@ reading: this guard is falsifiable rather than merely tight.
 
 import ast
 import copy
+import re
 from pathlib import Path
 
 import pytest
 import torch
+import yaml
 
 from patchworks.graph import CellKind, build_graph
 from patchworks.learning import (
@@ -727,6 +729,57 @@ class TestTheSharedStorageCase:
         assert moved - owned <= frozenset(endpoint ^ 1 for endpoint in owned)
 
 
+class _WorkflowLoader(yaml.SafeLoader):
+    """`yaml.SafeLoader`, reading a workflow the way GitHub Actions reads one.
+
+    Two departures from `yaml.safe_load`, both made because the default is
+    wrong *here* rather than as a preference, and both checked against
+    GitHub's own workflow parser — `@actions/workflow-parser`, the package
+    `actions/languageservices` publishes — rather than assumed.
+
+    **A bare `on` is the string, not the boolean.** PyYAML implements YAML
+    1.1, whose implicit resolver reads `on`, `off`, `yes` and `no` as
+    booleans. A workflow's `on:` would therefore parse to the key `True`, and
+    :meth:`TestBothChecksRunInCI.test_the_workflow_runs_on_every_push` would
+    look for a key that is not in the mapping. GitHub reads it as `on`, which
+    is what YAML 1.2's core schema says, so the bool resolver here is narrowed
+    to `true` and `false` — that schema, and nothing more clever.
+
+    **A duplicate key is refused rather than resolved.** PyYAML lets the last
+    of two same-named keys win, and that is a hole the old text match did not
+    have: a narrowing `env:` could hide behind a benign `env:` written after
+    it, and the checks would read the benign one. Refusing it is GitHub's own
+    answer rather than an extra rule of this file's — its parser reports
+    `'env' is already defined` and refuses the file.
+    """
+
+
+_WorkflowLoader.yaml_implicit_resolvers = {
+    first: [
+        (tag, regexp) for tag, regexp in resolvers if tag != "tag:yaml.org,2002:bool"
+    ]
+    for first, resolvers in yaml.SafeLoader.yaml_implicit_resolvers.items()
+}
+_WorkflowLoader.add_implicit_resolver(
+    "tag:yaml.org,2002:bool",
+    re.compile(r"^(?:true|True|TRUE|false|False|FALSE)$"),
+    list("tTfF"),
+)
+
+
+def _mapping_without_duplicates(loader, node):
+    """Construct a mapping, failing on a key written twice. See `_WorkflowLoader`."""
+    mapping = {}
+    yield mapping
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=True)
+        assert key not in mapping, f"{key!r} is already defined"
+        mapping[key] = loader.construct_object(value_node, deep=True)
+
+
+_WorkflowLoader.add_constructor("tag:yaml.org,2002:map", _mapping_without_duplicates)
+
+
 class TestBothChecksRunInCI:
     """A guard CI quietly stops running is this file's own failure mode, one
     level up: silent, and flattering.
@@ -749,109 +802,110 @@ class TestBothChecksRunInCI:
     every configuration file pytest would read. Anything else fails here and
     has to be re-argued rather than slipping past.
 
+    **The workflow is parsed rather than read line by line** (#117). It used
+    to be read as text, and five review rounds across #90 and #109 each turned
+    up another way to spell a key that no text match recognised — `env:  # a
+    comment`, `env :`, `!!str env:`, `? env` / `:`, and a sequence item's
+    `-  if:` with more than one space after the dash. Every one of those was
+    found only after the round before it had closed the spelling before it,
+    which is the answer to whether a clause per spelling finishes the job: it
+    does not, because the ways to spell a YAML key are not enumerable in
+    advance. A parser resolves all of them to the same key before anything
+    here looks at it, so the checks below read keys of a mapping. `block`,
+    `nested_under` and `top_level_keys` are gone with the text, and the
+    sequence-item normalisation that lived in `block` — the `- ` strip, and
+    the depth it left two columns out — is gone with them rather than fixed.
+
+    **That buys immunity to *spelling*, and to nothing else.** The list of
+    shapes pinned is the same list it was; what changed is that a shape now
+    has one spelling here however many it has in the file. A route that
+    reaches the run without writing a key these checks read is untouched by
+    parsing, and the two named next are exactly that.
+
     **What is outside their reach**, stated because a whitelist that reads as
     complete and is not would be this file's own failure mode: the run never
     starting at all — a runner outage, or the workflow file deleted — neither
     of which is silent; and two shapes that are, both found while closing the
-    routes below and both left open rather than chosen alone (#109). A step
-    earlier in the job can write `PYTEST_ADDOPTS` into `$GITHUB_ENV`, which
-    reaches the pytest step with no `env:` block anywhere for the check below
-    to see. And a `defaults: run: shell:` under `jobs:` replaces the shell
-    `run: pytest` is handed to, so that line can be pinned exactly here and
-    still never run pytest. Refusing either means pinning every `run:` line
-    and every key under `jobs:` — a wider whitelist than #90 argued for, and a
+    routes below and both left open by decision rather than oversight (#109,
+    #117). A step earlier in the job can write `PYTEST_ADDOPTS` into
+    `$GITHUB_ENV`, which reaches the pytest step with no `env:` key anywhere
+    for the check below to see. And a `defaults: run: shell:` under `jobs:`
+    replaces the shell `run: pytest` is handed to, so that line can be pinned
+    exactly here and still never run pytest. Neither of those is a spelling,
+    so parsing does not reach either: refusing them means pinning every `run:`
+    and every key under `jobs:`, a wider whitelist than #90 argued for and a
     decision about this class rather than a gap in it.
 
-    And these checks read lines rather than parsed YAML, so a spelling of a
-    key that no text match recognises gets past them until a clause is added
-    for it. Two are closed in `block` — the flow mapping and the quoted key —
-    and **five are open, every one of them reproduced**. Four are spellings of
-    the key itself. Each of these, written under the job and carrying
-    `PYTEST_ADDOPTS: -k nothing`, passes all five assertions here while
-    reaching the step:
-
-        env:  # any trailing comment at all
-        env :
-        !!str env:
-        ? env
-        :
-
-    The fifth is the whitespace after a sequence item's dash. `block` strips
-    the exact text `- `, so a gate written with two or more spaces is left
-    unnormalised and reaches the checks in a spelling they do not match:
-
-        -  if: false
-           name: Run tests
-
-    Two spaces rather than one — or three, or any number. Each parses to the
-    key `if` and skips the step with all five assertions green. A **tab**
-    after the dash is *not* in this class: YAML refuses it outright, "found
-    character that cannot start any token", so it fails at the parser and
-    loudly rather than here and quietly.
-
-    All four of the key spellings parse to the key `env` under a real YAML
-    parser, which is what "reaching the step" rests on. For the first two that
-    settles it. For `!!str env:` and the explicit key it settles the YAML and
-    not GitHub's own workflow parser, which cannot be exercised from this
-    repository without pushing a branch — so those two carry that caveat, and
-    the escalation should not be read as claiming more.
-
-    They are left open on purpose, and #109 escalates them rather than adding
-    a clause for each. Three were found in a single review round, and the
-    fifth in the round after that, each round following one that had closed
-    the spelling before it. That is the answer to whether reading lines can be
-    finished by adding clauses. It cannot: these checks match key text, YAML
-    has more ways to spell a key than anyone enumerates in advance, and each
-    clause added leaves this file reading more finished than it is. The repair
-    is to parse the workflow, which is immune to the whole class at once
-    rather than to one spelling of it — and that means a YAML parser, which
-    the dev extra does not name (`pytest` is all of it) and which nothing
-    installs on its own: neither `torch`, `mujoco`, `gymnasium`, `numpy` nor
-    `pytest` pulls one in, so `import yaml` fails in this environment today.
-    So it is a real dependency decision rather than a free one, and #109
-    carries it rather than this class taking it in passing.
+    **And `pyproject.toml` is still read as text.** `tomllib` arrives in 3.11
+    and this project's floor is 3.10, so the rootdir table is scanned rather
+    than parsed, and what is claimed for it is only that the spellings tried
+    fail *closed*: a re-spelt table header leaves the split with nothing to
+    split on and raises, and a key written across lines fails the whitelist.
+    Four spellings were tried, named below and counted apart from the routes.
+    That is four spellings, not a proof about TOML.
 
     **Which is how the list below should be read.** These five assertions hold
-    down every route that does not turn on a novel spelling of a key. That is
-    the thirty-eight named here, each one kill-tested on its own — written
-    into this repository, the five assertions run against it, and the route
-    caught. It is not every route there is, and the five spellings above are
-    the ones known to be outside it.
+    down every route that writes a key they read, in any spelling of it. That
+    is the forty-three named here, each one kill-tested on its own — written
+    into a scratch copy of this repository, the five assertions run against
+    that copy, and the route caught. It is not every route there is, and the
+    two shapes above are the ones known to be outside it.
 
-    The thirty-eight, by where they reach. **The invocation**, five: `-k`, a
+    The forty-three, by where they reach. **The invocation**, five: `-k`, a
     positional path, `--collect-only`, `|| true`, `python -m pytest`. **A gate
     on the step**, four: `continue-on-error` and a step-level `if:`, each as
     an ordinary key *and as a sequence item's first key*, where the leading
-    `- ` would hide it from a naive match — with the one space this workflow
-    and YAML's own style use, which is the spelling that is closed.
+    `- ` used to hide it from a naive match.
     **The environment**, four: `PYTEST_ADDOPTS` in the step's `env:`, in a
     job-level `env:` written *after* `steps:`, in a workflow-level `env:`
     above `jobs:`, and in a job-level flow mapping, `env: {PYTEST_ADDOPTS: …}`
     — those last three reach the step as surely as the step's own block, and
     none of them is the first `env:` in the file, the last not even spelled
     `env:`. **The trigger**, two: a `branches:` filter under `push:`, and
-    `push:` removed.
-    **A quoted key**, four — the same key written so that no text match sees
-    it: the job's `env:` in double quotes and in single, the step's
-    `continue-on-error:`, and its `if:`. **The rootdir configuration**, three:
-    an `addopts`, a narrowed `testpaths`, and a `norecursedirs` in
-    `pyproject.toml`. **A file that outranks or rivals that table**, six —
-    `pytest.toml`, `.pytest.toml`, `pytest.ini`, `.pytest.ini`, `tox.ini`,
-    `setup.cfg` — each carrying a narrowing configuration. And **a
-    `conftest.py` narrowing collection**, ten: in `tests/conftest.py`, a
-    `collect_ignore`, a `collect_ignore_glob`, a `pytest_ignore_collect` and a
-    `pytest_collection_modifyitems`; that last hook again in a sub-directory
-    of `tests`, where it is handed the whole item list just the same; either
-    hook reached by `import` rather than by `def`; the star import that binds
-    one while naming nothing; a `match` statement's capture pattern, which
-    binds the hook name without an assignment anywhere; and a root
-    `conftest.py`.
+    `push:` removed. **A quoted key**, four — the same key written so that no
+    text match saw it: the job's `env:` in double quotes and in single, the
+    step's `continue-on-error:`, and its `if:`. **A spelling of the key that
+    was open until #117**, five: `env:  # a comment`, `env :`, `!!str env:`,
+    `? env` / `:`, and `-  if:` with two spaces after the dash, or three, or
+    any number. #109 could say only that these parse to the key `env` under
+    YAML's rules, and flagged that GitHub might reject two of them — the
+    explicit tag and the explicit key — in which case they were never routes.
+    #117 ran all five through `@actions/workflow-parser`, the workflow parser
+    GitHub publishes from `actions/languageservices`, and it **accepted all
+    five**, each one reaching the step as the key it spells. That is GitHub's
+    own parser rather than a general YAML one, which is what #109 was missing;
+    it is not the runner service, which cannot be exercised without pushing a
+    branch, so what is claimed is that no spelling was ruled out rather than
+    that each is proven to run. A **tab** after the dash is still not in this
+    class: YAML refuses it outright, "found character that cannot start any
+    token", so it fails at the parser and loudly rather than here and quietly.
+    **The rootdir configuration**, three: an `addopts`, a narrowed `testpaths`,
+    and a `norecursedirs` in `pyproject.toml`. **A file that outranks or
+    rivals that table**, six — `pytest.toml`, `.pytest.toml`, `pytest.ini`,
+    `.pytest.ini`, `tox.ini`, `setup.cfg` — each carrying a narrowing
+    configuration. And **a `conftest.py` narrowing collection**, ten: in
+    `tests/conftest.py`, a `collect_ignore`, a `collect_ignore_glob`, a
+    `pytest_ignore_collect` and a `pytest_collection_modifyitems`; that last
+    hook again in a sub-directory of `tests`, where it is handed the whole item
+    list just the same; either hook reached by `import` rather than by `def`;
+    the star import that binds one while naming nothing; a `match` statement's
+    capture pattern, which binds the hook name without an assignment anywhere;
+    and a root `conftest.py`.
 
-    All thirty-eight fail here. A fixtures-only `conftest.py` — the one shape
-    of that file which narrows nothing — still passes, `tests/conftest.py` as
-    #110 wrote it included. So does a harmless `-q` *not*: the cost of the
-    design is that a benign edit to the invocation has to come with an edit to
-    this class, which is the whitelist working rather than a false positive.
+    All forty-three fail here. Four spellings of the `pyproject.toml` *table*
+    were run too and are not among them, because they are the weaker claim the
+    text scan supports: `[tool.pytest]` with a dotted `ini_options.addopts`,
+    the same with an inline `ini_options = {…}`, a header written
+    `[ tool.pytest.ini_options ]`, and an `addopts` opened as a multi-line
+    string. Each fails the check rather than passing it — three by raising on
+    the split, one by failing the whitelist — which is failing closed rather
+    than catching, and is counted separately for that reason.
+
+    A fixtures-only `conftest.py` — the one shape of that file which narrows
+    nothing — still passes, `tests/conftest.py` as #110 wrote it included. So
+    does a harmless `-q` *not*: the cost of the design is that a benign edit to
+    the invocation has to come with an edit to this class, which is the
+    whitelist working rather than a false positive.
     """
 
     ROOT = Path(__file__).resolve().parents[1]
@@ -863,22 +917,24 @@ class TestBothChecksRunInCI:
     #: `python_files` all do, and the next release could add another.
     PERMITTED_CONFIGURATION = {"testpaths", "pythonpath"}
 
-    #: What the pytest step is allowed in its environment. `PYTEST_ADDOPTS`
-    #: would narrow the run from outside the invocation entirely.
-    PERMITTED_ENVIRONMENT = ["MUJOCO_GL: osmesa"]
+    #: What the run is allowed in its environment, wherever the block carrying
+    #: it is written. `PYTEST_ADDOPTS` would narrow the run from outside the
+    #: invocation entirely; the one variable the suite needs is the software
+    #: GL context.
+    PERMITTED_ENVIRONMENT = {"MUJOCO_GL": "osmesa"}
 
     #: The workflow's top-level keys, pinned. An `env:` here is inherited by
     #: every step of every job, so it reaches the run as surely as the step's
-    #: own -- and it sits above `jobs:`, where a check that walked the job
-    #: would never see it. Whitelisted rather than named, because `defaults:`
-    #: reaches the run too, through the shell it wraps `run:` in.
+    #: own. Whitelisted rather than named, because `defaults:` reaches the run
+    #: too, through the shell it wraps `run:` in.
     #:
-    #: Compared as a **multiset** rather than in this order. YAML puts no
-    #: order on a mapping's keys, so moving `concurrency:` above `on:` changes
-    #: nothing about what runs -- and an ordered comparison would fail that
-    #: edit while reporting it as an environment finding. Sorting both sides
-    #: still catches a key added, a key removed, and a key written twice,
-    #: which is every bit of the guarding this pin is for.
+    #: Compared **sorted** rather than in this order. YAML puts no order on a
+    #: mapping's keys, so moving `concurrency:` above `on:` changes nothing
+    #: about what runs -- and an ordered comparison would fail that edit while
+    #: reporting it as an environment finding. Sorting both sides still catches
+    #: a key added and a key removed, which is what this pin is for; a key
+    #: written twice never reaches the comparison, because `_WorkflowLoader`
+    #: refuses the file.
     PERMITTED_WORKFLOW_KEYS = ("name", "on", "concurrency", "jobs")
 
     #: The other files pytest reads a rootdir configuration from, in the order
@@ -897,123 +953,48 @@ class TestBothChecksRunInCI:
     )
 
     @property
-    def lines(self):
-        return self.WORKFLOW.read_text().splitlines()
+    def workflow(self):
+        """`ci.yml`, parsed the way GitHub reads it. See `_WorkflowLoader`."""
+        return yaml.load(self.WORKFLOW.read_text(), _WorkflowLoader)
 
-    def block(self, key):
-        """The YAML under a top-level `key:`, as `(indent, text)` pairs.
+    def mappings(self, document):
+        """Every mapping in *document*, itself included, outermost first.
 
-        Whole-line comments are dropped — they are not configuration, and a
-        comment that happened to read `run: pytest` should not satisfy anything
-        here. A **trailing** comment is not dropped, and that is one of the
-        open spellings the class docstring lists rather than a detail: it
-        leaves `env:  # a note` recorded with the comment attached, which is
-        not the text `env:` that the checks match on. The
-        leading `- ` of a sequence item is stripped too: YAML lets any mapping
-        key go first in a sequence item, so `- if:` and `if:` are the same key
-        and a check that only knew the second spelling would miss the first.
-        **Exactly that text, one space.** `-  if:` — two spaces, or more — is
-        the same key again and is not normalised here. That is the fifth open
-        spelling the class docstring records, and it is open for the reason
-        the other four are, not because a wider strip would be hard. A tab
-        after the dash is not part of it: YAML rejects that outright, so it
-        cannot be a quiet route.
-
-        Stripping the dash also leaves the recorded depth two columns left of
-        the item's own siblings, since the depth is the line's raw indent. So
-        a step that put `env:` first — `- env:` — would have its `name:` and
-        `run:` read as nested under that `env:`, and
-        `test_nothing_reaches_the_run_through_its_environment` would fail on a
-        reflow that narrows nothing, blaming the environment. It fails closed,
-        which is the safe direction, and it is listed here rather than fixed
-        because the fix and the strip above are one decision about how this
-        helper normalises a sequence item — the decision #109 escalates.
-
-        Two spellings are refused outright rather than parsed, because each
-        writes a key the checks below would not recognise as that key -- and
-        those checks all match on key text. A **flow mapping**, `env: {A: b}`,
-        writes the key with its value inline, so the text recorded here is not
-        `env:`; braces are refused wholesale, which takes GitHub's `${{ }}`
-        expressions with them. A **quoted key**, `"env":` or `'env':`, is the
-        same key in a spelling no `== "env:"` matches, and it hides a step's
-        `"continue-on-error":` from a `startswith` just as well. This workflow
-        needs neither, so both get the whitelist's usual answer: fail, and be
-        re-argued.
-
-        A quoted **key** is what is refused, and not every line that opens with
-        a quote: what marks the key is the closing quote with a colon after it,
-        so `- "3.12"` under a `python-version:` stays permitted. It is an
-        ordinary scalar, it hides no key from anything, and refusing it would
-        be a false positive dressed as a finding.
-        :class:`TestTheWorkflowReaderRefusesWhatItNames` holds both
-        halves of that distinction down.
-
-        **These are a class rather than a list, and reading lines cannot
-        finish it.** Five more spellings are open: three found in a single
-        review round after the two above were closed, and one more in the
-        round after that. The class docstring lists them, and makes the
-        argument they add up to: parse the file rather than add a clause here
-        for each.
-        """
-        lines = self.lines
-        block = []
-        for line in lines[lines.index(f"{key}:") + 1 :]:
-            if line and not line.startswith(" "):
-                break
-            text = line.strip()
-            if not text or text.startswith("#"):
-                continue
-            text = text.removeprefix("- ")
-            if text[:1] in ('"', "'"):
-                # A quoted *key* -- the closing quote followed by its colon.
-                # A quoted scalar is not one: `- "3.12"` under a
-                # `python-version:` is an ordinary sequence item, and refusing
-                # it would be a false positive dressed as a finding.
-                closed = text.find(text[0], 1)
-                after = text[closed + 1 :].lstrip() if closed != -1 else ""
-                assert not after.startswith(":"), f"quoted key under {key}: {text}"
-            assert "{" not in text, (
-                f"braces under {key}: {text} — a flow mapping hides the key "
-                f"from every check here, and an expression goes with it"
-            )
-            block.append((len(line) - len(line.lstrip()), text))
-        return block
-
-    def nested_under(self, block, key):
-        """The entries indented under *every* `key` in a block, one list each.
-
-        Every, not the first. `block` flattens the whole tree, so one name
-        appears in it once per place it is written — and `env:` is written in
-        more than one place in an ordinary workflow: once on the step, once on
-        the job, at different depths and reaching the run by different paths.
-        A first-match walk returns whichever comes first in the file and stops,
-        which is how a job-level `env:` put *after* `steps:` slips through: the
-        step's own block satisfies the check, and the one carrying
-        `PYTEST_ADDOPTS` is never looked at. (Two of the same key at the same
-        depth is a different thing and not the case this is for — a duplicate
-        mapping key is a YAML spec violation that GitHub's parser rejects
-        outright, so it is not a quiet route into CI.)
+        This is what replaced reading lines and matching them by indent, and
+        the difference is that a key is found where it is *written* rather
+        than at a depth this class predicted. A job-level `env:` put after
+        `steps:` is read exactly as one put before it; a step that writes
+        `env:` as its first key is read exactly as one that writes it last,
+        which the old reader could not do — it recorded a sequence item's
+        depth from the raw indent and then stripped the `- `, leaving the
+        item's own siblings looking nested under whatever key came first.
         """
         found = []
-        for position, (depth, text) in enumerate(block):
-            if text != key:
-                continue
-            nested = []
-            for entry_depth, entry_text in block[position + 1 :]:
-                if entry_depth <= depth:
-                    break
-                nested.append(entry_text)
-            found.append(nested)
+        if isinstance(document, dict):
+            found.append(document)
+            for value in document.values():
+                found.extend(self.mappings(value))
+        elif isinstance(document, list):
+            for item in document:
+                found.extend(self.mappings(item))
         return found
 
-    @property
-    def top_level_keys(self):
-        """The workflow's keys at column zero, in order."""
-        return tuple(
-            line.split(":", 1)[0]
-            for line in self.lines
-            if line and not line[0].isspace() and not line.startswith("#")
-        )
+    def values_of(self, key, document):
+        """What each *key* in *document* is set to, one entry per place it is
+        written.
+
+        Every, not the first. `env:` is written in more than one place in an
+        ordinary workflow — once on the step, once on the job, once above
+        `jobs:` — at different depths and reaching the run by different paths.
+        A first-match walk returns whichever comes first in the file and
+        stops, which is how a job-level `env:` put *after* `steps:` slips
+        through: the step's own block satisfies the check, and the one
+        carrying `PYTEST_ADDOPTS` is never looked at. (Two of the same key in
+        one mapping is a different thing and not the case this is for — a
+        duplicate key is refused outright by `_WorkflowLoader`, as GitHub's
+        parser refuses it.)
+        """
+        return [mapping[key] for mapping in self.mappings(document) if key in mapping]
 
     def names_bound_by(self, source):
         """Every name a module binds: `def`, `class`, assignment, **import**.
@@ -1026,19 +1007,20 @@ class TestBothChecksRunInCI:
         A star import binds whatever the imported module holds, which cannot be
         read off this file, and is recorded as `*` for the caller to refuse.
 
-        **This list is finishable, and that is why it is a list.** The spellings
-        `block` refuses are YAML key text, which nothing enumerates in advance;
-        the binding forms here are Python grammar, which `ast` enumerates for
-        us. So they are all named rather than sampled: the three statements
-        above, a `Name` in `Store` context — which covers assignment, `for`,
-        `with … as`, and the walrus — an import alias, the three capture
-        patterns of a `match` statement, and an `except … as`. A capture
-        pattern is the one that matters: `case pytest_ignore_collect:` binds
-        that name at module scope and pytest reads the hook, which a walk over
-        `Name` nodes never sees, because `MatchAs.name` is a bare string rather
-        than a node. The `except … as` name is unbound again at the end of its
-        handler and so cannot carry a hook; it is refused anyway, because the
-        caller's rule is about the prefix rather than about reachability.
+        **This list is finishable, and that is why it is a list.** The
+        spellings of a YAML key are not enumerable in advance, which is why the
+        workflow above is parsed rather than matched; the binding forms here
+        are Python grammar, which `ast` enumerates for us. So they are all
+        named rather than sampled: the three statements above, a `Name` in
+        `Store` context — which covers assignment, `for`, `with … as`, and the
+        walrus — an import alias, the three capture patterns of a `match`
+        statement, and an `except … as`. A capture pattern is the one that
+        matters: `case pytest_ignore_collect:` binds that name at module scope
+        and pytest reads the hook, which a walk over `Name` nodes never sees,
+        because `MatchAs.name` is a bare string rather than a node. The
+        `except … as` name is unbound again at the end of its handler and so
+        cannot carry a hook; it is refused anyway, because the caller's rule is
+        about the prefix rather than about reachability.
 
         **One form is left out on purpose**: a parameter, `ast.arg`. Not on the
         principle that it is local — local bindings *are* read, and the caller
@@ -1116,47 +1098,54 @@ class TestBothChecksRunInCI:
         # `push` a direct child of `on:`, and nothing nested under it: a
         # `branches:` filter would leave this file running on some pushes and
         # not others, which is not what "on every push" says.
-        entries = self.block("on")
-        indent = min(depth for depth, _ in entries)
-        assert (indent, "push:") in entries
-        assert self.nested_under(entries, "push:") == [[]]
+        #
+        # `self.workflow["on"]` is the string key rather than YAML 1.1's
+        # boolean -- see `_WorkflowLoader`, which is what makes that line read
+        # as it looks.
+        triggers = self.workflow["on"]
+        assert "push" in triggers
+        assert triggers["push"] is None
 
     def test_the_suite_runs_whole_and_unfiltered(self):
         # The invocation is pinned exactly. Every way of narrowing it -- a
         # selection flag, a positional path, a `|| true` that swallows the exit
-        # code -- changes this line, and changing this line fails here.
-        runs = [text for _, text in self.block("jobs") if text.startswith("run:")]
-        assert "run: pytest" in runs
+        # code -- changes this string, and changing it fails here.
+        assert "pytest" in self.values_of("run", self.workflow["jobs"])
 
     def test_nothing_reaches_the_run_through_its_environment(self):
         # pytest reads `PYTEST_ADDOPTS` from the environment, so an entry here
-        # narrows the run without touching the invocation at all. The one
-        # variable the suite needs is the software GL context.
+        # narrows the run without touching the invocation at all.
         #
-        # Every `env:` under `jobs:`, not the first one: GitHub hands a
-        # job-level block to every step in the job, and YAML is happy to have
-        # it written after `steps:`, past the point a first-match check stops.
-        jobs = self.block("jobs")
-        assert self.nested_under(jobs, "env:") == [self.PERMITTED_ENVIRONMENT]
-        # And the level above, which `jobs:` does not contain: a workflow-level
-        # `env:` reaches every step of every job. The top-level keys are pinned
-        # rather than that one name refused, so it has nowhere to land. Sorted
-        # on both sides -- see `PERMITTED_WORKFLOW_KEYS`, which says why the
-        # order is not part of the pin.
-        assert sorted(self.top_level_keys) == sorted(self.PERMITTED_WORKFLOW_KEYS)
+        # Every `env:` in the file, at every depth and in every spelling:
+        # GitHub hands a job-level block to every step in the job and a
+        # workflow-level one to every job, and YAML is happy to have either
+        # written after the block it applies to.
+        assert self.values_of("env", self.workflow) == [self.PERMITTED_ENVIRONMENT]
+        # And the top-level keys, which guards something the line above cannot:
+        # `defaults:` reaches the run through the shell it wraps `run:` in and
+        # carries no `env:` at all. Sorted on both sides -- see
+        # `PERMITTED_WORKFLOW_KEYS`, which says why the order is not part of
+        # the pin.
+        assert sorted(self.workflow) == sorted(self.PERMITTED_WORKFLOW_KEYS)
 
     def test_nothing_lets_a_failing_step_pass(self):
         # `continue-on-error` at either level, and an `if:` that would skip the
-        # step or the job without anything going red. `block` has already
-        # stripped any leading `- `, so a gate written as a sequence item's
-        # first key is caught in the same spelling as an ordinary one.
-        for _, text in self.block("jobs"):
-            assert not text.startswith(("continue-on-error", "if:"))
+        # step or the job without anything going red. A sequence item's first
+        # key is that key like any other now the file is parsed, whatever the
+        # dash is followed by.
+        for mapping in self.mappings(self.workflow["jobs"]):
+            assert "continue-on-error" not in mapping
+            assert "if" not in mapping
 
     def test_no_configuration_narrows_what_is_collected(self):
         # The other route, and the quieter one: pytest applies its rootdir
         # configuration on its own, so a table here could deselect this file
         # while `run: pytest` still reads as the whole suite.
+        #
+        # Read as text rather than parsed -- `tomllib` is 3.11 and this
+        # project's floor is 3.10. A table header spelt any other way leaves
+        # the split below with nothing to split on and raises here, which is
+        # the direction that fails safely.
         configuration = (self.ROOT / "pyproject.toml").read_text()
         table = configuration.split("[tool.pytest.ini_options]", 1)[1]
         keys = set()
@@ -1177,27 +1166,39 @@ class TestBothChecksRunInCI:
             self.refuse_narrowing(conftest.read_text(), conftest)
 
 
-class TestTheWorkflowReaderRefusesWhatItNames:
-    """The reader's own clauses, against a synthetic workflow.
+class TestTheWorkflowReaderReadsWhatGitHubReads:
+    """The reader's own behaviour, against workflows written for the occasion.
 
     Split out from :class:`TestBothChecksRunInCI` rather than added to it: the
     five assertions there are the whitelist itself, read off this repository's
-    own files, and these read a workflow written for the occasion. Each clause
-    that refuses something gets a test here, so that deleting the clause goes
-    red in this suite rather than in a later review round -- which is not
-    hypothetical: the quoted-key clause had that cover and the braces clause
-    did not, and the braces clause could be deleted with every other test in
-    this file still green.
+    own files, and these read a workflow written to exercise one thing. What
+    earns a test here is anything that could be changed with the rest of the
+    suite still green — which is not hypothetical, and is why this class
+    exists: before #117 the braces clause in the old text reader had no such
+    cover and could be deleted silently.
 
-    The quoted key is the one with a distinction to keep. `"env":` is the key
-    `env` written so that no `== "env:"` sees it, and is refused. `- "3.12"` is
-    an ordinary string that happens to begin with a quote, hides no key from
-    anything, and is permitted -- a clause that refused it too would report a
-    benign line as a finding, which is a false positive dressed as a guard.
-
-    The last test is the same concern one level up: the workflow's top-level
-    keys are pinned as a multiset, so reordering them is not a finding either.
+    Two of these are `_WorkflowLoader`'s departures from `yaml.safe_load`, and
+    both are holes if they go: the YAML 1.1 boolean that would make `on:`
+    parse to `True`, and the duplicate key PyYAML resolves last-wins. The rest
+    are the spellings — five of them open until #117 — which the parser
+    collapses onto one key. They are tested rather than taken on trust because
+    "the parser handles it" is exactly the kind of claim this file exists to
+    falsify, and because the count in
+    :class:`TestBothChecksRunInCI`'s docstring rests on them.
     """
+
+    #: The `env:` key, spelt the six ways a text match did not recognise: the
+    #: four that reached #117 still open, plus the two quoted spellings #109
+    #: had closed by hand. Written to sit at one indent, with the mapping under
+    #: them on the following lines -- see `step_with`.
+    ENV_SPELLINGS = (
+        "env:  # a trailing comment",
+        "env :",
+        "!!str env:",
+        "? env\n        :",
+        '"env":',
+        "'env':",
+    )
 
     def reader(self, tmp_path, workflow):
         """A :class:`TestBothChecksRunInCI` reading *workflow*, not `ci.yml`."""
@@ -1207,53 +1208,173 @@ class TestTheWorkflowReaderRefusesWhatItNames:
         reader.WORKFLOW = path
         return reader
 
-    def test_a_quoted_scalar_is_not_a_quoted_key(self, tmp_path):
-        # The shape this repository's own workflow would reach for if the
-        # `python-version:` under `setup-python` ever listed more than one:
-        # sequence items that are quoted strings, in either quote.
+    def step_with(self, spelling):
+        """A one-step workflow whose step carries *spelling* over a narrowing
+        `PYTEST_ADDOPTS`."""
+        return (
+            "name: CI\n"
+            "on:\n"
+            "  push:\n"
+            "jobs:\n"
+            "  test:\n"
+            "    steps:\n"
+            "      - name: Run tests\n"
+            f"        {spelling}\n"
+            "          PYTEST_ADDOPTS: -k nothing\n"
+            "        run: pytest\n"
+        )
+
+    def test_every_spelling_of_the_key_is_read_as_that_key(self, tmp_path):
+        # The point of parsing, and the whole of what it buys. Each of these
+        # reaches the step as `env` under GitHub's own parser -- checked, not
+        # assumed (#117) -- and each is now the same key here.
+        for spelling in self.ENV_SPELLINGS:
+            reader = self.reader(tmp_path, self.step_with(spelling))
+            assert reader.values_of("env", reader.workflow) == [
+                {"PYTEST_ADDOPTS": "-k nothing"}
+            ], spelling
+
+    def test_a_flow_mapping_is_the_same_key_too(self, tmp_path):
+        # The sixth spelling, and the one the old reader answered by refusing
+        # braces wholesale -- which took GitHub's `${{ }}` expressions with it.
+        # It writes the key with its value inline, so the *text* was never
+        # `env:`; parsed, it is the job-level `env:` route like any other.
         reader = self.reader(
             tmp_path,
-            'jobs:\n'
-            '  test:\n'
-            '    with:\n'
-            '      python-version:\n'
+            "name: CI\n"
+            "on:\n"
+            "  push:\n"
+            "jobs:\n"
+            "  test:\n"
+            "    env: {PYTEST_ADDOPTS: -k nothing}\n",
+        )
+        assert reader.values_of("env", reader.workflow) == [
+            {"PYTEST_ADDOPTS": "-k nothing"}
+        ]
+
+    def test_a_quoted_scalar_is_not_a_key(self, tmp_path):
+        # The distinction the old reader had to draw by hand and got a clause
+        # for: `"env":` is a key and `- "3.12"` is a string that happens to
+        # start with a quote. A parser draws it for free, and this holds that
+        # down -- refusing the second would be a false positive dressed as a
+        # finding.
+        reader = self.reader(
+            tmp_path,
+            "name: CI\n"
+            "on:\n"
+            "  push:\n"
+            "jobs:\n"
+            "  test:\n"
+            "    with:\n"
+            "      python-version:\n"
             '        - "3.12"\n'
             "        - '3.13'\n",
         )
-        recorded = [text for _, text in reader.block("jobs")]
-        assert '"3.12"' in recorded and "'3.13'" in recorded
+        assert reader.values_of("python-version", reader.workflow) == [
+            ["3.12", "3.13"]
+        ]
 
-    def test_a_quoted_key_is_refused_in_either_quote(self, tmp_path):
-        # Each of these is a key the checks in `TestBothChecksRunInCI` match on
-        # by text, written so that the text is not the one they match.
-        spellings = ('"env":', "'env':", '"continue-on-error": true', "'if': false")
-        for spelling in spellings:
-            reader = self.reader(tmp_path, f"jobs:\n  test:\n    {spelling}\n")
-            with pytest.raises(AssertionError, match="quoted key"):
-                reader.block("jobs")
+    def test_a_sequence_items_first_key_is_read_at_any_spacing(self, tmp_path):
+        # The fifth spelling. The old reader stripped the exact text `- `, so
+        # a gate written with two spaces after the dash was left unnormalised
+        # and reached the checks in a spelling they did not match. The dash is
+        # the parser's business now, at any spacing.
+        for dash in ("- ", "-  ", "-   "):
+            pad = " " * (6 + len(dash))
+            reader = self.reader(
+                tmp_path,
+                "name: CI\n"
+                "on:\n"
+                "  push:\n"
+                "jobs:\n"
+                "  test:\n"
+                "    steps:\n"
+                f"      {dash}if: false\n"
+                f"{pad}name: Run tests\n"
+                f"{pad}run: pytest\n",
+            )
+            gated = [
+                mapping
+                for mapping in reader.mappings(reader.workflow["jobs"])
+                if "if" in mapping
+            ]
+            assert gated == [
+                {"if": False, "name": "Run tests", "run": "pytest"}
+            ], dash
 
-    def test_a_flow_mapping_is_refused(self, tmp_path):
-        # The quoted key's sibling clause. It writes the key with its value
-        # inline, so the text recorded is not `env:` and every check that
-        # matches on key text misses it -- which is the job-level
-        # `env: {PYTEST_ADDOPTS: ...}` route, one of the thirty-eight.
-        reader = self.reader(
-            tmp_path, "jobs:\n  test:\n    env: {PYTEST_ADDOPTS: -k nothing}\n"
-        )
-        with pytest.raises(AssertionError, match="braces under"):
-            reader.block("jobs")
-
-    def test_every_block_of_a_name_is_returned_not_the_first(self, tmp_path):
-        # `nested_under`'s whole point, and the real workflow cannot exercise
-        # it: `ci.yml` writes `env:` once. This is route three of "the
-        # environment, four" -- the step's own `env:` first, then a job-level
-        # one written *after* `steps:`, which GitHub hands to every step in the
-        # job. Two different keys at two different depths that share a name
-        # once `block` has flattened them, not a duplicate mapping key. A
-        # first-match walk is satisfied by the step's block and never reaches
-        # the one carrying `PYTEST_ADDOPTS`.
+    def test_a_step_that_writes_env_first_keeps_its_siblings(self, tmp_path):
+        # The other half of the old reader's sequence-item handling, and the
+        # one that failed in the benign direction: it recorded the item's depth
+        # from the raw indent and then stripped the `- `, so a step that wrote
+        # `env:` first had its own `name:` and `run:` read as nested under that
+        # `env:` -- a reflow that narrows nothing failing, and blaming the
+        # environment. Both halves were one decision about one helper, and the
+        # helper is gone (#117).
         reader = self.reader(
             tmp_path,
+            "name: CI\n"
+            "on:\n"
+            "  push:\n"
+            "jobs:\n"
+            "  test:\n"
+            "    steps:\n"
+            "      - env:\n"
+            "          MUJOCO_GL: osmesa\n"
+            "        name: Run tests\n"
+            "        run: pytest\n",
+        )
+        assert reader.values_of("env", reader.workflow) == [{"MUJOCO_GL": "osmesa"}]
+        assert reader.values_of("run", reader.workflow) == ["pytest"]
+
+    def test_the_trigger_key_is_the_string_on_and_not_a_boolean(self, tmp_path):
+        # `_WorkflowLoader`'s first departure. PyYAML is a YAML 1.1 parser, in
+        # which a bare `on` is true -- so without the narrowed resolver this
+        # workflow parses to the key `True`, `workflow["on"]` raises, and the
+        # trigger check fails for a reason that has nothing to do with CI.
+        reader = self.reader(
+            tmp_path,
+            "name: CI\non:\n  push:\njobs:\n  test:\n    steps: []\n",
+        )
+        assert list(reader.workflow) == ["name", "on", "jobs"]
+        assert reader.workflow["on"] == {"push": None}
+
+    def test_a_duplicate_key_is_refused(self, tmp_path):
+        # `_WorkflowLoader`'s second departure, and a hole parsing would open
+        # if it were left alone: PyYAML lets the last of two same-named keys
+        # win, so a narrowing `env:` could hide behind a benign one written
+        # after it and `values_of` would report the benign one. GitHub refuses
+        # the file outright -- `'env' is already defined` -- and so does this.
+        reader = self.reader(
+            tmp_path,
+            "name: CI\n"
+            "on:\n"
+            "  push:\n"
+            "jobs:\n"
+            "  test:\n"
+            "    steps:\n"
+            "      - env:\n"
+            "          PYTEST_ADDOPTS: -k nothing\n"
+            "        env:\n"
+            "          MUJOCO_GL: osmesa\n"
+            "        run: pytest\n",
+        )
+        with pytest.raises(AssertionError, match="already defined"):
+            reader.workflow
+
+    def test_every_env_is_read_not_the_first(self, tmp_path):
+        # `values_of`'s whole point, and the real workflow cannot exercise it:
+        # `ci.yml` writes `env:` once. This is route three of "the
+        # environment, four" -- the step's own `env:` first in the file, then a
+        # job-level one written *after* `steps:`, which GitHub hands to every
+        # step in the job. A first-match walk is satisfied by the step's block
+        # and never reaches the one carrying `PYTEST_ADDOPTS`. The walk is
+        # outermost first, so the job's block is the one reported first here
+        # even though the step's is written above it.
+        reader = self.reader(
+            tmp_path,
+            "name: CI\n"
+            "on:\n"
+            "  push:\n"
             "jobs:\n"
             "  test:\n"
             "    steps:\n"
@@ -1264,31 +1385,33 @@ class TestTheWorkflowReaderRefusesWhatItNames:
             "    env:\n"
             "      PYTEST_ADDOPTS: -k nothing\n",
         )
-        assert reader.nested_under(reader.block("jobs"), "env:") == [
-            ["MUJOCO_GL: osmesa"],
-            ["PYTEST_ADDOPTS: -k nothing"],
+        assert reader.values_of("env", reader.workflow) == [
+            {"PYTEST_ADDOPTS": "-k nothing"},
+            {"MUJOCO_GL": "osmesa"},
         ]
 
     def test_the_top_level_keys_are_pinned_without_their_order(self, tmp_path):
         # Reordering a mapping changes nothing about what runs, so it is not a
-        # finding -- but a key added, removed, or repeated still is.
+        # finding -- but a key added or removed still is. A key written twice
+        # never reaches this comparison: `_WorkflowLoader` refuses the file,
+        # which `test_a_duplicate_key_is_refused` holds down.
         keys = TestBothChecksRunInCI.PERMITTED_WORKFLOW_KEYS
         reordered = "concurrency:\n  a: 1\njobs:\n  b: 2\nname: CI\non:\n  push:\n"
-        assert sorted(self.reader(tmp_path, reordered).top_level_keys) == sorted(keys)
+        assert sorted(self.reader(tmp_path, reordered).workflow) == sorted(keys)
         added = reordered + "env:\n  C: d\n"
         removed = reordered.replace("name: CI\n", "")
         for broken in (added, removed):
-            assert sorted(self.reader(tmp_path, broken).top_level_keys) != sorted(keys)
+            assert sorted(self.reader(tmp_path, broken).workflow) != sorted(keys)
 
 
 class TestEveryModuleAttributeBindingIsRead:
     """`names_bound_by` reads every form that binds a **module attribute**.
 
-    A companion to :class:`TestTheWorkflowReaderRefusesWhatItNames`, and the
-    counterpart to what that class's docstring escalates. The YAML spellings
-    `block` matches cannot be enumerated in advance; these forms can, because
-    `ast` is a closed grammar — so this is a list that can be finished, and a
-    test that can check it is.
+    A companion to :class:`TestTheWorkflowReaderReadsWhatGitHubReads`, and the
+    counterpart to the argument that sent the workflow to a parser. The ways
+    to spell a YAML key cannot be enumerated in advance; these forms can,
+    because `ast` is a closed grammar — so this is a list that can be
+    finished, and a test that can check it is.
 
     A module attribute rather than every name the grammar binds: a parameter
     is a binding and is deliberately not read. Not because it is local —
