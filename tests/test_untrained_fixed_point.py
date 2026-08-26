@@ -29,7 +29,7 @@ import torch
 
 import untrained_fixed_point as fixed_point
 from patchworks import tick
-from patchworks.agent import Agent, run
+from patchworks.agent import DRIVE_ASSERTION, Agent, run
 from patchworks.graph import build_graph
 
 from conftest import SMALL
@@ -48,7 +48,14 @@ def test_characterise_runs(capsys):
 def test_sensitivity_runs(capsys):
     fixed_point.sensitivity("small", "train", 0, ticks=TICKS, hold_ticks=2)
     out = capsys.readouterr().out
-    for variant in ("render blanked", "efference + 0.5", "drive 1.0 -> 0.0"):
+    # The drive label is built from `DRIVE_ASSERTION`, not spelled, because that
+    # value is "chosen here, not recorded" and free to be retuned. Asserting a
+    # literal here would be the copy the module works to avoid.
+    for variant in (
+        "render blanked",
+        "efference + 0.5",
+        f"drive {DRIVE_ASSERTION:g} -> 0.0",
+    ):
         assert variant in out
     assert "untrained" in out
 

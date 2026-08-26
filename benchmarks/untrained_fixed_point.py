@@ -46,13 +46,24 @@ permits it — "pinning a stalk to debug, and to isolate whether the drive edge
 is doing the work". Nothing here changes :data:`~patchworks.agent.DRIVE_ASSERTION`.
 
 **`attenuation`** decomposes the per-hop transfer `sensitivity` measures into
-its two factors: the shared body's evidence-to-prediction gain, and one
-message-passing step's transfer of a neighbour's belief into a node stalk. The
-second is the one with a ceiling in the record — the reconciliation gain is
-`γ / max(Σ_e m_e, ρ²·deg)` and ADR-0010 caps every map at `‖F‖_F ≤ ρ` — so the
-run reports what the transport rule could grow it to as well as what it is. It
-takes `--learn N` too, which is how to see *which* factor learning moves: the
-gauge bounds the edge one and nothing in the record bounds the body's.
+its three factors, which are the three things a signal crosses to get from one
+level to the next::
+
+    Δx_r  =  gain_r · F_{p^1}ᵀ · F_p · Δx_v      then the receiver's body
+
+— the sender's own restriction onto the shared edge stalk, one message-passing
+step's transfer of that belief into the receiver's node stalk, and the shared
+body carrying it into next tick's prediction. **Three, not two**: a map at
+Frobenius 1 spread over `m × n` acts on a stalk with gain well under one, so
+leaving the sender's restriction out overstates the hop — and overstates it by
+a growing factor under `--learn`, since that is one of the two the transport
+rule moves.
+
+The first two are the ones with a ceiling in the record — the reconciliation
+gain is `γ / max(Σ_e m_e, ρ²·deg)` and ADR-0010 caps every map at `‖F‖_F ≤ ρ` —
+so the run reports what the transport rule could grow each to as well as what it
+is. The third has no bound in the record at all, which is why `--learn N` is
+the only way to find out: it says *which* factor learning actually moves.
 
 **`drive`** asks the same question from the other end: the world back in the
 loop, the run entire, and the drive's assertion held at one value against
@@ -153,6 +164,19 @@ def arm_limits(env: PlanarPushSandbox) -> np.ndarray:
         for name in ARM_JOINTS
     ]
     return env.model.jnt_range[ids].copy()
+
+
+def interior_norms(sheaf: Sheaf) -> float:
+    """The mean Frobenius norm of the maps that can actually move.
+
+    A boundary cell's own maps carry the exact gauge and `project()` pins them
+    at 1 after every transport step, so averaging them in caps the reported
+    figure below `rho` however saturated the interior is -- at 1.74 on the small
+    dome and 1.80 on the real one, where the truth would be 2. A reader watching
+    a long run for saturation at the gauge band would conclude the rule stalled
+    short of it.
+    """
+    return float(sheaf.maps.norms()[~sheaf.maps.pinned].mean())
 
 
 def dome_named(name: str) -> tuple[DomeSpec, int]:
@@ -346,6 +370,8 @@ def sensitivity(
     """
     env, agent = build(name, split, seed)
     try:
+        if learn < 0:
+            raise ValueError(f"learn is a number of ticks to teach for; got {learn}")
         if learn:
             outcome = taught(agent, learn, seed)
         else:
@@ -379,8 +405,12 @@ def sensitivity(
             variant("qpos, qvel + 0.5", shifted, applied, None),
             variant("touch + 1.0", touched, applied, None),
             variant("efference + 0.5", observation, applied + 0.5, None),
-            variant("drive 1.0 -> 0.0", observation, applied, 0.0),
-            variant("drive 1.0 -> 10.0", observation, applied, 10.0),
+            # Interpolated, not spelled: `DRIVE_ASSERTION` is "chosen here,
+            # not recorded", so a retune would otherwise leave this table
+            # printing 1.0 as the reference while measuring a step from
+            # something else.
+            variant(f"drive {DRIVE_ASSERTION:g} -> 0.0", observation, applied, 0.0),
+            variant(f"drive {DRIVE_ASSERTION:g} -> 10.0", observation, applied, 10.0),
         ]
 
         how = (
@@ -400,7 +430,7 @@ def sensitivity(
         )
         # Eight wide and two apart, which is the `{v:8.2e}` the rows below
         # print in: a narrower header drifts left of its column, and on the real
-        # dome's thirteen groups the drift passes a whole column, so a reader
+        # dome's twelve groups the drift passes a whole column, so a reader
         # lands on the wrong level in the one table that says where a signal
         # dies.
         groups = "  ".join(
@@ -437,6 +467,15 @@ def attenuation(
     """
     env, agent = build(name, split, seed)
     try:
+        if learn < 0:
+            raise ValueError(f"learn is a number of ticks to teach for; got {learn}")
+        # A nudge of zero makes every gain `0/0` and prints a table of `nan`; a
+        # negative one divides a nudge of magnitude `|eps|` by a negative
+        # `eps`, so the whole table comes back sign-flipped without complaint.
+        if not epsilon > 0:
+            raise ValueError(
+                f"epsilon is the size of the nudge the gains are read off; got {epsilon}"
+            )
         if learn:
             taught(agent, learn, seed)
         else:
@@ -485,8 +524,9 @@ def attenuation(
         restore(sheaf, base)
         sheaf.message_passing_phase()
         quiet = sheaf.stalks.clone()
+        quiet_broadcast = sheaf.broadcast.clone()
         norms = sheaf.maps.norms()
-        transfers, ceilings = [], []
+        transfers, ceilings, sent, sent_ceilings = [], [], [], []
         for e in agent.dome.edges:
             for side in (0, 1):
                 receiver = (e.v, e.u)[side]
@@ -494,9 +534,27 @@ def attenuation(
                 # what a neighbour's belief did to it is not a hop in the taper.
                 if agent.dome.cells[receiver].is_boundary:
                     continue
+                pair = pair_index(e.id, side)
+                # The sender's own restriction, which is the factor between a
+                # node stalk and the belief that leaves on the edge:
+                # `Δbroadcast_p = F_p Δx_v`, exactly. Measured rather than
+                # assumed to be 1 -- a map at Frobenius 1 spread over `m × n`
+                # acts on a stalk with gain well under one, and it is precisely
+                # what the transport rule moves.
+                sender = (e.u, e.v)[side]
                 restore(sheaf, base)
                 with torch.no_grad():
-                    sheaf.broadcast[pair_index(e.id, side), : e.m] += nudge((e.m,))
+                    sender_at = sheaf.layout.slice(sender)
+                    width = agent.dome.cells[sender].stalk
+                    sheaf.stalks[sender_at] += nudge((width,))
+                sheaf.message_passing_phase()
+                sent.append(
+                    float((sheaf.broadcast[pair] - quiet_broadcast[pair]).norm() / epsilon)
+                )
+
+                restore(sheaf, base)
+                with torch.no_grad():
+                    sheaf.broadcast[pair, : e.m] += nudge((e.m,))
                 sheaf.message_passing_phase()
                 where = sheaf.layout.slice(receiver)
                 moved = float((sheaf.stalks[where] - quiet[where]).norm() / epsilon)
@@ -515,11 +573,23 @@ def attenuation(
                 # ~20-26% that are pinned at exactly 1 by the exact gauge and
                 # can never move, and would report headroom that does not exist
                 # for anything measured here.
+                #
+                # The *sender's* map is scaled the same way, except that it may
+                # be a boundary cell's -- a patch cell feeding L1 -- and a
+                # pinned map has no room at all. `pinned` is the same flag
+                # `project()` reads, so this asks the gauge rather than
+                # re-deriving who is at the rim.
                 partner = pair_index(e.id, side) ^ 1
                 ceilings.append(moved * sheaf.maps.rho / float(norms[partner]))
+                sent_ceilings.append(
+                    sent[-1]
+                    * (1.0 if sheaf.maps.pinned[pair] else sheaf.maps.rho / float(norms[pair]))
+                )
         edge = np.array(transfers)
+        restrict = np.array(sent)
         ceiling = np.array(ceilings)
-        interior = norms[~sheaf.maps.pinned]
+        restrict_ceiling = np.array(sent_ceilings)
+        interior = norms[~sheaf.maps.pinned]  # what `interior_norms` reads
 
         after = (
             f"{learn} ticks with both rules on" if learn else f"{ticks} ticks, untrained"
@@ -529,22 +599,34 @@ def attenuation(
             f"  nudge {epsilon:g}, over {len(body)} predicting cells and "
             f"{len(edge)} edge endpoints whose far end runs a body"
         )
+        # Three factors, not two. A level-to-level hop is
+        # `Δx_r = gain_r · F_{p^1}ᵀ · F_p · Δx_v`, then the receiver's body
+        # carries it into next tick's prediction -- so the sender's own
+        # restriction sits between a node stalk and the belief that leaves on
+        # the edge, and it is not 1. A map at Frobenius 1 spread over `m × n`
+        # acts on a stalk with gain well under one, and the transport rule moves
+        # exactly this. Reporting `body × edge` alone overstated the hop by that
+        # factor, and by a *growing* factor under `--learn`.
         for label, values in (
-            ("body   d|prediction| / d|evidence|", body),
-            ("edge   d|node stalk| / d|belief| ", edge),
+            ("restrict  d|belief|     / d|node stalk|", restrict),
+            ("edge      d|node stalk| / d|belief|    ", edge),
+            ("body      d|prediction| / d|evidence|  ", body),
         ):
             print(
                 f"  {label}  mean {values.mean():8.4f}  median "
                 f"{np.median(values):8.4f}  max {values.max():8.4f}"
             )
-        print(f"  one hop, one tick: mean {body.mean() * edge.mean():.4g}")
+        hop = restrict.mean() * edge.mean() * body.mean()
+        print(f"  one hop, one tick: mean {hop:.4g}  (the three, multiplied)")
         print(
             f"  interior map norms mean {float(interior.mean()):.4g} against rho = "
             f"{sheaf.maps.rho:g} ({int((~sheaf.maps.pinned).sum())} of "
             f"{sheaf.maps.pairs} maps;\n  the rest are boundary cells' and pinned at 1 "
-            f"by the exact gauge). Grown to rho, the edge\n  gain would reach "
-            f"{ceiling.mean():8.4f} and the hop {body.mean() * ceiling.mean():.4g}, "
-            f"on the body's present gain."
+            f"by the exact gauge). Grown to rho, restrict would\n  reach "
+            f"{restrict_ceiling.mean():.4f}, edge {ceiling.mean():.4f}, and the hop "
+            f"{restrict_ceiling.mean() * ceiling.mean() * body.mean():.4g} -- on the "
+            f"body's\n  present gain, which the gauge does not bound and nothing here "
+            f"predicts."
         )
         restore(sheaf, base)
     finally:
@@ -661,7 +743,7 @@ def learning(name: str, split: str, seed: int, ticks: int, every: int) -> None:
                 f"{np.abs(np.diff(pose, axis=0)).sum():8.4f}  "
                 f"{float(reading.edges.energy.mean()):9.4g}  "
                 f"{float(reading.edges.effective_rank.mean()):8.4f}  "
-                f"{float(agent.sheaf.maps.norms().mean()):6.3f}  "
+                f"{float(interior_norms(agent.sheaf)):6.3f}  "
                 f"{i / (time.time() - started):5.0f}",
                 flush=True,
             )
