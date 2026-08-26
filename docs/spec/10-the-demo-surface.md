@@ -15,7 +15,7 @@ the whole surface off must change no trajectory.
 
 | | |
 |---|---|
-| **Scene** | MuJoCo's passive viewer, as `prototypes/sandbox/watch.py` already runs it. Its camera, its picking, its drag. |
+| **Scene** | MuJoCo's passive viewer, as `prototypes/sandbox/watch.py` already runs it. Its picking, its drag, and its camera — held top-down, for the reason *The hands* gives. |
 | **Panel** | A second window: the dome, the private-component readout, and the motor strip. |
 
 A single composed window was considered and rejected. It buys one tidy frame for capture and pays for
@@ -213,6 +213,61 @@ which is why events 1 and 2 need no new binding and read as one motion with two 
 button is `mjPERT_ROTATE`, which turns a reference orientation and moves nothing, so it fires no
 hand.
 
+**A gesture is planar, and an out-of-plane drag fires nothing — corrected in #123.** The world has
+zero z degrees of freedom (`03-the-sandbox.md`; `arena.xml` has hinges about z and slides in x and y,
+and no z slide anywhere), while MuJoCo hands over a drag in three dimensions. Taking the planar
+shadow of one was the bug reported: a drag that was mostly z with a millimetre of planar residue
+passed the minimum-drag gate and fired a hand with the residue as its argument — a puck teleported a
+millimetre in a direction the human never expressed.
+
+**Where the z comes from is the mouse, not the camera**, which is what #123 assumed and the
+implementation had to correct. MuJoCo's plain ctrl-drag is `mjMOUSE_MOVE_V`, a translate in the
+*vertical* plane: pull across the screen and the grabbed point moves in the world's xy, pull up the
+screen and it moves in world z — **at every camera elevation, straight down included**. The shifted
+drag, `mjMOUSE_MOVE_H`, is planar whichever way it goes; MuJoCo's own help table says as much in one
+line, *Object Translate: Ctrl [Shift] right drag*. `tests/test_gestures.py` pins both against
+`mjv_movePerturb` itself, because the wrong reading is easy to hold and hard to notice.
+
+So there are two constraints, they do different jobs, and **both are kept**:
+
+- **The drag is refused, and this is the enforcement.** The gate is on the out-of-plane component
+  measured against the planar one — about six degrees — not on the planar magnitude alone. A drag
+  outside it fires no hand, leaves no marker, and **warns**, naming the shifted drag as the way to
+  express a planar pull. A human given nothing and told nothing is left wondering which of the two
+  happened, and "look from above" would have been advice that does not help. The warning is for a
+  pull that named a link or a puck: a drag that named the table, a wall, or nothing is a
+  **miss**, fires nothing as it always did, and says nothing — blaming the pull for what was an aim
+  would teach the human the wrong lesson about their own gesture.
+- **The camera's tilt is held straight down**, re-asserted every tick rather than set once at
+  startup, and what it holds is the **picture**: the arena's plane fills the screen, so a drag's
+  planar half is the motion the human watches themselves make. It is re-assertion and not
+  prevention — the passive viewer offers no way to disable its own mouse camera, so a rotation lasts
+  until the next tick, 20 ms, and is then put back. Only the tilt is held; panning, zooming and
+  spinning leave the plane square to the screen and stay the human's.
+
+The table above still names the ctrl-drag, unchanged: **which of MuJoCo's two translates the demo
+should teach** — the plain one, which fires only when it is pulled across the screen, or the shifted
+one, which is planar in every direction — is a binding question #123 did not settle, and is left open
+rather than decided in passing.
+
+#123 ruled for both constraints, for the redundancy, and **neither is to be removed as redundant with
+the other** — but the division of labour is the one above, and the camera hold must not be read as
+enforcing the plane, because it cannot.
+
+Both relax in one place — the tolerance the gesture layer is built with, and the loop's
+`hold_camera` — and **neither relaxation is a third dimension**. Both hands take xy, so lifting the
+tolerance stops the refusing and restores the planar shadow this ticket was filed on. A world whose
+pucks can move in z changes the hands; these seams are only what would otherwise be welded across
+its path.
+
+**The perturbation ghost stays three-dimensional.** MuJoCo draws the drag as a spring in 3D and
+nothing on this surface can make it do otherwise. Held top-down that is mostly harmless — the planar
+half of a drag is drawn where the puck would go — but an out-of-plane pull is drawn going somewhere,
+towards or away from the camera, and then fires nothing at all. That gap is MuJoCo's and cannot be
+closed here; the warning is what stands in for closing it. Whether the refusal, the message and the
+un-tiltable view read well at the window is, like the double-click below, a claim only a human at the
+window can settle.
+
 Retarget is the one that needed designing, because it has no world-side handle to grab. Click-then-
 click is chosen over a keypress because it reads to a bystander with no caption — you point at the
 thing, then point at where you now want it — and the third event of the demo is precisely the one a
@@ -225,7 +280,8 @@ button is not observable through `mujoco.viewer.launch_passive` at all: it offer
 What that struct *does* report deterministically is three acts — a **selection**, written only on a
 **left** double-click (any other button moves the camera's `lookat` or starts it tracking); a
 **translating** ctrl-drag, the one act that moves a point to a place; and a **rotating** ctrl-drag,
-which carries an orientation and no place.
+which carries an orientation and no place. The shift key is not a field either, and it is what
+chooses the plane the translating drag moves in — see the planar note above.
 
 So a pointing is a left double-click, and retarget is two of them. A **drag** from puck to zone
 would read more plainly still, and was preferred if it could be had, but it is closed rather than

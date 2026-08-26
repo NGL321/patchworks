@@ -15,8 +15,9 @@ reports*, is where the whole of that reading lives.
 
 **The scene window is MuJoCo's passive viewer**, as `prototypes/sandbox/watch.py`
 already runs it -- its camera, its picking, its drag. :func:`drive` opens that
-viewer and does nothing to the picture in it. A single composed window was
-considered and rejected because it pays for one tidy capture frame with the
+viewer and writes its camera: the opening pose once, as it always did, and the
+tilt back on every tick (:func:`hold_top_down`). It does nothing else to the
+picture. A single composed window was considered and rejected because it pays for one tidy capture frame with the
 exact interaction that already works, so nothing here selects a body, casts a
 ray, or tracks a mouse: MuJoCo does all three, into
 :class:`~mujoco.MjvPerturb`, and what this module reads is that struct.
@@ -35,6 +36,25 @@ and it is the part that decides nothing.
 grabbed and nothing else, which is why `08`'s first two events need no new
 binding and read as one motion with two targets.
 
+**A gesture is planar, and an out-of-plane drag fires nothing** (#123). The
+world has no third dimension -- `arena.xml` has hinges about z and slides in x
+and y, and no z slide anywhere -- so a drag with a z in it names nothing the
+world can do. :meth:`Gestures.drag` refuses one that went more than a few
+degrees out of the plane, and tells the human why -- when the drag named a link
+or a puck; one that named the table, a wall or nothing is a miss, and is passed
+over in silence as it always was.
+
+**Where the z comes from is the mouse, not the camera.** MuJoCo's plain
+ctrl-drag is `mjMOUSE_MOVE_V`, which translates the grabbed point in the
+*vertical* plane: pull across the screen and the point moves in the world's
+xy, pull up the screen and it moves in world z -- **at every camera elevation,
+top-down included**. The shifted drag is `mjMOUSE_MOVE_H` and is planar
+whichever way it goes. `tests/test_gestures.py` pins both against MuJoCo's own
+`mjv_movePerturb`, because #123 was filed on the other reading and the code
+should not quietly keep it. :func:`hold_top_down` therefore holds the *picture*
+in the plane and not the gesture, and the refusal is what enforces the plane.
+Whether the gesture then *feels* right is a human at the window.
+
 **Nothing here is part of the architecture.** These are the *human's* hands
 (`docs/spec/03-the-sandbox.md`, *The human's hand*), fired from outside on the
 footing any experimenter is on: no cell reads anything this module computes,
@@ -51,7 +71,7 @@ import warnings
 from collections import deque
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 
 import mujoco
 import numpy as np
@@ -72,12 +92,15 @@ from .record import Event, Recorder, TickRecord
 __all__ = [
     "IMPULSE_PER_METRE",
     "MINIMUM_DRAG",
+    "OUT_OF_PLANE_TOLERANCE",
+    "TOP_DOWN_ELEVATION",
     "Drag",
     "Gestures",
     "Pointer",
     "Referent",
     "ReferentKind",
     "drive",
+    "hold_top_down",
 ]
 
 #: Newton-metre-seconds of joint impulse per metre the drag pulls a link along
@@ -90,8 +113,10 @@ __all__ = [
 #: nudge rather than a launch.
 IMPULSE_PER_METRE = 1.0
 
-#: Metres of drag below which nothing fires. A ctrl-press without a pull is not
-#: a gesture, and firing on one would teleport a puck to where it already is --
+#: Metres of drag below which nothing fires, read on the larger of the drag's
+#: planar and out-of-plane components -- a press that went nowhere went nowhere
+#: in either. A ctrl-press without a pull is not a gesture, and firing on one
+#: would teleport a puck to where it already is --
 #: leaving a marker that onset latency would then be measured from
 #: (`docs/spec/10-the-demo-surface.md`, *Onset, and the near-misses*). It also
 #: happens to be what leaves MuJoCo's *rotate* drag alone: ctrl + the left
@@ -101,6 +126,75 @@ IMPULSE_PER_METRE = 1.0
 #: is the *translating* one, `mjPERT_TRANSLATE` -- ctrl + the right button (see
 #: :func:`drive`, *What the viewer reports*).
 MINIMUM_DRAG = 1e-3
+
+#: How far a ctrl-drag may stray out of the plane before it is no gesture at
+#: all, **as a fraction of how far it went in the plane**. A ratio rather than a
+#: length, because what makes a drag out-of-plane is the direction it went in
+#: and not how long it was: at 0.1 a pull more than about six degrees off the
+#: table is refused, and one along it is not.
+#:
+#: **This is #123's enforcing lever**, and the one that does the work: MuJoCo's
+#: plain translate drag carries a z whatever the camera is doing, so this is
+#: what stops one reaching a hand -- see :meth:`Gestures.drag`, and
+#: :func:`hold_top_down` for the display constraint kept beside it.
+#:
+#: :class:`Gestures` takes its own, which is where the refusal is relaxed and
+#: **the whole of what relaxing it does**: it stops refusing, and both hands go
+#: on taking xy. Handing in `float("inf")` therefore restores the planar shadow
+#: -- the very thing #123 was filed on -- rather than granting a third
+#: dimension. A world that has one needs hands that take a z; this is the seam
+#: that would stop being in the way, not the change.
+OUT_OF_PLANE_TOLERANCE = 0.1
+
+#: The camera elevation at which the arena's own plane fills the screen:
+#: straight down. #123's display constraint -- what the human sees, rather than
+#: what a gesture carries -- applied by :func:`hold_top_down` and re-applied
+#: every tick by :func:`drive`.
+TOP_DOWN_ELEVATION = -90.0
+
+
+def hold_top_down(cam) -> None:
+    """Hold the scene camera's tilt at straight down. #123's second lever.
+
+    Takes MuJoCo's own :class:`~mujoco.MjvCamera` -- `viewer.cam` -- and writes
+    one field. :func:`drive` calls it every tick, under the viewer's lock,
+    which is what makes it a hold rather than the startup pose #96 set and #123
+    found had never held anything: MuJoCo lets the human rotate the view freely
+    and nothing said the picture had stopped agreeing with the world.
+
+    **What this does and does not do, plainly.** It holds the *picture* in the
+    plane: straight down, the arena's own xy fills the screen, so the planar
+    half of a drag is the motion the human watches themselves making and the
+    perturbation ghost's own travel reads as what it is. **It does not make a
+    gesture planar.** MuJoCo's plain ctrl-drag translates in the vertical plane
+    -- its up-the-screen axis is world z at every elevation, top-down included
+    (`tests/test_gestures.py`, *TestTheDragMujocoHandsOver*) -- so no camera
+    constraint can take a z out of one. :meth:`Gestures.drag`'s refusal is what
+    enforces the plane; this is kept beside it, as #123 ruled, because the two
+    fail in different ways and the ruling wanted the redundancy: **neither is
+    dead weight, and neither is to be removed as redundant with the other.**
+
+    **Re-assertion, not prevention.** The passive viewer's mouse handling lives
+    inside MuJoCo's own `Simulate` on its UI thread, and `launch_passive` hands
+    back a camera and no way to turn any of it off -- so nothing here can stop
+    the human rotating the view. What it can do is put the view back, and it
+    does, once per iteration of :func:`drive`'s loop -- nominally 20 ms at this
+    world's 50 Hz, and in fact however long the consumer of that generator takes
+    to come back for the next record. A rotation is a flicker rather than a
+    regime, but how long a flicker is not something this can promise.
+
+    **Only the tilt is held.** Panning, zooming and spinning the view leave the
+    arena's plane square to the screen, so they are left to the human; and the
+    arena's one fixed camera (`topdown` in `src/patchworks/sandbox/arena.xml`)
+    looks straight down too, so the viewer's own camera keys land somewhere
+    this already agrees with.
+
+    **Relaxable in one place**: `drive(..., hold_camera=None)` opens the window
+    where it always did and then leaves the view to the human, and a world that
+    wants a different constraint passes its own callable rather than editing
+    that loop.
+    """
+    cam.elevation = TOP_DOWN_ELEVATION
 
 
 class ReferentKind(str, Enum):
@@ -165,7 +259,14 @@ class Gestures:
     ::
 
         gestures = Gestures(Hands(recorder))
-        gestures.drag(body, grip=(0.2, 0.0, 0.0), to=(0.2, 0.1, 0.0))
+        gestures.drag(
+            Drag(
+                body=body,
+                grip=np.array([0.2, 0.0, 0.0]),
+                origin=np.array([0.2, 0.0, 0.0]),
+                moved=np.array([0.0, 0.1, 0.0]),
+            )
+        )
 
     Holds a :class:`~patchworks.surface.onset.Hands`, so a gesture that fires
     leaves its marker in the tick record on the tick it fired -- the hands and
@@ -180,10 +281,15 @@ class Gestures:
     """
 
     def __init__(
-        self, hands: Hands, *, impulse_per_metre: float = IMPULSE_PER_METRE
+        self,
+        hands: Hands,
+        *,
+        impulse_per_metre: float = IMPULSE_PER_METRE,
+        out_of_plane_tolerance: float = OUT_OF_PLANE_TOLERANCE,
     ) -> None:
         self.hands = hands
         self.impulse_per_metre = float(impulse_per_metre)
+        self.out_of_plane_tolerance = float(out_of_plane_tolerance)
         model = self.world.model
         name2id = mujoco.mj_name2id
         joints = mujoco.mjtObj.mjOBJ_JOINT
@@ -250,7 +356,8 @@ class Gestures:
         """One completed ctrl-drag. The referent alone decides which hand.
 
         What comes back is the marker the hand dropped, or `None` for a drag on
-        nothing and for a drag too short to be one (:data:`MINIMUM_DRAG`).
+        nothing, for a drag too short to be one (:data:`MINIMUM_DRAG`), and for
+        one out of the plane (:data:`OUT_OF_PLANE_TOLERANCE`).
 
         **A link is nudged, never placed.** `disturb_arm` takes an impulse
         because displacing `qpos` would have the world rewrite the arm's
@@ -268,24 +375,105 @@ class Gestures:
         plus how far the drag went -- which is where the viewer has been
         drawing the ghost of it all the while.
 
-        **Both read the drag in the plane.** This world is planar by
-        construction (`src/patchworks/sandbox/arena.xml`) and both hands take a
-        planar argument, so an out-of-plane pull -- which a camera turned off
-        the top-down view will happily produce -- is not a small gesture but no
-        gesture at all, and firing on one would leave a marker for a teleport
-        to where the puck already was.
+        **An out-of-plane drag is refused, and said so.** This world is planar
+        by construction (`src/patchworks/sandbox/arena.xml`: every joint is a
+        hinge about z or a slide in x/y, and there is no z slide anywhere), and
+        both hands take a planar argument -- so an out-of-plane pull is not a
+        small gesture but no gesture at all. The gate is on the out-of-plane
+        component, measured against the planar one
+        (:data:`OUT_OF_PLANE_TOLERANCE`), and **that is #123's enforcing
+        lever**: #96 wrote the sentence above and gated on the planar magnitude
+        instead, which is a different set. A drag that was mostly z with a
+        millimetre of planar residue cleared that gate and fired a hand with
+        the residue as its argument -- a puck teleported a millimetre in a
+        direction the human never expressed, which is the "random directions"
+        the report describes. Nothing arbitrary reaches the world now: the
+        refusal warns, because a human who is given nothing and told nothing is
+        left wondering which of the two happened.
+
+        **Where the z comes from is the mouse, not the camera.** #123 was
+        filed on the reading that a drag carries a z only when the view is off
+        top-down. MuJoCo says otherwise: the plain ctrl-drag is
+        `mjMOUSE_MOVE_V`, a translate in the *vertical* plane, so pulling
+        across the screen moves the point in the world's xy and pulling up the
+        screen moves it in world z -- at **every** elevation, straight down
+        included. The shifted drag, `mjMOUSE_MOVE_H`, is planar whichever way
+        it goes. `tests/test_gestures.py`, *TestTheDragMujocoHandsOver*, pins
+        both against `mjv_movePerturb` itself. So this refusal, and not the
+        camera, is what keeps the plane -- and the warning names the shift,
+        because "look from above" is advice that would not have helped.
+
+        **Kept beside the camera hold, on purpose.** :func:`hold_top_down`
+        holds the picture in the plane; this holds the gesture. They fail
+        differently and #123 ruled for the redundancy, so **neither is dead
+        weight and neither is to be removed as redundant with the other**.
+
+        **Both relax in one place, and neither relaxation is a third
+        dimension.** This one is `out_of_plane_tolerance`, handed to
+        :class:`Gestures`; the other is `hold_camera=None`, handed to
+        :func:`drive`. Lifting this one stops the refusing and nothing else --
+        `perturb` still gets `(origin + moved)[:2]` and :meth:`_impulse` still
+        drops the z -- so what comes back is the planar shadow #123 was filed
+        on. That is the point of the seam: a world whose pucks can move in z
+        changes the hands, and finds the refusal already out of its way rather
+        than welded across it.
+
+        **The perturbation ghost stays 3D.** MuJoCo draws the drag as a spring
+        in three dimensions and nothing here can make it do otherwise. Held
+        top-down that is mostly harmless -- the planar half of the drag is
+        drawn where the puck would go -- but an out-of-plane pull is drawn
+        going *somewhere*, towards or away from the camera, and then fires
+        nothing at all. That gap between the picture and the effect is
+        MuJoCo's, it cannot be closed here, and the warning is what stands in
+        for closing it: it is why this refusal speaks rather than passing over
+        the drag in silence.
         """
-        moved = drag.moved
-        if float(np.linalg.norm(moved[:2])) < MINIMUM_DRAG:
+        moved = np.asarray(drag.moved, dtype=np.float64)
+        planar = float(np.linalg.norm(moved[:2]))
+        out_of_plane = abs(float(moved[2]))
+        # Whether the mouse moved at all, asked of the whole displacement: a
+        # press that went nowhere is not a gesture in any dimension, and this is
+        # where MuJoCo's rotating drag -- a displacement of exactly zero -- is
+        # passed over. Only then is it worth saying which way it went.
+        if max(planar, out_of_plane) < MINIMUM_DRAG:
             return None
         referent = self.referent(drag.body, drag.grip)
+        if referent.kind not in (ReferentKind.LINK, ReferentKind.PUCK):
+            # A drag on the table, a wall, or nothing. No hand takes it whatever
+            # plane it was in, so there is nothing here to refuse and nobody to
+            # tell: saying "no hand fired" over a miss would blame the pull for
+            # what was an aim.
+            return None
+        if out_of_plane > self.out_of_plane_tolerance * planar:
+            warnings.warn(
+                f"a ctrl-drag {out_of_plane:.3g} m out of the plane against "
+                f"{planar:.3g} m in it is no gesture at all: this world has no "
+                "third dimension for it to mean anything in, so no hand fired. "
+                "MuJoCo's plain ctrl-drag translates in the vertical plane, "
+                "so drag across the screen rather than up it -- or hold shift "
+                "as well, which is MuJoCo's horizontal-plane translate and is "
+                "planar whichever way it goes (#123).",
+                stacklevel=2,
+            )
+            return None
+        if planar < MINIMUM_DRAG:
+            # Unreachable at any tolerance of 1 or less, the default included:
+            # a planar component under the minimum has an out-of-plane one at
+            # or over it beside it -- or the first gate would have taken the
+            # drag -- and the second gate then refuses it. What this is here for
+            # is a world that lifted the tolerance: such a world can arrive
+            # with a drag it considers perfectly in-plane and nothing in the
+            # plane to hand over, and both hands take xy. Note `inf * 0.0` is
+            # `nan` and every comparison with one is False, so a straight-up
+            # drag under a lifted tolerance arrives here rather than being
+            # refused above. Firing would teleport a puck to where it already
+            # is, and leave a marker onset latency would then be measured from.
+            return None
         if referent.kind is ReferentKind.LINK:
             return self.hands.disturb_arm(
                 referent.index, self._impulse(referent.index, drag.grip, moved)
             )
-        if referent.kind is ReferentKind.PUCK:
-            return self.hands.perturb(referent.index, (drag.origin + moved)[:2])
-        return None
+        return self.hands.perturb(referent.index, (drag.origin + moved)[:2])
 
     def _impulse(self, joint: int, grip: np.ndarray, moved: np.ndarray) -> float:
         """The drag, resolved along the direction that joint moves the grip in.
@@ -299,11 +487,15 @@ class Gestures:
         model, data = world.model, world.data
         jacp = np.zeros((3, model.nv))
         mujoco.mj_jac(model, data, jacp, None, grip, self._body_of[joint])
-        # In the plane, like the gate in `drag` and like both hands' arguments.
-        # Every arm joint in `arena.xml` is a z-hinge, so this column's own z
-        # entry is zero today and the projection changes nothing -- it is here
-        # so that "both read the drag in the plane" stays true of this line and
-        # not only of the gate, the first time a joint is not a z-hinge.
+        # In the plane, like both hands' arguments. What reaches here has
+        # already been refused if it was out of the plane, so the z dropped is
+        # at most `self.out_of_plane_tolerance` of the pull -- at the default,
+        # a few degrees off the table, which is a pull along it and not a
+        # gesture; at a lifted one, whatever that world called in-plane, which
+        # is that world's business and not this line's. Every arm joint in
+        # `arena.xml` is a z-hinge, so this column's own z entry is zero today
+        # and the projection changes nothing either; it is here so that the
+        # impulse stays planar the first time a joint is not a z-hinge.
         moved = np.asarray(moved, dtype=np.float64).copy()
         moved[2] = 0.0
         direction = jacp[:, self._dofadr[joint]]
@@ -592,6 +784,7 @@ def drive(
     seed: int | None = None,
     realtime: bool = True,
     gestures: Gestures | None = None,
+    hold_camera: Callable[[Any], None] | None = hold_top_down,
 ) -> Iterator[TickRecord]:
     """Run the agent in MuJoCo's passive viewer, with the hands bound to it.
 
@@ -626,7 +819,12 @@ def drive(
     * **A translating drag**, `pert.active == mjPERT_TRANSLATE`, which MuJoCo
       sets on ctrl + the **right** button over something already selected. It
       is the one act that moves `pert.refselpos`, which is to say the one that
-      names a *place*.
+      names a *place*. **Which place depends on the shift key**, and it is not
+      a field either: held, the drag is `mjMOUSE_MOVE_H` and moves the point in
+      the world's horizontal plane; unheld, it is `mjMOUSE_MOVE_V` and the
+      mouse's up-the-screen axis is world z. Nothing here can read that key --
+      what it reads is the displacement, and :meth:`Gestures.drag` refuses one
+      that left the plane (#123).
     * **A rotating drag**, `pert.active == mjPERT_ROTATE`, ctrl + the **left**
       button. It turns `pert.refquat` and moves no point at all.
 
@@ -680,6 +878,28 @@ def drive(
     :meth:`~patchworks.surface.onset.OnsetCounter.restart` that #95 handed
     forward, and neither is a thing this loop can check for its caller.
 
+    **The camera is held top-down, every tick** (#123). #96 set the pose once,
+    here, before the loop -- which is not a hold, since MuJoCo lets the human
+    rotate the view freely and nothing said the picture had stopped agreeing
+    with the arena's plane. So the tilt is re-asserted on every iteration, under
+    the same lock as everything else the render thread reads. It is
+    **re-assertion and not prevention**: the passive viewer exposes no way to
+    disable its own mouse camera, so a rotation lasts until the next iteration
+    of this loop -- nominally 20 ms, in fact whatever pace the caller draws
+    records at -- and then goes back.
+
+    What it buys is the *picture*: the arena's xy fills the screen, so a drag's
+    planar half is the motion the human watches themselves make. It does not
+    make a gesture planar, and :func:`hold_top_down` says why at length -- the
+    plain translate drag carries a z at every elevation, and
+    :meth:`Gestures.drag`'s refusal is what keeps that z out of a hand.
+
+    The opening pose is unchanged and unconditional -- the window still opens
+    looking straight down at the arena. `hold_camera=None` lifts the *hold* in
+    one place, for a world worth looking at from an angle: the view opens where
+    it always did and is then the human's. A different constraint is a different
+    callable, and this loop stays one line either way.
+
     **The keys are drained here, not handled in the callback.** MuJoCo calls
     `key_callback` on its own UI thread, and `r` rearranges the world -- so
     handling it there would have two threads inside one `MjData`. The callback
@@ -725,8 +945,8 @@ def drive(
         with viewer.lock():
             viewer.cam.lookat[:] = [0.0, 0.0, 0.0]
             viewer.cam.distance = 1.6
-            viewer.cam.elevation = -90.0
             viewer.cam.azimuth = 90.0
+            viewer.cam.elevation = TOP_DOWN_ELEVATION
         last = time.time()
         for _outcome in ticking:
             record = recorder.observe()
@@ -740,6 +960,14 @@ def drive(
             # holds while it reads the model and the data: a hand that fires
             # writes to both, and `r` rewrites the whole world.
             with viewer.lock():
+                # The tilt, put back before anything is read off it. This
+                # holds the *picture* in the arena's plane and nothing else --
+                # a drag carries its z whatever the camera is doing, and
+                # `Gestures.drag`'s refusal is what keeps that out of a hand
+                # (#123). The human is free to rotate; the view comes back a
+                # tick later.
+                if hold_camera is not None:
+                    hold_camera(viewer.cam)
                 while keys:
                     try:
                         gestures.key(keys.popleft())
@@ -769,9 +997,17 @@ def main(argv: list[str] | None = None) -> None:
     """`mjpython -m patchworks.surface.gestures` -- the demo, drivable by hand.
 
     An agent, a world, and the window: enough to sit in front of and perturb.
-    Ctrl-drag a link or a puck, left-double-click a puck and then a zone, `r`
-    to rearrange, `1` - `9` for the pairs. On macOS the passive viewer needs
+    Shift-ctrl-drag a link or a puck, left-double-click a puck and then a zone,
+    `r` to rearrange, `1` - `9` for the pairs. On macOS the passive viewer needs
     `mjpython`.
+
+    **Hold the shift.** MuJoCo's plain ctrl-drag translates in the vertical
+    plane, so it only pulls in this world's plane while the mouse stays within a
+    few degrees of horizontal, and anything steeper is refused with a message
+    saying so (:meth:`Gestures.drag`). The shifted drag is the horizontal-plane
+    one and is planar whichever way it goes. Which of the two the demo should
+    *teach* is open (#123, and `docs/spec/10-the-demo-surface.md`, *The hands*);
+    what a human sitting down at this window needs is the one that works.
 
     The dome panel is the other window and is not opened here. It reads the
     records this yields (`docs/spec/10-the-demo-surface.md`, *Two windows*),

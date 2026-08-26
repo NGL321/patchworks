@@ -35,9 +35,10 @@ Four modules, and the seam between them is the record:
   hands, bound so that firing one drops its marker, and the tick counter the
   motor strip runs from the most recent one.
 * :mod:`patchworks.surface.gestures` -- the gestures those hands are bound to,
-  and the live viewer they are bound in: ctrl-drag a link or a puck, click a
-  puck and then a zone, `r` to rearrange, and the number keys as the headless
-  and scripted path. The scene window is MuJoCo's passive viewer, so the
+  and the live viewer they are bound in: shift-ctrl-drag a link or a puck --
+  the shift is MuJoCo's horizontal-plane translate, and a drag that left this
+  planar world's plane fires nothing (#123) -- click a puck and then a zone,
+  `r` to rearrange, and the number keys as the headless and scripted path. The scene window is MuJoCo's passive viewer, so the
   picking and the drag are inherited rather than re-implemented.
 
 Not imported by :mod:`patchworks`; import it directly, as with
@@ -55,12 +56,15 @@ from patchworks.surface.dome_panel import (
 from patchworks.surface.gestures import (
     IMPULSE_PER_METRE,
     MINIMUM_DRAG,
+    OUT_OF_PLANE_TOLERANCE,
+    TOP_DOWN_ELEVATION,
     Drag,
     Gestures,
     Pointer,
     Referent,
     ReferentKind,
     drive,
+    hold_top_down,
 )
 from patchworks.surface.onset import Hands, OnsetCounter
 from patchworks.surface.private_component import (
@@ -87,8 +91,10 @@ __all__ = [
     "DEFAULT_PITCH",
     "IMPULSE_PER_METRE",
     "MINIMUM_DRAG",
+    "OUT_OF_PLANE_TOLERANCE",
     "PANEL_HEIGHT",
     "PANEL_WIDTH",
+    "TOP_DOWN_ELEVATION",
     "BandLayout",
     "DomePanel",
     "Drag",
@@ -109,6 +115,7 @@ __all__ = [
     "Trace",
     "colormap",
     "drive",
+    "hold_top_down",
     "hop_distance",
     "measured_persistence",
 ]
