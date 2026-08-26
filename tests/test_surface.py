@@ -3,11 +3,12 @@
 Four things are held down here, and the third is the one the whole demo
 surface rests on.
 
-* **The record is the contract plus two arrays.** A tick holds
+* **The record is the contract plus the arrays.** A tick holds
   `03-the-sandbox.md`'s snapshot/restore state -- `mjSTATE_INTEGRATION`, the
   task, the sampler's RNG -- plus per-cell prediction error and
-  `‖Δ private‖`, plus the markers the hands drop. Not a new format: what comes
-  back off disk restores a world, bit for bit.
+  `‖Δ private‖`, plus (from #94) per-edge disagreement and the actuator's
+  commanded/applied pair, plus the markers the hands drop. Not a new format:
+  what comes back off disk restores a world, bit for bit.
 * **One renderer, two feeds.** Live is a recorder's `watch()`; replay is a
   `Trace` off disk; the renderer cannot tell which, and the frames are
   identical.
@@ -85,14 +86,24 @@ def private_component(sheaf):
     return sheaf.evidence() * sheaf.dome.private_projection
 
 
-class TestTheRecordIsTheContractPlusTwoArrays:
-    def test_a_record_is_the_contract_two_arrays_and_the_markers(self):
-        """Literally: the fields, and no others. Not a new format."""
+class TestTheRecordIsTheContractPlusTheArrays:
+    def test_a_record_is_the_contract_the_arrays_and_the_markers(self):
+        """Literally: the fields, and no others. Not a new format.
+
+        #94 added the two the boundary band's marks are drawn from -- per-edge
+        disagreement, and the actuator's commanded/applied pair. They are the
+        same kind of thing as the two already here (privileged state, read,
+        never fed back) at the same order of size, and they are here rather
+        than handed to the panel beside a record because a quantity that
+        reached the panel any other way would draw live and not off disk.
+        """
         assert [field.name for field in dataclasses.fields(TickRecord)] == [
             "tick",
             "state",
             "prediction_error",
             "private_delta",
+            "disagreement",
+            "actuator",
             "events",
         ]
 
@@ -115,6 +126,35 @@ class TestTheRecordIsTheContractPlusTwoArrays:
         cells = len(dome.predicting)
         assert record.prediction_error.shape == (cells,)
         assert record.private_delta.shape == (cells,)
+
+    def test_disagreement_is_one_float_per_edge_not_per_cell(self, agent, dome):
+        """Edge-owned and spatial, where prediction error is cell-owned."""
+        record = run_watched(Recorder(agent))[0]
+        assert record.disagreement.shape == (len(dome.edges),)
+        assert np.all(record.disagreement >= 0.0)
+
+    def test_the_actuator_row_pair_is_what_the_cell_holds(self, agent):
+        """Commanded and applied, off the actuator boundary cell's own stalk.
+
+        Not a second reading of the torque: the six numbers the efference copy
+        is made of, so a saturating command is a row that parts from its
+        partner and nothing else has to be consulted to see it.
+        """
+        # Stopped on the tick the last record was taken from, so the cell's
+        # stalk still holds what that record says it did.
+        record = run_watched(Recorder(agent), ticks=CAPTURE_EVERY)[-1]
+        assert record.tick == agent.sheaf.ticks
+        assert record.actuator.shape == (2, agent.joints)
+        stalk = agent.sheaf.stalk(agent.actuator_cell).numpy()
+        assert np.array_equal(record.actuator.reshape(-1), stalk)
+
+    def test_the_actuator_rows_are_not_a_view_on_the_running_stalk(self, agent):
+        """A record is a reading, and a reading that moves is not one."""
+        recorder = Recorder(agent)
+        record = run_watched(recorder)[0]
+        taken = record.actuator.copy()
+        run_watched(recorder, ticks=CAPTURE_EVERY * 2)
+        assert np.array_equal(record.actuator, taken)
 
     def test_a_record_carries_no_frame(self, agent):
         recorder = Recorder(agent)
@@ -417,7 +457,7 @@ class TestTheSurfaceIsNotReachableFromAnyCellComputation:
 
 
 class TestTheFile:
-    def test_the_file_holds_the_contract_and_the_two_arrays_and_nothing_else(
+    def test_the_file_holds_the_contract_and_the_arrays_and_nothing_else(
         self, agent, tmp_path
     ):
         recorder = Recorder(agent)
@@ -432,6 +472,8 @@ class TestTheFile:
                 "goal",
                 "prediction_error",
                 "private_delta",
+                "disagreement",
+                "actuator",
                 "rng",
                 "events",
             }
@@ -456,7 +498,51 @@ class TestTheFile:
             assert read.state.rng == written.state.rng
             assert np.array_equal(read.prediction_error, written.prediction_error)
             assert np.array_equal(read.private_delta, written.private_delta)
+            assert np.array_equal(read.disagreement, written.disagreement)
+            assert np.array_equal(read.actuator, written.actuator)
             assert read.events == written.events
+
+    def test_a_file_written_before_a_field_existed_still_reads(self, agent, tmp_path):
+        """A trace outlives the run that made it, and marks are added later.
+
+        What comes back for a member the archive does not hold is *not
+        captured*, which is exactly what happened -- and the marks drawn from
+        it then draw nothing rather than a zero.
+        """
+        recorder = Recorder(agent)
+        run_watched(recorder)
+        path = recorder.trace.save(tmp_path / "run")
+        with np.load(path) as stored:
+            older = {
+                name: stored[name]
+                for name in stored.files
+                if name not in ("disagreement", "actuator")
+            }
+        np.savez(tmp_path / "older", **older)
+        back = Trace.load(tmp_path / "older.npz")
+        assert len(back) == len(recorder.trace)
+        for read, written in zip(back, recorder.trace):
+            assert np.array_equal(read.prediction_error, written.prediction_error)
+            assert read.disagreement.size == 0
+            assert read.actuator.size == 0
+
+    def test_a_trace_whose_records_disagree_about_a_field_is_refused(
+        self, agent, tmp_path
+    ):
+        """Not padded with a zero: that reads back as a graph that agreed."""
+        recorder = Recorder(agent)
+        run_watched(recorder)
+        captured = recorder.trace[0]
+        recorder.trace.append(
+            TickRecord(
+                tick=captured.tick + 1000,
+                state=captured.state,
+                prediction_error=captured.prediction_error,
+                private_delta=captured.private_delta,
+            )
+        )
+        with pytest.raises(ValueError, match="disagreement"):
+            recorder.trace.save(tmp_path / "ragged")
 
     def test_the_rng_survives_at_full_width(self, agent, tmp_path):
         """PCG64's state is a 128-bit integer, and a lossy trip is a replay that

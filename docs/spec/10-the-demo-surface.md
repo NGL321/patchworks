@@ -105,6 +105,34 @@ the arm **stalling mid-swing** — near-zero commanded torque with standing moto
 and that is an outline near zero beside a disagreement bar that stands. `04` already assumes this
 readout exists; here is where it exists.
 
+**The two bars beside each other are scaled differently, and they have to be.** One has an absolute
+reference available and the other does not.
+
+**The three torque bars are absolute, against the action space's own bound.** The sandbox declares
+`spaces.Box(-1.0, 1.0, (nu,))` and `Agent.act` clips the command to it before the arm reads it, so
+the *applied* row is bounded by that on every tick of every run. Drawing both rows against it is what
+makes `04`'s *near-zero commanded torque* an absolute claim — near zero means near zero, always, with
+no dependence on what the run has happened to see. The commanded row is deliberately unclipped, so it
+can ask for more than the bound; the bound draws to one row short of the bar's reach and the overrun
+takes the row that leaves, so a saturating command stands one row above the fill that met the bound
+beside it. That is *the fill falling short of its outline*, drawn. Note this is the only shape
+saturation can take: the rows can differ only once the command has passed the bound, and when they do
+the applied row is exactly *at* it.
+
+**The disagreement bar is relative, and shared: each boundary mark against the largest of them on the
+tick being drawn.** Disagreement has no natural unit, so no absolute reference exists to supply, and
+comparison between the marks is what this bar is for. Sharing one divisor is what makes them
+comparable; recomputing it every tick is what stops it being a ratchet. **Its height is therefore a
+comparison and never a quantity** — some mark is at full height on every tick, and under a relative
+reading that is the reading rather than a defect. Do not read it as a magnitude.
+
+Both replace an earlier attempt to drive these bars from running maxima, which #94's review showed
+erasing the signature they exist to render: one tick in which the drive spiked flattened the
+actuator's bar for the rest of the run, and one unclipped command drew every later full-strength one
+at the zero line. The obvious repair — each mark against its *own* peak — is worse, since a mark sits
+at its own peak whenever it is quiet and the bar would then stand through a silent run. Ruled on in
+#94.
+
 ### The drive mark
 
 The apex band carries a mark for the **drive boundary cell** at the internal rim, drawn like the
@@ -115,6 +143,12 @@ the same across tasks differing only in the render — is diagnosed by the drive
 being *non-trivial* while behaviour does not vary. Without this mark that near-miss is
 indistinguishable on screen from the demo working, and it is the one that falsifies the drive rather
 than the demo ([ADR-0009](../adr/0009-a-drive-is-a-motor-edge-attached-deep.md)).
+
+**Which near-miss is read off the raw map, not the live one.** *Non-trivial while behaviour does not
+vary* is a standing reading, and per-cell normalisation renders a standing reading calm — the
+consequence accepted above. That is not a hole: diagnosing a near-miss is a falsification sweep, and
+a sweep is already told to read the raw map. The live mark is what makes the drive *visible* at all
+and what shows it arriving; the sweep is what reads it standing. Settled in #94.
 
 ### Edges: thresholded, and off by default
 
@@ -188,8 +222,15 @@ scripted path.
 feeds it from disk. Not two code paths.
 
 A tick holds `qpos`, `qvel`, `ctrl`, task, RNG — `03-the-sandbox.md`'s snapshot/restore contract,
-unchanged — plus per-cell prediction error and `‖Δ private‖` (~150 cells × 2 floats), plus any
-event markers that fired. The trace is that contract plus two arrays, not a new format.
+unchanged — plus per-cell prediction error and `‖Δ private‖` (~150 cells × 2 floats), plus
+**per-edge disagreement** (~700 floats) and the **actuator's commanded and applied rows** (six),
+plus any event markers that fired. The trace is that contract plus those arrays, not a new format.
+
+The last two are what every mark a **boundary cell** gets is drawn from — the somatomotor strip, the
+actuator's paired bars, the drive mark and the edge overlay below — and they are in the record for
+the reason the first two are: a quantity the panel could only be handed live would make the live feed
+and the file two code paths, which is the split this section exists to refuse. Corrected here in #94,
+which built those marks and found the record one array short of being able to draw them off disk.
 
 **State, not frames.** The scene re-renders from MuJoCo offscreen at capture time, so capture
 resolution is chosen when rendering rather than baked into the recording, and the README GIF, a

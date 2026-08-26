@@ -14,6 +14,8 @@ Four modules, and the seam between them is the record:
 * :mod:`patchworks.surface.record` -- the tick record. The snapshot/restore
   contract, unchanged, plus per-cell prediction error and `‖Δ private‖`, plus
   the markers the human's hands drop. Not a new format.
+  Plus, since #94, the two arrays a boundary cell's marks are drawn from:
+  per-edge disagreement, and the actuator's commanded and applied rows.
 * :mod:`patchworks.surface.renderer` -- the one renderer. It consumes an
   iterable of records; a live run and a file off disk are two iterables, not
   two code paths.
@@ -22,6 +24,10 @@ Four modules, and the seam between them is the record:
   normalised per cell as colour, and a trail decaying at each cell's own
   measured persistence. It reads a record and draws marks; it holds no agent,
   no sheaf and no world, so closing it changes nothing but the view.
+  A boundary cell's marks are drawn from edge disagreement and from the world
+  instead -- the tiled render at L0, the somatomotor strip and its decomposed
+  actuator, the drive mark, and the thresholded edge overlay -- because a
+  boundary cell runs no body and has no prediction error to draw.
 * :mod:`patchworks.surface.private_component` -- the private-component panel:
   `‖Δ(private component)‖` per cell against hop distance from the sensorimotor
   rim, drawn as its own panel so that it can disagree with the claim it tests.

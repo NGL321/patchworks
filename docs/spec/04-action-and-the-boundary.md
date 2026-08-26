@@ -87,7 +87,7 @@ so a motor edge carries ordinary disagreement between commanded and applied.
 Without this, the motor edge would be the only edge in the architecture with no disagreement on it,
 and the cell nearest the body would be the one cell getting no local signal from its most important
 edge. With it, every edge in the graph is the same kind of object. The arm's torque limits
-(3 / 2 / 1 N·m) make the residual real information rather than an echo: what the world does not
+(3 / 2 / 1 N·m) make that disagreement real information rather than an echo: what the world does not
 clear is the body's refusal, and that is exactly the quantity a cell should learn its own limits from.
 
 ### The membership rule

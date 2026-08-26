@@ -1,4 +1,4 @@
-"""The dome panel: bands, prediction error, and the trail (ticket #93).
+"""The dome panel: the bands, and every mark drawn in them (#93, #94).
 
 Six things are held down here, and the first three are the panel's whole
 claim on a viewer.
@@ -23,6 +23,16 @@ claim on a viewer.
 * **The persistence is `05-timescales.md`'s estimate**, not a second definition
   of timescale: it is `bias_selection.measure`'s, over the run's own body and
   biases, and taking it changes no parameter.
+
+#94 adds the marks a **boundary cell** gets, and they are one claim: **every
+mark draws a quantity that is honestly earned.** A boundary cell runs no body
+and makes no prediction, so it has no prediction error and never appears on
+that map -- what it has is an edge, and edge disagreement is drawn on the same
+colormap. L0 draws the world instead: the agent's own render, tiled into the
+patch lattice. The actuator draws decomposed, which renders `04`'s
+route-selection falsification test rather than describing it, and the edge
+overlay is thresholded from the tick's own scale with no magnitude in the rule
+at all.
 """
 
 import ast
@@ -46,6 +56,7 @@ from patchworks.surface import (
     BandLayout,
     DomePanel,
     Recorder,
+    Renderer,
     TickRecord,
     Trace,
     colormap,
@@ -87,8 +98,13 @@ STATE = Snapshot(
 """A record's state, which the panel never reads: it draws the two arrays."""
 
 
-def record(tick, error, private=None):
-    """A tick record carrying `error`, and whatever `private` the test wants."""
+def record(tick, error, private=None, disagreement=None, actuator=None):
+    """A tick record carrying `error`, and whatever else the test wants.
+
+    `disagreement` and `actuator` default to **not captured** rather than to
+    zeros, which is what a record built by hand for a test about the dome's
+    channel honestly holds: the panel draws no boundary mark from one.
+    """
     error = np.asarray(error, dtype=float)
     return TickRecord(
         tick=tick,
@@ -96,6 +112,12 @@ def record(tick, error, private=None):
         prediction_error=error,
         private_delta=(
             np.zeros_like(error) if private is None else np.asarray(private, dtype=float)
+        ),
+        disagreement=(
+            np.zeros(0) if disagreement is None else np.asarray(disagreement, dtype=float)
+        ),
+        actuator=(
+            np.zeros(0) if actuator is None else np.asarray(actuator, dtype=float)
         ),
     )
 
@@ -296,8 +318,14 @@ class TestColourIsPredictionErrorNormalisedPerCell:
         panel.frame(record(100, np.zeros(cells)))
         assert np.allclose(panel.glow, 0.0)
 
-    def test_a_boundary_cells_slot_is_laid_out_and_left_empty(self, small):
-        """Boundary cells make no prediction (ADR-0006); colouring them would be a lie."""
+    def test_a_boundary_cells_slot_carries_no_prediction_error(self, small):
+        """Boundary cells make no prediction (ADR-0006); colouring them would be a lie.
+
+        A record carrying nothing but prediction error leaves every one of them
+        empty -- not calm, which is a reading, and not bright, which is the
+        fabrication. What they are drawn from when a record carries it is
+        `TestNoBoundaryCellIsEverAssignedAPredictionError`, below.
+        """
         cells = len(small.predicting)
         panel = DomePanel(small, np.full(cells, 1.0))
         frame = panel.frame(record(1, np.full(cells, 7.0)))
@@ -352,14 +380,24 @@ class TestColourIsPredictionErrorNormalisedPerCell:
         """`rect()` is what a caller indexes a frame with; the layout's is not."""
         cells = len(small.predicting)
         panel = DomePanel(small, np.full(cells, 1.0))
+        offsets = set()
         for cell_id in (small.predicting[0], small.predicting[-1], small.boundary[0]):
             top, left, size = panel.rect(cell_id)
             lattice_top, lattice_left, lattice_size = panel.layout.rect(cell_id)
             assert size == lattice_size
             assert top == lattice_top + (panel.height - panel.layout.height)
-            assert left == lattice_left + (panel.width - panel.layout.width) // 2
+            offsets.add(left - lattice_left)
             assert 0 <= top and top + size <= panel.height
             assert 0 <= left and left + size <= panel.width
+        # One offset for every mark: the lattice is placed, not each cell.
+        (offset,) = offsets
+        # And it is the lattice **and the motor strip beside it** that are
+        # centred, so the taper does not shift by whatever the strip needs.
+        strip_top, strip_left, strip_height, strip_width = panel.motor_strip
+        assert strip_left >= offset + panel.layout.width
+        assert abs(offset - (panel.width - strip_left - strip_width)) <= 1
+        assert strip_top >= panel.height - panel.layout.height
+        assert strip_top + strip_height <= panel.height
 
     def test_a_frame_is_one_uint8_image_of_the_panels_own_size(self, small):
         cells = len(small.predicting)
@@ -870,6 +908,32 @@ class TestOneRendererOverATickRecord:
         for i, (left, right) in enumerate(zip(drawn, again)):
             assert np.array_equal(left, right), f"frame {i}"
 
+    def test_the_boundary_band_comes_back_off_disk_too(self, env, dome, tmp_path):
+        """The band is re-rendered from the record's own state, at capture time.
+
+        A record holds no frame, so the picture at the bottom of the panel is
+        the scene renderer's over the same file -- which is what keeps the
+        capture resolution a choice made when rendering rather than one baked
+        into the recording.
+        """
+        agent = started(env, dome)
+        recorder = Recorder(agent)
+        list(recorder.watch(TICKS, seed=0))
+        path = recorder.trace.save(tmp_path / "run")
+        persistence = np.full(len(dome.predicting), 20.0)
+        frames = []
+        for _ in range(2):
+            panel = DomePanel(dome, persistence)
+            with Renderer(size=dome.spec.patch_grid * 4) as scene:
+                frames.append(list(panel.frames(Trace.load(path), renderer=scene.frame)))
+        assert len(frames[0]) > 0
+        for i, (left, right) in enumerate(zip(*frames)):
+            assert np.array_equal(left, right), f"frame {i}"
+        # And the band is a picture rather than the empty slots of a panel that
+        # was handed no render.
+        patch = only(dome, "patch")[len(only(dome, "patch")) // 2]
+        assert mark(panel, frames[0][-1], patch) != dome_panel_module._EMPTY
+
 
 class TestTheFourWaysThePanelCouldHaveFlatteredUs:
     """One test per finding of #93's review, each one red before its fix.
@@ -966,3 +1030,884 @@ class TestTheFourWaysThePanelCouldHaveFlatteredUs:
         torch.manual_seed(99)
         second = measured_persistence(small_sheaf, ticks=8, burn_in=2)
         assert np.array_equal(first, second)
+
+
+# -- #94: the marks a boundary cell gets ------------------------------------
+
+
+def full(tick, cells, edges, *, error=0.0, disagreement=0.0, actuator=None):
+    """A record carrying every array, sized to a dome.
+
+    The counterpart of :func:`record` for the marks a boundary cell gets: those
+    are drawn from edge disagreement and from the actuator's own two rows, so a
+    test about them has to hand over a record that carries both.
+    """
+    return record(
+        tick,
+        np.full(cells, error) if np.isscalar(error) else np.asarray(error, dtype=float),
+        disagreement=(
+            np.full(edges, disagreement)
+            if np.isscalar(disagreement)
+            else np.asarray(disagreement, dtype=float)
+        ),
+        actuator=np.zeros((2, 3)) if actuator is None else actuator,
+    )
+
+
+def painted(panel, frame, colour):
+    """`(top row, bottom row)` of everything painted `colour` on the motor strip.
+
+    Measured off the pixels rather than computed from the panel's own geometry:
+    what the bars claim is that a fill falls short of its outline, and a test
+    that asked the panel where it drew them would be asking the same arithmetic
+    twice.
+    """
+    top, left, height, width = panel.motor_strip
+    region = frame[top : top + height, left : left + width]
+    hit = np.all(region == np.array(colour, dtype=np.uint8), axis=-1)
+    rows = np.flatnonzero(hit.any(axis=1))
+    return (int(rows.min()), int(rows.max())) if rows.size else None
+
+
+def standing_bar(panel, frame):
+    """`(top row, bottom row)` of the strip's disagreement bar.
+
+    Everything on the strip that is neither the ground nor one of the strip's
+    own inks: the fourth bar is drawn on the colormap, so it is the only thing
+    there in a colour the strip does not otherwise use.
+    """
+    top, left, height, width = panel.motor_strip
+    region = frame[top : top + height, left : left + width]
+    known = (
+        dome_panel_module._BACKGROUND,
+        dome_panel_module._ZERO_LINE,
+        dome_panel_module._COMMANDED,
+        dome_panel_module._APPLIED,
+        # The onset counter is drawn *inside* the strip, so its ink belongs
+        # here too: without it a test that passes `since` measures the text as
+        # part of the bar and gets a wrong number rather than a failure.
+        dome_panel_module._NOTICE_INK,
+    )
+    hit = np.ones(region.shape[:2], dtype=bool)
+    for ink in known:
+        hit &= ~np.all(region == np.array(ink, dtype=np.uint8), axis=-1)
+    rows = np.flatnonzero(hit.any(axis=1))
+    return (int(rows.min()), int(rows.max())) if rows.size else None
+
+
+def kind_of(dome, cell_id):
+    return dome.cells[cell_id].kind.value
+
+
+def only(dome, kind):
+    """The cell ids of one boundary kind, in id order."""
+    return [cell.id for cell in dome.cells if cell.kind.value == kind]
+
+
+class TestTheBoundaryBandDrawsTheRender:
+    """L0 draws the agent's own render, tiled into the patch lattice.
+
+    Boundary cells run no body and make no prediction, so the largest and most
+    eye-catching band on screen cannot be drawn from prediction error without
+    fabricating it. The render costs nothing -- it already exists every tick --
+    and it ties the abstract stack to the world.
+    """
+
+    def picture(self, small, side=4):
+        """A render whose every patch block is a flat colour of its own."""
+        grid = small.spec.patch_grid
+        image = np.zeros((grid * side, grid * side, 3), dtype=np.uint8)
+        for r in range(grid):
+            for c in range(grid):
+                image[r * side : (r + 1) * side, c * side : (c + 1) * side] = (
+                    20 + 50 * r,
+                    30 + 50 * c,
+                    200,
+                )
+        return image
+
+    def test_each_patch_cell_draws_its_own_block_of_the_render(self, small):
+        cells = len(small.predicting)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        image = self.picture(small)
+        frame = panel.frame(record(1, np.zeros(cells)), render=image)
+        side = image.shape[0] // small.spec.patch_grid
+        for cell_id in only(small, "patch"):
+            r, c = small.cells[cell_id].index.position
+            block = image[r * side : (r + 1) * side, c * side : (c + 1) * side]
+            assert mark(panel, frame, cell_id) == tuple(int(v) for v in block[0, 0])
+
+    def test_the_band_carries_no_prediction_error_colour(self, small):
+        """The same render draws the same band, whatever the dome is doing."""
+        cells = len(small.predicting)
+        image = self.picture(small)
+        quiet = DomePanel(small, np.full(cells, 4.0))
+        loud = DomePanel(small, np.full(cells, 4.0))
+        calm = quiet.frame(record(1, np.zeros(cells)), render=image)
+        burning = loud.frame(record(1, np.full(cells, 1e6)), render=image)
+        for cell_id in only(small, "patch"):
+            assert mark(quiet, calm, cell_id) == mark(loud, burning, cell_id)
+
+    def test_without_a_render_the_band_is_empty_rather_than_coloured(self, small):
+        cells = len(small.predicting)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        frame = panel.frame(
+            full(1, cells, len(small.edges), error=9.0, disagreement=3.0)
+        )
+        for cell_id in only(small, "patch"):
+            assert mark(panel, frame, cell_id) == dome_panel_module._EMPTY
+
+    def test_a_render_the_cells_were_never_cut_from_is_refused(self, small):
+        cells = len(small.predicting)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        for refused in (
+            np.zeros((17, 17, 3), dtype=np.uint8),  # does not tile
+            np.zeros((16, 12, 3), dtype=np.uint8),  # not square
+            np.zeros((16, 16), dtype=np.uint8),  # no channels
+        ):
+            with pytest.raises(ValueError):
+                panel.frame(record(1, np.zeros(cells)), render=refused)
+
+    def test_the_tile_is_the_block_the_world_writes_into_that_cell(self, env, dome):
+        """The panel's tiling is the agent's, not a second one that agrees today.
+
+        What a patch cell is looking at is what the world wrote into its node
+        stalk, so a tile drawn anywhere else would be a picture of the arena
+        that no cell is reading.
+        """
+        agent = Agent(env, dome=dome, generator=torch.Generator().manual_seed(0))
+        observation, _info = env.reset(seed=0)
+        agent.observe(observation)
+        image = observation["image"]
+        panel = DomePanel(dome, np.full(len(dome.predicting), 20.0))
+        frame = panel.frame(record(1, np.zeros(len(dome.predicting))), render=image)
+        side = image.shape[0] // dome.spec.patch_grid
+        patches = only(dome, "patch")
+        for cell_id in (patches[0], patches[len(patches) // 3], patches[-1]):
+            r, c = dome.cells[cell_id].index.position
+            block = image[r * side : (r + 1) * side, c * side : (c + 1) * side]
+            written = agent.sheaf.stalk(cell_id).numpy().reshape(side, side, 3)
+            assert np.allclose(written * 255.0, block, atol=1e-3)
+            top, left, size = panel.rect(cell_id)
+            drawn = frame[top : top + size, left : left + size]
+            # Nearest neighbour: every drawn pixel is one of this block's, and
+            # the corners are the block's corners.
+            assert set(map(tuple, drawn.reshape(-1, 3))) <= set(
+                map(tuple, block.reshape(-1, 3))
+            )
+            assert tuple(drawn[0, 0]) == tuple(block[0, 0])
+            assert tuple(drawn[-1, -1]) == tuple(block[-1, -1])
+
+
+class TestTheStripAndTheDriveMarkDrawEdgeDisagreement:
+    """What a boundary cell has instead of a prediction error is an edge.
+
+    Three proprioceptive, three touch and one actuator beside the tiled render,
+    and the drive on the apex band -- all on the same colormap, all honestly
+    earned.
+    """
+
+    def settled(self, small, ticks=40, seed=0):
+        """A panel whose marks have a baseline, over quiet random disagreement."""
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        rng = np.random.default_rng(seed)
+        for tick in range(1, ticks):
+            panel.frame(
+                full(
+                    tick,
+                    cells,
+                    edges,
+                    error=np.abs(rng.standard_normal(cells)),
+                    disagreement=1.0 + 0.05 * rng.standard_normal(edges),
+                )
+            )
+        return panel
+
+    def test_the_marks_are_the_somatomotor_cluster_and_the_drive(self, small):
+        cells = len(small.predicting)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        kinds = sorted(kind_of(small, cell_id) for cell_id in panel.boundary_marks)
+        assert kinds == [
+            "actuator",
+            "drive",
+            "proprioceptive",
+            "proprioceptive",
+            "proprioceptive",
+            "touch",
+            "touch",
+            "touch",
+        ]
+
+    def test_a_mark_lights_when_its_own_edge_disagrees(self, small):
+        """Touch marks light on contact, which is this, in the world's terms."""
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = self.settled(small)
+        touch = only(small, "touch")[0]
+        (edge,) = small.incident[touch]
+        loud = np.full(edges, 1.0)
+        loud[edge] = 20.0
+        panel.frame(full(100, cells, edges, disagreement=loud))
+        row = panel.boundary_marks.index(touch)
+        lit = panel.boundary_lit
+        assert lit[row] > 0.9
+        assert all(value < 0.5 for i, value in enumerate(lit) if i != row)
+
+    def test_the_drive_mark_is_the_drive_edges_disagreement(self, small):
+        """`08`'s task-invariant near-miss is diagnosed off this mark."""
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = self.settled(small)
+        (drive,) = only(small, "drive")
+        loud = np.full(edges, 1.0)
+        for edge in small.incident[drive]:
+            loud[edge] = 12.0
+        frame = panel.frame(full(100, cells, edges, disagreement=loud))
+        row = panel.boundary_marks.index(drive)
+        assert panel.boundary_lit[row] > 0.9
+        assert mark(panel, frame, drive) == tuple(
+            int(channel) for channel in colormap(panel.boundary_lit[row])
+        )
+
+    def test_a_mark_carries_no_trail(self, small):
+        """A boundary cell has no measured persistence for a glow to decay at.
+
+        It runs no body, so `05-timescales.md`'s estimate is not defined for
+        one, and a glow fading at a rate nothing measured is exactly the
+        fabrication these marks exist to avoid.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = self.settled(small)
+        panel.frame(full(100, cells, edges, error=40.0, disagreement=40.0))
+        assert panel.boundary_lit.max() > 0.9
+        assert panel.glow.max() > 0.9
+        panel.frame(full(101, cells, edges, error=0.0, disagreement=1.0))
+        assert panel.boundary_lit.max() < 0.1, "this tick, and nothing carried over"
+        assert panel.glow.max() > 0.5, "while a predicting cell's trail decays"
+
+    def test_a_mark_with_no_reading_is_drawn_as_one(self, small):
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = self.settled(small)
+        gone = np.full(edges, 1.0)
+        touch = only(small, "touch")[0]
+        (edge,) = small.incident[touch]
+        gone[edge] = np.nan
+        frame = panel.frame(full(100, cells, edges, disagreement=gone))
+        assert mark(panel, frame, touch) == dome_panel_module._NO_READING
+
+    def test_the_notice_counts_the_marks_beside_the_cells(self, small):
+        """Two readings is a boundary mark's baseline, and it says so until then."""
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        panel.frame(full(1, cells, edges, disagreement=1.0))
+        assert panel.boundary_warming_up == len(panel.boundary_marks)
+        assert "MARKS" in panel._notice(panel.warming_up, panel.boundary_warming_up)
+        panel.frame(full(2, cells, edges, disagreement=2.0))
+        assert panel.boundary_warming_up == 0
+
+    def test_a_mark_never_read_is_not_thereby_warming_up(self, small):
+        """No disagreement in the record is nothing drawn, not a statistic settling."""
+        cells = len(small.predicting)
+        panel = DomePanel(small, np.full(cells, 1.0))
+        for tick in range(1, 8):
+            panel.frame(record(tick, np.full(cells, float(tick))))
+        assert panel.boundary_warming_up == 0
+        assert not panel.boundary_baseline.any()
+
+
+class TestTheActuatorDrawsDecomposed:
+    """Three paired bars: commanded as an outline, applied as a fill.
+
+    `04-action-and-the-boundary.md`'s efference copy made visible -- and the
+    place where that spec's route-selection falsification test is *rendered*
+    rather than described.
+    """
+
+    def bars(self, small, commanded, applied, *, ticks=30, disagreement=1.0, seed=0):
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        rng = np.random.default_rng(seed)
+        actuator = np.array([commanded, applied], dtype=float)
+        frame = None
+        for tick in range(1, ticks):
+            values = (
+                disagreement + 0.02 * rng.standard_normal(edges)
+                if np.isscalar(disagreement)
+                else np.asarray(disagreement, dtype=float)
+                + 0.02 * rng.standard_normal(edges)
+            )
+            frame = panel.frame(
+                full(
+                    tick,
+                    cells,
+                    edges,
+                    error=np.abs(rng.standard_normal(cells)),
+                    disagreement=values,
+                    actuator=actuator,
+                )
+            )
+        return panel, frame
+
+    def test_saturation_reads_as_the_fill_falling_short_of_its_outline(self, small):
+        """The one shape saturation can take, under the contract that makes it.
+
+        `Agent.act` sets `applied = clip(command, -1, 1)`, so the two rows can
+        differ **only** once the command has passed the bound -- and when they
+        do, the applied row is exactly *at* it. The bound draws to one row short
+        of the bar's reach, so the overrun takes the row the fill cannot, and
+        the outline stands above its own fill.
+        """
+        panel, frame = self.bars(small, [1.6, 0.0, 0.0], [1.0, 0.0, 0.0])
+        outline = painted(panel, frame, dome_panel_module._COMMANDED)
+        fill = painted(panel, frame, dome_panel_module._APPLIED)
+        assert outline is not None and fill is not None
+        # Up from the zero line, so a shorter bar starts lower down the frame.
+        assert fill[0] > outline[0]
+
+    def test_a_command_the_body_could_meet_fills_its_outline(self, small):
+        """No overrun, so the fill reaches the outline exactly."""
+        panel, frame = self.bars(small, [0.5, 0.0, 0.0], [0.5, 0.0, 0.0])
+        outline = painted(panel, frame, dome_panel_module._COMMANDED)
+        fill = painted(panel, frame, dome_panel_module._APPLIED)
+        assert outline[0] == fill[0]
+
+    def test_a_command_at_the_bound_does_not_take_the_overrun_row(self, small):
+        """The reserved row is what *past* the bound means, not *at* it."""
+        _panel, at = self.bars(small, [1.0, 0.0, 0.0], [1.0, 0.0, 0.0])
+        panel, past = self.bars(small, [1.6, 0.0, 0.0], [1.0, 0.0, 0.0])
+        assert (
+            painted(panel, past, dome_panel_module._COMMANDED)[0]
+            < painted(panel, at, dome_panel_module._COMMANDED)[0]
+        )
+
+    def test_a_full_command_draws_full_height_whatever_the_run_has_seen(self, small):
+        """The bound is absolute, so no earlier tick can rescale a later one.
+
+        #94 first drew both rows against the largest magnitude the strip had
+        ever seen. That is a ratchet, and the commanded row is deliberately
+        unclipped (`04-action-and-the-boundary.md`), so one spike compressed
+        every later tick: a command at the limit then drew as a single pixel at
+        the zero line, which is *near-zero commanded torque* -- half of `04`'s
+        stall signature -- fabricated out of a full-strength swing.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+
+        def draw(tick, commanded):
+            return panel.frame(
+                full(
+                    tick,
+                    cells,
+                    edges,
+                    disagreement=1.0,
+                    actuator=np.array([[commanded, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+                )
+            )
+
+        draw(1, 1.0)
+        before = painted(panel, draw(2, 1.0), dome_panel_module._COMMANDED)
+        draw(3, 500.0)
+        after = painted(panel, draw(4, 1.0), dome_panel_module._COMMANDED)
+        assert after == before, "a spike three ticks ago is not this tick's scale"
+
+    def test_the_fill_is_drawn_inside_its_outline_at_every_pitch(self, small):
+        """A pair is one bar, and the fill falls short *within* the outline.
+
+        The fill is drawn one pixel inside the commanded outline, so a bar
+        narrower than three pixels has no interior to fall short in: at two the
+        fill overwrites the outline's far column and at one it lands wholly
+        outside it, in the gap. `BandLayout` accepts a pitch of 2, so both are
+        reachable, and at either one *saturation reads as the fill falling
+        short of its outline* is not what the strip draws.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        for pitch in (2, 3, 4, 8):
+            panel = DomePanel(small, np.full(cells, 4.0), pitch=pitch)
+            for tick in range(1, 6):
+                frame = panel.frame(
+                    full(
+                        tick,
+                        cells,
+                        edges,
+                        disagreement=1.0,
+                        actuator=np.array([[1.0, 0.0, 0.0], [0.5, 0.0, 0.0]]),
+                    )
+                )
+            top, left, height, width = panel.motor_strip
+            region = frame[top : top + height, left : left + width]
+            columns = lambda ink: set(
+                np.flatnonzero(
+                    np.all(region == np.array(ink, dtype=np.uint8), axis=-1).any(axis=0)
+                ).tolist()
+            )
+            outline = columns(dome_panel_module._COMMANDED)
+            fill = columns(dome_panel_module._APPLIED)
+            assert fill, f"pitch {pitch} drew no fill"
+            assert min(outline) < min(fill) and max(fill) < max(outline), (
+                f"at pitch {pitch} the fill at columns {sorted(fill)} is not "
+                f"inside the outline at {sorted(outline)}"
+            )
+
+    def test_the_rows_the_strip_drew_are_the_records_own(self, small):
+        panel, _frame = self.bars(small, [1.0, -2.0, 0.5], [1.0, -2.0, 0.5])
+        assert np.array_equal(
+            panel.torque, np.array([[1.0, -2.0, 0.5], [1.0, -2.0, 0.5]])
+        )
+
+    def test_the_stall_signature_is_an_outline_near_zero_beside_a_standing_bar(
+        self, small
+    ):
+        """`04`'s falsification signature, rendered rather than described.
+
+        Near-zero commanded torque with standing motor-side disagreement is the
+        blend of swing-left and swing-right, which is *stay put*. It has to be
+        visible **while it stands**, which is why the standing bar is drawn raw:
+        on the normalised map a stall that lasts habituates to its own baseline
+        and renders calm -- the consequence `10-the-demo-surface.md` accepts for
+        the colour channel, and the one thing a falsification test cannot
+        accept.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        (actuator,) = only(small, "actuator")
+        rng = np.random.default_rng(5)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        quiet = np.full(edges, 0.05)
+        stalled = quiet.copy()
+        for edge in small.incident[actuator]:
+            stalled[edge] = 6.0
+
+        def swing(tick, motor):
+            """One tick: no torque commanded, and whatever the motor edges say."""
+            return panel.frame(
+                full(
+                    tick,
+                    cells,
+                    edges,
+                    error=np.abs(rng.standard_normal(cells)),
+                    disagreement=motor * (1.0 + 0.02 * rng.standard_normal(edges)),
+                    actuator=np.zeros((2, 3)),
+                )
+            )
+
+        for tick in range(1, 300):
+            swing(tick, quiet)
+        arrival = swing(300, stalled)
+        row = panel.boundary_marks.index(actuator)
+        struck, first = panel.boundary_lit[row], standing_bar(panel, arrival)
+        for tick in range(301, 600):
+            frame = swing(tick, stalled)
+
+        outline = painted(panel, frame, dome_panel_module._COMMANDED)
+        # The commanded outline is one pixel high, at the zero line.
+        assert outline[1] - outline[0] <= 1
+        # The disagreement bar beside it stands, most of the way up the strip,
+        # and stands **exactly as high as it did when the stall began**: it is
+        # drawn raw, so three hundred ticks of it change nothing.
+        bar = standing_bar(panel, frame)
+        assert bar is not None and first is not None
+        assert bar[1] - bar[0] > 0.5 * outline[0], "a bar that stands, not a stub"
+        assert abs((bar[1] - bar[0]) - (first[1] - first[0])) <= 1
+        # While the mark beside it has faded from the same disagreement, which
+        # is the habituation this bar is drawn raw to escape.
+        assert struck > 0.99
+        assert panel.boundary_lit[row] < 0.75 * struck
+
+    def test_a_spike_on_another_mark_does_not_flatten_this_one_afterwards(
+        self, small
+    ):
+        """The divisor is this tick's, so nothing it saw before is in it.
+
+        #94 first drew the standing bar against the largest **any** boundary
+        mark had **ever** shown. Sharing the divisor is the point -- the bar is
+        a comparison among the marks -- but an all-time maximum makes it a
+        ratchet: one tick in which the drive spiked took the actuator's bar from
+        most of the strip to a single pixel and it never came back, erasing the
+        very signature `04` is read off. Per tick, the spike raises the bar on
+        the tick it happens and is gone on the next.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        (actuator,) = only(small, "actuator")
+        panel = DomePanel(small, np.full(cells, 4.0))
+        stalled = np.full(edges, 0.05)
+        for edge in small.incident[actuator]:
+            stalled[edge] = 6.0
+        spiked = stalled.copy()
+        for drive in only(small, "drive"):
+            for edge in small.incident[drive]:
+                spiked[edge] = 60.0
+
+        def draw(tick, disagreement):
+            return panel.frame(
+                full(
+                    tick, cells, edges, disagreement=disagreement, actuator=np.zeros((2, 3))
+                )
+            )
+
+        draw(1, stalled)
+        before = standing_bar(panel, draw(2, stalled))
+        during = standing_bar(panel, draw(3, spiked))
+        after = standing_bar(panel, draw(4, stalled))
+        assert before is not None and during is not None and after is not None
+        # The spike is a fact about its own tick, and only about its own tick.
+        assert during[1] - during[0] < before[1] - before[0]
+        assert after == before
+
+    def test_the_onset_count_is_drawn_on_the_strip(self, small):
+        """Onset is read off the strip rather than reconstructed afterward."""
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        blank = panel.frame(full(1, cells, edges, disagreement=1.0), since=None)
+        counted = panel.frame(full(2, cells, edges, disagreement=1.0), since=17)
+        top, left, height, width = panel.motor_strip
+        text = slice(top + height - dome_panel_module._FONT_HEIGHT, top + height)
+        assert not np.array_equal(
+            blank[text, left : left + width], counted[text, left : left + width]
+        )
+
+
+class TestEdgesAreThresholdedAndOffByDefault:
+    """The route, shown as a route -- and not as an artifact of a constant."""
+
+    def loud(self, small, seed=0):
+        """A record whose edges carry wildly different disagreement."""
+        rng = np.random.default_rng(seed)
+        return np.abs(rng.standard_normal(len(small.edges))) ** 3
+
+    def test_the_overlay_is_off_by_default(self, small):
+        cells, edges = len(small.predicting), len(small.edges)
+        disagreement = self.loud(small)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        assert panel.edges is False
+        drawn = panel.frame(full(1, cells, edges, disagreement=disagreement))
+        overlaid = DomePanel(small, np.full(cells, 4.0), edges=True)
+        lit = overlaid.frame(full(1, cells, edges, disagreement=disagreement))
+        assert not np.array_equal(drawn, lit), "the toggle draws something"
+
+    def test_the_threshold_is_this_ticks_own_scale(self, small):
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0), edges=True)
+        disagreement = self.loud(small)
+        panel.frame(full(1, cells, edges, disagreement=disagreement))
+        assert panel.edge_threshold == pytest.approx(
+            disagreement.mean() + disagreement.std()
+        )
+        assert set(panel.drawn_edges) == set(
+            np.flatnonzero(disagreement > panel.edge_threshold).tolist()
+        )
+        assert 0 < len(panel.drawn_edges) < edges, "the most, not all and not none"
+
+    def test_scaling_every_edge_draws_exactly_the_same_route(self, small):
+        """A hand-set constant would make the route an artifact of the constant.
+
+        This one has no magnitude in it at all: both terms are homogeneous in
+        the disagreement, so there is nothing here that could be tuned until a
+        route appeared.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        disagreement = self.loud(small)
+        routes = []
+        for factor in (1.0, 1e-4, 1e4):
+            panel = DomePanel(small, np.full(cells, 4.0), edges=True)
+            panel.frame(full(1, cells, edges, disagreement=disagreement * factor))
+            routes.append(panel.drawn_edges)
+        assert routes[0] == routes[1] == routes[2]
+        assert routes[0]
+
+    def test_an_evenly_disagreeing_tick_has_no_route_to_draw(self, small):
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0), edges=True)
+        panel.frame(full(1, cells, edges, disagreement=3.0))
+        assert panel.drawn_edges == ()
+
+    def test_a_diverged_edge_does_not_empty_the_overlay(self, small):
+        """A NaN threshold would draw the quietest picture of a diverged graph."""
+        cells, edges = len(small.predicting), len(small.edges)
+        disagreement = self.loud(small)
+        disagreement[0] = np.nan
+        panel = DomePanel(small, np.full(cells, 4.0), edges=True)
+        panel.frame(full(1, cells, edges, disagreement=disagreement))
+        assert panel.drawn_edges
+        assert 0 not in panel.drawn_edges, "it cleared no threshold"
+
+    def test_an_edge_with_no_reading_is_drawn_rather_than_dropped(self, small):
+        """The loudest thing on the graph is not the one edge left out.
+
+        Keeping a NaN out of the statistics and keeping it out of the drawing
+        are two decisions, and only the first is justified: a route drawn
+        *around* a divergence is the quiet picture arrived at more slowly.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        disagreement = self.loud(small)
+        disagreement[0] = np.nan
+        panel = DomePanel(small, np.full(cells, 4.0), edges=True)
+        drawn = panel.frame(full(1, cells, edges, disagreement=disagreement))
+        assert panel.unread_edges == (0,)
+        ink = np.array(dome_panel_module._NO_READING, dtype=np.uint8)
+        assert np.all(drawn == ink, axis=-1).any()
+
+
+class TestNoBoundaryCellIsEverAssignedAPredictionError:
+    """#94's acceptance criterion, held down three ways.
+
+    Structurally, because the record has no row for one and the panel has no
+    index from a boundary cell into the array that would carry it; and on the
+    pixels, because a record whose prediction error swings wildly draws the
+    same boundary marks either way.
+    """
+
+    def test_the_record_has_no_row_for_a_boundary_cell(self, small):
+        cells = len(small.predicting)
+        panel = DomePanel(small, np.full(cells, 1.0))
+        assert set(panel.boundary_marks).isdisjoint(small.predicting)
+        with pytest.raises(ValueError):
+            panel.frame(record(1, np.zeros(len(small.cells))))
+
+    def test_no_boundary_cell_indexes_the_prediction_error_map(self, small):
+        cells = len(small.predicting)
+        panel = DomePanel(small, np.full(cells, 1.0))
+        # `_row` is the one map from a cell id into the array prediction error
+        # is drawn from, and it is exactly the predicting population.
+        assert {
+            cell.id for cell in small.cells if panel._row.get(cell.id) is not None
+        } == set(small.predicting)
+
+    def test_a_boundary_mark_does_not_move_when_prediction_error_does(self, small):
+        cells, edges = len(small.predicting), len(small.edges)
+        rng = np.random.default_rng(2)
+        disagreement = [1.0 + 0.1 * rng.standard_normal(edges) for _ in range(20)]
+        # Two runs of the dome's own channel over the same run of the
+        # boundary's: quiet, and one that lights half the dome on the last tick.
+        quietly = [np.abs(rng.standard_normal(cells)) for _ in range(20)]
+        loudly = [error.copy() for error in quietly]
+        loudly[-1][: cells // 2] += 1e6
+        image = np.zeros((small.spec.patch_grid * 4,) * 2 + (3,), dtype=np.uint8)
+        image[:] = 90
+        drawn = []
+        for errors in (quietly, loudly):
+            panel = DomePanel(small, np.full(cells, 4.0))
+            for tick, (values, error) in enumerate(zip(disagreement, errors), start=1):
+                frame = panel.frame(
+                    full(tick, cells, edges, error=error, disagreement=values),
+                    render=image,
+                )
+            drawn.append((panel, frame))
+        (quiet, calm), (loud, burning) = drawn
+        assert not np.array_equal(calm, burning), "the predicting cells did move"
+        assert np.array_equal(quiet.boundary_lit, loud.boundary_lit)
+        for cell_id in small.boundary:
+            assert mark(quiet, calm, cell_id) == mark(loud, burning, cell_id)
+        # Including the strip's bars, which are the record's own rows.
+        assert np.array_equal(quiet.torque, loud.torque)
+
+
+class TestTheWaysTheBoundaryMarksCouldHaveFlatteredUs:
+    """One test per finding of #94's review, each one red before its fix.
+
+    The same class of defect #93's review found, in the marks #94 added: each
+    is the panel reporting something calmer or tidier than what it was handed --
+    an empty slot for a divergence, a zero torque for a number that was not one,
+    a calm mark for a quantity nobody captured, a baseline that moved on a
+    record the panel then refused, a black arena for a render it could not read,
+    a route drawn around a diverged edge, and a saturated count that reads as a
+    latency.
+    """
+
+    def test_a_marks_first_reading_being_no_reading_is_still_no_reading(self, small):
+        """A graph that has already diverged when the panel opens.
+
+        Drawn as an empty slot -- *this record carried nothing* -- the one
+        thing on screen would be the panel reporting that it had not been told,
+        about the event it exists to show.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        gone = np.full(edges, 1.0)
+        touch = only(small, "touch")[0]
+        (edge,) = small.incident[touch]
+        gone[edge] = np.inf
+        frame = panel.frame(full(1, cells, edges, disagreement=gone))
+        assert mark(panel, frame, touch) == dome_panel_module._NO_READING
+
+    def test_a_torque_that_is_not_a_number_is_not_drawn_as_zero_torque(self, small):
+        """The stall signature's own half, fabricated out of no reading.
+
+        A bar encodes its quantity in a height and no height means *not a
+        number*, so a non-finite pair takes the whole column in its own colour
+        -- across the zero line, which no torque bar ever crosses.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        rest = panel.frame(
+            full(1, cells, edges, disagreement=1.0, actuator=np.zeros((2, 3)))
+        )
+        lost = np.zeros((2, 3))
+        lost[0, 0] = np.nan
+        gone = panel.frame(full(2, cells, edges, disagreement=1.0, actuator=lost))
+        top, left, height, width = panel.motor_strip
+        ink = np.array(dome_panel_module._NO_READING, dtype=np.uint8)
+
+        def unread(frame):
+            region = frame[top : top + height, left : left + width]
+            return np.all(region == ink, axis=-1)
+
+        assert not unread(rest).any(), "a torque of zero is a reading"
+        # A whole column of it, crossing the zero line, where the first joint's
+        # pair would have stood.
+        columns = np.flatnonzero(unread(gone).any(axis=0))
+        assert columns.size == panel.layout.mark
+        assert unread(gone)[:, columns[0]].sum() > 2
+
+    def test_a_record_that_carries_no_disagreement_empties_the_marks_again(
+        self, small
+    ):
+        """*Not captured* is a fact about this record, not about the run.
+
+        A mark left standing at the calmest stop on the ramp because the last
+        capture happened to leave the array out is a graph reported as agreeing
+        on every edge by nobody.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        panel.frame(full(1, cells, edges, disagreement=2.0))
+        panel.frame(full(2, cells, edges, disagreement=3.0))
+        frame = panel.frame(record(3, np.zeros(cells)))
+        for cell_id in panel.boundary_marks:
+            assert mark(panel, frame, cell_id) == dome_panel_module._EMPTY
+        assert panel.boundary_warming_up == 0
+
+    def test_a_refused_record_leaves_the_statistics_where_they_were(self, small):
+        """A record is checked whole before any of it is observed.
+
+        Refused half-way through, the tick is already in every cell's Welford
+        statistics and the trail has already advanced -- and the corrected
+        record is then refused as out of order, so the panel is permanently one
+        tick off with no recovery short of a fresh one.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        panel.frame(full(1, cells, edges, error=1.0, disagreement=1.0))
+        settled = panel.mean.copy(), panel.glow.copy(), panel.boundary_lit.copy()
+        for wrong in (
+            full(2, cells, edges + 1, error=9.0, disagreement=9.0),
+            full(2, cells, edges, error=9.0, actuator=np.zeros((2, 5))),
+        ):
+            with pytest.raises(ValueError):
+                panel.frame(wrong)
+        assert np.array_equal(panel.mean, settled[0])
+        assert np.array_equal(panel.glow, settled[1])
+        assert np.array_equal(panel.boundary_lit, settled[2])
+        # And tick 2 is still there to be drawn, by the record that fits.
+        panel.frame(full(2, cells, edges, error=9.0, disagreement=9.0))
+        assert not np.array_equal(panel.mean, settled[0])
+
+    def test_the_numbers_beside_the_pixels_say_no_reading_too(self, small):
+        """`boundary_lit` is what a sweep reads, and zero is a reading.
+
+        A replay of a trace saved before the disagreement array existed hands
+        the panel records that carry none; a zero there reads back as a graph
+        agreeing on every edge, which is the fabrication the pixels already
+        refuse by drawing an empty slot.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        panel.frame(full(1, cells, edges, disagreement=1.0))
+        panel.frame(full(2, cells, edges, disagreement=4.0))
+        assert np.isfinite(panel.boundary_lit).all()
+        panel.frame(record(3, np.zeros(cells)))
+        assert np.isnan(panel.boundary_lit).all()
+        # And per mark, for the one whose own reading was not a number.
+        gone = np.full(edges, 1.0)
+        touch = only(small, "touch")[0]
+        (edge,) = small.incident[touch]
+        gone[edge] = np.nan
+        panel.frame(full(4, cells, edges, disagreement=gone))
+        row = panel.boundary_marks.index(touch)
+        assert np.isnan(panel.boundary_lit[row])
+        assert np.isfinite(np.delete(panel.boundary_lit, row)).all()
+
+    def test_a_render_that_is_not_the_worlds_own_is_refused(self, small):
+        """A normalised image assigned into the frame draws a black arena.
+
+        Not an empty slot -- a picture, of an arena with the lights off, which
+        is a reading of the world that nobody took.
+        """
+        cells = len(small.predicting)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        scaled = np.full((small.spec.patch_grid * 4,) * 2 + (3,), 0.5, dtype=np.float32)
+        with pytest.raises(ValueError, match="uint8"):
+            panel.frame(record(1, np.zeros(cells)), render=scaled)
+
+    def test_a_replay_draws_the_counter_the_live_panel_drew(self, small):
+        """Onset is read off the strip, and a replay is not a second code path."""
+        cells, edges = len(small.predicting), len(small.edges)
+        feed = [full(tick, cells, edges, disagreement=1.0) for tick in (1, 2, 3)]
+        counted = list(
+            DomePanel(small, np.full(cells, 4.0)).frames(
+                feed, since=lambda record: record.tick * 3
+            )
+        )
+        plain = list(DomePanel(small, np.full(cells, 4.0)).frames(feed))
+        assert len(counted) == len(plain) == 3
+        assert not np.array_equal(counted[-1], plain[-1])
+        one_by_one = DomePanel(small, np.full(cells, 4.0))
+        by_hand = [
+            one_by_one.frame(record, since=record.tick * 3) for record in feed
+        ]
+        for i, (fed, hand) in enumerate(zip(counted, by_hand)):
+            assert np.array_equal(fed, hand), f"frame {i}"
+
+    def test_the_arrays_a_record_hands_over_are_copied_not_aliased(self, small):
+        """#93's finding, in #94's arrays: a reading that moves is not one.
+
+        A harness reusing one scratch buffer per tick would otherwise have the
+        panel reporting a torque no frame ever drew.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        scratch = np.array([[1.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
+        disagreement = np.full(edges, 1.0)
+        panel.frame(
+            full(1, cells, edges, disagreement=disagreement, actuator=scratch)
+        )
+        drawn = panel.torque.copy()
+        # The overlay's colours are drawn from the held disagreement, and
+        # `drawn_edges` is a tuple of ints that no later write to the array
+        # could disturb -- so asserting on that alone would assert nothing.
+        # Nothing public re-renders a record already drawn, so this reaches for
+        # the array the colours actually come from.
+        held = panel._last_disagreement.copy()
+        scratch[:] = 999.0
+        disagreement[:] = 999.0
+        assert np.array_equal(panel.torque, drawn)
+        assert np.array_equal(panel._last_disagreement, held)
+
+    def test_a_record_from_a_jointless_graph_is_refused_not_read_as_uncaptured(
+        self, small
+    ):
+        """*Not captured* is one shape, and every other shape is a wrong graph.
+
+        `[2, 0]` is a record whose actuator has no joints, which this dome's
+        does. Reading it as *nothing was captured* would let a record from
+        another graph draw an empty strip rather than say so.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        with pytest.raises(ValueError, match="commanded"):
+            panel.frame(
+                full(1, cells, edges, disagreement=1.0, actuator=np.zeros((2, 0)))
+            )
+
+    def test_an_onset_count_past_the_strip_is_not_quietly_saturated(self, small):
+        """A plausible number that is not the reading is the worst outcome.
+
+        The count is drawn in full and runs off the strip, which is visibly
+        wrong; a harness that misses `OnsetCounter.restart()` is the realistic
+        way to get a count that large, and that class documents a restore as
+        invisible to it.
+        """
+        cells, edges = len(small.predicting), len(small.edges)
+        panel = DomePanel(small, np.full(cells, 4.0))
+        big = panel.frame(full(1, cells, edges, disagreement=1.0), since=999999)
+        bigger = panel.frame(full(2, cells, edges, disagreement=1.0), since=12345678)
+        top, _left, height, _width = panel.motor_strip
+        text = slice(top + height - dome_panel_module._FONT_HEIGHT, top + height)
+        assert not np.array_equal(big[text], bigger[text])
