@@ -596,14 +596,15 @@ class TestBothChecksRunInCI:
     and every key under `jobs:` — a wider whitelist than #90 argued for, and a
     decision about this class rather than a gap in it.
 
-    Kill-tested against twenty-nine ways of narrowing the run: `-k`, a
+    Kill-tested against thirty-one ways of narrowing the run: `-k`, a
     positional path, `--collect-only`, `|| true`, `python -m pytest`,
     `continue-on-error` and a step-level `if:` both as an ordinary key **and as
     a sequence item's first key**, where the leading `- ` would hide them from
     a naive match; `PYTEST_ADDOPTS` in the step's `env:`, in a job-level `env:`
-    written *after* `steps:`, and in a workflow-level `env:` above `jobs:` —
-    the last two reach the step just as well, and neither is the first `env:`
-    in the file; a `branches:` filter under `push:`; `push:` removed; an
+    written *after* `steps:`, in a workflow-level `env:` above `jobs:`, and in
+    a job-level flow mapping, `env: {PYTEST_ADDOPTS: …}` — all three of those
+    reach the step as surely as the step's own block, and none of them is the
+    first `env:` in the file or even spelled `env:`; a `branches:` filter under `push:`; `push:` removed; an
     `addopts`, a narrowed `testpaths`, and a `norecursedirs` in
     `pyproject.toml`; each of the six files that outrank or rival that table —
     `pytest.toml`, `.pytest.toml`, `pytest.ini`, `.pytest.ini`, `tox.ini`,
@@ -611,8 +612,9 @@ class TestBothChecksRunInCI:
     narrowing collection through a `collect_ignore`, a `collect_ignore_glob`, a
     `pytest_ignore_collect`, or a `pytest_collection_modifyitems` — that last
     one in a sub-directory of `tests`, where it is handed the whole item list
-    just the same, and either hook reached by `import` rather than by `def`.
-    All twenty-nine fail here, and a fixtures-only `conftest.py` — the one
+    just the same, and either hook reached by `import` rather than by `def`,
+    including the star import that binds it while naming nothing.
+    All thirty-one fail here, and a fixtures-only `conftest.py` — the one
     shape of that file which narrows nothing — still passes. So does a harmless `-q`
     *not*: the cost of the design is that a benign edit to the invocation has
     to come with an edit to this class, which is the whitelist working rather
@@ -666,6 +668,13 @@ class TestBothChecksRunInCI:
         leading `- ` of a sequence item is stripped too: YAML lets any mapping
         key go first in a sequence item, so `- if:` and `if:` are the same key
         and a check that only knew the second spelling would miss the first.
+
+        A flow mapping is refused outright rather than parsed. `env: {A: b}` is
+        the `env` key with its value written inline, so the text recorded here
+        is not `env:` and every check below matches on key text -- the one
+        spelling that hides a key from all of them at once. This workflow has
+        no need of it, so the whitelist's answer is the usual one: fail, and
+        make it be re-argued.
         """
         lines = self.lines
         block = []
@@ -675,7 +684,9 @@ class TestBothChecksRunInCI:
             text = line.strip()
             if not text or text.startswith("#"):
                 continue
-            block.append((len(line) - len(line.lstrip()), text.removeprefix("- ")))
+            text = text.removeprefix("- ")
+            assert "{" not in text, f"flow mapping under {key}: {text}"
+            block.append((len(line) - len(line.lstrip()), text))
         return block
 
     def nested_under(self, block, key):
@@ -713,6 +724,9 @@ class TestBothChecksRunInCI:
         imported module and does not care how they got there: `from _hooks
         import pytest_ignore_collect` binds the attribute as surely as a `def`
         does. At any depth, too — a hook defined inside an `if` is a hook.
+
+        A star import binds whatever the imported module holds, which cannot be
+        read off this file, and is recorded as `*` for the caller to refuse.
         """
         names = set()
         for node in ast.walk(ast.parse(source)):
@@ -801,9 +815,20 @@ class TestBothChecksRunInCI:
                 # today, because `pytest_ignore_collect` and
                 # `pytest_collection_modifyitems` are a list that the next
                 # release can add to, and `pytest_plugins` loads a file that
-                # can carry any of them. Fixtures are decorated, not named, so
-                # nothing about this stands in a benign conftest's way.
+                # can carry any of them. Fixtures are decorated rather than
+                # named, so the shape this permits is untouched -- but the
+                # prefix is refused at every depth and in every binding form,
+                # which refuses benign names too: `import pytest_asyncio`, or a
+                # local `pytest_tmp` inside a helper. That is the whitelist's
+                # usual cost rather than an oversight. What it cannot reach is
+                # a hook bound past the syntax -- `globals()[...] = hook` --
+                # which is evasion, and this class is built against the quiet
+                # edit.
                 text = conftest.read_text()
                 assert "collect_ignore" not in text
-                for name in self.names_bound_by(text):
+                names = self.names_bound_by(text)
+                # `from _hooks import *` binds the hook while naming nothing,
+                # and a conftest has no benign use for the spelling.
+                assert "*" not in names, f"{conftest} imports *"
+                for name in names:
                     assert not name.startswith("pytest_"), name
