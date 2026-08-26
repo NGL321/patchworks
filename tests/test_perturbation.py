@@ -612,14 +612,24 @@ class TestBothChecksRunInCI:
         :
 
     The fifth is the whitespace after a sequence item's dash. `block` strips
-    the exact text `- `, so a gate written with any other separation is left
+    the exact text `- `, so a gate written with two or more spaces is left
     unnormalised and reaches the checks in a spelling they do not match:
 
         -  if: false
            name: Run tests
 
-    Two spaces rather than one, and a tab does it as well. Each is ordinary
-    YAML, and each skips the step with all five assertions green.
+    Two spaces rather than one — or three, or any number. Each parses to the
+    key `if` and skips the step with all five assertions green. A **tab**
+    after the dash is *not* in this class: YAML refuses it outright, "found
+    character that cannot start any token", so it fails at the parser and
+    loudly rather than here and quietly.
+
+    All four of the key spellings parse to the key `env` under a real YAML
+    parser, which is what "reaching the step" rests on. For the first two that
+    settles it. For `!!str env:` and the explicit key it settles the YAML and
+    not GitHub's own workflow parser, which cannot be exercised from this
+    repository without pushing a branch — so those two carry that caveat, and
+    the escalation should not be read as claiming more.
 
     They are left open on purpose, and #109 escalates them rather than adding
     a clause for each. Three were found in a single review round, and the
@@ -697,6 +707,13 @@ class TestBothChecksRunInCI:
     #: own -- and it sits above `jobs:`, where a check that walked the job
     #: would never see it. Whitelisted rather than named, because `defaults:`
     #: reaches the run too, through the shell it wraps `run:` in.
+    #:
+    #: Compared as a **multiset** rather than in this order. YAML puts no
+    #: order on a mapping's keys, so moving `concurrency:` above `on:` changes
+    #: nothing about what runs -- and an ordered comparison would fail that
+    #: edit while reporting it as an environment finding. Sorting both sides
+    #: still catches a key added, a key removed, and a key written twice,
+    #: which is every bit of the guarding this pin is for.
     PERMITTED_WORKFLOW_KEYS = ("name", "on", "concurrency", "jobs")
 
     #: The other files pytest reads a rootdir configuration from, in the order
@@ -730,10 +747,12 @@ class TestBothChecksRunInCI:
         leading `- ` of a sequence item is stripped too: YAML lets any mapping
         key go first in a sequence item, so `- if:` and `if:` are the same key
         and a check that only knew the second spelling would miss the first.
-        **Exactly that text, one space** — `-  if:` and a tab after the dash
-        are the same key again and are not normalised here. That is the fifth
-        open spelling the class docstring records, and it is open for the
-        reason the other four are, not because a wider strip would be hard.
+        **Exactly that text, one space.** `-  if:` — two spaces, or more — is
+        the same key again and is not normalised here. That is the fifth open
+        spelling the class docstring records, and it is open for the reason
+        the other four are, not because a wider strip would be hard. A tab
+        after the dash is not part of it: YAML rejects that outright, so it
+        cannot be a quiet route.
 
         Stripping the dash also leaves the recorded depth two columns left of
         the item's own siblings, since the depth is the line's raw indent. So
@@ -761,7 +780,7 @@ class TestBothChecksRunInCI:
         so `- "3.12"` under a `python-version:` stays permitted. It is an
         ordinary scalar, it hides no key from anything, and refusing it would
         be a false positive dressed as a finding.
-        :class:`TestTheWorkflowReaderRefusesKeysRatherThanQuotes` holds both
+        :class:`TestTheWorkflowReaderRefusesWhatItNames` holds both
         halves of that distinction down.
 
         **These are a class rather than a list, and reading lines cannot
@@ -847,6 +866,13 @@ class TestBothChecksRunInCI:
         than a node. The `except … as` name is unbound again at the end of its
         handler and so cannot carry a hook; it is refused anyway, because the
         caller's rule is about the prefix rather than about reachability.
+
+        **What the list is of** is every form that binds a *module attribute*,
+        which is what pytest reads a hook off — not every name-binding form in
+        the language. A parameter (`ast.arg`) binds a name too and is left out
+        on purpose: it is local to its own call and can never be an attribute
+        of the module, so reading it would refuse a helper that happened to
+        take a `pytest_`-prefixed argument and find nothing in exchange.
         """
         names = set()
         for node in ast.walk(ast.parse(source)):
@@ -891,8 +917,10 @@ class TestBothChecksRunInCI:
         assert self.nested_under(jobs, "env:") == [self.PERMITTED_ENVIRONMENT]
         # And the level above, which `jobs:` does not contain: a workflow-level
         # `env:` reaches every step of every job. The top-level keys are pinned
-        # rather than that one name refused, so it has nowhere to land.
-        assert self.top_level_keys == self.PERMITTED_WORKFLOW_KEYS
+        # rather than that one name refused, so it has nowhere to land. Sorted
+        # on both sides -- see `PERMITTED_WORKFLOW_KEYS`, which says why the
+        # order is not part of the pin.
+        assert sorted(self.top_level_keys) == sorted(self.PERMITTED_WORKFLOW_KEYS)
 
     def test_nothing_lets_a_failing_step_pass(self):
         # `continue-on-error` at either level, and an `if:` that would skip the
@@ -960,20 +988,26 @@ class TestBothChecksRunInCI:
                     assert not name.startswith("pytest_"), name
 
 
-class TestTheWorkflowReaderRefusesKeysRatherThanQuotes:
-    """`block` refuses a quoted **key**, and permits a quoted **scalar**.
+class TestTheWorkflowReaderRefusesWhatItNames:
+    """The reader's own clauses, against a synthetic workflow.
 
     Split out from :class:`TestBothChecksRunInCI` rather than added to it: the
     five assertions there are the whitelist itself, read off this repository's
-    own files, and these read a synthetic workflow instead. What they pin is
-    the one distinction the quoted-key clause turns on. `"env":` is the key
+    own files, and these read a workflow written for the occasion. Each clause
+    that refuses something gets a test here, so that deleting the clause goes
+    red in this suite rather than in a later review round -- which is not
+    hypothetical: the quoted-key clause had that cover and the braces clause
+    did not, and the braces clause could be deleted with every other test in
+    this file still green.
+
+    The quoted key is the one with a distinction to keep. `"env":` is the key
     `env` written so that no `== "env:"` sees it, and is refused. `- "3.12"` is
     an ordinary string that happens to begin with a quote, hides no key from
     anything, and is permitted -- a clause that refused it too would report a
     benign line as a finding, which is a false positive dressed as a guard.
 
-    The distinction lives here rather than in a comment so that losing it goes
-    red in this suite rather than in a later review round.
+    The last test is the same concern one level up: the workflow's top-level
+    keys are pinned as a multiset, so reordering them is not a finding either.
     """
 
     def reader(self, tmp_path, workflow):
@@ -1009,17 +1043,43 @@ class TestTheWorkflowReaderRefusesKeysRatherThanQuotes:
             with pytest.raises(AssertionError, match="quoted key"):
                 reader.block("jobs")
 
+    def test_a_flow_mapping_is_refused(self, tmp_path):
+        # The quoted key's sibling clause. It writes the key with its value
+        # inline, so the text recorded is not `env:` and every check that
+        # matches on key text misses it -- which is the job-level
+        # `env: {PYTEST_ADDOPTS: ...}` route, one of the thirty-eight.
+        reader = self.reader(
+            tmp_path, "jobs:\n  test:\n    env: {PYTEST_ADDOPTS: -k nothing}\n"
+        )
+        with pytest.raises(AssertionError, match="braces under"):
+            reader.block("jobs")
 
-class TestEveryBindingFormIsRead:
-    """`names_bound_by` reads every form the Python grammar binds a name with.
+    def test_the_top_level_keys_are_pinned_without_their_order(self, tmp_path):
+        # Reordering a mapping changes nothing about what runs, so it is not a
+        # finding -- but a key added, removed, or repeated still is.
+        keys = TestBothChecksRunInCI.PERMITTED_WORKFLOW_KEYS
+        reordered = "concurrency:\n  a: 1\njobs:\n  b: 2\nname: CI\non:\n  push:\n"
+        assert sorted(self.reader(tmp_path, reordered).top_level_keys) == sorted(keys)
+        added = reordered + "env:\n  C: d\n"
+        removed = reordered.replace("name: CI\n", "")
+        for broken in (added, removed):
+            assert sorted(self.reader(tmp_path, broken).top_level_keys) != sorted(keys)
 
-    A companion to :class:`TestTheWorkflowReaderRefusesKeysRatherThanQuotes`,
-    and the counterpart to what the class docstring escalates. The YAML
-    spellings `block` matches cannot be enumerated in advance; the binding
-    forms here can, because `ast` is a closed grammar, so this is a list that
-    can be finished and a test that can check it is.
 
-    The one that carries a hook is the `match` capture pattern:
+class TestEveryModuleAttributeBindingIsRead:
+    """`names_bound_by` reads every form that binds a **module attribute**.
+
+    A companion to :class:`TestTheWorkflowReaderRefusesWhatItNames`, and the
+    counterpart to what that class's docstring escalates. The YAML spellings
+    `block` matches cannot be enumerated in advance; these forms can, because
+    `ast` is a closed grammar — so this is a list that can be finished, and a
+    test that can check it is.
+
+    A module attribute rather than every name the grammar binds: a parameter
+    is a binding and is deliberately not read, because it is local to its call
+    and pytest can never reach a hook through it.
+
+    The form that carries a hook is the `match` capture pattern:
     `case pytest_ignore_collect:` binds that name at module scope and pytest
     reads the hook off it, while `ast.MatchAs.name` is a bare string that no
     walk over `Name` nodes ever reaches.
@@ -1077,3 +1137,10 @@ class TestEveryBindingFormIsRead:
             "pytest_loop",
             "pytest_ctx",
         } <= self.bound(source)
+
+    def test_a_parameter_is_not_a_module_attribute(self):
+        # Left out on purpose: a parameter cannot be an attribute of the
+        # module, so pytest can never read a hook off one, and reading it
+        # would refuse a benign helper for the name of its argument.
+        source = "def helper(pytest_arg):\n    return pytest_arg\n"
+        assert "pytest_arg" not in self.bound(source)
