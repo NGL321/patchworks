@@ -563,26 +563,35 @@ class TestTheTwoEntryPointsDrawTheRun:
         replayed = panel_window[1].finish()
         assert len(replayed) == len(live_frames)
 
-    def test_a_replay_is_reproducible_from_its_seed(
-        self, scene_window, panel_window, tmp_path
+    def test_replay_measures_its_trail_off_the_sheaf_the_seed_names(
+        self, scene_window, panel_window, tmp_path, monkeypatch
     ):
-        """A trace holds no biases, so the trail's persistences are measured here.
+        """A trace holds no biases, so which body the trail decays at is a choice.
 
-        Which makes `--seed` load-bearing rather than decorative: measured off
-        an unseeded sheaf, two replays of one file would draw two different
-        trails over the same recorded marks.
+        `--seed` is what makes it the run's own, and it is asserted here rather
+        than through the frames on purpose: on the **untrained** body the frames
+        cannot show it. Every cell's measured persistence is under two ticks
+        (0.5 to 1.7 on the default spec, seeded), a capture is one tick in five,
+        so a glow has decayed to at most 6% of itself by the next frame and the
+        trail is invisible whichever body was measured. That is a fact about the
+        body rather than about this module -- `05-timescales.md`'s go/no-go is
+        what has something to say about it -- and it is exactly the reason this
+        assertion is on the call and not on the picture. A frame-level assertion
+        would have passed with the seed unwired.
         """
         path = tmp_path / "run.npz"
         live(ticks=12, split="any", save=path, hold=False)
-        panel_window[-1].finish()
+        seeds = []
+        built = watch_module.Sheaf
 
-        replay(path, seed=0, fps=0, hold=False)
-        once = panel_window[-1].finish()
-        replay(path, seed=0, fps=0, hold=False)
-        again = panel_window[-1].finish()
-        assert once and len(once) == len(again)
-        for at, (one, other) in enumerate(zip(once, again)):
-            assert np.array_equal(one, other), f"frame {at} differs between replays"
+        def spy(dome, **arguments):
+            generator = arguments.get("generator")
+            seeds.append(None if generator is None else generator.initial_seed())
+            return built(dome, **arguments)
+
+        monkeypatch.setattr(watch_module, "Sheaf", spy)
+        replay(path, seed=7, fps=0, hold=False)
+        assert seeds == [7]
 
 
 class TestTheParsingIsSeparableFromTheDoing:
