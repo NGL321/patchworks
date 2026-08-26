@@ -16,8 +16,8 @@ reports*, is where the whole of that reading lives.
 **The scene window is MuJoCo's passive viewer**, as `prototypes/sandbox/watch.py`
 already runs it -- its camera, its picking, its drag. :func:`drive` opens that
 viewer and writes one field of it: the camera's tilt, held straight down
-(:func:`hold_top_down`). It does nothing else to the picture. A single composed window was
-considered and rejected because it pays for one tidy capture frame with the
+(:func:`hold_top_down`). It does nothing else to the picture. A single composed
+window was considered and rejected because it pays for one tidy capture frame with the
 exact interaction that already works, so nothing here selects a body, casts a
 ray, or tracks a mouse: MuJoCo does all three, into
 :class:`~mujoco.MjvPerturb`, and what this module reads is that struct.
@@ -138,9 +138,10 @@ MINIMUM_DRAG = 1e-3
 #: lift the refusal by handing in `float("inf")` without this line moving.
 OUT_OF_PLANE_TOLERANCE = 0.1
 
-#: The camera elevation that makes the screen and the world's plane the same
-#: plane: straight down. The second of #123's two levers, applied by
-#: :func:`hold_top_down` and re-applied every tick by :func:`drive`.
+#: The camera elevation at which the arena's own plane fills the screen:
+#: straight down. #123's display constraint -- what the human sees, rather than
+#: what a gesture carries -- applied by :func:`hold_top_down` and re-applied
+#: every tick by :func:`drive`.
 TOP_DOWN_ELEVATION = -90.0
 
 
