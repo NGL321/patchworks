@@ -162,9 +162,10 @@ def hold_top_down(cam) -> None:
     (`topdown` in `src/patchworks/sandbox/arena.xml`) looks straight down too,
     so the viewer's own camera keys cannot leave the plane either.
 
-    **Relaxable in one place**: `drive(..., hold_camera=None)` leaves the view
-    entirely to the human, and a world that wants a different constraint passes
-    its own callable rather than editing this loop.
+    **Relaxable in one place**: `drive(..., hold_camera=None)` opens the window
+    where it always did and then leaves the view to the human, and a world that
+    wants a different constraint passes its own callable rather than editing
+    that loop.
     """
     cam.elevation = TOP_DOWN_ELEVATION
 
@@ -813,9 +814,11 @@ def drive(
     goes back. A drag taken inside that window is refused by
     :meth:`Gestures.drag`, which is the point of having both.
 
-    `hold_camera=None` lifts the hold in one place, for a world worth looking
-    at from an angle; a different constraint is a different callable, and this
-    loop stays one line either way.
+    The opening pose is unchanged and unconditional -- the window still opens
+    looking straight down at the arena. `hold_camera=None` lifts the *hold* in
+    one place, for a world worth looking at from an angle: the view opens where
+    it always did and is then the human's. A different constraint is a different
+    callable, and this loop stays one line either way.
 
     **The keys are drained here, not handled in the callback.** MuJoCo calls
     `key_callback` on its own UI thread, and `r` rearranges the world -- so
@@ -863,8 +866,7 @@ def drive(
             viewer.cam.lookat[:] = [0.0, 0.0, 0.0]
             viewer.cam.distance = 1.6
             viewer.cam.azimuth = 90.0
-            if hold_camera is not None:
-                hold_camera(viewer.cam)
+            viewer.cam.elevation = TOP_DOWN_ELEVATION
         last = time.time()
         for _outcome in ticking:
             record = recorder.observe()

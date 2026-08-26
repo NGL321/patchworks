@@ -972,8 +972,13 @@ class TestTheCameraIsHeldTopDown:
         return handle
 
     def test_the_view_opens_looking_straight_down(self, recorder, window):
-        list(drive(recorder, ticks=2, realtime=False))
-        assert self.opens(window).cam.elevation == TOP_DOWN_ELEVATION
+        """Read on the first `sync`, which is before the loop has held
+        anything: the opening pose is the window's own and the hold is what
+        keeps it, so lifting the hold does not open the view edge-on."""
+        seen = []
+        window.script[1] = lambda handle: seen.append(handle.cam.elevation)
+        list(drive(recorder, ticks=4, realtime=False, hold_camera=None))
+        assert seen == [TOP_DOWN_ELEVATION]
 
     def test_a_rotated_view_is_put_back_on_the_next_tick(self, recorder, window):
         """The bug the once-only assignment left: the human rotates, and every
@@ -1033,9 +1038,9 @@ class TestTheCameraIsHeldTopDown:
             hold_top_down(cam)
 
         list(drive(recorder, ticks=4, realtime=False, hold_camera=hold))
-        # Once as the window opens -- the startup pose is this call, not a
-        # second copy of the elevation -- and once for each of the four ticks.
-        assert held == [self.opens(window).cam] * 5
+        # Once a tick, on the viewer's own camera. The opening pose is the
+        # window's and not one of these calls.
+        assert held == [self.opens(window).cam] * 4
 
     def test_the_camera_is_only_touched_under_the_viewers_lock(self, recorder, window):
         """The render thread reads the camera every frame it draws."""
@@ -1046,7 +1051,7 @@ class TestTheCameraIsHeldTopDown:
             hold_top_down(cam)
 
         list(drive(recorder, ticks=4, realtime=False, hold_camera=hold))
-        assert under == [1] * 5
+        assert under == [1] * 4
 
 
 def retargets_on_iteration(window, env, at, puck=1, zone=2):
