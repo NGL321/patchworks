@@ -338,7 +338,8 @@ class Gestures:
         """One completed ctrl-drag. The referent alone decides which hand.
 
         What comes back is the marker the hand dropped, or `None` for a drag on
-        nothing and for a drag too short to be one (:data:`MINIMUM_DRAG`).
+        nothing, for a drag too short to be one (:data:`MINIMUM_DRAG`), and for
+        one out of the plane (:data:`OUT_OF_PLANE_TOLERANCE`).
 
         **A link is nudged, never placed.** `disturb_arm` takes an impulse
         because displacing `qpos` would have the world rewrite the arm's
@@ -362,8 +363,8 @@ class Gestures:
         both hands take a planar argument -- so an out-of-plane pull is not a
         small gesture but no gesture at all. The gate is on the out-of-plane
         component, measured against the planar one
-        (:data:`OUT_OF_PLANE_TOLERANCE`), and **that is the whole of #123's
-        fix**: #96 wrote the sentence above and gated on the planar magnitude
+        (:data:`OUT_OF_PLANE_TOLERANCE`), and **that is #123's enforcing
+        lever**: #96 wrote the sentence above and gated on the planar magnitude
         instead, which is a different set. A drag that was mostly z with a
         millimetre of planar residue cleared that gate and fired a hand with
         the residue as its argument -- a puck teleported a millimetre in a
@@ -423,7 +424,7 @@ class Gestures:
                 f"a ctrl-drag {out_of_plane:.3g} m out of the plane against "
                 f"{planar:.3g} m in it is no gesture at all: this world has no "
                 "third dimension for it to mean anything in, so no hand fired. "
-                "MuJoCo's plain ctrl-drag translates in the *vertical* plane, "
+                "MuJoCo's plain ctrl-drag translates in the vertical plane, "
                 "so drag across the screen rather than up it -- or hold shift "
                 "as well, which is MuJoCo's horizontal-plane translate and is "
                 "planar whichever way it goes (#123).",
@@ -431,13 +432,17 @@ class Gestures:
             )
             return None
         if planar < MINIMUM_DRAG:
-            # Unreachable while the tolerance is at or under 1, which the two
-            # gates above then make redundant with the first -- but a world that
-            # relaxed the tolerance could arrive here with a drag it considers
-            # perfectly in-plane and nothing in the plane to hand over. Both
-            # hands take xy, so there would be nothing to deliver: a teleport to
-            # where the puck already is, and a marker onset latency would then
-            # be measured from.
+            # Unreachable at any tolerance of 1 or less, the default included:
+            # a planar component under the minimum has an out-of-plane one at
+            # or over it beside it -- or the first gate would have taken the
+            # drag -- and the second gate then refuses it. What this is here for
+            # is a world that lifted the tolerance: such a world can arrive
+            # with a drag it considers perfectly in-plane and nothing in the
+            # plane to hand over, and both hands take xy. Note `inf * 0.0` is
+            # `nan` and every comparison with one is False, so a straight-up
+            # drag under a lifted tolerance arrives here rather than being
+            # refused above. Firing would teleport a puck to where it already
+            # is, and leave a marker onset latency would then be measured from.
             return None
         if referent.kind is ReferentKind.LINK:
             return self.hands.disturb_arm(
