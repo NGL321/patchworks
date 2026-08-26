@@ -24,6 +24,7 @@ is what the CLI's own defaults do and costs about four seconds; this file is in
 CI on every push and takes the small one.
 """
 
+import dataclasses
 import os
 import random
 import runpy
@@ -589,10 +590,99 @@ class TestCheckMeasuresAndExits:
         arguments.handler(arguments)
         assert seen == {"ticks": 7, "seed": 11, "split": "test"}
 
-    def test_a_non_finite_location_is_named_once_however_often_it_recurs(self):
-        """A genuinely broken run goes non-finite every tick; three hundred lines bury the report."""
-        liveness = a_liveness(non_finite=("command at tick 0",))
-        assert cli.format_liveness(liveness).count("command at tick 0") == 1
+    def test_the_report_names_every_place_that_went_non_finite(self):
+        liveness = a_liveness(non_finite=("command, first at tick 0", "world qvel"))
+        printed = cli.format_liveness(liveness)
+        assert "command, first at tick 0" in printed
+        assert "world qvel" in printed
+
+
+class TestTheNonFiniteSweepActuallyFinds:
+    """The sweep exercised on values that really are non-finite.
+
+    Written because the exit-code tests above stand on a fake
+    :class:`~patchworks.cli.Liveness`: they hold that a non-empty `non_finite`
+    exits 1, and would go on passing if the sweep that fills it had been
+    deleted. These inject a NaN into each of the three places the sweep looks
+    and assert it comes back named.
+
+    The injection is at `patchworks.agent.run`, wrapping the real one, so the
+    world, the agent and the tick are all the real thing and only the value is
+    a lie.
+    """
+
+    @staticmethod
+    def measure_with(monkeypatch, corrupt):
+        """Run the real thing with `corrupt` wrapped around `agent.run`."""
+        import patchworks.agent
+
+        real_run = patchworks.agent.run
+
+        def wrapped(agent, ticks, *, seed=None):
+            return corrupt(agent, real_run(agent, ticks, seed=seed))
+
+        monkeypatch.setattr(patchworks.agent, "run", wrapped)
+        return cli.measure_liveness(
+            ticks=TICKS, seed=0, dome=build_graph(SMALL), image_size=IMAGE_SIZE
+        )
+
+    def test_a_non_finite_command_is_found_and_counted(self, monkeypatch):
+        def corrupt(_agent, ticking):
+            for outcome in ticking:
+                yield dataclasses.replace(
+                    outcome, command=np.full_like(np.asarray(outcome.command), np.nan)
+                )
+
+        liveness = self.measure_with(monkeypatch, corrupt)
+        assert len(liveness.non_finite) == 1, "one line per place, not one per tick"
+        (named,) = liveness.non_finite
+        assert named.startswith("command,")
+        assert "first at tick 0" in named
+        assert f"on {TICKS} of {TICKS} ticks" in named
+
+    def test_a_non_finite_observation_is_found_and_named_by_key(self, monkeypatch):
+        def corrupt(_agent, ticking):
+            for index, outcome in enumerate(ticking):
+                if index != 1:
+                    yield outcome
+                    continue
+                observation = dict(outcome.observation)
+                key = next(
+                    name
+                    for name, value in observation.items()
+                    if np.asarray(value).dtype.kind == "f"
+                )
+                observation[key] = np.full_like(np.asarray(observation[key]), np.inf)
+                yield dataclasses.replace(outcome, observation=observation)
+
+        liveness = self.measure_with(monkeypatch, corrupt)
+        (named,) = liveness.non_finite
+        assert named.startswith("observation[")
+        assert "first at tick 1" in named
+        assert f"on 1 of {TICKS} ticks" in named
+
+    def test_a_non_finite_world_state_is_found_after_the_run(self, monkeypatch):
+        def corrupt(agent, ticking):
+            yield from ticking
+            agent.env.unwrapped.data.qvel[0] = np.nan
+
+        liveness = self.measure_with(monkeypatch, corrupt)
+        assert liveness.non_finite == ("world qvel, at the end of the run",)
+
+    def test_the_exit_code_follows_a_real_sweep_end_to_end(self, monkeypatch, capsys):
+        """No fake anywhere on this path: a real run, a real NaN, a real 1."""
+
+        def corrupt(_agent, ticking):
+            for outcome in ticking:
+                yield dataclasses.replace(
+                    outcome, command=np.full_like(np.asarray(outcome.command), np.nan)
+                )
+
+        liveness = self.measure_with(monkeypatch, corrupt)
+        monkeypatch.setattr(cli, "measure_liveness", lambda **_: liveness)
+        arguments = cli.build_parser().parse_args(["check"])
+        assert arguments.handler(arguments) == 1
+        assert "NON-FINITE" in capsys.readouterr().out
 
 
 class TestDomeIsPreservedNotReimplemented:

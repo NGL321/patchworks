@@ -592,7 +592,14 @@ def measure_liveness(
         arm_before = inner.data.qpos[:3].copy()
         pucks_before = inner.data.qpos[3:].copy()
 
-        non_finite: list[str] = []
+        # Summarised per place rather than listed per tick. A genuinely broken
+        # run goes non-finite on *every* tick, and three hundred lines of
+        # `command at tick 41` would bury the four numbers a reader came for --
+        # while telling them nothing the count and the first tick do not. The
+        # first tick is the useful one: it says whether the run started broken
+        # or went that way.
+        ticks_seen: dict[str, list[int]] = {}
+        at_the_end: list[str] = []
         commands = []
         for index, outcome in enumerate(ticking):
             command = np.asarray(outcome.command, dtype=float)
@@ -602,11 +609,11 @@ def measure_liveness(
                 ("applied", np.asarray(outcome.applied, dtype=float)),
             ):
                 if not np.all(np.isfinite(values)):
-                    non_finite.append(f"{label} at tick {index}")
+                    ticks_seen.setdefault(label, []).append(index)
             for key, value in outcome.observation.items():
                 array = np.asarray(value)
                 if array.dtype.kind == "f" and not np.all(np.isfinite(array)):
-                    non_finite.append(f"observation[{key!r}] at tick {index}")
+                    ticks_seen.setdefault(f"observation[{key!r}]", []).append(index)
         elapsed = time.perf_counter() - started
 
         arm_after = inner.data.qpos[:3].copy()
@@ -616,7 +623,11 @@ def measure_liveness(
             ("world qvel", inner.data.qvel),
         ):
             if not np.all(np.isfinite(state)):
-                non_finite.append(f"{label} at the end of the run")
+                at_the_end.append(f"{label}, at the end of the run")
+        non_finite = tuple(
+            f"{label}, first at tick {indices[0]}, on {len(indices)} of {ticks} ticks"
+            for label, indices in ticks_seen.items()
+        ) + tuple(at_the_end)
 
         torques = np.array(commands) if commands else np.zeros((0, 3))
         control_hz = 1.0 / (inner.model.opt.timestep * inner.frame_skip)
@@ -635,10 +646,7 @@ def measure_liveness(
             else 0.0,
             world_seconds=ticks / control_hz,
             elapsed=elapsed,
-            # Deduplicated and ordered, because a genuinely broken run goes
-            # non-finite on every tick and three hundred identical lines bury
-            # the four numbers a reader came for.
-            non_finite=tuple(dict.fromkeys(non_finite)),
+            non_finite=non_finite,
         )
     finally:
         world.close()
