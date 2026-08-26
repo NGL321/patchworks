@@ -27,6 +27,7 @@ from patchworks.learning import (
     DEFAULT_LEARNING_RATE,
     DEFAULT_SPARSITY_PRESSURE,
     MAPS_PARAMETER,
+    NORM_FLOOR,
     SparsityAnneal,
     TransportPath,
     TransportRule,
@@ -432,7 +433,8 @@ class TestTheObjectiveExcludesTheTrivialSolution:
             moved = relative_disagreement(outgoing_of(rule), incoming)[silent]
             assert moved.item() == pytest.approx(1.0, abs=1e-6)
 
-    def test_the_rule_has_no_fixed_point_at_agreement(self):
+    @pytest.mark.parametrize("scale", [1e-3, 1e-1, 1.0, 10.0, 1e3])
+    def test_the_rule_has_no_fixed_point_at_agreement(self, scale):
         # Recorded because `NORM_FLOOR`'s comment could be read as promising
         # one and does not. The numerator is a norm rather than a squared norm
         # -- which is what ADR-0010's `[0, 1]` triangle-inequality reading
@@ -440,20 +442,58 @@ class TestTheObjectiveExcludesTheTrivialSolution:
         # endpoint at agreement keeps taking a full step. That sits with
         # ADR-0007 (never a zero target, and the floor means zero is never
         # reached) rather than against it.
-        agreed = torch.randn(1, 4, dtype=torch.float64)
+        #
+        # **Every bound below is per unit of `‖agreed‖`, and the scale is swept
+        # rather than drawn** (#111). The objective ADR-0010 commits to is
+        # exactly invariant under an edge's joint scale, so scale is the one
+        # axis on which a random draw buys no coverage -- except that
+        # `NORM_FLOOR` breaks that invariance, which is exactly what these
+        # bounds have to survive, so it is swept deliberately instead. The
+        # *direction* is still drawn unseeded, which is where the geometry
+        # varies. The old form drew both together and hand-set the bounds for a
+        # typical draw: `taken[0] < 1e-12` failed below `‖agreed‖ ≈ 0.5` and the
+        # factor-of-two bound below `≈ 0.25`, a 1-in-125 flake on whatever
+        # global RNG state the suite happened to arrive in.
+        direction = torch.randn(1, 4, dtype=torch.float64)
+        agreed = direction / direction.norm() * scale
+        norm = agreed.norm().item()
         taken = []
+        # Displacements are relative for the same reason the bounds are: a
+        # ladder in absolute units means "eight orders of magnitude of
+        # disagreement" only for an `agreed` of order one.
         for gap in (0.0, 1e-9, 1e-3, 1e-1):
-            probe = (agreed + gap).clone().requires_grad_(True)
+            probe = (agreed + gap * norm).clone().requires_grad_(True)
             relative_disagreement(probe, agreed).backward()
             taken.append(probe.grad.norm().item())
-        # At the meeting point itself the floor leaves `1e-13` of gradient
-        # in double and exactly zero at the precision the rule ships in --
-        # either way, nothing. One step off it, a full-size step.
-        assert taken[0] < 1e-12
-        assert all(value > 0.1 for value in taken[1:])
+        # At the meeting point the numerator contributes nothing -- its own
+        # gradient is `0/‖0‖` -- so the whole residue is the denominator term,
+        # `√NORM_FLOOR / (‖probe‖ + ‖agreed‖)²`, which is
+        # `√NORM_FLOOR / (2‖agreed‖)²`. The tolerance is that expression and
+        # not a chosen number: `√NORM_FLOOR` is the floor's size *in the norm
+        # itself*, which is what ADR-0007's "the floor means zero is never
+        # reached" amounts to in this implementation, and dividing by
+        # `‖agreed‖²` rather than `(2‖agreed‖)²` makes the `2` the whole of the
+        # headroom -- a factor of four on a quantity that comes out exact to
+        # sixteen digits at every scale and in every direction.
+        #
+        # The residue is `1e-13` of gradient in double at `‖agreed‖ ≈ 1`, and
+        # the same `1e-13` at the precision the rule ships in: `‖agreed‖²` is
+        # far enough above `NORM_FLOOR` that float32 rounds the denominator's
+        # two square roots to `‖agreed‖` exactly, leaving the identical
+        # quotient. Negligible either way, but not zero -- the whole point.
+        assert taken[0] < NORM_FLOOR**0.5 / norm**2
+        # One step off it, a full-size step: `1/(‖F x‖ + ‖y‖)` per
+        # `NORM_FLOOR`'s own comment, so `1/(2‖agreed‖)` here. The largest rung
+        # displaces by `0.2‖agreed‖`, so the triangle inequality holds every
+        # step in `[0.83, 1.24]` of a full one, and the bounds are stated at
+        # the round numbers outside that.
+        full = 1.0 / (2.0 * norm)
+        assert all(value > 0.8 * full for value in taken[1:])
         # Within a factor of two of each other across eight orders of
         # magnitude of disagreement, which is the whole of the point: there is
-        # no basin here for an endpoint to settle into.
+        # no basin here for an endpoint to settle into. That same envelope caps
+        # the ratio at `1.24/0.83 = 1.49`, so the two is headroom now rather
+        # than a bound that a small `agreed` could walk through.
         assert max(taken[1:]) < 2 * min(taken[1:])
 
     def test_the_normaliser_is_the_current_magnitudes_not_a_running_average(
