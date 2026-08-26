@@ -729,6 +729,19 @@ class TestTheTwoEntryPointsDrawTheRun:
             live(ticks=12, capture=100)
         assert scene_window == [] and panel_window == []
 
+    def test_live_refuses_a_bad_scale_before_it_arranges_anything(
+        self, scene_window, panel_window
+    ):
+        """The same rule as the capture, for the same reason it has one.
+
+        Left to `open_window`, a scale of nothing is refused after the world,
+        the agent and a 64-tick persistence measurement have all been built for
+        a window that will not open.
+        """
+        with pytest.raises(ValueError, match="whole number"):
+            live(ticks=12, scale=0)
+        assert scene_window == [] and panel_window == []
+
     def test_a_run_that_drew_nothing_holds_no_window(
         self, scene_window, panel_window
     ):
