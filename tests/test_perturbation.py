@@ -599,8 +599,8 @@ class TestBothChecksRunInCI:
 
     And these checks read lines rather than parsed YAML, so a spelling of a
     key that no text match recognises gets past them until a clause is added
-    for it. Two have been closed in `block` — the flow mapping and the quoted
-    key — and **four are open, each one reproduced**. Every one of these,
+    for it. Two are closed in `block` — the flow mapping and the quoted key —
+    and **four are open, every one of them reproduced**. Each of these,
     written under the job and carrying `PYTEST_ADDOPTS: -k nothing`, passes
     all five assertions here while reaching the step:
 
@@ -610,45 +610,53 @@ class TestBothChecksRunInCI:
         ? env
         :
 
-    They are left open on purpose. Three of the four were found in one review
-    round, after two rounds had each closed one — which is the answer to
+    They are left open on purpose, and #109 escalates them rather than adding
+    a clause for each. Three of the four were found in a single review round,
+    after two earlier rounds had each closed one, which is the answer to
     whether reading lines can be finished by adding clauses. It cannot: these
-    checks match key text, YAML has more ways to write a key than anyone
-    enumerates in advance, and each clause makes the file read more finished
-    than it is. The repair is to parse the workflow, which is immune to the
-    whole class at once. That means a YAML parser, and the dev extra has none
-    — `pytest` is all of it — so it is a dependency decision, and #109 carries
-    it rather than this class taking it in passing.
+    checks match key text, YAML has more ways to spell a key than anyone
+    enumerates in advance, and each clause added leaves this file reading more
+    finished than it is. The repair is to parse the workflow, which is immune
+    to the whole class at once rather than to one spelling of it — and that
+    means a YAML parser, which the dev extra does not name (`pytest` is all of
+    it). So it is a dependency decision, and #109 carries it rather than this
+    class taking it in passing.
 
-    Until it is taken, what these five assertions still hold down is every
-    route that does **not** turn on a novel spelling of a key: the thirty-five
-    below, which are the ones anyone narrowing the run by ordinary means would
-    reach for.
+    **Which is how the list below should be read.** These five assertions hold
+    down every route that does not turn on a novel spelling of a key. That is
+    the thirty-seven named here, each one kill-tested on its own — written
+    into this repository, the five assertions run against it, and the route
+    caught. It is not every route there is, and the four spellings above are
+    the ones known to be outside it.
 
-    Kill-tested against thirty-five ways of narrowing the run: `-k`, a
-    positional path, `--collect-only`, `|| true`, `python -m pytest`,
-    `continue-on-error` and a step-level `if:` both as an ordinary key **and as
-    a sequence item's first key**, where the leading `- ` would hide them from
-    a naive match; `PYTEST_ADDOPTS` in the step's `env:`, in a job-level `env:`
-    written *after* `steps:`, in a workflow-level `env:` above `jobs:`, and in
-    a job-level flow mapping, `env: {PYTEST_ADDOPTS: …}` — those last three
+    The thirty-seven, by where they reach. **The invocation**, five: `-k`, a
+    positional path, `--collect-only`, `|| true`, `python -m pytest`. **A gate
+    on the step**, four: `continue-on-error` and a step-level `if:`, each as
+    an ordinary key *and as a sequence item's first key*, where the leading
+    `- ` would hide it from a naive match. **The environment**, four:
+    `PYTEST_ADDOPTS` in the step's `env:`, in a job-level `env:` written
+    *after* `steps:`, in a workflow-level `env:` above `jobs:`, and in a
+    job-level flow mapping, `env: {PYTEST_ADDOPTS: …}` — those last three
     reach the step as surely as the step's own block, and none of them is the
-    first `env:` in the file, the last not even spelled `env:`; a `branches:`
-    filter under `push:`; `push:` removed; a quoted key, which is the same key
-    written so no text match sees it — the job's `env:` in double quotes and
-    in single, the step's `continue-on-error:`, and its `if:`; an `addopts`, a
-    narrowed
-    `testpaths`, and a `norecursedirs` in `pyproject.toml`; each of the six
-    files that outrank or rival that table — `pytest.toml`, `.pytest.toml`,
-    `pytest.ini`, `.pytest.ini`, `tox.ini`, `setup.cfg` — carrying a narrowing
-    configuration; and a `conftest.py` narrowing collection through a
-    `collect_ignore`, a `collect_ignore_glob`, a `pytest_ignore_collect`, or a
-    `pytest_collection_modifyitems` — that last one in a sub-directory of
-    `tests`, where it is handed the whole item list just the same, and either
-    hook reached by `import` rather than by `def`, the star import that binds
-    it while naming nothing included. All thirty-five fail here, and a
-    fixtures-only `conftest.py` — the one shape of that file which narrows
-    nothing — still passes. So does a harmless `-q` *not*: the cost of the
+    first `env:` in the file, the last not even spelled `env:`. **The
+    trigger**, two: a `branches:` filter under `push:`, and `push:` removed.
+    **A quoted key**, four — the same key written so that no text match sees
+    it: the job's `env:` in double quotes and in single, the step's
+    `continue-on-error:`, and its `if:`. **The rootdir configuration**, three:
+    an `addopts`, a narrowed `testpaths`, and a `norecursedirs` in
+    `pyproject.toml`. **A file that outranks or rivals that table**, six —
+    `pytest.toml`, `.pytest.toml`, `pytest.ini`, `.pytest.ini`, `tox.ini`,
+    `setup.cfg` — each carrying a narrowing configuration. And **a
+    `conftest.py` narrowing collection**, nine: in `tests/conftest.py`, a
+    `collect_ignore`, a `collect_ignore_glob`, a `pytest_ignore_collect` and a
+    `pytest_collection_modifyitems`; that last hook again in a sub-directory
+    of `tests`, where it is handed the whole item list just the same; either
+    hook reached by `import` rather than by `def`; the star import that binds
+    one while naming nothing; and a root `conftest.py`.
+
+    All thirty-seven fail here. A fixtures-only `conftest.py` — the one shape
+    of that file which narrows nothing — still passes, `tests/conftest.py` as
+    #110 wrote it included. So does a harmless `-q` *not*: the cost of the
     design is that a benign edit to the invocation has to come with an edit to
     this class, which is the whitelist working rather than a false positive.
     """
@@ -943,7 +951,8 @@ class TestTheWorkflowReaderRefusesKeysRatherThanQuotes:
     def test_a_quoted_key_is_refused_in_either_quote(self, tmp_path):
         # Each of these is a key the checks in `TestBothChecksRunInCI` match on
         # by text, written so that the text is not the one they match.
-        for spelling in ('"env":', "'env':", '"continue-on-error": true', "'if': false"):
+        spellings = ('"env":', "'env':", '"continue-on-error": true', "'if': false")
+        for spelling in spellings:
             reader = self.reader(tmp_path, f"jobs:\n  test:\n    {spelling}\n")
             with pytest.raises(AssertionError, match="quoted key"):
                 reader.block("jobs")
