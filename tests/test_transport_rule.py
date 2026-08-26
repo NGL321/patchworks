@@ -433,7 +433,7 @@ class TestTheObjectiveExcludesTheTrivialSolution:
             moved = relative_disagreement(outgoing_of(rule), incoming)[silent]
             assert moved.item() == pytest.approx(1.0, abs=1e-6)
 
-    @pytest.mark.parametrize("scale", [1e-3, 1e-1, 1.0, 10.0, 1e3])
+    @pytest.mark.parametrize("scale", [1e-2, 1e-1, 1.0, 10.0, 1e3])
     def test_the_rule_has_no_fixed_point_at_agreement(self, scale):
         # Recorded because `NORM_FLOOR`'s comment could be read as promising
         # one and does not. The numerator is a norm rather than a squared norm
@@ -444,21 +444,19 @@ class TestTheObjectiveExcludesTheTrivialSolution:
         # reached) rather than against it.
         #
         # **Every bound below is per unit of `‖agreed‖`, and the scale is swept
-        # rather than drawn** (#111). The objective ADR-0010 commits to is
-        # exactly invariant under an edge's joint scale, so scale is the one
-        # axis on which a random draw buys no coverage -- except that
-        # `NORM_FLOOR` breaks that invariance, which is exactly what these
-        # bounds have to survive, so it is swept deliberately instead. The
-        # *direction* is still drawn unseeded, which is where the geometry
-        # varies.
+        # rather than drawn** (#111). The objective is exactly invariant under
+        # an edge's joint scale (ADR-0010), so scale is the one axis a random
+        # draw buys no coverage on -- except that `NORM_FLOOR` breaks that
+        # invariance, which is what these bounds have to survive, so it is
+        # swept deliberately. The *direction* is still drawn unseeded, which is
+        # where the geometry varies.
         #
-        # The old form drew scale and direction together from the global RNG
-        # and hand-set all three bounds for a typical draw. Each was wrong at
-        # one end and none of them said so: `taken[0] < 1e-12` failed below
-        # `‖agreed‖ ≈ 0.5` -- 35 of 4000 global RNG states, the flake #111 was
-        # opened on -- `> 0.1` fails above `≈ 5`, and the factor of two fails
-        # below `≈ 0.3` for some directions. A draw of `randn(1, 4)` lands
-        # outside `[0.5, 5]` about once in 110 times.
+        # The old form drew scale and direction together and hand-set all three
+        # bounds for a typical draw. Each was wrong at one end and none said
+        # so: `taken[0] < 1e-12` failed below `‖agreed‖ ≈ 0.5` -- 35 of 4000
+        # global RNG states, the flake this came from -- `> 0.1` fails above
+        # `≈ 5`, and the factor of two fails below `≈ 0.3` for some directions.
+        # A draw of `randn(1, 4)` lands outside `[0.5, 5]` about once in 110.
         direction = torch.randn(1, 4, dtype=torch.float64)
         agreed = direction / direction.norm() * scale
         norm = agreed.norm().item()
@@ -471,56 +469,68 @@ class TestTheObjectiveExcludesTheTrivialSolution:
             relative_disagreement(probe, agreed).backward()
             taken.append(probe.grad.norm().item())
         # At the meeting point the numerator contributes nothing -- its own
-        # gradient is `0/‖0‖` -- so the whole residue is the denominator term,
-        # `√NORM_FLOOR / (‖probe‖ + ‖agreed‖)²`, which is
-        # `√NORM_FLOOR / (2‖agreed‖)²`. That is an equality and not an
-        # estimate, exact to sixteen digits at every scale and in every
-        # direction, so it is asserted as one: an inequality with headroom
-        # would pass on any residue smaller than the bound and hold down
-        # nothing about where the residue comes from. `abs=0.0` because the
-        # expected value here is `1e-13` and smaller, under `approx`'s own
-        # default absolute tolerance of `1e-12` -- left at the default, this
-        # line would accept a residue of exactly zero, which is the fixed point
-        # it exists to deny.
+        # gradient is `0/√NORM_FLOOR` -- so the whole residue is the
+        # denominator term, `√NORM_FLOOR / (‖probe‖ + ‖agreed‖)²`, which is
+        # `√NORM_FLOOR / (2‖agreed‖)²`. Asserted as the equality it is rather
+        # than as a ceiling, because a ceiling with headroom passes on any
+        # residue below it and so holds down nothing about where the residue
+        # comes from. It is an approximation only in dropping the floor inside
+        # the denominator's own square roots, which costs a relative
+        # `1.5·NORM_FLOOR/‖agreed‖²` -- 1.5e-20 at the smallest scale swept,
+        # and not negligible below `‖agreed‖ ≈ 1e-7`.
+        #
+        # `abs=0.0` because the expected value runs from `2.5e-9` down to
+        # `2.5e-19` across the sweep, so from `scale = 1` down it sits under
+        # `approx`'s own default absolute tolerance of `1e-12`. Left at the
+        # default, this line would accept a residue of exactly zero, which is
+        # the fixed point it exists to deny.
         assert taken[0] == pytest.approx(
             NORM_FLOOR**0.5 / (2 * norm) ** 2, rel=1e-9, abs=0.0
         )
-        # The size of it, which is the separate claim and the one the record
-        # fixes. `√NORM_FLOOR = 1e-12` is the floor's size *in the norm
-        # itself*, which is what ADR-0007's "the floor means zero is never
-        # reached" comes to in this implementation; per unit of `‖agreed‖²`
-        # that leaves `1e-13` of gradient, the figure this test has always
-        # quoted, and the four is the `2` above spent as headroom. Written out
-        # rather than read from `NORM_FLOOR` on purpose: the line above moves
-        # with the constant, and this one has to go red when it moves.
+        # `√NORM_FLOOR = 1e-12` is the floor's size in the norm itself, so the
+        # residue is `2.5e-13` per unit of `‖agreed‖²`, and the four between
+        # that and the bound is the `2` above spent as headroom.
         #
-        # `1e-13` in double, and the same `1e-13` at the precision the rule
-        # ships in -- `‖agreed‖²` sits far enough above `NORM_FLOOR` that
-        # float32 rounds the denominator's two square roots to `‖agreed‖`
-        # exactly and leaves the identical quotient. Negligible either way,
-        # but not zero, which is the whole of the point.
+        # **This is a tripwire on the constant, not a second claim.** The line
+        # above is `1/4` of this one, so it already implies it; what this adds
+        # is that `1e-12` is written out where the other reads `NORM_FLOOR`, so
+        # raising the floor by more than 4x turns this red while the equality
+        # follows the constant and stays green. It is one-sided: no reduction
+        # of the floor trips it.
+        #
+        # Note this is `NORM_FLOOR`, an epsilon guarding `0/0` in a square
+        # root, and **not ADR-0007's disagreement floor** -- the irreducible
+        # static, lag and settling parts of an edge's disagreement, which are
+        # structural and at the scale of the configuration. The two are
+        # unrelated quantities that share a word.
         assert taken[0] < 1e-12 / norm**2
         # One step off it, a full-size step: `1/(‖F x‖ + ‖y‖)` per
         # `NORM_FLOOR`'s own comment, so `1/(2‖agreed‖)` here.
         #
-        # The envelope is derived rather than sampled. Writing `D` for the
-        # denominator and `N` for the numerator, the gradient is
-        # `u/D − (N/D²)w` for two unit vectors `u` and `w`, so its norm lies in
-        # `[(1 − N/D)/D, (1 + N/D)/D]`. The largest rung displaces by
-        # `0.2‖agreed‖`, which puts `D` in `[1.8, 2.2]·‖agreed‖` and `N/D`
-        # under `1/9`, giving `[0.826, 1.235]` of a full step. Both ends are
-        # nearly attained -- `0.8264` and `1.2346` over 20000 directions -- so
-        # the bounds below sit just outside a bound that is tight, not a
-        # guess with room in it.
+        # The envelope is derived. The gradient is `u/D − (N/D²)w` with `w` a
+        # unit vector, so its norm lies in `[(1 − N/D)/D, (1 + N/D)/D]` times
+        # `‖u‖`. The largest rung displaces by `0.2‖agreed‖`, putting `D` in
+        # `[1.8, 2.2]·‖agreed‖` and `N/D` under `1/9`, for `[0.826, 1.235]` of
+        # a full step; measured extremes over 20000 directions are `0.8265`
+        # and `1.2338`, so the `0.8` below is just outside a tight bound.
+        #
+        # **`u` is only a unit vector while the displacement clears the
+        # floor.** `u = δ/√(‖δ‖² + NORM_FLOOR)`, so it shrinks by
+        # `‖δ‖/√(‖δ‖² + NORM_FLOOR)` and the smallest rung -- `‖δ‖ =
+        # 2e-9·‖agreed‖` -- is the first to feel it. That factor is `0.9988` at
+        # `scale = 1e-2` and `0.80` at `‖agreed‖ ≈ 6.7e-4`, where this
+        # assertion breaks. **The sweep stops at `1e-2` for that reason and
+        # cannot be extended downward without shortening the ladder**: covering
+        # a smaller `agreed` and a `1e-9` relative rung at once is not
+        # something the floor permits.
         full = 1.0 / (2.0 * norm)
         assert all(value > 0.8 * full for value in taken[1:])
         # Within a factor of two of each other across eight orders of
         # magnitude of disagreement, which is the whole of the point: there is
-        # no basin here for an endpoint to settle into. That same envelope caps
-        # the ratio at `1.235/0.826 = 1.49`, so the two is headroom now rather
+        # no basin here for an endpoint to settle into. The envelope caps the
+        # ratio at `1.235/0.826 = 1.494`, so the two is headroom now rather
         # than a bound a small `agreed` could walk through.
         assert max(taken[1:]) < 2 * min(taken[1:])
-
     def test_the_normaliser_is_the_current_magnitudes_not_a_running_average(
         self, running
     ):
