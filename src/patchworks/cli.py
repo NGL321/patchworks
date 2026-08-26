@@ -59,6 +59,22 @@ BELOW_PYTHON = (3, 13)
 MJPYTHON = "mjpython"
 REEXEC_MARKER = "PATCHWORKS_MJPYTHON_REEXEC"
 
+
+class _Unset:
+    """The "not given" sentinel :func:`window_plan` needs and `None` cannot be.
+
+    `None` is a real answer to *which mjpython* — it is what
+    :func:`mjpython_launcher` returns when there is none — so a `launcher=None`
+    default would make "there is no launcher" indistinguishable from "go and
+    look", and a caller could not say the first. The suite is what found that:
+    the test for the refusing path passed `launcher=None` and got a re-exec
+    plan. Named after :class:`patchworks.agent._Unset`, which exists for the
+    same reason.
+    """
+
+
+_UNSET = _Unset()
+
 #: How many ticks `patchworks check` runs. 300 at 50 Hz is six seconds of
 #: world and about four of wall clock end to end on the development laptop —
 #: two of them the run and two the imports torch and MuJoCo cost before it
@@ -424,9 +440,9 @@ def window_plan(
     argv: tuple[str, ...],
     *,
     platform: str = sys.platform,
-    already_under: bool | None = None,
-    launcher: Path | None = None,
-    reexeced: bool | None = None,
+    already_under: bool | _Unset = _UNSET,
+    launcher: Path | None | _Unset = _UNSET,
+    reexeced: bool | _Unset = _UNSET,
 ) -> WindowPlan:
     """Decide how a window-opening subcommand should be launched.
 
@@ -437,11 +453,11 @@ def window_plan(
     the rules can be exercised on a Linux box, or for a Linux box, without
     anything being true of the machine running the test.
     """
-    if already_under is None:
+    if isinstance(already_under, _Unset):
         already_under = under_mjpython()
-    if launcher is None:
+    if isinstance(launcher, _Unset):
         launcher = mjpython_launcher()
-    if reexeced is None:
+    if isinstance(reexeced, _Unset):
         reexeced = os.environ.get(REEXEC_MARKER) == "1"
 
     if not needs_mjpython(platform) or already_under:
@@ -762,6 +778,63 @@ docs/spec/ has the architecture, CONTEXT.md the vocabulary, and docs/adr/ the
 decisions that needed a reason on the record.
 """
 
+#: Each subcommand's own `--help`, hand-wrapped. `RawDescriptionHelpFormatter`
+#: is what keeps the paragraphs and the indented commands intact, and the price
+#: of it is that argparse re-wraps nothing — so these are written at the width
+#: they are meant to be read at rather than left as one long line.
+DOCTOR_DESCRIPTION = """\
+Check whether this installation can run: the interpreter against
+`requires-python`, the four runtime dependencies and the package importing,
+MuJoCo's offscreen render path actually rendering, and -- on macOS -- whether
+the `mjpython` launcher a window needs is present.
+
+Every failure is printed with the command that fixes it, and what was *not*
+checked is printed too, so a "ready" verdict cannot be read as covering more
+than it does. Nothing is ever installed or changed: this reports, and the
+commands are yours to run.
+
+Exit code is 0 when every check passed and 1 when any did not.
+"""
+
+CHECK_DESCRIPTION = """\
+Run the untrained agent against the world for a few hundred ticks, headless
+and in a few seconds, and print what it did: control rate, torque magnitude
+and per-joint spread, how far the arm and the pucks moved, and whether
+anything went non-finite.
+
+This is what answers "is this thing alive", and what to paste into a bug
+report -- the interpreter, platform and dependency versions are printed above
+the numbers for exactly that. An untrained agent swings the arm and barely
+moves a puck; that is the expected picture, not a failure.
+
+Exit code is 0 normally and 1 if anything went non-finite, which is a bug
+rather than an untrained agent.
+"""
+
+DOME_DESCRIPTION = """\
+Print the graph's shape -- the taper from the two-dimensional sensorimotor
+sheet to the deep core -- together with what construction recorded about it:
+the cells and edges at each level, and the diagnostics build time computes.
+
+This is what `python -m patchworks` used to print by default. The output is
+unchanged; what changed is that it is now one subcommand among several rather
+than the whole tool. It builds no world and opens nothing.
+"""
+
+DEMO_DESCRIPTION = """\
+Open the scene window and run the agent in it, so that a human can sit in
+front of it and interfere: shift-ctrl-drag a link or a puck, left-double-click
+a puck and then a zone to set a goal, `r` to rearrange, `1`-`9` for the goal
+pairs.
+
+On macOS MuJoCo's viewer must own the process's main thread, and only MuJoCo's
+`mjpython` launcher gives it that. This finds `mjpython` and re-execs into it
+by itself; if it cannot find one it stops and prints the exact command to run.
+You do not have to know any of that.
+
+The dome panel is the other window and is not opened here.
+"""
+
 
 def build_parser() -> argparse.ArgumentParser:
     """The dispatcher.
@@ -785,16 +858,7 @@ def build_parser() -> argparse.ArgumentParser:
     doctor = subparsers.add_parser(
         "doctor",
         help="can this installation run? a line per check, and the fix",
-        description=(
-            "Check whether this installation can run: the interpreter against "
-            "requires-python, the dependencies and the package importing, "
-            "MuJoCo's offscreen render path working, and -- on macOS -- the "
-            "`mjpython` launcher a window needs.\n\n"
-            "Every failure is printed with the command that fixes it. Nothing "
-            "is ever installed or changed: this reports, and the commands are "
-            "yours to run.\n\n"
-            "Exit code is 0 when every check passed and 1 when any did not."
-        ),
+        description=DOCTOR_DESCRIPTION,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     doctor.set_defaults(handler=_doctor)
@@ -802,17 +866,7 @@ def build_parser() -> argparse.ArgumentParser:
     check = subparsers.add_parser(
         "check",
         help="is it actually alive? a few hundred headless ticks, and the numbers",
-        description=(
-            "Run the untrained agent against the world for a few hundred ticks, "
-            "headless and in a few seconds, and print what it did: control rate, "
-            "torque magnitude and spread, how far the arm and the pucks moved, "
-            "and whether anything went non-finite.\n\n"
-            "This is what answers 'is this thing alive', and what to paste into "
-            "a bug report. An untrained agent swings the arm and barely moves a "
-            "puck -- that is the expected picture, not a failure.\n\n"
-            "Exit code is 0 normally and 1 if anything went non-finite, which is "
-            "a bug rather than an untrained agent."
-        ),
+        description=CHECK_DESCRIPTION,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     check.add_argument(
@@ -835,14 +889,7 @@ def build_parser() -> argparse.ArgumentParser:
     dome = subparsers.add_parser(
         "dome",
         help="print the dome's shape and what construction recorded about it",
-        description=(
-            "Print the graph's shape -- the taper from the two-dimensional "
-            "sensorimotor sheet to the deep core -- together with what "
-            "construction recorded about it: cell and edge counts per level, "
-            "the structural masks, and the construction diagnostics.\n\n"
-            "This is what `python -m patchworks` used to print by default. It "
-            "builds no world and opens nothing; it is the graph on its own."
-        ),
+        description=DOME_DESCRIPTION,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     dome.set_defaults(handler=_dome)
@@ -850,18 +897,7 @@ def build_parser() -> argparse.ArgumentParser:
     demo = subparsers.add_parser(
         "demo",
         help="the scene window, drivable by hand (opens a window; needs mjpython on macOS)",
-        description=(
-            "Open the scene window and run the agent in it, so that a human can "
-            "sit in front of it and interfere: shift-ctrl-drag a link or a puck, "
-            "left-double-click a puck and then a zone to set a goal, `r` to "
-            "rearrange, `1`-`9` for the goal pairs.\n\n"
-            "On macOS MuJoCo's viewer must own the process's main thread, which "
-            "only MuJoCo's `mjpython` launcher gives it. This finds `mjpython` "
-            "and re-execs into it by itself; if it cannot find one it stops and "
-            "prints the exact command to run. You do not have to know about "
-            "this.\n\n"
-            "The dome panel is the other window and is not opened here."
-        ),
+        description=DEMO_DESCRIPTION,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     demo.add_argument(
