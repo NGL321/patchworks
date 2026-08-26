@@ -459,12 +459,18 @@ class TestTheCellsTheseTestsName:
 
     def test_the_rows_and_endpoints_named_by_hand_fit_this_dome(self, running):
         # The two numberings this file types rather than derives (see *the
-        # rows and endpoints these tests name by hand*), bounded against the
-        # arrays the tests that name them index — the biases' leading
-        # dimension and `incoming`'s. A dome retuned below either then fails
-        # here, as a sentence about the dome, beside whatever `IndexError`
-        # those tests raise from inside a helper rather than instead of it.
-        assert max(NAMED_BIAS_ROWS) < running.biases.cells
+        # rows and endpoints these tests name by hand*). A dome retuned below
+        # either fails here, as a sentence about the dome, beside whatever
+        # `IndexError` the tests that name them raise from inside a helper
+        # rather than instead of it.
+        #
+        # Bounded against the arrays those helpers subscript, not against the
+        # counts beside them: `perturb_the_biases_of` writes into every one of
+        # the six bias parameters, and `CellBiases.subset` sets `cells` in a
+        # statement of its own, so a bound taken on `biases.cells` would be
+        # reading a number kept in step by hand rather than the rows there are.
+        rows = min(parameter.shape[0] for parameter in running.biases.parameters())
+        assert max(NAMED_BIAS_ROWS) < rows
         assert max(NAMED_ENDPOINTS) < running.incoming.shape[0]
 
 
