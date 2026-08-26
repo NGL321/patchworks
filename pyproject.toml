@@ -39,7 +39,17 @@ patchworks = "patchworks.cli:main"
 # `src/patchworks` imports either of these, and installing patchworks does not
 # install them.
 dev = [
-    "pytest",
+    # Floored at 9 so that a test in `tests/test_perturbation.py` can fail
+    # instead of skipping. `TestTheConfigurationReaderReadsWhatPytestReads`
+    # pins the one table pytest reads and this repository's reader does not --
+    # the native `[tool.pytest]`, which arrived in pytest 9 -- and the half of
+    # that test which asks pytest itself *skipped* under anything older. A
+    # test that can only skip is the same shape as a test that cannot fail,
+    # six of which this repository has on record (#77); this one was found at
+    # #118 and floored at #124. Raising a floor is the accepted answer here
+    # rather than a last resort: `requires-python` was raised to >=3.11 the
+    # same way, for #118's `tomllib`.
+    "pytest>=9",
     # The CI half of the locality guard reads `.github/workflows/ci.yml` and
     # has to agree with GitHub about what key each line writes. It used to
     # match the text, and five review rounds across #90 and #109 each turned up
