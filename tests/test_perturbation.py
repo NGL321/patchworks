@@ -863,7 +863,9 @@ class TestBothChecksRunInCI:
     copy and all three left every assertion here green — no key any of them
     reads is written by any of them, and
     `test_the_suite_runs_whole_and_unfiltered` asks only that *some* `run:`
-    in the job holds the string `pytest`, so a second `run:` is unpinned. That
+    in the job is exactly the string `pytest` — which pins that one step
+    tightly, `pytest -k nothing` failing it — while leaving any other `run:`
+    in the job unread. That
     pytest honours such a hook was checked the same way: a plugin of this
     shape, discovered by entry point, emptied the item list of a two-test
     suite. **The selective form is the dangerous one.** Deselecting everything
@@ -906,8 +908,11 @@ class TestBothChecksRunInCI:
     configuration and a `conftest.py` are routes precisely by appearing; the
     five assertions run against that copy, unmutated first and then once per
     route; and the route caught. It is not every route there is: the two
-    shapes above are outside it by decision and the plugin shape is outside it
-    unruled, so the tally is forty-four caught of forty-five known.
+    shapes above are outside it by decision, and the plugin's three vectors
+    are outside it unruled — counted as three rather than as one shape,
+    because that is how the environment's four are counted a paragraph down,
+    and because counting them open is the direction that does not overstate.
+    So the tally is forty-four caught of forty-seven known.
 
     The forty-four, by where they reach. **The invocation**, five: `-k`, a
     positional path, `--collect-only`, `|| true`, `python -m pytest`. **A gate
@@ -963,6 +968,16 @@ class TestBothChecksRunInCI:
     closed rather than catching. Parsed, each is read as the keys it writes
     and its `addopts` fails the whitelist like any other, which is why the
     same run that catches the forty-four reports these four as read.
+
+    **pytest's other table is counted there too, and is still met by
+    raising**: `[tool.pytest]` with native TOML types, which pytest 9 reads
+    and `configuration` does not. It cannot narrow the run quietly — on its
+    own it deselects the suite while the lookup here raises `KeyError`, and
+    written beside `[tool.pytest.ini_options]` pytest refuses the file, exit
+    4 — so using it means removing the table this reads, which is this check
+    going red. Both halves were run, and
+    `test_pytests_native_table_is_not_read_here_and_cannot_hide` holds them
+    down.
 
     A fixtures-only `conftest.py` — the one shape of that file which narrows
     nothing — still passes, `tests/conftest.py` as #110 wrote it included. So
@@ -1038,9 +1053,20 @@ class TestBothChecksRunInCI:
         `[[tool.pytest.ini_options]]` array of tables arrives as a list of
         dicts and reaches `set(…)` unhashable — and `TOMLDecodeError` where
         the file is not TOML at all. That is the direction the split this
-        replaced failed in too, and the property worth keeping from it. What
-        cannot happen any more is the other direction: a table pytest reads
-        and this misses, whatever it is spelt like.
+        replaced failed in too, and the property worth keeping from it.
+
+        **What it reads is `[tool.pytest.ini_options]`, in any spelling of
+        that path, and that is the whole of the claim.** pytest 9 also reads a
+        second table — `[tool.pytest]` with native TOML types — which this
+        does not, so "whatever pytest reads, this reads" would be false. It
+        cannot narrow the run quietly, and that was checked rather than
+        argued: on its own it deselects the suite and the lookup here raises
+        `KeyError`, so this check goes red; written *alongside*
+        `[tool.pytest.ini_options]`, pytest refuses the file outright — "Cannot
+        use both … simultaneously", exit 4 — so the table this reads cannot be
+        left in place beside it.
+        `test_pytests_native_table_is_not_read_here_and_cannot_hide` pins both
+        halves.
 
         Opened in binary, which is `tomllib`'s own idiom rather than a
         preference: TOML is UTF-8 by specification, and `read_text` would
@@ -1531,7 +1557,10 @@ class TestTheConfigurationReaderReadsWhatPytestReads:
     def reader(self, tmp_path, configuration):
         """A :class:`TestBothChecksRunInCI` reading *configuration* as the
         rootdir's `pyproject.toml`."""
-        (tmp_path / "pyproject.toml").write_text(configuration)
+        # `encoding` pinned rather than left to the process locale: one of
+        # the tables below is deliberately not ASCII, and the locale this
+        # runs under is the very thing another test here forces.
+        (tmp_path / "pyproject.toml").write_text(configuration, encoding="utf-8")
         reader = TestBothChecksRunInCI()
         reader.ROOT = tmp_path
         return reader
@@ -1613,10 +1642,15 @@ class TestTheConfigurationReaderReadsWhatPytestReads:
             self.reader(tmp_path, '[project]\nname = "patchworks"\n').configuration
         with pytest.raises(TypeError):
             self.reader(tmp_path, '[tool]\npytest = "x"\n').configuration
+        # Split rather than wrapped together, so the mechanism the docstring
+        # names is the one pinned: the property *answers* with a list of
+        # dicts, and it is the caller's `set(...)` that refuses it. Wrapped,
+        # this would pass just as well if the property had raised.
+        table = self.reader(
+            tmp_path, '[[tool.pytest.ini_options]]\naddopts = "-k nothing"\n'
+        ).configuration
+        assert isinstance(table, list)
         with pytest.raises(TypeError):
-            table = self.reader(
-                tmp_path, '[[tool.pytest.ini_options]]\naddopts = "-k nothing"\n'
-            ).configuration
             set(table)
         with pytest.raises(tomllib.TOMLDecodeError):
             self.reader(tmp_path, "[tool.pytest.ini_options\n").configuration
@@ -1651,6 +1685,30 @@ class TestTheConfigurationReaderReadsWhatPytestReads:
             assert reader.configuration == {
                 key: getattr(value, "value", value) for key, value in theirs.items()
             }, spelling
+
+    def test_pytests_native_table_is_not_read_here_and_cannot_hide(self, tmp_path):
+        # pytest 9 reads a second table -- `[tool.pytest]` with native TOML
+        # types -- and this reader does not, so the scope of what it agrees
+        # with pytest about is pinned here rather than left to the class name.
+        # Both halves of why that is not a hole are checked: on its own the
+        # native table narrows the run and the lookup here raises, and beside
+        # `[tool.pytest.ini_options]` pytest refuses the file, so the table
+        # this reads cannot be left in place next to it. If pytest ever reads
+        # the native table *alongside* the other, this is what goes red.
+        from _pytest.config.findpaths import load_config_dict_from_file
+
+        native = self.reader(tmp_path, '[tool.pytest]\naddopts = ["-k", "nothing"]\n')
+        path = native.ROOT / "pyproject.toml"
+        assert "addopts" in load_config_dict_from_file(path)
+        with pytest.raises(KeyError):
+            native.configuration
+        both = self.reader(
+            tmp_path,
+            '[tool.pytest]\naddopts = ["-k", "nothing"]\n'
+            '[tool.pytest.ini_options]\ntestpaths = ["tests"]\n',
+        )
+        with pytest.raises(pytest.UsageError, match="Cannot use both"):
+            load_config_dict_from_file(both.ROOT / "pyproject.toml")
 
     def test_the_table_is_read_as_utf_8_whatever_the_locale_is(self, tmp_path):
         # `configuration` opens the file in binary and lets `tomllib` decode
