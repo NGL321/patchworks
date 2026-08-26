@@ -571,6 +571,13 @@ def clock(monkeypatch):
 
     Time moves here only where a test says it does: by the work a scripted
     iteration declares, and by whatever the loop itself sleeps.
+
+    Substituted for the `time` module `drive` looked up, rather than for
+    `time.sleep` on the stdlib module itself. The two are the same object, so
+    patching the attribute would hold the whole process still for the length of
+    the test, and any other sleep in it -- a library's retry, a thread -- would
+    land in :attr:`slept` and fail an exact assertion for a reason that is not
+    about the code. Which is the shape of failure this fixture exists to remove.
     """
 
     class Clock:
@@ -594,8 +601,7 @@ def clock(monkeypatch):
             return spend
 
     held = Clock()
-    monkeypatch.setattr("patchworks.surface.gestures.time.time", held.time)
-    monkeypatch.setattr("patchworks.surface.gestures.time.sleep", held.sleep)
+    monkeypatch.setattr("patchworks.surface.gestures.time", held)
     return held
 
 

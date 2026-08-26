@@ -108,10 +108,14 @@ def test_the_median_step_stays_an_order_above_unusable(capsys):
     so the printed line says how much of a step the render is on *this*
     machine without anything being compared against a number from another one.
     """
-    drawn_env = PlanarPushSandbox(split="any")
-    plain_env = PlanarPushSandbox(split="any", render_obs=False)
     action = np.zeros(3, np.float32)
+    # Both built inside the `try`, and closed by name: a second world refused
+    # at construction would otherwise leak the first, and with it a GL context
+    # every later test in the session would inherit.
+    drawn_env = plain_env = None
     try:
+        drawn_env = PlanarPushSandbox(split="any")
+        plain_env = PlanarPushSandbox(split="any", render_obs=False)
         for world in (drawn_env, plain_env):
             world.reset(seed=0, options={"reset_arm": True})
         for _ in range(WARMUP):  # warm the renderer up
@@ -129,16 +133,18 @@ def test_the_median_step_stays_an_order_above_unusable(capsys):
             drawn.append(middle - start)
             plain.append(time.perf_counter() - middle)
     finally:
-        drawn_env.close()
-        plain_env.close()
+        for world in (drawn_env, plain_env):
+            if world is not None:
+                world.close()
 
     step = statistics.median(drawn)
     physics = statistics.median(plain)
     with capsys.disabled():
         print(
             f"\n  sandbox median step {1e3 * step:.2f} ms ({1 / step:.0f} ticks/s); "
-            f"physics alone {1e3 * physics:.2f} ms, "
-            f"so the render is {step / physics:.1f}x the physics"
+            f"physics alone {1e3 * physics:.2f} ms, so the camera pass is "
+            f"{1e3 * (step - physics):.2f} ms, "
+            f"{(step - physics) / physics:.1f}x the physics beside it"
         )
     assert 1.0 / step > FLOOR_HZ
 

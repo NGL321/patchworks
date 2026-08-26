@@ -23,13 +23,16 @@ side rather than reduced to a ratio anything is compared against.
 from __future__ import annotations
 
 import math
-import platform
+import os
 import statistics
-import subprocess
 import time
 
 import numpy as np
 
+# Borrowed rather than copied, as `agent_tick.py` borrows it: two copies of the
+# `sysctl` fallback would drift, and numbers from different runs are comparable
+# only because the machine is named the same way in each.
+from body_forward import cpu_name
 from patchworks.sandbox import PlanarPushSandbox
 
 TICKS = 300
@@ -67,32 +70,18 @@ def report(label: str, samples: list[float]) -> None:
     )
 
 
-def cpu_name() -> str:
-    """The reference machine, so a number can be compared with the ones on record."""
-    if platform.system() == "Darwin":
-        try:
-            return subprocess.run(
-                ["sysctl", "-n", "machdep.cpu.brand_string"],
-                capture_output=True,
-                text=True,
-                check=True,
-            ).stdout.strip()
-        except (OSError, subprocess.CalledProcessError):
-            pass
-    return platform.processor() or platform.machine()
-
-
 def main() -> None:
-    import os
-
     print(f"{cpu_name()}, MUJOCO_GL={os.environ.get('MUJOCO_GL', '(default)')}\n")
     drawn = time_steps(True)
     plain = time_steps(False)
     report("step, camera rendered", drawn)
     report("step, camera blanked", plain)
+    # The camera pass is the *difference* between the rows, not their quotient:
+    # the drawn row is physics and render together.
+    camera = statistics.median(drawn) - statistics.median(plain)
     print(
-        f"\nthe render is {statistics.median(drawn) / statistics.median(plain):.1f}x "
-        "a step's physics on this machine."
+        f"\nthe camera pass is {camera:.3f} ms, "
+        f"{camera / statistics.median(plain):.1f}x the physics beside it."
     )
 
 
