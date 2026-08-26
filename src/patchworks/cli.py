@@ -129,15 +129,19 @@ def in_a_virtual_environment() -> bool:
 def _venv_hint() -> str:
     """The install command to print, written against where this interpreter is.
 
-    Two cases, because the fresh clone is the one this whole entry point exists
-    for. **Inside a venv** the command names that venv's own `pip` — read from
+    **Inside a venv** the command names that venv's own `pip` — read from
     `sys.prefix` rather than hard-coded as `.venv`, since a reader told
     `.venv/bin/pip` while standing in a tree whose venv is somewhere else has
-    been given the wrong command, which is worse than a long one. **Outside
-    one** — a fresh clone run as `PYTHONPATH=src python3 -m patchworks doctor`,
-    which is exactly how someone finds out they have not set up yet — naming
-    this interpreter's `pip` would tell them to install torch and MuJoCo into
-    the system Python. So the command is to make the venv first.
+    been given the wrong command, which is worse than a long one.
+
+    **Outside one**, naming this interpreter's `pip` would say to install torch
+    and MuJoCo into the system Python, so the command is to make a venv first.
+    The obvious case for that branch — a fresh clone run as
+    `PYTHONPATH=src python3 -m patchworks doctor` — is **not** one it reaches:
+    that dies on `import torch` before `doctor` exists (see this module's
+    docstring). What does reach it is an interpreter that has the dependencies
+    without being a venv: a conda base environment, or a `pip install --user`.
+    Narrower than it looks, and said here rather than left implied.
     """
     if not in_a_virtual_environment():
         return (
@@ -165,12 +169,13 @@ def check_interpreter() -> Finding:
         name="interpreter",
         passed=inside,
         detail=f"Python {version} at {sys.executable}, against {bound}",
-        remedy=(
-            ""
-            if inside
-            else f"build the venv on a Python inside {bound} and reinstall: "
-            f"python3.12 -m venv .venv && {_venv_hint()}"
-        ),
+        # The remedy is `_venv_hint()` and nothing prepended. It used to add a
+        # `python3.12 -m venv .venv &&` of its own, which printed the venv
+        # command twice once `_venv_hint` grew its own -- and, worse, told
+        # someone inside an out-of-bound venv to build a new one and then
+        # install into the old one with its `pip`. One place says how to make a
+        # venv, and it is the one that knows whether there is one.
+        remedy="" if inside else f"this interpreter is outside {bound}: {_venv_hint()}",
     )
 
 
@@ -544,10 +549,35 @@ class Liveness:
     seed: int
     split: str
     control_hz: float
-    torque_mean_abs: float
-    torque_sd: tuple[float, ...]
+
+    commanded_mean_abs: float
+    """Mean |torque| the graph asked for, **before** the arm's limits saw it.
+    `TickOutcome.command` is pre-clip, so this can exceed the action space's 1
+    and is not a fraction of saturation."""
+
+    applied_mean_abs: float
+    """Mean |torque| the arm actually applied — `TickOutcome.applied`, the
+    efference copy, post-clip. This one *is* a fraction of saturation, and a
+    gap between it and the commanded figure is the graph asking for more than
+    the arm will give."""
+
+    commanded_sd: tuple[float, ...]
+    """Per-joint spread of the commanded torque. Zero means a frozen command,
+    which is the failure this number is read for."""
+
     arm_travel: tuple[float, ...]
-    puck_travel: float
+    """Per joint, the **cumulative** path length in radians — the sum of
+    |Δq| across the observed ticks, not the distance from start to end. An arm
+    that swings out and back has travelled; its net displacement is nearly
+    zero, and reporting that as travel would tell a working installation it was
+    broken."""
+
+    puck_displacement: float
+    """The furthest any puck ended from where it started, in **metres**. Net
+    rather than cumulative, because what is being asked is whether the agent
+    put a puck somewhere. Translation only: a puck's third coordinate is a
+    rotation in radians and does not belong in the same maximum."""
+
     world_seconds: float
     elapsed: float
     non_finite: tuple[str, ...]
@@ -592,6 +622,7 @@ def measure_liveness(
     from patchworks.agent import Agent, run
     from patchworks.graph import build_graph
     from patchworks.sandbox import PlanarPushSandbox
+    from patchworks.sandbox.env import N_PUCKS
 
     if dome is None:
         dome = build_graph()
@@ -599,17 +630,19 @@ def measure_liveness(
         split=split, **({} if image_size is None else {"image_size": image_size})
     )
     try:
-        agent = Agent(
-            world, dome=dome, generator=torch.Generator().manual_seed(seed)
-        )
+        agent = Agent(world, dome=dome, generator=torch.Generator().manual_seed(seed))
         inner = world.unwrapped
         started = time.perf_counter()
         ticking = run(agent, ticks, seed=seed)
 
         # After `run`, before the first tick: `run` arranges the world when it
-        # is called, so this is the pose the run actually starts from.
-        arm_before = inner.data.qpos[:3].copy()
-        pucks_before = inner.data.qpos[3:].copy()
+        # is called, so this is the layout the run actually starts from.
+        # `puck_pose` is the env's own public accessor -- privileged state, on
+        # the footing `info` is on, which is where the CLI sits by CONTEXT.md's
+        # *Demo surface*. Reading `qpos` by hand instead would duplicate the
+        # joint ordering the env already computes from `jnt_qposadr`, and a
+        # joint added ahead of the pucks would silently move it.
+        pucks_before = np.array([inner.puck_pose(i) for i in range(N_PUCKS)])
 
         # Summarised per place rather than listed per tick. A genuinely broken
         # run goes non-finite on *every* tick, and three hundred lines of
@@ -619,24 +652,40 @@ def measure_liveness(
         # or went that way.
         ticks_seen: dict[str, list[int]] = {}
         at_the_end: list[str] = []
-        commands = []
+        commanded: list[np.ndarray] = []
+        applied: list[np.ndarray] = []
+
+        # The arm's joints, read off the observation the env writes at
+        # `_arm_qadr` -- again the env's index rather than a slice of this
+        # file's. Travel accumulates across the observed ticks, so it is the
+        # path length over `ticks - 1` intervals and undercounts by the motion
+        # inside the first tick and inside each tick's physics substeps. Said
+        # here because it is a floor on how far the arm went, not an estimate.
+        travel = np.zeros(0)
+        previous_arm: np.ndarray | None = None
+
         for index, outcome in enumerate(ticking):
             command = np.asarray(outcome.command, dtype=float)
-            commands.append(command.copy())
-            for label, values in (
-                ("command", command),
-                ("applied", np.asarray(outcome.applied, dtype=float)),
-            ):
+            applied_now = np.asarray(outcome.applied, dtype=float)
+            commanded.append(command.copy())
+            applied.append(applied_now.copy())
+            for label, values in (("command", command), ("applied", applied_now)):
                 if not np.all(np.isfinite(values)):
                     ticks_seen.setdefault(label, []).append(index)
             for key, value in outcome.observation.items():
                 array = np.asarray(value)
                 if array.dtype.kind == "f" and not np.all(np.isfinite(array)):
                     ticks_seen.setdefault(f"observation[{key!r}]", []).append(index)
+
+            arm = np.asarray(outcome.observation["qpos"], dtype=float)
+            if previous_arm is None:
+                travel = np.zeros_like(arm)
+            else:
+                travel = travel + np.abs(arm - previous_arm)
+            previous_arm = arm
         elapsed = time.perf_counter() - started
 
-        arm_after = inner.data.qpos[:3].copy()
-        pucks_after = inner.data.qpos[3:].copy()
+        pucks_after = np.array([inner.puck_pose(i) for i in range(N_PUCKS)])
         for label, state in (
             ("world qpos", inner.data.qpos),
             ("world qvel", inner.data.qvel),
@@ -648,21 +697,28 @@ def measure_liveness(
             for label, indices in ticks_seen.items()
         ) + tuple(at_the_end)
 
-        torques = np.array(commands) if commands else np.zeros((0, 3))
+        commanded_array = np.array(commanded) if commanded else np.zeros((0, 0))
+        applied_array = np.array(applied) if applied else np.zeros((0, 0))
         control_hz = 1.0 / (inner.model.opt.timestep * inner.frame_skip)
+        # (x, y) only: the third coordinate `puck_pose` returns is a rotation
+        # in radians, and a puck that spun in place has not moved anywhere.
+        moved = np.linalg.norm(pucks_after[:, :2] - pucks_before[:, :2], axis=1)
         return Liveness(
             ticks=ticks,
             seed=seed,
             split=split,
             control_hz=control_hz,
-            torque_mean_abs=float(np.abs(torques).mean()) if len(torques) else 0.0,
-            torque_sd=tuple(float(value) for value in torques.std(axis=0))
-            if len(torques)
-            else (),
-            arm_travel=tuple(float(value) for value in np.abs(arm_after - arm_before)),
-            puck_travel=float(np.abs(pucks_after - pucks_before).max())
-            if pucks_after.size
+            commanded_mean_abs=float(np.abs(commanded_array).mean())
+            if commanded_array.size
             else 0.0,
+            applied_mean_abs=float(np.abs(applied_array).mean())
+            if applied_array.size
+            else 0.0,
+            commanded_sd=tuple(float(value) for value in commanded_array.std(axis=0))
+            if commanded_array.size
+            else (),
+            arm_travel=tuple(float(value) for value in travel),
+            puck_displacement=float(moved.max()) if moved.size else 0.0,
             world_seconds=ticks / control_hz,
             elapsed=elapsed,
             non_finite=non_finite,
@@ -691,50 +747,72 @@ def _environment_line() -> str:
 
 
 def format_liveness(liveness: Liveness) -> str:
-    """The prototype's format, kept, with the environment above it and a verdict below.
+    """The prototype's format, with the environment above it and a verdict below.
 
     The two closing sentences are the prototype's own and are the reason it was
-    useful: they say what the numbers mean for someone who has never seen them
+    useful: they say what the numbers mean to someone who has never seen them
     before, which is exactly the person running this.
+
+    Each number is labelled with what it actually is -- commanded torque and
+    applied torque as two figures rather than one, travel as cumulative, the
+    puck's move in metres. The prototype ran some of those together; a bug
+    report is worth less when the reader has to guess which of two quantities a
+    line holds.
     """
-    sd = ", ".join(f"{value:.3f}" for value in liveness.torque_sd)
+    sd = ", ".join(f"{value:.3f}" for value in liveness.commanded_sd)
     travel = ", ".join(f"{value:.2f}" for value in liveness.arm_travel)
     lines = [
         f"patchworks check -- {liveness.ticks} ticks, headless, "
         f"seed {liveness.seed}, split {liveness.split}",
         _environment_line(),
         "",
-        f"control rate       : {liveness.control_hz:.0f} Hz",
-        f"torque |mean|      : {liveness.torque_mean_abs:.3f}"
-        f"   (0 = agent is silent, 1 = saturated)",
-        f"torque per-joint sd: [{sd}]   (0 = frozen command)",
-        f"ARM  moved (rad)   : [{travel}]  over {liveness.ticks} ticks "
+        f"control rate         : {liveness.control_hz:.0f} Hz",
+        f"torque |mean| asked  : {liveness.commanded_mean_abs:.3f}"
+        f"   (pre-clip; 0 = the agent is silent)",
+        f"torque |mean| applied: {liveness.applied_mean_abs:.3f}"
+        f"   (post-clip; 1 = saturated)",
+        f"torque per-joint sd  : [{sd}]   (0 = frozen command)",
+        f"ARM  travelled (rad) : [{travel}]  cumulative, over {liveness.ticks} ticks "
         f"= {liveness.world_seconds:.0f} s of world",
-        f"PUCK moved         : {liveness.puck_travel:.3f}",
-        f"wall clock         : {liveness.elapsed:.1f} s",
+        f"PUCK moved (m)       : {liveness.puck_displacement:.3f}"
+        f"   (furthest any puck ended from where it started)",
+        f"wall clock           : {liveness.elapsed:.1f} s",
     ]
     if liveness.non_finite:
-        lines.append(f"NON-FINITE         : {', '.join(liveness.non_finite)}")
+        lines.append(f"NON-FINITE           : {', '.join(liveness.non_finite)}")
         lines += [
             "",
             "Something went non-finite. That is a bug, not an untrained agent:",
             "send this whole output.",
         ]
     else:
-        lines.append("non-finite         : none")
+        lines.append("non-finite           : none")
         lines += [
             "",
-            "Arm moving + puck barely = the agent is running and untrained. Expected.",
+            "Arm travelling + puck barely = the agent is running and untrained. Expected.",
             "Arm at ~0 = something is genuinely wrong; send this output.",
         ]
     return "\n".join(lines)
 
 
 def _check(arguments: argparse.Namespace) -> int:
-    """Measure, print, and fail the exit code if anything went non-finite."""
-    liveness = measure_liveness(
-        ticks=arguments.ticks, seed=arguments.seed, split=arguments.split
-    )
+    """Measure, print, and fail the exit code if anything went non-finite.
+
+    A bad `--split` comes back as a `ValueError` from the world's own
+    constructor, which owns the list of splits and is the only place it should
+    live. Caught here and turned into a usage error rather than a traceback,
+    because `--help` promises this command exits on what it measured and an
+    unhandled exception is not that. Naming the splits in `choices=` would mean
+    the parser importing the sandbox, so `patchworks --help` would load MuJoCo
+    to print a list.
+    """
+    try:
+        liveness = measure_liveness(
+            ticks=arguments.ticks, seed=arguments.seed, split=arguments.split
+        )
+    except ValueError as refusal:
+        print(f"patchworks check: {refusal}", file=sys.stderr)
+        return 2
     print(format_liveness(liveness))
     return 1 if liveness.non_finite else 0
 

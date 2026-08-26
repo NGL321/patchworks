@@ -76,10 +76,11 @@ def a_liveness(**overrides):
         seed=0,
         split="train",
         control_hz=50.0,
-        torque_mean_abs=0.295,
-        torque_sd=(0.078, 0.129, 0.080),
+        commanded_mean_abs=0.295,
+        applied_mean_abs=0.290,
+        commanded_sd=(0.078, 0.129, 0.080),
         arm_travel=(2.26, 2.60, 2.60),
-        puck_travel=0.646,
+        puck_displacement=0.646,
         world_seconds=6.0,
         elapsed=1.9,
         non_finite=(),
@@ -463,17 +464,24 @@ class TestTheMjpythonProblem:
         assert "pip" in plan.refusal, "and how to get one in the first place"
         assert "main thread" in plan.refusal, "and why, so it is not folklore"
 
-    def test_launcher_none_means_there_is_none_not_go_and_look(self):
+    def test_launcher_none_means_there_is_none_not_go_and_look(self, monkeypatch):
         """The defect the suite found while this file was being written.
 
         `None` is `mjpython_launcher`'s answer for *there is no launcher*, so it
         cannot also be the not-given default: a test for the refusing path
         passed `launcher=None` and got an exec plan back, because the real
         launcher on this machine had been looked up behind its back.
+
+        The omitted half stubs the lookup rather than calling it. CI is
+        `ubuntu-latest` and `mjpython` ships only in MuJoCo's macOS wheel, so a
+        real lookup here would find nothing and this file would be green on the
+        development laptop and red on every push -- which is how a test ends up
+        asserting the machine it ran on.
         """
         assert cli.window_plan(
             "a.module", (), platform="darwin", launcher=None
         ).refusal
+        monkeypatch.setattr(cli, "mjpython_launcher", lambda _executable: Path("/v/mjpython"))
         assert cli.window_plan("a.module", (), platform="darwin").reexec, (
             "and omitting it still looks one up"
         )
@@ -560,10 +568,81 @@ class TestCheckMeasuresAndExits:
         assert liveness.world_seconds == pytest.approx(TICKS / 50.0)
 
     def test_it_reports_a_torque_and_a_travel_per_joint(self, liveness):
-        assert len(liveness.torque_sd) == 3
+        assert len(liveness.commanded_sd) == 3
         assert len(liveness.arm_travel) == 3
-        assert liveness.torque_mean_abs >= 0.0
-        assert liveness.puck_travel >= 0.0
+        assert liveness.commanded_mean_abs >= 0.0
+        assert liveness.applied_mean_abs >= 0.0
+        assert liveness.puck_displacement >= 0.0
+
+    def test_travel_is_cumulative_not_net_displacement(self, monkeypatch):
+        """The number the "arm at ~0 is broken" verdict hangs on has to mean travel.
+
+        An arm that swings out and back ends where it started. Net displacement
+        calls that motionless and tells a working installation it is broken, so
+        travel accumulates |Δq| across the ticks instead. Held by driving the
+        joints out and back through a real run: net is ~0, travel is not.
+        """
+        import dataclasses
+
+        import patchworks.agent
+
+        real_run = patchworks.agent.run
+        swing = [0.0, 0.4, 0.8, 0.4, 0.0]
+        assert len(swing) == TICKS, "the swing must return to where it started"
+
+        def wrapped(agent, ticks, *, seed=None):
+            def ticking():
+                for index, outcome in enumerate(real_run(agent, ticks, seed=seed)):
+                    observation = dict(outcome.observation)
+                    observation["qpos"] = np.full(3, swing[index], dtype=np.float32)
+                    yield dataclasses.replace(outcome, observation=observation)
+
+            return ticking()
+
+        monkeypatch.setattr(patchworks.agent, "run", wrapped)
+        liveness = cli.measure_liveness(
+            ticks=TICKS, seed=0, dome=build_graph(SMALL), image_size=IMAGE_SIZE
+        )
+        assert swing[0] == swing[-1], "so net displacement is exactly zero"
+        # Out and back: 0.4 + 0.4 + 0.4 + 0.4 per joint.
+        assert liveness.arm_travel == pytest.approx((1.6, 1.6, 1.6), abs=1e-6)
+
+    def test_the_puck_figure_is_a_distance_not_a_rotation(self, monkeypatch):
+        """A puck's third coordinate is radians and does not belong in a maximum of metres.
+
+        `puck_pose` returns `(x, y, theta)`. A puck spun in place has not moved
+        anywhere, and reporting its angle as "PUCK moved" would read as a large
+        distance -- so a spin of two radians with no translation reports zero.
+        """
+        from patchworks.sandbox.env import PlanarPushSandbox
+
+        spins = {"calls": 0}
+
+        def spinning_in_place(self, i):
+            spins["calls"] += 1
+            # x and y never change; only the angle does.
+            return np.array([0.1, 0.2, 2.0 * spins["calls"]])
+
+        monkeypatch.setattr(PlanarPushSandbox, "puck_pose", spinning_in_place)
+        liveness = cli.measure_liveness(
+            ticks=TICKS, seed=0, dome=build_graph(SMALL), image_size=IMAGE_SIZE
+        )
+        assert liveness.puck_displacement == pytest.approx(0.0)
+
+    def test_the_commanded_and_applied_torques_are_reported_apart(self):
+        """`command` is pre-clip and `applied` is not, so one number cannot label both.
+
+        A gap between them is the graph asking for more than the arm will give,
+        which is worth seeing rather than averaging away.
+        """
+        printed = cli.format_liveness(a_liveness())
+        assert "torque |mean| asked  : 0.295   (pre-clip" in printed
+        assert "torque |mean| applied: 0.290   (post-clip; 1 = saturated)" in printed
+
+    def test_the_puck_and_arm_lines_carry_their_units(self):
+        printed = cli.format_liveness(a_liveness())
+        assert "ARM  travelled (rad)" in printed and "cumulative" in printed
+        assert "PUCK moved (m)" in printed
 
     def test_the_same_seed_gives_the_same_run(self):
         """Seeded explicitly, so a bug report's numbers are somebody else's numbers too."""
@@ -573,7 +652,7 @@ class TestCheckMeasuresAndExits:
             )
             for _ in range(2)
         )
-        assert first.torque_mean_abs == second.torque_mean_abs
+        assert first.commanded_mean_abs == second.commanded_mean_abs
         assert first.arm_travel == second.arm_travel
 
     def test_nothing_is_drawn_from_a_global_rng(self):
@@ -604,8 +683,8 @@ class TestCheckMeasuresAndExits:
         arguments = cli.build_parser().parse_args(["check"])
         assert arguments.handler(arguments) == 0
         printed = capsys.readouterr().out
-        assert "control rate       : 50 Hz" in printed
-        assert "non-finite         : none" in printed
+        assert "control rate         : 50 Hz" in printed
+        assert "non-finite           : none" in printed
         assert "untrained. Expected." in printed
 
     def test_anything_non_finite_exits_one_and_says_where(self, monkeypatch, capsys):
@@ -617,7 +696,7 @@ class TestCheckMeasuresAndExits:
         arguments = cli.build_parser().parse_args(["check"])
         assert arguments.handler(arguments) == 1
         printed = capsys.readouterr().out
-        assert "NON-FINITE         : command at tick 12" in printed
+        assert "NON-FINITE           : command at tick 12" in printed
         assert "That is a bug, not an untrained agent" in printed
 
     def test_the_report_carries_what_a_bug_report_needs(self):
@@ -625,6 +704,20 @@ class TestCheckMeasuresAndExits:
         printed = cli.format_liveness(a_liveness())
         assert "Python" in printed and "torch" in printed and "mujoco" in printed
         assert "MUJOCO_GL=" in printed
+
+    def test_a_bad_split_is_a_usage_error_not_a_traceback(self, capsys):
+        """`--help` promises an exit code on what was measured; a traceback is not one.
+
+        The list of splits lives on the world's constructor and is not copied
+        into `choices=`, because that would make `patchworks --help` import
+        MuJoCo to print it. So the refusal is caught where it arrives.
+        """
+        arguments = cli.build_parser().parse_args(["check", "--split", "trian"])
+        assert arguments.handler(arguments) == 2
+        captured = capsys.readouterr()
+        assert "trian" in captured.err
+        assert "train" in captured.err, "and the message names what is allowed"
+        assert captured.out == ""
 
     def test_the_flags_reach_the_measurement(self, monkeypatch, capsys):
         seen = {}
