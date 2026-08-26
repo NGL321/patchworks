@@ -51,6 +51,10 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # the annotation only -- see `measure_liveness`
+    from patchworks.graph import Dome
 
 #: The interpreter bounds, as `pyproject.toml`'s `requires-python` states them.
 #: Held as tuples rather than parsed from the specifier at runtime because
@@ -554,7 +558,7 @@ def measure_liveness(
     ticks: int = CHECK_TICKS,
     seed: int = 0,
     split: str = "train",
-    dome: object | None = None,
+    dome: Dome | None = None,
     image_size: int | None = None,
 ) -> Liveness:
     """Run the untrained agent headless and measure whether it is driving the arm.
@@ -572,8 +576,15 @@ def measure_liveness(
     of anything run after it -- the demo surface's rule (#77), applied to the
     CLI. `tests/test_cli.py` asserts it against both global states.
 
-    `dome` and `image_size` exist so the suite can run this on the small dome in
-    a second rather than the full one in ten; the CLI passes neither.
+    `dome` and `image_size` exist so the suite can run this on the small dome
+    against a 16x16 render rather than the full one against 64x64; the CLI
+    passes neither and gets the defaults.
+
+    The imports are inside the function, as `gestures.main` does it, and that
+    buys less than it looks: `import patchworks` has already pulled torch and
+    the graph in by the time anything here runs. What it does defer is
+    :mod:`patchworks.sandbox`, and MuJoCo with it, so `patchworks --help` and
+    `patchworks dome` never load the world.
     """
     import numpy as np
     import torch
