@@ -597,7 +597,13 @@ class TestBothChecksRunInCI:
     and every key under `jobs:` — a wider whitelist than #90 argued for, and a
     decision about this class rather than a gap in it.
 
-    Kill-tested against thirty-one ways of narrowing the run: `-k`, a
+    And these checks read lines rather than parsed YAML, so a spelling of a
+    key that no text match recognises gets past them until a clause is added
+    for it. Two have been, in `block` — the flow mapping and the quoted key —
+    and that helper says why the next one is an argument for parsing the file
+    instead.
+
+    Kill-tested against thirty-five ways of narrowing the run: `-k`, a
     positional path, `--collect-only`, `|| true`, `python -m pytest`,
     `continue-on-error` and a step-level `if:` both as an ordinary key **and as
     a sequence item's first key**, where the leading `- ` would hide them from
@@ -606,7 +612,9 @@ class TestBothChecksRunInCI:
     a job-level flow mapping, `env: {PYTEST_ADDOPTS: …}` — those last three
     reach the step as surely as the step's own block, and none of them is the
     first `env:` in the file, the last not even spelled `env:`; a `branches:`
-    filter under `push:`; `push:` removed; an `addopts`, a narrowed
+    filter under `push:`; `push:` removed; the job's `env:` and the step's
+    `continue-on-error:` and `if:` each written with the key in quotes, where
+    the key is the same key and the text is not; an `addopts`, a narrowed
     `testpaths`, and a `norecursedirs` in `pyproject.toml`; each of the six
     files that outrank or rival that table — `pytest.toml`, `.pytest.toml`,
     `pytest.ini`, `.pytest.ini`, `tox.ini`, `setup.cfg` — carrying a narrowing
@@ -615,7 +623,7 @@ class TestBothChecksRunInCI:
     `pytest_collection_modifyitems` — that last one in a sub-directory of
     `tests`, where it is handed the whole item list just the same, and either
     hook reached by `import` rather than by `def`, the star import that binds
-    it while naming nothing included. All thirty-one fail here, and a
+    it while naming nothing included. All thirty-five fail here, and a
     fixtures-only `conftest.py` — the one shape of that file which narrows
     nothing — still passes. So does a harmless `-q` *not*: the cost of the
     design is that a benign edit to the invocation has to come with an edit to
@@ -670,12 +678,23 @@ class TestBothChecksRunInCI:
         key go first in a sequence item, so `- if:` and `if:` are the same key
         and a check that only knew the second spelling would miss the first.
 
-        A flow mapping is refused outright rather than parsed. `env: {A: b}` is
-        the `env` key with its value written inline, so the text recorded here
-        is not `env:` and every check below matches on key text -- the one
-        spelling that hides a key from all of them at once. This workflow has
-        no need of it, so the whitelist's answer is the usual one: fail, and
-        make it be re-argued.
+        Two spellings are refused outright rather than parsed, because each
+        writes a key the checks below would not recognise as that key -- and
+        those checks all match on key text. A **flow mapping**, `env: {A: b}`,
+        writes the key with its value inline, so the text recorded here is not
+        `env:`; braces are refused wholesale, which takes GitHub's `${{ }}`
+        expressions with them. A **quoted key**, `"env":` or `'env':`, is the
+        same key in a spelling no `== "env:"` matches, and it hides a step's
+        `"continue-on-error":` from a `startswith` just as well. This workflow
+        needs neither, so both get the whitelist's usual answer: fail, and be
+        re-argued.
+
+        **These are a class rather than a list, and reading lines cannot
+        finish it.** YAML has further ways to write the same key — a block
+        scalar, an anchor and its alias, an explicit `? ` key — and the two
+        above were each found after this helper was written, one round apart.
+        A third is a reason to parse the file rather than to add a clause;
+        #109 carries that argument, and it is not settled here.
         """
         lines = self.lines
         block = []
@@ -686,7 +705,11 @@ class TestBothChecksRunInCI:
             if not text or text.startswith("#"):
                 continue
             text = text.removeprefix("- ")
-            assert "{" not in text, f"flow mapping under {key}: {text}"
+            assert not text.startswith(('"', "'")), f"quoted key under {key}: {text}"
+            assert "{" not in text, (
+                f"braces under {key}: {text} — a flow mapping hides the key "
+                f"from every check here, and an expression goes with it"
+            )
             block.append((len(line) - len(line.lstrip()), text))
         return block
 
