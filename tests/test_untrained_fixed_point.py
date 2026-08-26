@@ -54,6 +54,12 @@ def test_attenuation_runs(capsys):
     assert "one hop, one tick" in out
 
 
+def test_drive_runs(capsys):
+    fixed_point.drive("small", "train", [0], ticks=TICKS, assertions=[0.0])
+    out = capsys.readouterr().out
+    assert "drive   0.0" in out
+
+
 def test_learning_runs(capsys):
     fixed_point.learning("small", "train", 0, ticks=TICKS, every=3)
     out = capsys.readouterr().out

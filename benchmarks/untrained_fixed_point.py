@@ -13,11 +13,12 @@ assumption. What stands in the suite is one smoke test that this file still
 runs (`tests/test_untrained_fixed_point.py`), on the same footing as every
 other benchmark here.
 
-Four measurements, four subcommands, in the order the ticket asks for them::
+Five measurements, five subcommands, in the order the ticket asks for them::
 
     python benchmarks/untrained_fixed_point.py characterise
     python benchmarks/untrained_fixed_point.py sensitivity
     python benchmarks/untrained_fixed_point.py attenuation
+    python benchmarks/untrained_fixed_point.py drive
     python benchmarks/untrained_fixed_point.py learning --ticks 100000
 
 **`characterise`** runs an untrained agent across three seeds, two task splits
@@ -46,6 +47,12 @@ second is the one with a ceiling in the record — the reconciliation gain is
 `γ / max(Σ_e m_e, ρ²·deg)` and ADR-0010 caps every map at `‖F‖_F ≤ ρ` — so the
 run reports what the transport rule could grow it to as well as what it is.
 
+**`drive`** asks the same question from the other end: the world back in the
+loop, the run entire, and the drive's assertion held at one value against
+another for the whole of it. `sensitivity` reads what the assertion is worth to
+the *graph*; this reads what it is worth to the *arm*, which is what ADR-0009
+built it for.
+
 **`learning`** turns both halves of the local learning rule on and runs long,
 reporting the command, the pose, the travel, and the paired per-edge instrument
 of `patchworks.diagnostics` on a cadence. The pairing is the point and is
@@ -71,7 +78,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from patchworks.agent import Agent, run
+from patchworks.agent import DRIVE_ASSERTION, Agent, run
 from patchworks.diagnostics import Condition, Diagnostics
 from patchworks.graph import DEFAULT_SPEC, Dome, DomeSpec, build_graph
 from patchworks.learning import BiasRule, SparsityAnneal, TransportRule
@@ -109,9 +116,12 @@ _TICK_STATE = (
 )
 
 #: How far the arm has to be from a joint's stop to count as off it, in radians.
-#: Loose on purpose: what the ticket observed is a joint resting *on* its limit,
-#: and 1e-3 rad is far below anything the arm's own dynamics would hold.
-AT_LIMIT = 1e-3
+#: A tenth of a degree, which is loose enough for MuJoCo's limits to be the soft
+#: constraints they are -- a joint held against its stop by sustained torque
+#: settles a few thousandths past it -- and tight enough that the nearest thing
+#: #120 measured off a stop, a link resting on a puck 0.04 rad short of one,
+#: reads as off it.
+AT_LIMIT = 1e-2
 
 
 def dome_named(name: str) -> tuple[DomeSpec, int]:
@@ -381,6 +391,70 @@ def attenuation(name: str, split: str, seed: int, ticks: int, epsilon: float) ->
         env.close()
 
 
+# -- drive -----------------------------------------------------------------
+
+
+def driven_run(name: str, split: str, seed: int, ticks: int, assertion: float):
+    """A whole run with the drive boundary cell held at `assertion`.
+
+    `Agent.tick` is unrolled here rather than called, for the one thing that
+    has to sit between the world's write and the next tick: the drive's stalk
+    put back to the value under test. Writing it before
+    :meth:`~patchworks.agent.Agent.write` would have it overwritten by
+    :data:`~patchworks.agent.DRIVE_ASSERTION`, and the run would measure
+    nothing; the ordering is the same one `02-tick-semantics.md` gives the
+    external write, and this is a second external writer standing beside it.
+    """
+    env, agent = build(name, split, seed)
+    try:
+        observation, _info = env.reset(seed=seed)
+        agent.observe(observation)
+        with torch.no_grad():
+            agent.sheaf.stalks[agent._drive_slice] = assertion
+        poses, commands = [], []
+        for _ in range(ticks):
+            agent.sheaf.tick()
+            outcome = agent.act(agent.command())
+            with torch.no_grad():
+                agent.sheaf.stalks[agent._drive_slice] = assertion
+            poses.append(outcome.observation["qpos"].copy())
+            commands.append(outcome.command.copy())
+        return np.array(poses), np.array(commands)
+    finally:
+        env.close()
+
+
+def drive(name: str, split: str, seeds, ticks: int, assertions) -> None:
+    """What the standing assertion is worth to a whole trajectory.
+
+    `sensitivity` reads the drive with the world held still, which is the clean
+    read of the graph's transfer and says nothing about what the *arm* does.
+    This is the other end of the same question: the world in the loop, the run
+    entire, one assertion against another. ADR-0009's drive exists so that an
+    unmet task is uncomfortable enough to be acted on, and the thing that would
+    show it doing that is the arm going somewhere else.
+    """
+    print(f"\n{name} dome, split {split!r}, {ticks} ticks, world in the loop")
+    print(
+        f"  the whole trajectory under one assertion against the "
+        f"{DRIVE_ASSERTION:g} `Agent` writes"
+    )
+    for seed in seeds:
+        reference_pose, reference_command = driven_run(
+            name, split, seed, ticks, DRIVE_ASSERTION
+        )
+        for assertion in assertions:
+            pose, command = driven_run(name, split, seed, ticks, assertion)
+            print(
+                f"  seed {seed}  drive {assertion:5.1f}:  "
+                f"max |Δ pose| {np.abs(pose - reference_pose).max():.2e}  "
+                f"max |Δ command| {np.abs(command - reference_command).max():.2e}  "
+                f"final pose {np.round(pose[-1], 4)} against "
+                f"{np.round(reference_pose[-1], 4)}",
+                flush=True,
+            )
+
+
 # -- learning --------------------------------------------------------------
 
 
@@ -465,6 +539,11 @@ def main(argv: list[str] | None = None) -> None:
     p.add_argument("--ticks", type=int, default=1500)
     p.add_argument("--epsilon", type=float, default=1e-3)
 
+    p = sub.add_parser("drive", parents=[one], help="the assertion, end to end")
+    p.add_argument("--ticks", type=int, default=1500)
+    p.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
+    p.add_argument("--assertions", nargs="+", type=float, default=[0.0, 10.0])
+
     p = sub.add_parser("learning", parents=[one], help="both rules on, long")
     p.add_argument("--ticks", type=int, default=100000)
     p.add_argument("--every", type=int, default=2000)
@@ -476,6 +555,8 @@ def main(argv: list[str] | None = None) -> None:
         sensitivity(args.dome, args.split, args.seed, args.ticks, args.hold)
     elif args.measurement == "attenuation":
         attenuation(args.dome, args.split, args.seed, args.ticks, args.epsilon)
+    elif args.measurement == "drive":
+        drive(args.dome, args.split, args.seeds, args.ticks, args.assertions)
     else:
         learning(args.dome, args.split, args.seed, args.ticks, args.every)
 
