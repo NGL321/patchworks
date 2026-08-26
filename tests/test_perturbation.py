@@ -732,8 +732,8 @@ class TestTheSharedStorageCase:
 class _WorkflowLoader(yaml.SafeLoader):
     """`yaml.SafeLoader`, reading a workflow the way GitHub Actions reads one.
 
-    Two departures from `yaml.safe_load`, both made because the default is
-    wrong *here* rather than as a preference, and both checked against
+    Three departures from `yaml.safe_load`, all made because the default is
+    wrong *here* rather than as a preference, and all checked against
     GitHub's own workflow parser — `@actions/workflow-parser`, the package
     `actions/languageservices` publishes — rather than assumed.
 
@@ -751,6 +751,17 @@ class _WorkflowLoader(yaml.SafeLoader):
     it, and the checks would read the benign one. Refusing it is GitHub's own
     answer rather than an extra rule of this file's — its parser reports
     `'env' is already defined` and refuses the file.
+
+    **A merge key is refused rather than flattened**, and this third one is a
+    consequence rather than a choice: replacing the `map` constructor drops
+    `SafeConstructor`'s `flatten_mapping` with it, so `<<: *anchor` raises
+    instead of merging, and an unhashable key raises `TypeError` where PyYAML
+    raised `ConstructorError`. It is recorded because it is a departure
+    whoever edits this needs to know about, and kept because it agrees with
+    GitHub, which refuses a merge key too — `A mapping was not expected`
+    (#117). Both spellings fail closed: the file is refused rather than read
+    as something GitHub would not run. An anchor and a plain alias are
+    untouched by this and are read as GitHub reads them.
     """
 
 
@@ -836,22 +847,44 @@ class TestBothChecksRunInCI:
     exactly here and still never run pytest. Neither of those is a spelling,
     so parsing does not reach either: refusing them means pinning every `run:`
     and every key under `jobs:`, a wider whitelist than #90 argued for and a
-    decision about this class rather than a gap in it.
+    decision about this class rather than a gap in it. A third shape is
+    outside their reach and is *not* a decision — the `pyproject.toml` scan's,
+    described next, which is a gap and is recorded as one.
 
-    **And `pyproject.toml` is still read as text.** `tomllib` arrives in 3.11
-    and this project's floor is 3.10, so the rootdir table is scanned rather
-    than parsed, and what is claimed for it is only that the spellings tried
-    fail *closed*: a re-spelt table header leaves the split with nothing to
-    split on and raises, and a key written across lines fails the whitelist.
-    Four spellings were tried, named below and counted apart from the routes.
-    That is four spellings, not a proof about TOML.
+    **And `pyproject.toml` is still read as text, which is a known hole and
+    not merely a weaker claim.** `tomllib` arrives in 3.11 and this project's
+    floor is 3.10, so the rootdir table is scanned rather than parsed. Four
+    spellings were tried and each fails *closed* — a re-spelt table header
+    leaves the split with nothing to split on and raises, and a key written
+    across lines fails the whitelist — and they are named below and counted
+    apart from the routes.
+
+    But four spellings were never a proof about TOML, and #117 found a fifth
+    that does **not** fail closed. The scan ends at the first line that
+    begins `[`, reading it as the next table header; a value written as a
+    multi-line TOML string can put such a line inside itself, and every key
+    after it then goes unread. A `pythonpath` opened as a multi-line string
+    holding a bracketed line, followed by an `addopts`, is valid TOML that
+    pytest honours — checked against pytest itself, which collects the suite
+    and reports every test deselected — and it passes all five assertions
+    here with `-k nothing` live in the rootdir table. That is a live
+    narrowing route this class does not catch. Unlike the two shapes above it
+    is a **gap rather than a decision**: closing it means parsing TOML, so it
+    means `tomli` on the 3.10 floor or raising that floor to 3.11 for
+    `tomllib` — the dependency question #117 settled for the workflow and was
+    never asked for this file. It is recorded here rather than fixed quietly
+    or left implied by "four spellings", and it is why the count below is
+    forty-three caught of forty-four known. The scan is unchanged from before
+    #117; the parser rewrite neither caused it nor reaches it.
 
     **Which is how the list below should be read.** These five assertions hold
     down every route that writes a key they read, in any spelling of it. That
     is the forty-three named here, each one kill-tested on its own — written
     into a scratch copy of this repository, the five assertions run against
-    that copy, and the route caught. It is not every route there is, and the
-    two shapes above are the ones known to be outside it.
+    that copy, and the route caught. It is not every route there is: the two
+    shapes above are outside it by decision, and the `pyproject.toml` scan has
+    one route outside it by gap, so the tally is forty-three caught of
+    forty-four known.
 
     The forty-three, by where they reach. **The invocation**, five: `-k`, a
     positional path, `--collect-only`, `|| true`, `python -m pytest`. **A gate
@@ -1237,7 +1270,7 @@ class TestTheWorkflowReaderReadsWhatGitHubReads:
             ], spelling
 
     def test_a_flow_mapping_is_the_same_key_too(self, tmp_path):
-        # The sixth spelling, and the one the old reader answered by refusing
+        # Another spelling, and the one the old reader answered by refusing
         # braces wholesale -- which took GitHub's `${{ }}` expressions with it.
         # It writes the key with its value inline, so the *text* was never
         # `env:`; parsed, it is the job-level `env:` route like any other.
