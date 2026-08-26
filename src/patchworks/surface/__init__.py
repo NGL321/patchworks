@@ -55,6 +55,7 @@ from patchworks.surface.dome_panel import (
 from patchworks.surface.gestures import (
     IMPULSE_PER_METRE,
     MINIMUM_DRAG,
+    Drag,
     Gestures,
     Pointer,
     Referent,
@@ -90,6 +91,7 @@ __all__ = [
     "PANEL_WIDTH",
     "BandLayout",
     "DomePanel",
+    "Drag",
     "Event",
     "EventKind",
     "Gestures",

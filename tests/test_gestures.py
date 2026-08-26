@@ -21,6 +21,7 @@ from patchworks.graph import build_graph
 from patchworks.sandbox import N_PUCKS, N_ZONES, ZONE_RADIUS, ZONE_XY, PlanarPushSandbox
 from patchworks.sandbox.env import ARM_JOINTS
 from patchworks.surface import (
+    Drag,
     EventKind,
     Gestures,
     Hands,
@@ -90,6 +91,18 @@ def pucks(env):
     return np.stack([env.puck_pose(i) for i in range(N_PUCKS)])
 
 
+def dragged(env, name, moved, grip=None):
+    """A completed drag on `name`, pulled `moved` from wherever it is now."""
+    grabbed = body(env, name)
+    origin = np.array(env.data.xpos[grabbed])
+    return Drag(
+        body=grabbed,
+        grip=np.array(origin if grip is None else grip, dtype=float),
+        origin=origin,
+        moved=np.array(moved, dtype=float),
+    )
+
+
 def tick(recorder, times=1):
     """One whole tick, watched, the way the viewer's loop drives it."""
     records = []
@@ -106,42 +119,35 @@ class TestTheReferentAloneDecidesWhichHand:
 
     def test_a_ctrl_drag_on_a_link_disturbs_the_arm(self, gestures, env):
         before = np.array(env.data.qvel)
-        event = gestures.drag(
-            body(env, "link1"), grip=(0.28, 0.0, 0.0), to=(0.28, 0.05, 0.0)
-        )
+        event = gestures.drag(dragged(env, "link1", (0.0, 0.05, 0.0), grip=(0.28, 0.0, 0.0)))
         assert event.kind is EventKind.DISTURB_ARM
         assert event.detail[0] == 1
         assert not np.array_equal(env.data.qvel, before)
 
     def test_a_ctrl_drag_on_a_puck_perturbs_it(self, gestures, env):
-        puck = body(env, "puck_2")
-        was = np.array(env.data.xpos[puck][:2])
-        event = gestures.drag(
-            puck, grip=env.data.xpos[puck], to=env.data.xpos[puck] + [0.04, 0.03, 0.0]
-        )
+        was = np.array(env.data.xpos[body(env, "puck_2")][:2])
+        event = gestures.drag(dragged(env, "puck_2", (0.04, 0.03, 0.0)))
         assert event.kind is EventKind.PERTURB
         assert env.puck_pose(2)[:2] == pytest.approx(was + [0.04, 0.03], abs=1e-9)
 
     def test_the_same_drag_on_two_referents_is_two_different_hands(self, gestures, env):
         """The whole of the criterion: only *what was grabbed* differs."""
-        pull = np.array([0.0, 0.05, 0.0])
-        link = gestures.drag(body(env, "link0"), (0.1, 0.0, 0.0), (0.1, 0.0, 0.0) + pull)
-        puck = np.array(env.data.xpos[body(env, "puck_0")])
-        moved = gestures.drag(body(env, "puck_0"), puck, puck + pull)
-        assert (link.kind, moved.kind) == (EventKind.DISTURB_ARM, EventKind.PERTURB)
+        pull = (0.0, 0.05, 0.0)
+        link = gestures.drag(dragged(env, "link0", pull, grip=(0.1, 0.0, 0.0)))
+        puck = gestures.drag(dragged(env, "puck_0", pull))
+        assert (link.kind, puck.kind) == (EventKind.DISTURB_ARM, EventKind.PERTURB)
 
     def test_a_drag_on_neither_fires_no_hand_and_leaves_no_marker(
         self, gestures, recorder, env
     ):
-        assert gestures.drag(body(env, "base"), (0.0, 0.0, 0.0), (0.05, 0.0, 0.0)) is None
+        assert gestures.drag(dragged(env, "base", (0.05, 0.0, 0.0))) is None
         assert recorder.pending == ()
 
     def test_a_puck_is_placed_by_the_drag_and_not_at_the_grip(self, gestures, env):
         """Grabbing a puck by its rim and dropping it does not put the rim there."""
-        puck = body(env, "puck_0")
-        centre = np.array(env.data.xpos[puck])
+        centre = np.array(env.data.xpos[body(env, "puck_0")])
         rim = centre + [env.puck_radius[0], 0.0, 0.0]
-        gestures.drag(puck, rim, rim + [0.06, 0.0, 0.0])
+        gestures.drag(dragged(env, "puck_0", (0.06, 0.0, 0.0), grip=rim))
         assert env.puck_pose(0)[:2] == pytest.approx(centre[:2] + [0.06, 0.0], abs=1e-9)
 
 
@@ -152,23 +158,28 @@ class TestWhatADragOnALinkDelivers:
         # Nothing has moved the arm, so link0 lies along +x and joint 0 swings a
         # point at (0.1, 0, 0) straight along +y.
         assert arm_qpos(env) == pytest.approx([0.0, 0.0, 0.0])
-        event = gestures.drag(body(env, "link0"), (0.1, 0.0, 0.0), (0.1, 0.06, 0.0))
+        event = gestures.drag(dragged(env, "link0", (0.0, 0.06, 0.0), grip=(0.1, 0.0, 0.0)))
         assert event.detail[1] == pytest.approx(0.06 * IMPULSE_PER_METRE)
 
     def test_a_drag_the_other_way_reverses_it(self, gestures, env):
-        event = gestures.drag(body(env, "link0"), (0.1, 0.0, 0.0), (0.1, -0.06, 0.0))
+        event = gestures.drag(dragged(env, "link0", (0.0, -0.06, 0.0), grip=(0.1, 0.0, 0.0)))
         assert event.detail[1] == pytest.approx(-0.06 * IMPULSE_PER_METRE)
 
     def test_a_pull_along_the_link_delivers_nothing(self, gestures, env):
         """A hinge has no answer to a pull with no moment arm, and says zero."""
-        event = gestures.drag(body(env, "link0"), (0.1, 0.0, 0.0), (0.16, 0.0, 0.0))
+        event = gestures.drag(dragged(env, "link0", (0.06, 0.0, 0.0), grip=(0.1, 0.0, 0.0)))
         assert event.detail[1] == pytest.approx(0.0, abs=1e-12)
 
     def test_a_drag_too_short_to_be_one_fires_nothing(self, gestures, recorder, env):
         short = MINIMUM_DRAG / 2
-        assert gestures.drag(body(env, "link0"), (0.1, 0.0, 0.0), (0.1, short, 0.0)) is None
-        puck = np.array(env.data.xpos[body(env, "puck_0")])
-        assert gestures.drag(body(env, "puck_0"), puck, puck + [short, 0.0, 0.0]) is None
+        assert gestures.drag(dragged(env, "link0", (0.0, short, 0.0), grip=(0.1, 0.0, 0.0))) is None
+        assert gestures.drag(dragged(env, "puck_0", (short, 0.0, 0.0))) is None
+        assert recorder.pending == ()
+
+    def test_a_drag_out_of_the_plane_is_no_gesture_at_all(self, gestures, recorder, env):
+        """This world is planar, and both hands take a planar argument."""
+        assert gestures.drag(dragged(env, "puck_0", (0.0, 0.0, 0.5))) is None
+        assert gestures.drag(dragged(env, "link0", (0.0, 0.0, 0.5), grip=(0.1, 0.0, 0.0))) is None
         assert recorder.pending == ()
 
 
@@ -263,9 +274,8 @@ class TestEveryHandWritesItsMarker:
     ):
         tick(recorder, 2)  # primes the delta and gets a capture out of the way
         at = recorder.agent.sheaf.ticks
-        gestures.drag(body(env, "link0"), (0.1, 0.0, 0.0), (0.1, 0.05, 0.0))
-        puck = np.array(env.data.xpos[body(env, "puck_0")])
-        gestures.drag(body(env, "puck_0"), puck, puck + [0.03, 0.0, 0.0])
+        gestures.drag(dragged(env, "link0", (0.0, 0.05, 0.0), grip=(0.1, 0.0, 0.0)))
+        gestures.drag(dragged(env, "puck_0", (0.03, 0.0, 0.0)))
         gestures.pick(body(env, "puck_0"), env.data.xpos[body(env, "puck_0")])
         gestures.pick(0, zone_point(0))
         (record,) = tick(recorder)
@@ -280,49 +290,79 @@ class TestEveryHandWritesItsMarker:
 class TestThePointerReadsWholeGestures:
     """The perturb struct is a state; a gesture is an act. This is the seam."""
 
+    def grip(self, env, name):
+        return np.array(env.data.xpos[body(env, name)])
+
     def test_a_drag_fires_once_on_release_and_not_once_a_tick(
         self, gestures, recorder, env
     ):
         pointer = Pointer(gestures)
-        puck = body(env, "puck_0")
-        start = np.array(env.data.xpos[puck])
+        puck, start = body(env, "puck_0"), self.grip(env, "puck_0")
         for step in range(1, 6):
-            to = start + [0.01 * step, 0.0, 0.0]
-            assert pointer.sample(1, puck, (0.0, 0.0, 0.0), env.data.xpos[puck], to) is None
-        event = pointer.sample(0, puck, (0.0, 0.0, 0.0), env.data.xpos[puck], to)
+            reach = start + [0.01 * step, 0.0, 0.0]
+            assert pointer.sample(1, puck, (0.0, 0.0, 0.0), reach) is None
+        event = pointer.sample(0, puck, (0.0, 0.0, 0.0), reach)
         assert event.kind is EventKind.PERTURB
         assert len(recorder.pending) == 1
 
     def test_the_release_uses_where_the_drag_ended(self, gestures, env):
         pointer = Pointer(gestures)
-        puck = body(env, "puck_1")
-        start = np.array(env.data.xpos[puck])
+        puck, start = body(env, "puck_1"), self.grip(env, "puck_1")
         for reach in (0.02, 0.09):
-            pointer.sample(1, puck, (0.0, 0.0, 0.0), start, start + [reach, 0.0, 0.0])
-        pointer.sample(0, puck, (0.0, 0.0, 0.0), start, start + [0.09, 0.0, 0.0])
+            pointer.sample(1, puck, (0.0, 0.0, 0.0), start + [reach, 0.0, 0.0])
+        pointer.sample(0, puck, (0.0, 0.0, 0.0), start + [0.09, 0.0, 0.0])
         assert env.puck_pose(1)[:2] == pytest.approx(start[:2] + [0.09, 0.0], abs=1e-9)
+
+    def test_a_drag_the_mouse_never_made_fires_nothing(self, gestures, recorder, env):
+        """The body moves under a held drag. That is the agent, not the human."""
+        pointer = Pointer(gestures)
+        puck, start = body(env, "puck_2"), self.grip(env, "puck_2")
+        pointer.sample(1, puck, (0.0, 0.0, 0.0), start)
+        env.perturb(2, start[:2] + [0.10, 0.0])  # the world moves it, mid-drag
+        assert pointer.sample(0, puck, (0.0, 0.0, 0.0), start) is None
+        assert recorder.pending == ()
+
+    def test_a_puck_is_placed_from_where_the_drag_began(self, gestures, env):
+        """Not from wherever the puck drifted to while the drag was held."""
+        pointer = Pointer(gestures)
+        puck, start = body(env, "puck_2"), self.grip(env, "puck_2")
+        pointer.sample(1, puck, (0.0, 0.0, 0.0), start)
+        env.perturb(2, start[:2] + [0.10, 0.0])
+        pointer.sample(0, puck, (0.0, 0.0, 0.0), start + [0.0, 0.05, 0.0])
+        assert env.puck_pose(2)[:2] == pytest.approx(start[:2] + [0.0, 0.05], abs=1e-9)
 
     def test_the_struct_as_found_is_not_a_gesture(self, gestures, env):
         """A viewer opened with something already selected has clicked nothing."""
         pointer = Pointer(gestures)
-        puck = body(env, "puck_2")
-        assert pointer.sample(0, puck, (0.0, 0.0, 0.0), env.data.xpos[puck], (0, 0, 0)) is None
+        assert pointer.sample(0, body(env, "puck_2"), (0.0, 0.0, 0.0), (0, 0, 0)) is None
         assert gestures.pointed_at is None
+
+    def test_a_release_is_the_one_gesture_a_sample_can_carry(
+        self, gestures, recorder, env
+    ):
+        """A selection changing under a held drag is a drag ending, not a click."""
+        pointer = Pointer(gestures)
+        puck, start = body(env, "puck_0"), self.grip(env, "puck_0")
+        pointer.sample(0, 0, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
+        pointer.sample(0, puck, (0.0, 0.0, 0.0), start)  # the pick: points at it
+        pointer.sample(1, puck, (0.0, 0.0, 0.0), start + [0.05, 0.0, 0.0])
+        event = pointer.sample(0, 0, zone_point(1), start + [0.05, 0.0, 0.0])
+        assert event.kind is EventKind.PERTURB
+        assert [marker.kind for marker in recorder.pending] == [EventKind.PERTURB]
 
     def test_one_stream_carries_a_pick_and_a_drag_and_a_pick(
         self, gestures, recorder, env
     ):
-        """`08`'s events 2 and 3, as one motion continued: shove it, then reassign it."""
+        """`08`'s events 2 and 3, as one motion continued: shove it, reassign it."""
         pointer = Pointer(gestures)
-        puck = body(env, "puck_0")
-        pointer.sample(0, 0, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
-        here = np.array(env.data.xpos[puck])
-        pointer.sample(0, puck, (0.0, 0.0, 0.0), here, here)  # double-click: the pick
+        puck, here = body(env, "puck_0"), self.grip(env, "puck_0")
+        pointer.sample(0, 0, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
+        pointer.sample(0, puck, (0.0, 0.0, 0.0), here)  # double-click: the pick
         for _ in range(3):
-            pointer.sample(1, puck, (0.0, 0.0, 0.0), env.data.xpos[puck], here + [0.05, 0.0, 0.0])
-        pointer.sample(0, puck, (0.0, 0.0, 0.0), env.data.xpos[puck], here + [0.05, 0.0, 0.0])
-        pointer.sample(0, 0, zone_point(1), zone_point(1), zone_point(1))
-        assert [event.kind for event in recorder.pending] == [
+            pointer.sample(1, puck, (0.0, 0.0, 0.0), here + [0.05, 0.0, 0.0])
+        pointer.sample(0, puck, (0.0, 0.0, 0.0), here + [0.05, 0.0, 0.0])
+        pointer.sample(0, 0, zone_point(1), zone_point(1))
+        assert [marker.kind for marker in recorder.pending] == [
             EventKind.PERTURB,
             EventKind.RETARGET,
         ]

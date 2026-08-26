@@ -54,7 +54,6 @@ import numpy as np
 from patchworks.agent import Agent, run
 from patchworks.sandbox.env import (
     ARM_JOINTS,
-    CONTROL_HZ,
     N_PUCKS,
     N_ZONES,
     ZONE_RADIUS,
@@ -67,6 +66,7 @@ from .record import Event, Recorder, TickRecord
 __all__ = [
     "IMPULSE_PER_METRE",
     "MINIMUM_DRAG",
+    "Drag",
     "Gestures",
     "Pointer",
     "Referent",
@@ -118,6 +118,37 @@ class Referent:
 
 
 _NOTHING = Referent(ReferentKind.NOTHING)
+
+
+@dataclass(frozen=True)
+class Drag:
+    """One completed ctrl-drag, in the terms MuJoCo's perturb struct gives it.
+
+    **`moved` is the mouse's own displacement**, from where the drag was
+    grabbed to where it was let go -- not the gap between the mouse and the
+    body. Those two are the same thing only while the body stands still, and
+    the body here is an arm the agent is driving: hold the mouse dead still for
+    a second over a swinging link and the gap grows to something that would
+    fire a hand nobody pulled. The gap is what MuJoCo draws its perturbation
+    spring across, which is the right thing for a *force* and the wrong thing
+    for a gesture that ends in one impulse.
+
+    :attr:`grip` is where the body has the grabbed point **now**, which is what
+    a Jacobian can be taken at, and :attr:`origin` is where the body itself was
+    when the drag began, which is what a teleport is measured from.
+    """
+
+    body: int
+    """The MuJoCo body that was grabbed. **This is what decides the hand.**"""
+
+    grip: np.ndarray
+    """The grabbed point in world coordinates, as the body holds it now."""
+
+    origin: np.ndarray
+    """Where the body was when the drag began."""
+
+    moved: np.ndarray
+    """How far the drag has pulled since it began."""
 
 
 class Gestures:
@@ -207,14 +238,11 @@ class Gestures:
 
     # -- ctrl-drag: `08` events 1 and 2 ----------------------------------------
 
-    def drag(self, body: int, grip, to) -> Event | None:
+    def drag(self, drag: Drag) -> Event | None:
         """One completed ctrl-drag. The referent alone decides which hand.
 
-        `grip` is the point that was grabbed, in world coordinates, and `to` is
-        where the drag has pulled it -- MuJoCo's own two numbers, the ones the
-        spring in the viewer is drawn between. What comes back is the marker
-        the hand dropped, or `None` for a drag on nothing and for a drag too
-        short to be one (:data:`MINIMUM_DRAG`).
+        What comes back is the marker the hand dropped, or `None` for a drag on
+        nothing and for a drag too short to be one (:data:`MINIMUM_DRAG`).
 
         **A link is nudged, never placed.** `disturb_arm` takes an impulse
         because displacing `qpos` would have the world rewrite the arm's
@@ -228,22 +256,27 @@ class Gestures:
         happens, which is the truth about a hinge rather than a shortcut.
 
         **A puck is placed, never nudged.** `perturb` teleports, so the
-        argument is where the puck ends up: its centre, moved by the same
-        displacement the grip was, which is exactly where the viewer has been
-        drawing it while the drag was held.
+        argument is where the puck ends up: where it was when the drag began,
+        plus how far the drag went -- which is where the viewer has been
+        drawing the ghost of it all the while.
+
+        **Both read the drag in the plane.** This world is planar by
+        construction (`src/patchworks/sandbox/arena.xml`) and both hands take a
+        planar argument, so an out-of-plane pull -- which a camera turned off
+        the top-down view will happily produce -- is not a small gesture but no
+        gesture at all, and firing on one would leave a marker for a teleport
+        to where the puck already was.
         """
-        grip = np.asarray(grip, dtype=np.float64)
-        moved = np.asarray(to, dtype=np.float64) - grip
-        if float(np.linalg.norm(moved)) < MINIMUM_DRAG:
+        moved = drag.moved
+        if float(np.linalg.norm(moved[:2])) < MINIMUM_DRAG:
             return None
-        referent = self.referent(body, grip)
+        referent = self.referent(drag.body, drag.grip)
         if referent.kind is ReferentKind.LINK:
             return self.hands.disturb_arm(
-                referent.index, self._impulse(referent.index, grip, moved)
+                referent.index, self._impulse(referent.index, drag.grip, moved)
             )
         if referent.kind is ReferentKind.PUCK:
-            centre = self.world.data.xpos[int(body)][:2] + moved[:2]
-            return self.hands.perturb(referent.index, centre)
+            return self.hands.perturb(referent.index, (drag.origin + moved)[:2])
         return None
 
     def _impulse(self, joint: int, grip: np.ndarray, moved: np.ndarray) -> float:
@@ -377,7 +410,14 @@ class Pointer:
     ::
 
         pointer = Pointer(gestures)
-        pointer.sample(active=1, select=puck_body, localpos=..., grip=..., to=...)
+        pointer.sample(active=1, select=body, localpos=..., refselpos=...)
+
+    The four arguments are the four fields of :class:`~mujoco.MjvPerturb` that
+    say what the mouse is doing, passed on unread: what was picked, where on it,
+    whether a ctrl-drag is held, and where that drag has pulled the picked point
+    to. Everything else -- where the body is, what the grabbed point is in the
+    world -- is looked up here from the world the hands already reach, because
+    it is a fact about the world rather than about the mouse.
 
     Two state machines, and both exist because a gesture happens over many
     ticks while a hand fires on one.
@@ -388,63 +428,91 @@ class Pointer:
     counting from the last of them, which is to say from nothing
     (`docs/spec/10-the-demo-surface.md`, *Onset, and the near-misses*). So the
     drag is watched while it is held, and the hand fires once, when it ends,
-    with where it ended up. What the human watches in the meantime is MuJoCo's
-    own perturbation spring, which is drawn whether or not anything reads it.
+    with how far the mouse took it. What the human watches in the meantime is
+    MuJoCo's own perturbation spring, which is drawn whether or not anything
+    reads it.
 
     **A pick is an edge.** MuJoCo reports a selection as a state, not an event:
     the struct simply holds whichever body was picked last. A new pick is
-    therefore a *change* in that state, and the change has to be read off the
-    body-local click point rather than the world one -- the world point of a
-    grip on a moving puck changes every tick, and every tick would be a new
-    pick.
+    therefore a *change* in that state, read off the body-local click point --
+    the world point of a grip on a moving puck changes every tick, and every
+    tick would be a new pick.
     """
 
     def __init__(self, gestures: Gestures) -> None:
         self.gestures = gestures
-        self._held: tuple[int, np.ndarray, np.ndarray] | None = None
+        self._grab: tuple[int, np.ndarray, np.ndarray, np.ndarray] | None = None
         self._picked: tuple[int, tuple[float, ...]] | None = None
 
     def __repr__(self) -> str:
-        held = None if self._held is None else self._held[0]
+        held = None if self._grab is None else self._grab[0]
         return f"Pointer(holding={held!r}, picked={self._picked!r})"
 
-    def sample(self, active: int, select: int, localpos, grip, to) -> Event | None:
+    def sample(self, active: int, select: int, localpos, refselpos) -> Event | None:
         """One tick's worth of the perturb struct. At most one hand fires.
 
         `active` is `mjvPerturb.active`, non-zero while a ctrl-drag is held;
-        `select` the picked body; `localpos` the click point in that body's own
-        frame; `grip` that same point in the world, and `to` where the drag has
-        pulled it (`mjvPerturb.refselpos`).
+        `select` the picked body, which MuJoCo documents as **non-positive for
+        none** -- so nothing but a real body is grabbed, read or indexed with.
+        Nothing outside can tell the difference, since a referent no hand takes
+        fires no hand either way; what the guard stops is a `-1` wrapping round
+        `xpos` into a grip point on the last body in the arena, which would be
+        an answer rather than a refusal. Untested for exactly that reason.
+        `localpos` is the click point in that body's own frame, and `refselpos`
+        where the drag has pulled it.
 
-        A pick and a drag-release cannot both be new on one tick -- a release
-        is not a click -- so the order they are checked in decides nothing.
+        A release wins over a pick. The one sample that can look like both is a
+        selection changing under a held drag, which is not two gestures one
+        mouse can make: it is a drag ending.
         """
         select = int(select)
-        picked = (select, tuple(float(v) for v in localpos))
+        localpos = np.asarray(localpos, dtype=np.float64)
+        refselpos = np.asarray(refselpos, dtype=np.float64)
+        picked = (select, tuple(float(value) for value in localpos))
+
         fired: Event | None = None
+        if not active or select <= 0:
+            fired = self._release(refselpos)
+        elif self._grab is None or self._grab[0] != select:
+            fired = self._release(refselpos)
+            # Where the body was, and where it had the grabbed point, at the
+            # moment of the grab. MuJoCo sets `refselpos` to that same grabbed
+            # point when a drag begins, so the gap between the two from here on
+            # is the mouse's own travel and nothing else.
+            self._grab = (
+                select,
+                np.array(self.gestures.world.data.xpos[select]),
+                self._point(select, localpos),
+                localpos,
+            )
 
-        if self._picked is not None and picked != self._picked:
-            fired = self.gestures.pick(select, grip)
+        if fired is None and self._picked is not None and picked != self._picked:
+            fired = self.gestures.pick(select, self._point(select, localpos))
         self._picked = picked
-
-        if active:
-            held = self._held
-            if held is not None and held[0] != select:
-                # The selection moved while a drag was held, which is not a
-                # gesture anybody can make with one mouse -- but if it happens,
-                # the drag that was in flight is the one that has ended.
-                fired = self._release() or fired
-            self._held = (select, np.asarray(grip, dtype=np.float64), np.asarray(to, dtype=np.float64))
-        elif self._held is not None:
-            fired = self._release() or fired
         return fired
 
-    def _release(self) -> Event | None:
-        held, self._held = self._held, None
-        if held is None:
+    def _release(self, refselpos: np.ndarray) -> Event | None:
+        """The drag in flight, if there is one, ending where the mouse is now."""
+        grab, self._grab = self._grab, None
+        if grab is None:
             return None
-        body, grip, to = held
-        return self.gestures.drag(body, grip, to)
+        body, origin, grabbed, localpos = grab
+        return self.gestures.drag(
+            Drag(
+                body=body,
+                grip=self._point(body, localpos),
+                origin=origin,
+                moved=refselpos - grabbed,
+            )
+        )
+
+    def _point(self, body: int, localpos: np.ndarray) -> np.ndarray:
+        """A body-local click point, in the world. The world body's frame is
+        the world's, so a pick that named no body reads as the point itself."""
+        if body <= 0:
+            return localpos
+        data = self.gestures.world.data
+        return data.xpos[body] + data.xmat[body].reshape(3, 3) @ localpos
 
 
 def drive(
@@ -503,15 +571,21 @@ def drive(
     gestures = gestures if gestures is not None else Gestures(Hands(recorder))
     pointer = Pointer(gestures)
     keys: deque[int] = deque()
-    period = 1.0 / CONTROL_HZ
+    # How long a tick actually lasts, from the world's own two numbers rather
+    # than from the nominal rate: `frame_skip` is a knob, and the env already
+    # adjusts its advertised frame rate for it.
+    period = world.model.opt.timestep * world.frame_skip
 
     with mujoco.viewer.launch_passive(
         world.model, world.data, key_callback=keys.append
     ) as viewer:
-        viewer.cam.lookat[:] = [0.0, 0.0, 0.0]
-        viewer.cam.distance = 1.6
-        viewer.cam.elevation = -90.0
-        viewer.cam.azimuth = 90.0
+        # Under the lock like every other write to state the render thread
+        # reads: the camera is read every frame it draws.
+        with viewer.lock():
+            viewer.cam.lookat[:] = [0.0, 0.0, 0.0]
+            viewer.cam.distance = 1.6
+            viewer.cam.elevation = -90.0
+            viewer.cam.azimuth = 90.0
         last = time.time()
         for _outcome in run(agent, ticks, seed=seed):
             record = recorder.observe()
@@ -523,14 +597,16 @@ def drive(
 
             while keys:
                 gestures.key(keys.popleft())
+            # Under the lock as well, and for a second reason: a hand that fires
+            # here writes to the same `MjData` the render thread is reading.
             with viewer.lock():
                 perturb = viewer.perturb
-                select = int(perturb.select)
-                localpos = np.array(perturb.localpos)
-                to = np.array(perturb.refselpos)
-                active = int(perturb.active)
-            grip = world.data.xpos[select] + world.data.xmat[select].reshape(3, 3) @ localpos
-            pointer.sample(active, select, localpos, grip, to)
+                pointer.sample(
+                    int(perturb.active),
+                    int(perturb.select),
+                    np.array(perturb.localpos),
+                    np.array(perturb.refselpos),
+                )
             world.data.xfrc_applied[:] = 0.0
 
             if realtime:
