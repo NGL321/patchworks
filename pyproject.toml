@@ -28,6 +28,12 @@ dependencies = [
     "numpy<2",
 ]
 
+[project.scripts]
+# The one entry point (#119). `python -m patchworks` reaches the same
+# dispatcher; this is the route that needs no PYTHONPATH and no memory of a
+# module path, which is the whole reason the ticket exists.
+patchworks = "patchworks.cli:main"
+
 [project.optional-dependencies]
 # Test-only, and deliberately not in `dependencies` above: nothing under
 # `src/patchworks` imports either of these, and installing patchworks does not
