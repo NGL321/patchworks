@@ -468,20 +468,33 @@ class TestTheObjectiveExcludesTheTrivialSolution:
         # At the meeting point the numerator contributes nothing -- its own
         # gradient is `0/‖0‖` -- so the whole residue is the denominator term,
         # `√NORM_FLOOR / (‖probe‖ + ‖agreed‖)²`, which is
-        # `√NORM_FLOOR / (2‖agreed‖)²`. The tolerance is that expression and
-        # not a chosen number: `√NORM_FLOOR` is the floor's size *in the norm
+        # `√NORM_FLOOR / (2‖agreed‖)²`. That is an equality and not an
+        # estimate, exact to sixteen digits at every scale and in every
+        # direction, so it is asserted as one: an inequality with headroom
+        # would pass on any residue smaller than the bound and hold down
+        # nothing about where the residue comes from. `abs=0.0` because the
+        # expected value here is `1e-13` and smaller, under `approx`'s own
+        # default absolute tolerance of `1e-12` -- left at the default, this
+        # line would accept a residue of exactly zero, which is the fixed point
+        # it exists to deny.
+        assert taken[0] == pytest.approx(
+            NORM_FLOOR**0.5 / (2 * norm) ** 2, rel=1e-9, abs=0.0
+        )
+        # The size of it, which is the separate claim and the one the record
+        # fixes. `√NORM_FLOOR = 1e-12` is the floor's size *in the norm
         # itself*, which is what ADR-0007's "the floor means zero is never
-        # reached" amounts to in this implementation, and dividing by
-        # `‖agreed‖²` rather than `(2‖agreed‖)²` makes the `2` the whole of the
-        # headroom -- a factor of four on a quantity that comes out exact to
-        # sixteen digits at every scale and in every direction.
+        # reached" comes to in this implementation; per unit of `‖agreed‖²`
+        # that leaves `1e-13` of gradient, the figure this test has always
+        # quoted, and the four is the `2` above spent as headroom. Written out
+        # rather than read from `NORM_FLOOR` on purpose: the line above moves
+        # with the constant, and this one has to go red when it moves.
         #
-        # The residue is `1e-13` of gradient in double at `‖agreed‖ ≈ 1`, and
-        # the same `1e-13` at the precision the rule ships in: `‖agreed‖²` is
-        # far enough above `NORM_FLOOR` that float32 rounds the denominator's
-        # two square roots to `‖agreed‖` exactly, leaving the identical
-        # quotient. Negligible either way, but not zero -- the whole point.
-        assert taken[0] < NORM_FLOOR**0.5 / norm**2
+        # `1e-13` in double, and the same `1e-13` at the precision the rule
+        # ships in -- `‖agreed‖²` sits far enough above `NORM_FLOOR` that
+        # float32 rounds the denominator's two square roots to `‖agreed‖`
+        # exactly and leaves the identical quotient. Negligible either way,
+        # but not zero, which is the whole of the point.
+        assert taken[0] < 1e-12 / norm**2
         # One step off it, a full-size step: `1/(‖F x‖ + ‖y‖)` per
         # `NORM_FLOOR`'s own comment, so `1/(2‖agreed‖)` here. The largest rung
         # displaces by `0.2‖agreed‖`, so the triangle inequality holds every
