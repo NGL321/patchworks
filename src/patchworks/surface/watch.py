@@ -88,11 +88,12 @@ from .onset import OnsetCounter
 from .private_component import PrivateComponentPanel
 from .record import CAPTURE_HZ, Recorder, TickRecord, Trace
 from .renderer import Renderer
-from .window import FrameWindow, open_window
+from .window import FrameWindow, check_scale, open_window
 
 __all__ = [
     "DEFAULT_SCALE",
     "check_capture",
+    "hold_open",
     "compose",
     "frame_size",
     "live",
@@ -243,6 +244,30 @@ def show(
         window.show(frame)
 
 
+def hold_open(window: FrameWindow, hold: bool, ended: str) -> None:
+    """Leave the last frame up until a human closes the window, and say so.
+
+    **Only if a frame ever reached it.** The child opens no window until the
+    first frame arrives -- it is the frame that says how big the window should
+    be -- so a run that drew nothing has nothing on screen to hold, and waiting
+    on that child would be a command sitting silent with no window and no way
+    out but ctrl-C. Reachable on the defaults: fewer ticks than the capture
+    interval, an empty trace, or a panel that refused its very first record and
+    closed itself while the feed drained past it.
+
+    What it says in that case is what happened, because a display that draws
+    nothing and reports nothing is the failure this whole ticket exists about.
+    """
+    if window.closed:
+        return
+    if not window.shown:
+        print(f"{ended}, and nothing was drawn -- the panel window never opened.")
+        return
+    if hold:
+        print(f"{ended}; close the panel window to finish.")
+        window.wait()
+
+
 def paced(feed: Iterable[TickRecord], fps: float) -> Iterator[TickRecord]:
     """`feed`, slowed to `fps` records a second. `fps <= 0` is as fast as it comes.
 
@@ -299,6 +324,7 @@ def live(
     `--seed` names the whole run: the same seed gives the same body, the same
     biases and therefore the same trail on replay.
     """
+    check_scale(scale)
     dome = build_graph(spec)
     check_capture(capture, dome)
     world = PlanarPushSandbox(split=split)
@@ -331,9 +357,7 @@ def live(
                 # case a human meant to stop watching rather than to discard it.
                 if save is not None:
                     print(f"trace written to {recorder.trace.save(save)}")
-            if hold and not window.closed:
-                print("the run has ended; close the panel window to finish.")
-                window.wait()
+            hold_open(window, hold, "the run has ended")
     finally:
         world.close()
 
@@ -362,6 +386,7 @@ def replay(
     boundary band draws the scene and a record holds state rather than frames --
     the scratch world it owns is the one the record restores into.
     """
+    check_scale(scale)
     dome = build_graph(spec)
     check_capture(capture, dome)
     sheaf = Sheaf(dome, generator=torch.Generator().manual_seed(seed))
@@ -382,9 +407,7 @@ def replay(
             scene=scene.frame,
             since=OnsetCounter().count,
         )
-        if hold and not window.closed:
-            print(f"replayed {len(trace)} records; close the panel window to finish.")
-            window.wait()
+        hold_open(window, hold, f"replayed {len(trace)} records")
 
 
 def main(argv: list[str] | None = None) -> None:

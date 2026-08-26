@@ -312,6 +312,37 @@ class TestTheFrameStreamRoundTrips:
             open_window(0, 4)
 
 
+class TestTheFrameIsFittedToTheWindowWithoutFallingOutOfIt:
+    """The blit's arithmetic, which is the half of it a display is not needed for.
+
+    OpenGL marks a raster position outside the view volume invalid and then
+    ignores the whole `glDrawPixels` -- a black window and no error anywhere --
+    so a coordinate a hair past `-1` is a panel that silently stops drawing.
+    """
+
+    def test_the_raster_position_never_leaves_the_view_volume(self):
+        """Swept, because the overshoot is an ulp and lands on some widths only.
+
+        `width * (fb_width / width)` can exceed `fb_width`, which puts the left
+        edge very slightly below zero and the coordinate below `-1`. A window
+        480 across at a framebuffer of 962 is one of the widths where it does,
+        and a handful in every hundred are -- which is why this sweeps rather
+        than picking the one that was found.
+        """
+        for fb_width in range(1, 2000):
+            for fb_height in (1, 3, 1080, 4000):
+                _zoom, x, y = window_module.fitted(424, 480, fb_width, fb_height)
+                where = f"{fb_width}x{fb_height}"
+                assert -1.0 <= x <= 1.0, f"x = {x!r} at {where}"
+                assert -1.0 <= y <= 1.0, f"y = {y!r} at {where}"
+
+    def test_an_exact_fit_starts_at_the_top_left_corner(self):
+        """The common case, and the one the orientation depends on."""
+        zoom, x, y = window_module.fitted(40, 24, 48, 80)
+        assert zoom == 2.0
+        assert (x, y) == (-1.0, 1.0)
+
+
 class TestTheRunNeverWaitsOnTheDisplay:
     def test_a_frame_handed_over_while_one_is_in_flight_replaces_it(self):
         """The mailbox is one deep: a slow window costs frames, never ticks."""
@@ -619,6 +650,21 @@ def scene_window(monkeypatch):
     return handles
 
 
+class Held(FrameWindow):
+    """A window that counts how long it was asked to stay open, and never does.
+
+    :meth:`FrameWindow.wait` blocks on a child exiting, and a test that let it
+    would be a test that hangs -- which is the very failure being asserted
+    against. So the wait is counted instead of taken.
+    """
+
+    waits = 0
+
+    def wait(self, timeout=None):
+        self.waits += 1
+        return True
+
+
 @pytest.fixture
 def panel_window(monkeypatch):
     """`open_window`, with a pipe where the child process would be."""
@@ -626,8 +672,9 @@ def panel_window(monkeypatch):
 
     def open_window(height, width, *, title="patchworks", scale=2):
         pipe = Pipe()
+        pipe.window = Held(pipe.write, height, width)
         opened.append(pipe)
-        return FrameWindow(pipe.write, height, width)
+        return pipe.window
 
     monkeypatch.setattr(watch_module, "open_window", open_window)
     return opened
@@ -681,6 +728,28 @@ class TestTheTwoEntryPointsDrawTheRun:
         with pytest.raises(ValueError, match="patch lattice"):
             live(ticks=12, capture=100)
         assert scene_window == [] and panel_window == []
+
+    def test_a_run_that_drew_nothing_holds_no_window(
+        self, scene_window, panel_window
+    ):
+        """Otherwise the command sits forever on a window that never opened.
+
+        The child creates no window until the first frame arrives -- the frame
+        is what says how big it should be -- so waiting on it after a run that
+        drew nothing is a wait nothing can end. `--ticks 4` reaches it on the
+        defaults: a capture is one tick in five and the first primes.
+        """
+        live(ticks=4, split="any", hold=True)
+        pipe = panel_window[0]
+        assert pipe.window.shown == 0
+        assert pipe.window.waits == 0, "held a window that never opened"
+
+    def test_a_run_that_drew_something_does_hold_it(self, scene_window, panel_window):
+        """The other half: `hold` is the default and it has to mean something."""
+        live(ticks=12, split="any", hold=True)
+        pipe = panel_window[0]
+        assert pipe.window.shown > 0
+        assert pipe.window.waits == 1
 
     def test_an_interrupted_run_still_leaves_its_trace(
         self, scene_window, panel_window, tmp_path, monkeypatch

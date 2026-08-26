@@ -87,6 +87,8 @@ __all__ = [
     "MAGIC",
     "FrameWindow",
     "check_frame",
+    "check_scale",
+    "fitted",
     "frames",
     "open_window",
     "serve",
@@ -129,6 +131,54 @@ def check_frame(height: int, width: int) -> None:
             "a frame stream carries a shape in two 16-bit fields, so a frame is "
             f"at most 65535 pixels each way; got {height}x{width}"
         )
+
+
+def check_scale(scale: int) -> None:
+    """Refuse a window magnification that is not a whole number of pixels.
+
+    Separate from :func:`open_window` so a caller can refuse it **before** it
+    builds a world, an agent and a renderer for a window that will not open --
+    which is what :func:`patchworks.surface.watch.live` does with it.
+    """
+    if isinstance(scale, bool) or not isinstance(scale, int) or scale < 1:
+        raise ValueError(
+            "a window opens at a whole number of screen pixels per frame pixel, at "
+            f"least 1; got {scale!r}"
+        )
+
+
+def fitted(
+    height: int, width: int, fb_width: int, fb_height: int
+) -> tuple[float, float, float]:
+    """`(zoom, x, y)` placing a `height x width` frame in a framebuffer.
+
+    The whole of :func:`_blit`'s arithmetic, out here where it can be tested
+    without a display: `zoom` is the pixel zoom, and `(x, y)` is the raster
+    position of the frame's **top left** corner in normalised device
+    coordinates, which is where a row-0-first image starts.
+
+    Fitted rather than stretched, and centred in whichever axis has room: the
+    aspect ratio is the panel's layout, so a window the human has made the wrong
+    shape letterboxes rather than lying about where a mark sits.
+
+    **The coordinates are clamped into `[-1, 1]`, and that is load-bearing.**
+    OpenGL marks a raster position outside the view volume *invalid* and then
+    ignores the `glDrawPixels` entirely -- a black window, no error anywhere.
+    Un-clamped, `width * (fb_width / width)` overshoots `fb_width` by an ulp for
+    a few framebuffer widths in a hundred, which puts `x` at
+    `-1.0000000000000002` and blanks the panel. It only bites once a human has
+    resized the window, which is exactly the case the fit exists for.
+    """
+    zoom = min(fb_width / width, fb_height / height)
+    across, down = width * zoom, height * zoom
+    left = max(0.0, (fb_width - across) / 2.0)
+    bottom = max(0.0, (fb_height - down) / 2.0)
+    top = min(float(fb_height), bottom + down)
+    return (
+        zoom,
+        min(max(2.0 * left / fb_width - 1.0, -1.0), 1.0),
+        min(max(2.0 * top / fb_height - 1.0, -1.0), 1.0),
+    )
 
 
 def _read_exactly(stream: BinaryIO, count: int) -> bytes | None:
@@ -218,6 +268,8 @@ class FrameWindow:
         self.width = width
         self.dropped = 0
         """Frames :meth:`show` was handed while an unsent one was still waiting."""
+        self.shown = 0
+        """Frames :meth:`show` accepted -- so `0` means no window ever opened."""
         self._stream = stream
         self._process = process
         self._grace = grace
@@ -289,6 +341,7 @@ class FrameWindow:
                 return
             if self._pending is not None:
                 self.dropped += 1
+            self.shown += 1
             self._pending = payload
             self._state.notify()
 
@@ -417,11 +470,7 @@ def open_window(
     # spawned and then abandoned by a raise holds a pipe nobody has a reference
     # to, and only closes when the garbage collector reaches it.
     check_frame(height, width)
-    if isinstance(scale, bool) or not isinstance(scale, int) or scale < 1:
-        raise ValueError(
-            "a window opens at a whole number of screen pixels per frame pixel, at "
-            f"least 1; got {scale!r}"
-        )
+    check_scale(scale)
     command = [
         executable or sys.executable,
         os.path.abspath(__file__),
@@ -558,17 +607,13 @@ def _blit(GL, glfw, window, frame: np.ndarray) -> None:
     fb_width, fb_height = glfw.get_framebuffer_size(window)
     if fb_width < 1 or fb_height < 1:
         return
-    zoom = min(fb_width / width, fb_height / height)
-    across, down = width * zoom, height * zoom
-    left, bottom = (fb_width - across) / 2.0, (fb_height - down) / 2.0
+    zoom, x, y = fitted(height, width, fb_width, fb_height)
     GL.glViewport(0, 0, fb_width, fb_height)
     GL.glClearColor(0.0, 0.0, 0.0, 1.0)
     GL.glClear(GL.GL_COLOR_BUFFER_BIT)
     GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
     GL.glPixelZoom(zoom, -zoom)
-    GL.glRasterPos2f(
-        2.0 * left / fb_width - 1.0, 2.0 * (bottom + down) / fb_height - 1.0
-    )
+    GL.glRasterPos2f(x, y)
     GL.glDrawPixels(width, height, GL.GL_RGB, GL.GL_UNSIGNED_BYTE, frame)
     glfw.swap_buffers(window)
 
