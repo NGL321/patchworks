@@ -600,9 +600,10 @@ class TestBothChecksRunInCI:
     And these checks read lines rather than parsed YAML, so a spelling of a
     key that no text match recognises gets past them until a clause is added
     for it. Two are closed in `block` — the flow mapping and the quoted key —
-    and **four are open, every one of them reproduced**. Each of these,
-    written under the job and carrying `PYTEST_ADDOPTS: -k nothing`, passes
-    all five assertions here while reaching the step:
+    and **five are open, every one of them reproduced**. Four are spellings of
+    the key itself. Each of these, written under the job and carrying
+    `PYTEST_ADDOPTS: -k nothing`, passes all five assertions here while
+    reaching the step:
 
         env:  # any trailing comment at all
         env :
@@ -610,10 +611,21 @@ class TestBothChecksRunInCI:
         ? env
         :
 
+    The fifth is the whitespace after a sequence item's dash. `block` strips
+    the exact text `- `, so a gate written with any other separation is left
+    unnormalised and reaches the checks in a spelling they do not match:
+
+        -  if: false
+           name: Run tests
+
+    Two spaces rather than one — and a tab does it too. Both are ordinary
+    YAML, and the step is skipped with all five assertions green.
+
     They are left open on purpose, and #109 escalates them rather than adding
-    a clause for each. Three of the four were found in a single review round,
-    after two earlier rounds had each closed one, which is the answer to
-    whether reading lines can be finished by adding clauses. It cannot: these
+    a clause for each. Three were found in a single review round, and the
+    fifth in the round after that, each round following one that had closed
+    the spelling before it. That is the answer to whether reading lines can be
+    finished by adding clauses. It cannot: these
     checks match key text, YAML has more ways to spell a key than anyone
     enumerates in advance, and each clause added leaves this file reading more
     finished than it is. The repair is to parse the workflow, which is immune
@@ -624,16 +636,18 @@ class TestBothChecksRunInCI:
 
     **Which is how the list below should be read.** These five assertions hold
     down every route that does not turn on a novel spelling of a key. That is
-    the thirty-seven named here, each one kill-tested on its own — written
+    the thirty-eight named here, each one kill-tested on its own — written
     into this repository, the five assertions run against it, and the route
-    caught. It is not every route there is, and the four spellings above are
+    caught. It is not every route there is, and the five spellings above are
     the ones known to be outside it.
 
-    The thirty-seven, by where they reach. **The invocation**, five: `-k`, a
+    The thirty-eight, by where they reach. **The invocation**, five: `-k`, a
     positional path, `--collect-only`, `|| true`, `python -m pytest`. **A gate
     on the step**, four: `continue-on-error` and a step-level `if:`, each as
     an ordinary key *and as a sequence item's first key*, where the leading
-    `- ` would hide it from a naive match. **The environment**, four:
+    `- ` would hide it from a naive match — with the one space this workflow
+    and YAML's own style use, which is the spelling that is closed. **The
+    environment**, four:
     `PYTEST_ADDOPTS` in the step's `env:`, in a job-level `env:` written
     *after* `steps:`, in a workflow-level `env:` above `jobs:`, and in a
     job-level flow mapping, `env: {PYTEST_ADDOPTS: …}` — those last three
@@ -647,14 +661,16 @@ class TestBothChecksRunInCI:
     `pyproject.toml`. **A file that outranks or rivals that table**, six —
     `pytest.toml`, `.pytest.toml`, `pytest.ini`, `.pytest.ini`, `tox.ini`,
     `setup.cfg` — each carrying a narrowing configuration. And **a
-    `conftest.py` narrowing collection**, nine: in `tests/conftest.py`, a
+    `conftest.py` narrowing collection**, ten: in `tests/conftest.py`, a
     `collect_ignore`, a `collect_ignore_glob`, a `pytest_ignore_collect` and a
     `pytest_collection_modifyitems`; that last hook again in a sub-directory
     of `tests`, where it is handed the whole item list just the same; either
     hook reached by `import` rather than by `def`; the star import that binds
-    one while naming nothing; and a root `conftest.py`.
+    one while naming nothing; a `match` statement's capture pattern, which
+    binds the hook name without an assignment anywhere; and a root
+    `conftest.py`.
 
-    All thirty-seven fail here. A fixtures-only `conftest.py` — the one shape
+    All thirty-eight fail here. A fixtures-only `conftest.py` — the one shape
     of that file which narrows nothing — still passes, `tests/conftest.py` as
     #110 wrote it included. So does a harmless `-q` *not*: the cost of the
     design is that a benign edit to the invocation has to come with an edit to
@@ -712,6 +728,20 @@ class TestBothChecksRunInCI:
         leading `- ` of a sequence item is stripped too: YAML lets any mapping
         key go first in a sequence item, so `- if:` and `if:` are the same key
         and a check that only knew the second spelling would miss the first.
+        **Exactly that text, one space** — `-  if:` and a tab after the dash
+        are the same key again and are not normalised here. That is the fifth
+        open spelling the class docstring records, and it is open for the
+        reason the other four are, not because a wider strip would be hard.
+
+        Stripping the dash also leaves the recorded depth two columns left of
+        the item's own siblings, since the depth is the line's raw indent. So
+        a step that put `env:` first — `- env:` — would have its `name:` and
+        `run:` read as nested under that `env:`, and
+        `test_nothing_reaches_the_run_through_its_environment` would fail on a
+        reflow that narrows nothing, blaming the environment. It fails closed,
+        which is the safe direction, and it is listed here rather than fixed
+        because the fix and the strip above are one decision about how this
+        helper normalises a sequence item — the decision #109 escalates.
 
         Two spellings are refused outright rather than parsed, because each
         writes a key the checks below would not recognise as that key -- and
@@ -733,10 +763,11 @@ class TestBothChecksRunInCI:
         halves of that distinction down.
 
         **These are a class rather than a list, and reading lines cannot
-        finish it.** Four more spellings are open, three of them found in a
-        single review round after the two above were closed. The class
-        docstring lists them, and makes the argument they add up to: parse the
-        file rather than add a clause here for each.
+        finish it.** Five more spellings are open: three found in a single
+        review round after the two above were closed, and one more in the
+        round after that. The class docstring lists them, and makes the
+        argument they add up to: parse the file rather than add a clause here
+        for each.
         """
         lines = self.lines
         block = []
@@ -800,6 +831,20 @@ class TestBothChecksRunInCI:
 
         A star import binds whatever the imported module holds, which cannot be
         read off this file, and is recorded as `*` for the caller to refuse.
+
+        **This list is finishable, and that is why it is a list.** The spellings
+        `block` refuses are YAML key text, which nothing enumerates in advance;
+        the binding forms here are Python grammar, which `ast` enumerates for
+        us. So they are all named rather than sampled: the three statements
+        above, a `Name` in `Store` context — which covers assignment, `for`,
+        `with … as`, and the walrus — an import alias, the three capture
+        patterns of a `match` statement, and an `except … as`. A capture
+        pattern is the one that matters: `case pytest_ignore_collect:` binds
+        that name at module scope and pytest reads the hook, which a walk over
+        `Name` nodes never sees, because `MatchAs.name` is a bare string rather
+        than a node. The `except … as` name is unbound again at the end of its
+        handler and so cannot carry a hook; it is refused anyway, because the
+        caller's rule is about the prefix rather than about reachability.
         """
         names = set()
         for node in ast.walk(ast.parse(source)):
@@ -809,6 +854,11 @@ class TestBothChecksRunInCI:
                 names.add(node.id)
             elif isinstance(node, ast.alias):
                 names.add(node.asname or node.name.split(".")[0])
+            elif isinstance(node, (ast.MatchAs, ast.MatchStar, ast.ExceptHandler)):
+                if node.name:
+                    names.add(node.name)
+            elif isinstance(node, ast.MatchMapping) and node.rest:
+                names.add(node.rest)
         return names
 
     def test_the_workflow_runs_on_every_push(self):
@@ -956,3 +1006,72 @@ class TestTheWorkflowReaderRefusesKeysRatherThanQuotes:
             reader = self.reader(tmp_path, f"jobs:\n  test:\n    {spelling}\n")
             with pytest.raises(AssertionError, match="quoted key"):
                 reader.block("jobs")
+
+
+class TestEveryBindingFormIsRead:
+    """`names_bound_by` reads every form the Python grammar binds a name with.
+
+    A companion to :class:`TestTheWorkflowReaderRefusesKeysRatherThanQuotes`,
+    and the counterpart to what the class docstring escalates. The YAML
+    spellings `block` matches cannot be enumerated in advance; the binding
+    forms here can, because `ast` is a closed grammar, so this is a list that
+    can be finished and a test that can check it is.
+
+    The one that carries a hook is the `match` capture pattern:
+    `case pytest_ignore_collect:` binds that name at module scope and pytest
+    reads the hook off it, while `ast.MatchAs.name` is a bare string that no
+    walk over `Name` nodes ever reaches.
+    """
+
+    def bound(self, source):
+        return TestBothChecksRunInCI().names_bound_by(source)
+
+    def test_a_match_capture_pattern_binds_the_name_it_writes(self):
+        # The live route: pytest honours a hook bound this way -- verified by
+        # running a `conftest.py` of exactly this shape against a two-file
+        # suite and watching one file go uncollected.
+        source = (
+            "from _hooks import hook\n"
+            "match hook:\n"
+            "    case pytest_ignore_collect:\n"
+            "        pass\n"
+        )
+        assert "pytest_ignore_collect" in self.bound(source)
+
+    def test_the_other_capture_patterns_bind_too(self):
+        # A sequence pattern's rest and a mapping pattern's rest are the same
+        # binding written two other ways.
+        assert "pytest_a" in self.bound(
+            "match x:\n    case [*pytest_a]:\n        pass\n"
+        )
+        assert "pytest_b" in self.bound(
+            "match x:\n    case {1: v, **pytest_b}:\n        pass\n"
+        )
+
+    def test_an_except_handler_binds_its_name(self):
+        # Unbound again at the end of the handler, so it cannot carry a hook.
+        # Read anyway: the caller's rule is about the prefix, not reachability.
+        source = "try:\n    pass\nexcept ValueError as pytest_c:\n    pass\n"
+        assert "pytest_c" in self.bound(source)
+
+    def test_the_forms_that_were_already_read_still_are(self):
+        source = (
+            "import pytest_plugin_one\n"
+            "from _hooks import pytest_ignore_collect\n"
+            "def pytest_collection_modifyitems(config, items): pass\n"
+            "class pytest_klass: pass\n"
+            "pytest_assigned = 1\n"
+            "for pytest_loop in ():\n"
+            "    pass\n"
+            "with open('x') as pytest_ctx:\n"
+            "    pass\n"
+        )
+        assert {
+            "pytest_plugin_one",
+            "pytest_ignore_collect",
+            "pytest_collection_modifyitems",
+            "pytest_klass",
+            "pytest_assigned",
+            "pytest_loop",
+            "pytest_ctx",
+        } <= self.bound(source)
