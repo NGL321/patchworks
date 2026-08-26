@@ -19,7 +19,7 @@ import pytest
 import torch
 
 from patchworks.body import CellBiases
-from patchworks.graph import DomeSpec, build_graph
+from patchworks.graph import build_graph
 from patchworks.learning import (
     DEFAULT_LEARNING_RATE,
     BiasRule,
@@ -29,16 +29,7 @@ from patchworks.learning import (
 )
 from patchworks.tick import Sheaf
 
-# The same small dome tests/test_tick.py runs on: small enough to take a
-# gradient cell by cell, built by the same rules as the real one.
-SMALL = DomeSpec(
-    patch_grid=4,
-    vision_sides=(2,),
-    somatomotor_sizes=(4,),
-    core_sizes=(4, 3),
-    core_degree=4,
-    apex_degree=3,
-)
+from conftest import SMALL
 
 BIAS_NAMES = {
     f"biases.{name}_{role}_bias"

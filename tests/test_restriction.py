@@ -8,19 +8,10 @@ here trains anything; the transport rule is #89's.
 import pytest
 import torch
 
-from patchworks.graph import DomeSpec, build_graph
+from patchworks.graph import build_graph
 from patchworks.restriction import GAUGE_RHO, RestrictionMaps, pair_index
 
-# A dome small enough to iterate over in a test, built by the same rules as the
-# real one: a taper from a sensory tiling through a vision lattice to a core.
-SMALL = DomeSpec(
-    patch_grid=4,
-    vision_sides=(2,),
-    somatomotor_sizes=(4,),
-    core_sizes=(4, 3),
-    core_degree=4,
-    apex_degree=3,
-)
+from conftest import SMALL
 
 
 @pytest.fixture

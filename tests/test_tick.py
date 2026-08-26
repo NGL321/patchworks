@@ -20,7 +20,7 @@ import torch
 
 from patchworks import tick
 from patchworks.body import CellBiases, CellBody
-from patchworks.graph import DomeSpec, EdgeKind, build_graph
+from patchworks.graph import EdgeKind, build_graph
 from patchworks.restriction import GAUGE_RHO, RestrictionMaps, pair_index
 from patchworks.tick import (
     DEFAULT_GAMMA,
@@ -29,16 +29,7 @@ from patchworks.tick import (
     reconciliation_gain,
 )
 
-# Small enough to iterate over cell by cell, built by the same rules as the
-# real dome (see tests/test_restriction.py).
-SMALL = DomeSpec(
-    patch_grid=4,
-    vision_sides=(2,),
-    somatomotor_sizes=(4,),
-    core_sizes=(4, 3),
-    core_degree=4,
-    apex_degree=3,
-)
+from conftest import SMALL
 
 
 class Poisoned:

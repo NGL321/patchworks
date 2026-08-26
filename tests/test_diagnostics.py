@@ -36,20 +36,11 @@ from patchworks.diagnostics import (
     WholeGraphReading,
     topology_only_h1,
 )
-from patchworks.graph import DomeSpec, build_graph
+from patchworks.graph import build_graph
 from patchworks.restriction import pair_index
 from patchworks.tick import Sheaf
 
-# The same small dome tests/test_tick.py, tests/test_learning.py and
-# tests/test_transport_rule.py run on, built by the same rules as the real one.
-SMALL = DomeSpec(
-    patch_grid=4,
-    vision_sides=(2,),
-    somatomotor_sizes=(4,),
-    core_sizes=(4, 3),
-    core_degree=4,
-    apex_degree=3,
-)
+from conftest import SMALL
 
 
 @pytest.fixture
