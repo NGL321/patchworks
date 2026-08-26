@@ -567,6 +567,18 @@ def normalised_l1(maps: torch.Tensor, permitted: torch.Tensor) -> torch.Tensor:
     ceiling* still varies by `√(1 − 1/8) / √(1 − 1/384) = 6.8%` across this
     dome's mask sizes, at an extreme the maps do not occupy.
 
+    That line is the identity **without** :data:`NORM_FLOOR`, which is the form
+    ADR-0010 argues from and is exact only as `‖F‖_F` stays clear of the floor.
+    Since :func:`_norm` gives `n = √(FᵀF + NORM_FLOOR)` rather than `‖F‖_F`, the
+    gradient this function actually has is `√(1 − h²(1 + NORM_FLOOR/n²)) / n`
+    (#115) — a relative `NORM_FLOOR/(2‖F‖_F²(1 − h²))`, so `1/‖F‖_F²` and not
+    `1/‖F‖_F`. It reaches `1e-9` around `‖F‖_F ≈ 4e-8` and a factor of two by
+    `1e-12`. **Anywhere in the gauge band the two forms agree to `1e-24`**, so
+    nothing above reads differently for a map the projection has touched; the
+    correction is what an analytic reference has to carry if it is checked far
+    below the band, as `tests/test_transport_rule.py` does. `p` is absent from
+    the corrected form too, which is why the claim above survives it intact.
+
     The quantity `h` itself is Hoyer's sparseness ratio, normalised for exactly
     this reason: to be comparable across dimensions. It runs `1/√p` for a map
     on one direction to `1` for a flat one, so **smaller is sparser** and the
