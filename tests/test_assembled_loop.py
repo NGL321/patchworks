@@ -75,6 +75,16 @@ IMAGE_SIZE = 16
 #: Both numbers are that machine's. CI runs `MUJOCO_GL=osmesa`, where the
 #: context is per-renderer instead, so there the cost is paid again here — it
 #: is still one render's worth rather than `TICKS` of them.
+#:
+#: **#105's "adds no more than a few seconds" is held by these two constants,
+#: and deliberately not asserted** (#113). The obvious guard — time the run,
+#: assert it finished inside a budget — would be a reading of the machine: this
+#: laptop runs three build agents at once, and the same 300 ticks that cost
+#: ~3.6s on a quiet tree cost several times that beside two other suites. What
+#: bounds the cost is the size of the thing being run, which is `SMALL` and this
+#: number, both fixed here where anyone changing them can see the trade. A clock
+#: in CI would go red on the runner and stay green on a regression that doubled
+#: the work in a tick, which is the wrong way round.
 TICKS = 300
 
 
