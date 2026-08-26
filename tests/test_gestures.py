@@ -757,7 +757,20 @@ def retargets_on_iteration(window, env, at, puck=1, zone=2):
     fake viewer runs its script from `sync()`, which falls between the capture
     and the gesture. So a step filed under `at` is read by the pointer during
     iteration `at` and by nothing before it.
+
+    **Three samples is the floor**, hence the refusal below: the pointer latches
+    what it finds without firing (*the struct as found is not a gesture*), so
+    iteration 1 is spent priming and the two pointings need the two after it.
+    Filed any earlier, the puck pointing lands on the priming sample and
+    `Gestures.pick` is never called -- and a test asserting that nothing reached
+    the trace would pass with nothing ever fired, which is the shape of a test
+    that cannot fail.
     """
+    if at < 3:
+        raise ValueError(
+            f"the earliest iteration a retarget can land on is 3, not {at!r}: "
+            "one sample primes the pointer and the two pointings follow it."
+        )
     named = body(env, f"puck_{puck}")
 
     def point_at_the_puck(handle):

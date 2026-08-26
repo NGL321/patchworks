@@ -51,10 +51,11 @@ disk restores a world the same way the one held in memory does.
 tick's reading, and #116 ruled that it stays that way. A trailing record
 fabricated after a run -- to give a marker fired on the last tick somewhere to
 land -- would have to carry *something* in the four arrays, and neither answer
-is honest. **Zeros** read back as a graph that agreed on every edge, predicted
-perfectly, and moved no private component: the reading :func:`_nothing` exists
-to be distinct from, and the one :meth:`Trace.save` already declines to pad
-with. ***Not captured*** is
+is honest. **Zeros** are a reading nobody took, four times over: a graph that
+agreed on every edge, cells that predicted perfectly and moved no private
+component, and an actuator commanded nothing and applying nothing. That is the
+reading :func:`_nothing` exists to be distinct from, and the one
+:meth:`Trace.save` already declines to pad with. ***Not captured*** is
 a shape the rest of the trace disagrees with, so :meth:`Trace.save` would
 refuse the very trace such a record was added to complete.
 
