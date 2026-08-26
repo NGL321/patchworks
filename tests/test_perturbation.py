@@ -879,9 +879,8 @@ class TestBothChecksRunInCI:
     into a scratch copy of the files these assertions read, which is `ci.yml`,
     `pyproject.toml` and the `conftest.py` tree; the five assertions run
     against that copy, unmutated first and then per route; and the route
-    caught. It is not every route there is: the two
-    shapes above are outside it by decision, so the tally is forty-four caught
-    of forty-four known.
+    caught. It is not every route there is: the two shapes above are outside
+    it by decision, so the tally is forty-four caught of forty-four known.
 
     The forty-four, by where they reach. **The invocation**, five: `-k`, a
     positional path, `--collect-only`, `|| true`, `python -m pytest`. **A gate
@@ -998,7 +997,7 @@ class TestBothChecksRunInCI:
     def configuration(self):
         """The rootdir table pytest reads out of `pyproject.toml`, parsed.
 
-        `tomllib.loads` rather than a scan over the lines, for the reason
+        `tomllib` rather than a scan over the lines, for the reason
         `ci.yml` is parsed rather than matched: the ways to write a TOML key
         are not enumerable by looking at a line, and the scan this replaced
         proved it by missing one (#118). Every spelling of the table header
