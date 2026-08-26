@@ -135,17 +135,17 @@ def test_the_small_dome_is_the_suite_s_own(settled):
     assert image_size == SMALL.patch_grid * 4
 
 
-def test_the_hold_takes_the_world_out_of_the_loop(settled):
+def test_the_hold_takes_the_world_out_of_the_loop(monkeypatch, settled):
     """`sensitivity`'s hold never steps the environment: the same observation is
     written every tick, which is what makes the settled difference a reading of
     the graph's own transfer rather than of the physics."""
     stepped = []
-    real_step = settled.env.step
-    settled.env.step = lambda action: (stepped.append(action), real_step(action))[1]
+    monkeypatch.setattr(
+        settled.env, "step", lambda action: stepped.append(action) or pytest.fail()
+    )
     observation, _ = settled.env.reset(seed=0)
     applied = np.zeros(settled.joints, dtype=np.float32)
     fixed_point.hold(settled, observation, applied, None, 3)
-    settled.env.step = real_step
     assert stepped == []
 
 
