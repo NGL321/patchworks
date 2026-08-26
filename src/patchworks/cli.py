@@ -17,9 +17,9 @@ is the venv's own `bin/patchworks`, which needs no path set at all.
 **Nothing here is part of the architecture** (#77, and `CONTEXT.md`'s *Demo
 surface*). No cell reads anything this computes, every seed is passed
 explicitly, and nothing draws from a global RNG — `tests/test_cli.py` asserts
-that last one against torch's and numpy's global state, because a CLI that
-perturbed either would change the trajectory of everything run after it in the
-same process.
+that last one against torch's, numpy's and the stdlib's global state, because a
+CLI that perturbed any of them would change the trajectory of everything run
+after it in the same process.
 
 **What `doctor` says, it checked.** The standing failure mode on this project
 is prose claiming an enforcement it has not got, so each finding below reports
@@ -126,7 +126,39 @@ def in_a_virtual_environment() -> bool:
     return sys.prefix != sys.base_prefix
 
 
-def _venv_hint() -> str:
+def lowest_supported_python() -> str:
+    """`python3.11` — an interpreter `requires-python` is guaranteed to allow.
+
+    The **lowest**, not the highest, and that is the point rather than a
+    shortcut. The highest has to be derived by decrementing the exclusive upper
+    bound, which is only well defined while its minor is non-zero: against a
+    `<4.0` this printed `python3.-1`. The lower bound is inclusive, so naming
+    it is always a version inside the band. Any other version inside it works
+    just as well; this one is the one that cannot be wrong.
+    """
+    return f"python{MINIMUM_PYTHON[0]}.{MINIMUM_PYTHON[1]}"
+
+
+@dataclass(frozen=True)
+class InstallAdvice:
+    """What to run to install, and the aside that explains why that command.
+
+    Two fields rather than one string, because they are used differently. A
+    refusal indents `command` as a block to copy; a one-line `remedy` wants
+    both. Folding the note in gave a copy-paste block that ended in
+    `(this interpreter is not in a virtual environment)`, which is not a
+    command and does not run.
+    """
+
+    command: str
+    note: str = ""
+
+    def one_line(self) -> str:
+        """Both, for a remedy that is prose rather than a block."""
+        return self.command if not self.note else f"{self.command}   ({self.note})"
+
+
+def install_advice() -> InstallAdvice:
     """The install command to print, written against where this interpreter is.
 
     **Inside a venv** the command names that venv's own `pip` — read from
@@ -144,12 +176,14 @@ def _venv_hint() -> str:
     Narrower than it looks, and said here rather than left implied.
     """
     if not in_a_virtual_environment():
-        return (
-            f"python{MINIMUM_PYTHON[0]}.{BELOW_PYTHON[1] - 1} -m venv .venv "
-            f"&& .venv/bin/pip install -e '.[dev]'   "
-            f"(this interpreter is not in a virtual environment)"
+        return InstallAdvice(
+            command=(
+                f"{lowest_supported_python()} -m venv .venv "
+                f"&& .venv/bin/pip install -e '.[dev]'"
+            ),
+            note="this interpreter is not in a virtual environment",
         )
-    return f"{Path(sys.prefix) / 'bin' / 'pip'} install -e '.[dev]'"
+    return InstallAdvice(command=f"{Path(sys.prefix) / 'bin' / 'pip'} install -e '.[dev]'")
 
 
 def check_interpreter() -> Finding:
@@ -175,7 +209,7 @@ def check_interpreter() -> Finding:
         # someone inside an out-of-bound venv to build a new one and then
         # install into the old one with its `pip`. One place says how to make a
         # venv, and it is the one that knows whether there is one.
-        remedy="" if inside else f"this interpreter is outside {bound}: {_venv_hint()}",
+        remedy="" if inside else f"this interpreter is outside {bound}: {install_advice().one_line()}",
     )
 
 
@@ -218,39 +252,45 @@ def check_dependencies() -> Finding:
             + (f"; did not import: {'; '.join(missing)}" if missing else "")
             + " (versions reported, not enforced -- pytest holds the pins)"
         ),
-        remedy="" if not missing else f"install them into this interpreter: {_venv_hint()}",
+        remedy="" if not missing else f"install them into this interpreter: {install_advice().one_line()}",
     )
 
 
 def check_package() -> Finding:
-    """Do the modules a run actually needs import?
+    """Does :mod:`patchworks.sandbox` — the world, and MuJoCo with it — import?
 
-    `patchworks` itself is already imported by the time this runs — this file
-    is inside it — so importing that would assert nothing. What is worth asking
-    is whether the two modules a run reaches for come up: the dome's
-    construction, which pulls torch, and the world, which pulls MuJoCo and
-    Gymnasium.
+    **One module, and that is not an oversight.** `patchworks.graph` used to be
+    checked beside it and could never fail: `patchworks/__init__.py` imports it
+    eagerly, so by the time anything here runs it is either in or this process
+    never started (see this module's docstring). A line that cannot fail is not
+    a check, and its remedy named causes — a missing install, an unset
+    `PYTHONPATH` — that could not be the reason for the only failure it could
+    ever report.
+
+    The sandbox is *not* on `__init__`'s list, so this is the one place a
+    partial installation still shows up: MuJoCo and Gymnasium reach the package
+    through here and nowhere else.
     """
-    wanted = ("patchworks.graph", "patchworks.sandbox")
-    for module_name in wanted:
-        try:
-            importlib.import_module(module_name)
-        except Exception as failure:
-            return Finding(
-                name="package",
-                passed=False,
-                detail=f"{module_name} did not import ({type(failure).__name__}: {failure})",
-                remedy=(
-                    f"install the package into this interpreter: {_venv_hint()} "
-                    f"-- or, from a worktree, set PYTHONPATH to its src/"
-                ),
-            )
     import patchworks
 
+    try:
+        importlib.import_module("patchworks.sandbox")
+    except Exception as failure:
+        return Finding(
+            name="package",
+            passed=False,
+            detail=f"patchworks.sandbox did not import "
+            f"({type(failure).__name__}: {failure})",
+            remedy=(
+                f"the world needs MuJoCo and Gymnasium, and one of them is missing "
+                f"or broken here: {install_advice().one_line()}"
+            ),
+        )
     return Finding(
         name="package",
         passed=True,
-        detail=f"{', '.join(wanted)} imported, from {Path(patchworks.__file__).parent}",
+        detail=f"patchworks.sandbox imported; the package is at "
+        f"{Path(patchworks.__file__).parent}",
     )
 
 
@@ -310,7 +350,7 @@ def check_mujoco_gl() -> Finding:
     )
 
 
-def mjpython_launcher(executable: str = sys.executable) -> Path | None:
+def mjpython_launcher(executable: str | None = None) -> Path | None:
     """The `mjpython` this interpreter should use, or `None` if there is none.
 
     Beside `executable` first and `PATH` second, because `mjpython` must be the
@@ -318,11 +358,13 @@ def mjpython_launcher(executable: str = sys.executable) -> Path | None:
     interpreter, and one from a different venv would run a different
     installation of everything.
 
-    `executable` is an argument, and :func:`window_plan` passes its own, so
-    that where this looked and where the refusal *says* it looked cannot come
-    apart.
+    `executable` is an argument, and every caller passes the same value it
+    prints, so that where this looked and where the message *says* it looked
+    cannot come apart. It defaults to `None` rather than to `sys.executable`,
+    because a default argument is bound once when the module is imported and
+    this one would then be stale for the rest of the process.
     """
-    beside = Path(executable).parent / MJPYTHON
+    beside = Path(executable or sys.executable).parent / MJPYTHON
     if beside.exists():
         return beside
     on_path = shutil.which(MJPYTHON)
@@ -353,16 +395,19 @@ def check_mjpython(platform: str = sys.platform) -> Finding:
             passed=True,
             detail=f"not required on {platform}; MuJoCo's viewer takes a thread of its own there",
         )
-    launcher = mjpython_launcher()
+    # One value, read once, both looked beside and named -- see
+    # :func:`mjpython_launcher`.
+    executable = sys.executable
+    launcher = mjpython_launcher(executable)
     if launcher is None:
         return Finding(
             name="mjpython",
             passed=False,
-            detail=f"not found beside {sys.executable} or on PATH, and macOS's "
+            detail=f"not found beside {executable} or on PATH, and macOS's "
             f"passive viewer requires it",
             remedy=(
                 f"it ships with the `mujoco` wheel, so installing the "
-                f"dependencies puts it there: {_venv_hint()}"
+                f"dependencies puts it there: {install_advice().one_line()}"
             ),
         )
     return Finding(
@@ -477,10 +522,10 @@ def window_plan(
     module: str,
     argv: tuple[str, ...],
     *,
-    spoken_as: str = "this",
+    spoken_as: str,
     platform: str = sys.platform,
     launcher: Path | None | _Unset = _UNSET,
-    executable: str = sys.executable,
+    executable: str | None = None,
 ) -> WindowPlan:
     """Decide which interpreter should run a module that opens a MuJoCo window.
 
@@ -502,6 +547,7 @@ def window_plan(
     Every input the decision turns on is an argument with a live default, so
     the rules can be exercised for a platform that is not the one running.
     """
+    executable = executable or sys.executable
     if isinstance(launcher, _Unset):
         launcher = mjpython_launcher(executable)
 
@@ -509,6 +555,9 @@ def window_plan(
         return WindowPlan(reexec=(executable, "-m", module, *argv))
     if launcher is None:
         direct = " ".join((MJPYTHON, "-m", module, *argv))
+        advice = install_advice()
+        # `advice.command` and not `one_line()`: this is indented as a block to
+        # copy, and the note is not a command.
         return WindowPlan(
             refusal=(
                 f"`{spoken_as}` opens a MuJoCo window, and on macOS a MuJoCo window "
@@ -516,8 +565,9 @@ def window_plan(
                 f"`mjpython` launcher gives it.\n\n"
                 f"No `mjpython` was found beside {executable} or on PATH. It ships "
                 f"with the `mujoco` wheel, so installing the dependencies puts one "
-                f"there:\n\n"
-                f"    {_venv_hint()}\n\n"
+                f"there"
+                + (f" ({advice.note})" if advice.note else "")
+                + f":\n\n    {advice.command}\n\n"
                 f"Then `{spoken_as}` will work. From a worktree, where there is no "
                 f"console script, the same thing is:\n\n    {direct}\n"
             )
@@ -534,7 +584,21 @@ def open_window(module: str, argv: tuple[str, ...], *, spoken_as: str) -> int:
     """
     plan = window_plan(module, argv, spoken_as=spoken_as)
     if plan.reexec:
-        os.execv(plan.reexec[0], list(plan.reexec))
+        try:
+            os.execv(plan.reexec[0], list(plan.reexec))
+        except OSError as failure:
+            # Found, and still will not run: stale, not executable, or built
+            # for another architecture. `demo` promises a refusal naming a
+            # command rather than a traceback, and that promise has to survive
+            # the launcher being there but broken.
+            print(
+                f"`{spoken_as}` found {plan.reexec[0]} but could not run it "
+                f"({type(failure).__name__}: {failure}).\n\n"
+                f"Reinstalling the dependencies replaces it:\n\n"
+                f"    {install_advice().command}\n",
+                file=sys.stderr,
+            )
+            return 1
     print(plan.refusal, file=sys.stderr)
     return 1
 
@@ -804,24 +868,51 @@ def format_liveness(liveness: Liveness) -> str:
     return "\n".join(lines)
 
 
-def _check(arguments: argparse.Namespace) -> int:
-    """Measure, print, and fail the exit code if anything went non-finite.
+def refuse_bad_split(split: str) -> str:
+    """The world's refusal for a split it does not have, or `""` if it has it.
 
-    A bad `--split` comes back as a `ValueError` from the world's own
-    constructor, which owns the list of splits and is the only place it should
-    live. Caught here and turned into a usage error rather than a traceback,
-    because `--help` promises this command exits on what it measured and an
-    unhandled exception is not that. Naming the splits in `choices=` would mean
-    the parser importing the sandbox, so `patchworks --help` would load MuJoCo
-    to print a list.
+    Asked **before** anything runs, and asked of the world, which owns the
+    list. Two subcommands take a `--split` and both would otherwise hand a typo
+    to a constructor: `check` three hundred ticks from the answer, and `demo`
+    inside a process that has already replaced this one, where the traceback
+    goes to whatever `mjpython` inherited.
+
+    Not `choices=` on the argument, because the parser is built for every
+    invocation and importing the sandbox to populate it would make
+    `patchworks --help` load MuJoCo to print a list.
+
+    Checked ahead rather than caught after, because catching `ValueError` around
+    the run would also catch a genuine failure three hundred ticks in and report
+    it as a bad argument — losing the traceback, and the environment line the
+    command exists to print.
     """
-    try:
-        liveness = measure_liveness(
-            ticks=arguments.ticks, seed=arguments.seed, split=arguments.split
+    from patchworks.sandbox.env import SPLITS
+
+    if split in SPLITS:
+        return ""
+    return f"split must be one of {SPLITS}, got {split!r}"
+
+
+def _check(arguments: argparse.Namespace) -> int:
+    """Measure, print, and fail the exit code if anything went non-finite."""
+    # A run of no ticks is refused rather than reported. `range(0)` and
+    # `range(-5)` are both empty, so it would print an empty spread, an empty
+    # travel and then "Arm at ~0 = something is genuinely wrong" -- the verdict
+    # line a human pastes into a bug report, saying the installation is broken
+    # about a run that never happened.
+    if arguments.ticks < 1:
+        print(
+            f"patchworks check: --ticks must be at least 1, got {arguments.ticks}",
+            file=sys.stderr,
         )
-    except ValueError as refusal:
+        return 2
+    refusal = refuse_bad_split(arguments.split)
+    if refusal:
         print(f"patchworks check: {refusal}", file=sys.stderr)
         return 2
+    liveness = measure_liveness(
+        ticks=arguments.ticks, seed=arguments.seed, split=arguments.split
+    )
     print(format_liveness(liveness))
     return 1 if liveness.non_finite else 0
 
@@ -854,7 +945,15 @@ def _demo(arguments: argparse.Namespace) -> int:
 
     The dome panel is the *other* window and is not opened here; #122 is
     building `patchworks watch` for it.
+
+    The split is checked *here*, before the exec: past it there is no process
+    left to report anything, and the world's refusal would surface as a
+    traceback out of whatever `mjpython` inherited.
     """
+    refusal = refuse_bad_split(arguments.split)
+    if refusal:
+        print(f"patchworks demo: {refusal}", file=sys.stderr)
+        return 2
     return open_window(
         DEMO_MODULE,
         (

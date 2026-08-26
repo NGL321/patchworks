@@ -208,7 +208,7 @@ class TestDoctorsChecks:
         finding = cli.check_interpreter()
         assert not finding.passed
         assert ">=99.0,<99.1" in finding.detail
-        assert finding.remedy.endswith(cli._venv_hint()), (
+        assert finding.remedy.endswith(cli.install_advice().one_line()), (
             "the remedy is whatever _venv_hint chose, with nothing composed onto it"
         )
 
@@ -276,25 +276,38 @@ class TestDoctorsChecks:
             "have crashed before running. Say so, or make the front door lazy."
         )
 
-    def test_the_package_modules_import(self):
+    def test_the_sandbox_imports(self):
         finding = cli.check_package()
         assert finding.passed
-        assert "patchworks.graph" in finding.detail
         assert "patchworks.sandbox" in finding.detail
 
-    def test_a_package_module_that_does_not_import_fails_and_mentions_pythonpath(
+    def test_it_asks_only_about_the_module_that_can_actually_be_missing(self):
+        """`patchworks.graph` used to be checked here and could never fail.
+
+        `patchworks/__init__.py` imports it, so by the time this runs it is in
+        or the process never started. A line that cannot fail is not a check,
+        and its remedy named causes -- a missing install, an unset `PYTHONPATH`
+        -- that could not be the reason for the one failure it could report.
+        """
+        assert "patchworks.graph" not in cli.check_package().detail
+
+    def test_a_missing_sandbox_fails_and_names_the_cause_that_is_possible(
         self, monkeypatch
     ):
-        import importlib
-
         def refuse(name):
             raise ModuleNotFoundError(f"No module named {name!r}")
 
-        monkeypatch.setattr(importlib, "import_module", refuse)
+        monkeypatch.setattr(cli.importlib, "import_module", refuse)
         finding = cli.check_package()
         assert not finding.passed
-        assert "PYTHONPATH" in finding.remedy, (
-            "the worktree case is the one this check exists for"
+        assert "patchworks.sandbox" in finding.detail
+        for possible in ("MuJoCo", "Gymnasium"):
+            assert possible in finding.remedy, (
+                "a broken one of those is the only way this check can fail"
+            )
+        assert "PYTHONPATH" not in finding.remedy, (
+            "an unresolvable package would have stopped `cli` importing, so it "
+            "cannot be the cause here"
         )
 
     def test_the_gl_check_renders_rather_than_reading_a_variable(self):
@@ -330,13 +343,15 @@ class TestDoctorsChecks:
     def test_mjpython_missing_on_macos_fails_and_names_where_it_comes_from(
         self, monkeypatch
     ):
-        monkeypatch.setattr(cli, "mjpython_launcher", lambda: None)
+        monkeypatch.setattr(cli, "mjpython_launcher", lambda _executable: None)
         finding = cli.check_mjpython(platform="darwin")
         assert not finding.passed
         assert "mujoco" in finding.remedy, "it ships with the wheel, and that is the fix"
 
     def test_mjpython_present_on_macos_passes_and_says_it_is_handled(self, monkeypatch):
-        monkeypatch.setattr(cli, "mjpython_launcher", lambda: Path("/somewhere/mjpython"))
+        monkeypatch.setattr(
+            cli, "mjpython_launcher", lambda _executable: Path("/somewhere/mjpython")
+        )
         finding = cli.check_mjpython(platform="darwin")
         assert finding.passed
         assert "/somewhere/mjpython" in finding.detail
@@ -349,20 +364,30 @@ class TestTheInstallCommandDoctorPrints:
     def test_inside_a_venv_it_names_that_venvs_pip(self, monkeypatch):
         monkeypatch.setattr(cli, "in_a_virtual_environment", lambda: True)
         monkeypatch.setattr(sys, "prefix", "/somewhere/.venv")
-        assert cli._venv_hint() == "/somewhere/.venv/bin/pip install -e '.[dev]'"
+        advice = cli.install_advice()
+        assert advice.command == "/somewhere/.venv/bin/pip install -e '.[dev]'"
+        assert advice.note == "", "there is nothing to explain about the ordinary case"
 
     def test_outside_one_it_says_to_make_one_first(self, monkeypatch):
-        """Naming this interpreter's pip would say to install torch into the system Python.
-
-        Which is what someone gets who runs `PYTHONPATH=src python3 -m
-        patchworks doctor` from a fresh clone -- exactly the person the check
-        is written for.
-        """
+        """Naming this interpreter's pip would say to install torch into the system Python."""
         monkeypatch.setattr(cli, "in_a_virtual_environment", lambda: False)
-        hint = cli._venv_hint()
-        assert "-m venv .venv" in hint
-        assert ".venv/bin/pip install -e '.[dev]'" in hint
-        assert "not in a virtual environment" in hint
+        advice = cli.install_advice()
+        assert "-m venv .venv" in advice.command
+        assert ".venv/bin/pip install -e '.[dev]'" in advice.command
+        assert "not in a virtual environment" in advice.note
+
+    def test_the_command_is_a_command_and_the_note_is_not_in_it(self, monkeypatch):
+        """Because a refusal indents the command as a block for someone to copy.
+
+        Folded together, that block ended in
+        `(this interpreter is not in a virtual environment)` -- prose, inside
+        something a fresh-clone reader was being invited to paste into a shell.
+        """
+        for in_a_venv in (True, False):
+            monkeypatch.setattr(cli, "in_a_virtual_environment", lambda: in_a_venv)
+            advice = cli.install_advice()
+            assert "(" not in advice.command and ")" not in advice.command
+            assert advice.one_line().startswith(advice.command)
 
     def test_the_venv_test_is_the_stdlibs_own(self, monkeypatch):
         monkeypatch.setattr(sys, "prefix", "/a")
@@ -371,12 +396,20 @@ class TestTheInstallCommandDoctorPrints:
         monkeypatch.setattr(sys, "prefix", "/a/.venv")
         assert cli.in_a_virtual_environment()
 
-    def test_the_venv_it_names_is_a_python_requires_python_allows(self, monkeypatch):
-        """The version in the `venv` command is derived, not typed twice."""
-        monkeypatch.setattr(cli, "in_a_virtual_environment", lambda: False)
-        monkeypatch.setattr(cli, "MINIMUM_PYTHON", (3, 11))
-        monkeypatch.setattr(cli, "BELOW_PYTHON", (3, 13))
-        assert "python3.12 -m venv .venv" in cli._venv_hint()
+    def test_the_python_it_names_is_inside_the_bound_for_every_bound(self, monkeypatch):
+        """Including bounds this project does not have yet.
+
+        It used to take the major from `MINIMUM_PYTHON` and the minor from
+        `BELOW_PYTHON`, which is two halves of two different numbers: against a
+        `<4.0` it printed `python3.-1`. The old test pinned the bounds back to
+        today's, so it could not have seen that. This one sweeps.
+        """
+        for minimum, below in (((3, 11), (3, 13)), ((3, 11), (4, 0)), ((3, 9), (3, 10))):
+            monkeypatch.setattr(cli, "MINIMUM_PYTHON", minimum)
+            monkeypatch.setattr(cli, "BELOW_PYTHON", below)
+            named = cli.lowest_supported_python()
+            major, _, minor = named.removeprefix("python").partition(".")
+            assert minimum <= (int(major), int(minor)) < below, named
 
 
 class TestDoctorsVerdict:
@@ -450,7 +483,11 @@ class TestTheMjpythonProblem:
     def test_off_macos_the_module_runs_under_this_interpreter(self):
         assert not cli.needs_mjpython("linux")
         plan = cli.window_plan(
-            "a.module", ("--seed=3",), platform="linux", executable="/v/bin/python"
+            "a.module",
+            ("--seed=3",),
+            spoken_as="patchworks demo",
+            platform="linux",
+            executable="/v/bin/python",
         )
         assert plan.reexec == ("/v/bin/python", "-m", "a.module", "--seed=3")
         assert not plan.refusal
@@ -462,6 +499,7 @@ class TestTheMjpythonProblem:
         plan = cli.window_plan(
             "a.module",
             ("--seed=3",),
+            spoken_as="patchworks demo",
             platform="darwin",
             launcher=Path("/venv/bin/mjpython"),
         )
@@ -504,6 +542,70 @@ class TestTheMjpythonProblem:
         assert "Then `patchworks demo` will work" in rest
         assert "mjpython -m patchworks.surface.gestures" in rest
 
+    def test_demo_refuses_a_bad_split_before_replacing_the_process(
+        self, monkeypatch, capsys
+    ):
+        """Past the exec there is no process left to report anything.
+
+        `gestures.main` builds the world from `--split` too, so a typo used to
+        surface as a `ValueError` traceback out of whatever `mjpython`
+        inherited -- the worse version of the traceback `check` no longer has,
+        because the process the human was talking to is already gone.
+        """
+
+        def must_not_exec(*_args, **_kwargs):
+            raise AssertionError("a bad split must be refused before the exec")
+
+        monkeypatch.setattr(cli, "open_window", must_not_exec)
+        arguments = cli.build_parser().parse_args(["demo", "--split", "trian"])
+        assert arguments.handler(arguments) == 2
+        captured = capsys.readouterr()
+        assert "trian" in captured.err and "train" in captured.err
+        assert captured.out == ""
+
+    def test_a_launcher_that_will_not_run_refuses_rather_than_raising(
+        self, monkeypatch, capsys
+    ):
+        """Found, and still broken: stale, not executable, or the wrong architecture.
+
+        `--help` promises a human never has to know about `mjpython`. An
+        `OSError` traceback out of `os.execv` is that promise failing in the one
+        place it is meant to hold.
+        """
+        monkeypatch.setattr(
+            cli, "window_plan", lambda *a, **k: cli.WindowPlan(reexec=("/v/mjpython", "-m", "m"))
+        )
+
+        def refuses_to_exec(*_args):
+            raise OSError(8, "Exec format error")
+
+        monkeypatch.setattr(cli.os, "execv", refuses_to_exec)
+        assert cli.open_window("m", (), spoken_as="patchworks demo") == 1
+        captured = capsys.readouterr()
+        assert "/v/mjpython" in captured.err
+        assert "Exec format error" in captured.err
+        assert "pip install" in captured.err, "and what to do about it"
+        assert captured.out == ""
+
+    def test_the_refusal_block_is_a_command_someone_can_paste(self, monkeypatch):
+        """Outside a venv the advice carries a note, and a note is not a command."""
+        monkeypatch.setattr(cli, "in_a_virtual_environment", lambda: False)
+        refusal = cli.window_plan(
+            "a.module",
+            (),
+            spoken_as="patchworks demo",
+            platform="darwin",
+            launcher=None,
+            executable="/v/bin/python",
+        ).refusal
+        indented = [
+            line.strip() for line in refusal.splitlines() if line.startswith("    ")
+        ]
+        assert indented, "the refusal offers commands as an indented block"
+        for line in indented:
+            assert not line.endswith(")"), f"not a runnable command: {line}"
+        assert "not in a virtual environment" in refusal, "the note is still said"
+
     def test_the_demo_subcommand_says_its_own_name_in_a_refusal(self, monkeypatch):
         seen = {}
         monkeypatch.setattr(
@@ -530,10 +632,12 @@ class TestTheMjpythonProblem:
         asserting the machine it ran on.
         """
         assert cli.window_plan(
-            "a.module", (), platform="darwin", launcher=None
+            "a.module", (), spoken_as="patchworks demo", platform="darwin", launcher=None
         ).refusal
         monkeypatch.setattr(cli, "mjpython_launcher", lambda _executable: Path("/v/mjpython"))
-        assert cli.window_plan("a.module", (), platform="darwin").reexec, (
+        assert cli.window_plan(
+            "a.module", (), spoken_as="patchworks demo", platform="darwin"
+        ).reexec, (
             "and omitting it still looks one up"
         )
 
@@ -785,12 +889,7 @@ class TestCheckMeasuresAndExits:
         assert "MUJOCO_GL=" in printed
 
     def test_a_bad_split_is_a_usage_error_not_a_traceback(self, capsys):
-        """`--help` promises an exit code on what was measured; a traceback is not one.
-
-        The list of splits lives on the world's constructor and is not copied
-        into `choices=`, because that would make `patchworks --help` import
-        MuJoCo to print it. So the refusal is caught where it arrives.
-        """
+        """`--help` promises an exit code on what was measured; a traceback is not one."""
         arguments = cli.build_parser().parse_args(["check", "--split", "trian"])
         assert arguments.handler(arguments) == 2
         captured = capsys.readouterr()
@@ -798,16 +897,52 @@ class TestCheckMeasuresAndExits:
         assert "train" in captured.err, "and the message names what is allowed"
         assert captured.out == ""
 
+    def test_the_split_is_refused_before_the_run_rather_than_caught_after(
+        self, monkeypatch, capsys
+    ):
+        """So that a `ValueError` three hundred ticks deep is not called a bad argument.
+
+        Wrapping the run in `except ValueError` was the first fix and the wrong
+        one: exit 2 means "the arguments were wrong", and any refusal from
+        inside the tick -- a `Sheaf` guard, a broadcast mismatch -- would have
+        been reported as that, with the traceback and the environment line both
+        lost. The one command whose purpose is a legible bug report would have
+        swallowed exactly the failure it exists to capture.
+        """
+
+        def blows_up(**_kwargs):
+            raise ValueError("something went wrong three hundred ticks in")
+
+        monkeypatch.setattr(cli, "measure_liveness", blows_up)
+        arguments = cli.build_parser().parse_args(["check"])
+        with pytest.raises(ValueError, match="three hundred ticks in"):
+            arguments.handler(arguments)
+
+    def test_a_run_of_no_ticks_is_refused_rather_than_reported(self, capsys):
+        """`range(0)` and `range(-5)` are both empty, and the verdict is not.
+
+        A run of no ticks printed an empty spread, an empty travel, and then
+        "Arm at ~0 = something is genuinely wrong" -- the line a human pastes
+        into a bug report, saying the installation is broken about a run that
+        never happened.
+        """
+        for ticks in ("0", "-5"):
+            arguments = cli.build_parser().parse_args(["check", "--ticks", ticks])
+            assert arguments.handler(arguments) == 2
+            captured = capsys.readouterr()
+            assert "--ticks must be at least 1" in captured.err
+            assert captured.out == ""
+
     def test_the_flags_reach_the_measurement(self, monkeypatch, capsys):
         seen = {}
         monkeypatch.setattr(
             cli, "measure_liveness", lambda **kwargs: seen.update(kwargs) or a_liveness()
         )
         arguments = cli.build_parser().parse_args(
-            ["check", "--ticks", "7", "--seed", "11", "--split", "test"]
+            ["check", "--ticks", "7", "--seed", "11", "--split", "heldout_pair"]
         )
         arguments.handler(arguments)
-        assert seen == {"ticks": 7, "seed": 11, "split": "test"}
+        assert seen == {"ticks": 7, "seed": 11, "split": "heldout_pair"}
 
     def test_the_report_names_every_place_that_went_non_finite(self):
         liveness = a_liveness(non_finite=("command, first at tick 0", "world qvel"))
