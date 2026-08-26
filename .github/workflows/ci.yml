@@ -19,6 +19,12 @@ jobs:
     # here rather than risk breaking on a retired or renamed label.
     runs-on: ubuntu-latest
     steps:
+      # Every step below is pinned by `TestBothChecksRunInCI` in
+      # tests/test_perturbation.py: each `run:` command, each `uses:`, and --
+      # since a plugin reaches the run through what is installed -- the
+      # dependency set the install line installs (#124). A step added, removed
+      # or edited fails that class, so it is edited in the same change. That
+      # is the whitelist working rather than a false positive.
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5

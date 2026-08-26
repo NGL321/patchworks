@@ -810,10 +810,12 @@ class TestBothChecksRunInCI:
     `testpaths` narrowed in `pyproject.toml`, a root `pytest.ini` that makes
     that table inert — and an unfinishable blacklist that reads as complete is
     worse than none. So each assertion below pins the small number of shapes
-    *known* to run the whole suite on every push: the trigger, the invocation,
-    every environment block that reaches it, the workflow's top-level keys, and
-    every configuration file pytest would read. Anything else fails here and
-    has to be re-argued rather than slipping past.
+    *known* to run the whole suite on every push: the trigger, every command
+    the job runs and every action it uses, the shell they are handed, every
+    environment block that reaches them, the workflow's top-level keys, what
+    the pinned install line installs — this repository's own metadata
+    included — and every configuration file pytest would read. Anything else
+    fails here and has to be re-argued rather than slipping past.
 
     **The workflow is parsed rather than read line by line** (#117). It used
     to be read as text, and every review round across #90 and #109 turned up
@@ -835,50 +837,107 @@ class TestBothChecksRunInCI:
     shapes pinned is the same list it was; what changed is that a shape now
     has one spelling here however many it has in the file. A route that
     reaches the run without writing a key these checks read is untouched by
-    parsing, and the two named next are exactly that.
+    parsing, and the shapes named next were all exactly that — which is why
+    closing them took a wider whitelist rather than a better reader.
 
-    **What is outside their reach**, stated because a whitelist that reads as
-    complete and is not would be this file's own failure mode: the run never
-    starting at all — a runner outage, or the workflow file deleted — neither
-    of which is silent; and two shapes that are, both found while closing the
-    routes below and both left open by decision rather than oversight (#109,
-    #117). A step earlier in the job can write `PYTEST_ADDOPTS` into
-    `$GITHUB_ENV`, which reaches the pytest step with no `env:` key anywhere
-    for the check below to see. And a `defaults: run: shell:` under `jobs:`
-    replaces the shell `run: pytest` is handed to, so that line can be pinned
-    exactly here and still never run pytest. Neither of those is a spelling,
-    so parsing does not reach either: refusing them means pinning every `run:`
-    and every key under `jobs:`, a wider whitelist than #90 argued for and a
-    decision about this class rather than a gap in it. The third shape that
-    used to stand beside them — the `pyproject.toml` scan's — was a gap rather
-    than a decision, and #118 closed it. A different third shape took its
-    place on the same ticket, and it is the next paragraph.
+    **The whitelist widened at #124**, and what stood outside it moved with
+    the widening. `test_the_suite_runs_whole_and_unfiltered` used to ask only
+    that *some* `run:` in the job was exactly the string `pytest`, which pins
+    that one step tightly — `pytest -k nothing` fails it — while leaving every
+    other step in the job unread; and nothing here read `pyproject.toml`'s
+    `[project]` table at all. Both are pinned now, entire, and so is every
+    `uses:`, because a step is a `run:` or a `uses:` and only the two together
+    make "every step is pinned" true.
 
-    **An installed pytest plugin reaches the run through the dependency set**,
-    found by `/code-review` on #118 and run rather than reasoned about. A
-    plugin whose `pytest_collection_modifyitems` deselects can be named in
-    `[project.optional-dependencies].dev`, which the pinned
-    `pip install -e ".[dev]"` step installs; appended to that step's own line;
-    or installed by a step of its own. All three were written into a scratch
-    copy and all three left every assertion here green — no key any of them
-    reads is written by any of them, and
-    `test_the_suite_runs_whole_and_unfiltered` asks only that *some* `run:`
-    in the job is exactly the string `pytest` — which pins that one step
-    tightly, `pytest -k nothing` failing it — while leaving any other `run:`
-    in the job unread. That
-    pytest honours such a hook was checked the same way: a plugin of this
-    shape, discovered by entry point, emptied the item list of a two-test
-    suite. **The selective form is the dangerous one.** Deselecting everything
-    exits 5 — "no tests ran" — and reddens CI, which is loud; deselecting only
-    this file exits 0, which is the silent, flattering failure this guard is
-    for.
+    **What that closes is an installed pytest plugin**, found by `/code-review`
+    on #118, run rather than reasoned about, and run again at #124 before it
+    was closed. A plugin whose `pytest_collection_modifyitems` deselects
+    narrows the run with no flag, no `env:` and no configuration file. It can
+    be named in `[project.optional-dependencies].dev` or in
+    `[project].dependencies`, both of which the pinned `pip install -e
+    ".[dev]"` step installs; appended to that step's own line; or installed by
+    a step of its own, written `run:` or written `uses:`. And — found by
+    `/code-review` on #124, after the first five were closed — it need not be
+    another distribution at all: the line installs *this* one, and
+    `[project.entry-points]` is the table PEP 621 defines as a distribution's
+    entry points, which is the metadata pytest finds its plugins in. A
+    `pytest11` group written there, in either of the two ways TOML writes that
+    table, makes patchworks its own deselecting plugin — as does declaring that
+    table `dynamic` and letting a metadata hook write it, and as does a PEP 735
+    `[dependency-groups]`, which the install line is one `--group` from. And
+    the backend's own build table is a tenth: a `force-include` there drops a
+    file of one's choosing at the site-packages root, and a `.pth` whose line
+    begins `import` is executed at interpreter start, which is early enough to
+    write the `PYTEST_ADDOPTS` pytest is about to read. Ten vectors of the one
+    shape, all ten written into a scratch copy and all ten green against the
+    assertions that did not read them. That pytest honours such a hook was
+    checked the same way and twice: a plugin of this shape, discovered by its
+    `pytest11` entry point, emptied the item list of a two-test suite — which
+    is the later vectors' other half as much as the first six's, the one step
+    not run being from the table to the metadata, PEP 621's own definition,
+    since building a wheel needs a backend this environment has not got. **The
+    selective form is the dangerous one.** Deselecting everything exits 5 — "no
+    tests ran" — and reddens CI, which is loud; deselecting only this file
+    exits 0, which is the silent, flattering failure this guard is for.
 
-    **Whether that shape is a decision or a gap is not settled here.** Closing
-    it means pinning the dependency set and every `run:` in the job, which is
-    the same widening #90 declined for `defaults:` — a ruling this record does
-    not carry, so it is escalated in #118 rather than filed beside the two
-    above. It is counted below rather than set apart from them, because until
-    it is ruled, counting it open is the direction that does not overstate.
+    **And `defaults: run: shell:` does not survive as a design boundary.**
+    That is the verdict #124 asked for, and it is *closed* rather than partly
+    closed. #90 declined to refuse it because refusing it meant pinning every
+    `run:` in the job — a whitelist wider than the routes then known asked
+    for, which was a fair price to decline. #118 then found a route that needs
+    exactly that widening, so the price is paid now for a reason #90 did not
+    have; and once every `run:` is pinned, the shell those commands are handed
+    to is the only half of the shape left standing. Refusing `defaults:` and
+    `shell:` anywhere under `jobs:` costs two lines on a walk that was already
+    there, and leaving them out would leave two adjacent decisions in this
+    class pointing opposite ways. So #90's reasoning does not hold any more,
+    and what replaces it is that the cost it weighed is now sunk. Both halves
+    of the shape are kill-tested below.
+
+    **`$GITHUB_ENV` goes the same way, and only as far as the steps.** #109
+    recorded it beside `defaults:`: a step earlier in the job writes
+    `PYTEST_ADDOPTS` into `$GITHUB_ENV`, and it reaches the pytest step with no
+    `env:` key anywhere for a check to see. Such a step is a `run:` or a
+    `uses:`, both of which are pinned entire now, so that vector is caught —
+    run below rather than argued. What is **not** closed is the shape, and what
+    is left of it is not all `$GITHUB_ENV`-shaped: what the three below share
+    is that the job's *surroundings* go unread where its steps are pinned. The
+    two actions are pinned by name and version and not by what they are handed,
+    so a `with:` on `actions/checkout@v4` can point the checkout at another
+    repository and replace every file these assertions read; that is run below
+    too, and it is **missed**. So is a `runs-on:` naming a runner whose image
+    is not GitHub's. And so is a `container:` on the job, which is the same
+    shape a third time and the sharpest of the three: every step runs inside
+    that image, and an image built with `ENV PYTEST_ADDOPTS="-k nothing"`
+    narrows the run with no `env:` key anywhere in the file — a `container:`
+    that carries an inline `env:` *is* caught, which is to say the half caught
+    is the half that did not need the image. All three are left open on purpose
+    rather than by oversight, and the reason is scope rather than cost —
+    `container:` in particular is one more line in the walk that already
+    refuses `defaults:`, so saying it is expensive would be false. What the
+    three have in common is that they are about *where the job runs*, and #124
+    ruled the dependency set and every `run:`. Whether the whitelist should
+    reach where the job runs is the question the three of them put, and
+    putting it is not the same as answering it. Counting them open is the
+    direction that does not overstate.
+
+    **What stays outside altogether**, stated because a whitelist that reads
+    as complete and is not would be this file's own failure mode: the run
+    never starting at all — a runner outage, or the workflow file deleted —
+    neither of which is silent; the *transitive* closure of the dependency
+    set, since what is pinned is the names written in the file and not what a
+    new release of one of them may come to depend on; `[build-system]` and
+    the build *requirements* under it, which are unread here and are not a
+    route: PEP 517 installs them into an isolated build environment the run
+    does not import from, which #124's review put to a run — so what stops
+    that one is the mechanism rather than this guard. The backend's other two
+    reaches are not outside and are not left to that argument: a *metadata*
+    hook, whose whole job is to write the installed distribution's metadata
+    and so its entry points, is refused above at the `dynamic` it must be
+    declared through; and the backend's *build table*, which chooses what the
+    install materialises, is pinned above as `PERMITTED_BUILD`.
+    And evasion rather than the quiet edit this class is built against — a
+    `globals()[...] = hook`, or a build backend that runs code of its own.
 
     **And `pyproject.toml` is parsed too, since #118.** It was read as text
     until then, because `tomllib` arrives in 3.11 and this project's floor was
@@ -890,49 +949,72 @@ class TestBothChecksRunInCI:
     string can put such a line inside itself, and every key after it then went
     unread. A `pythonpath` opened that way over an `addopts = "-k nothing"` is
     valid TOML that pytest honours — checked against pytest itself, which
-    collected the suite and reported every test deselected — and it passed all
-    five assertions here. That was a live narrowing route, and closing it was
-    the same argument #117 made for `ci.yml`: the ways to write a TOML key are
-    no more enumerable by looking at a line than the ways to write a YAML one.
+    collected the suite and reported every test deselected — and it passed
+    all five assertions this class then had. That was a live narrowing route,
+    and closing it was the same argument #117 made for `ci.yml`: the ways to
+    write a TOML key are no more enumerable by looking at a line than the ways
+    to write a YAML one.
     The floor moved to 3.11 for it, ruled on in #118 and cheaper than a second
     test-only dependency, since CI already pins 3.12 and nothing in `src/` is
     version-conditional. `configuration` reads the table now: the four
     spellings of the table resolve to the one path it looks up, and a value
     written across lines is a value rather than a place the reader stops.
 
-    **Which is how the list below should be read.** These five assertions hold
+    **Which is how the list below should be read.** These six assertions hold
     down every route that writes a key they read, in any spelling of it. That
-    is the forty-four named here, each one kill-tested on its own — written
+    is the fifty-eight named here, each one kill-tested on its own — written
     into a scratch copy of the files these assertions read, as an edit where
     the file is already there and as a new file where it is not, since a rival
     configuration and a `conftest.py` are routes precisely by appearing; the
-    five assertions run against that copy, unmutated first and then once per
-    route; and the route caught. It is not every route there is: the two
-    shapes above are outside it by decision, and the plugin's three vectors
-    are outside it unruled — counted as three rather than as one shape,
-    because that is how the environment's four are counted a paragraph down,
-    and because counting them open is the direction that does not overstate.
-    So the tally is forty-four caught of forty-seven known.
+    six assertions run against that copy, unmutated first and then once per
+    route; and the route caught. **It is wider than it was and it is still not
+    every route there is** — the list is what has been thought of and run, not
+    what exists — #124's own three rounds of review added seven of them after
+    the rest of this paragraph was written, two of those seven defeating an
+    assertion this class already made rather than reaching past its edge.
+    Three of the sixty-one are missed, all three named above and all three
+    left open by decision: the redirected checkout, the runner, and the job's
+    `container:`. So the tally is fifty-eight caught of sixty-one known. That
+    is not #118's forty-four of forty-seven with better arithmetic done to it:
+    fourteen shapes were added to the inventory at #124, twelve of them found
+    while closing the routes the ticket ruled on.
 
-    The forty-four, by where they reach. **The invocation**, five: `-k`, a
-    positional path, `--collect-only`, `|| true`, `python -m pytest`. **A gate
-    on the step**, four: `continue-on-error` and a step-level `if:`, each as
-    an ordinary key *and as a sequence item's first key*, where the leading
-    `- ` used to hide it from a naive match.
-    **The environment**, four: `PYTEST_ADDOPTS` in the step's `env:`, in a
+    The fifty-eight, by where they reach. **The invocation**, five: `-k`, a
+    positional path, `--collect-only`, `|| true`, `python -m pytest` — each of
+    them now a `run:` that is not one of the three pinned strings, where
+    before #124 they were the one `run:` that had to equal `pytest`.
+    **What gets installed**, ten, which is the plugin shape and the reason
+    the whitelist widened: a deselecting plugin named in the `dev` extra,
+    named in `[project].dependencies`, appended to the pinned install line,
+    installed by a `run:` step of its own, installed by a `uses:` step of its
+    own, declared by patchworks itself as a `pytest11` entry point — in the
+    dotted spelling of that table and in the inline one — declared through a
+    `dynamic = ["entry-points"]` a metadata hook fills in, named in a PEP 735
+    `[dependency-groups]`, and force-included as a `.pth` by the backend's own
+    build table. **The shell**,
+    two: `defaults: run: shell:` under the job, which is what #90 declined,
+    and a `shell:` on the step that runs pytest, which #124 found beside it —
+    both closed here. **A gate on the step**, four:
+    `continue-on-error` and a step-level `if:`, each as an ordinary key *and
+    as a sequence item's first key*, where the leading `- ` used to hide it
+    from a naive match.
+    **The environment**, five: `PYTEST_ADDOPTS` in the step's `env:`, in a
     job-level `env:` written *after* `steps:`, in a workflow-level `env:`
     above `jobs:`, and in a job-level flow mapping, `env: {PYTEST_ADDOPTS: …}`
     — those last three reach the step as surely as the step's own block, and
     none of them is the first `env:` in the file, the last not even spelled
-    `env:`. **The trigger**, two: a `branches:` filter under `push:`, and
-    `push:` removed. **A quoted key**, four — the same key written so that no
-    text match saw it: the job's `env:` in double quotes and in single, the
-    step's `continue-on-error:`, and its `if:`. **A spelling of the key that
-    was open until #117**, five: `env:  # a comment`, `env :`, `!!str env:`,
-    `? env` / `:`, and `-  if:` with two spaces after the dash, or three, or
-    any number. #109 could say only that these parse to the key `env` under
-    YAML's rules, and flagged that GitHub might reject two of them — the
-    explicit tag and the explicit key — in which case they were never routes.
+    `env:` — and, since #124, a step that writes `PYTEST_ADDOPTS` into
+    `$GITHUB_ENV`, which writes no `env:` key at all and is caught because the
+    step it needs is a step. **The trigger**, two: a `branches:` filter under
+    `push:`, and `push:` removed. **A quoted key**, four — the same key
+    written so that no text match saw it: the job's `env:` in double quotes
+    and in single, the step's `continue-on-error:`, and its `if:`.
+    **A spelling of the key that was open until #117**, five:
+    `env:  # a comment`, `env :`, `!!str env:`, `? env` / `:`, and `-  if:`
+    with two spaces after the dash, or three, or any number. #109 could say
+    only that these parse to the key `env` under YAML's rules, and flagged
+    that GitHub might reject two of them — the explicit tag and the explicit
+    key — in which case they were never routes.
     #117 ran all five through `@actions/workflow-parser`, the workflow parser
     GitHub publishes from `actions/languageservices`, and it **accepted all
     five**, each one reaching the step as the key it spells. That is GitHub's
@@ -946,9 +1028,12 @@ class TestBothChecksRunInCI:
     and a `norecursedirs` in `pyproject.toml`, and an `addopts` written below
     a multi-line string holding a bracketed line, which the scan read as the
     next table header and stopped at (#118). **A file that outranks or
-    rivals that table**, six — `pytest.toml`, `.pytest.toml`, `pytest.ini`,
-    `.pytest.ini`, `tox.ini`, `setup.cfg` — each carrying a narrowing
-    configuration. And **a `conftest.py` narrowing collection**, ten: in
+    rivals that table**, seven — `pytest.toml`, `.pytest.toml`, `pytest.ini`,
+    `.pytest.ini`, `tox.ini`, `setup.cfg`, each carrying a narrowing
+    configuration; and a `working-directory:` on the pytest step, which needs
+    no file at the root at all, since pytest's rootdir follows the run and the
+    six above are looked for where the run is *assumed* to be.
+    And **a `conftest.py` narrowing collection**, ten: in
     `tests/conftest.py`, a `collect_ignore`, a `collect_ignore_glob`, a
     `pytest_ignore_collect` and a `pytest_collection_modifyitems`; that last
     hook again in a sub-directory of `tests`, where it is handed the whole item
@@ -957,7 +1042,7 @@ class TestBothChecksRunInCI:
     capture pattern, which binds the hook name without an assignment anywhere;
     and a root `conftest.py`.
 
-    All forty-four fail here. Four spellings of the `pyproject.toml` *table*
+    All fifty-eight fail here. Four spellings of the `pyproject.toml` *table*
     were run too and are counted apart from them, because they are four ways
     of writing one table rather than four ways of reaching the run:
     `[tool.pytest]` with a dotted `ini_options.addopts`, the same with an
@@ -967,7 +1052,7 @@ class TestBothChecksRunInCI:
     to split on and raised, and the fourth failed the whitelist — failing
     closed rather than catching. Parsed, each is read as the keys it writes
     and its `addopts` fails the whitelist like any other, which is why the
-    same run that catches the forty-four reports these four as read.
+    same run that catches the fifty-eight reports these four as read.
 
     **pytest's other table is counted there too, and is met three different
     ways**: `[tool.pytest]` with native TOML types, which pytest 9 reads
@@ -979,8 +1064,8 @@ class TestBothChecksRunInCI:
     answers `{}`, which is not the permitted set. All three were run;
     `test_pytests_native_table_is_not_read_here_and_cannot_hide` holds them
     down — the halves that are about this reader under any pytest, and the
-    halves that are about pytest's own reader under one that reads that table
-    at all.
+    halves that are about pytest's own reader, which the `dev` extra's
+    `pytest>=9` floor is what makes assertable rather than skippable (#124).
 
     A fixtures-only `conftest.py` — the one shape of that file which narrows
     nothing — still passes, `tests/conftest.py` as #110 wrote it included. So
@@ -991,6 +1076,60 @@ class TestBothChecksRunInCI:
 
     ROOT = Path(__file__).resolve().parents[1]
     WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
+
+    #: Every command the job runs, in the order it runs them. Pinned entire
+    #: since #124, where asking only that *some* `run:` was exactly `pytest`
+    #: left every other step in the job unread -- so a `pip install` of a
+    #: deselecting plugin, on its own step or appended to the pinned one,
+    #: reached the run without touching a key anything here read.
+    #:
+    #: Compared **in order**, unlike `PERMITTED_WORKFLOW_KEYS`, and the
+    #: difference is not a preference: a mapping's keys are unordered in YAML
+    #: and a sequence's items are not, so `steps:` has an order and comparing
+    #: it costs nothing that is really free to move.
+    PERMITTED_RUN_STEPS = (
+        "sudo apt-get update && sudo apt-get install -y libgl1 libosmesa6",
+        'pip install -e ".[dev]"',
+        "pytest",
+    )
+
+    #: Every action the job uses, likewise in order. A step is a `run:` or a
+    #: `uses:`, so pinning both is what makes "every step is pinned" true:
+    #: an action can `pip install` as easily as a shell line can, and #118's
+    #: third vector -- a step of its own -- is written either way.
+    PERMITTED_ACTIONS = ("actions/checkout@v4", "actions/setup-python@v5")
+
+    #: What the pinned install line above puts in the run's environment: the
+    #: `[project]` dependency set, entire, extras included. An installed
+    #: pytest plugin whose `pytest_collection_modifyitems` deselects narrows
+    #: the run with no flag, no `env:` and no configuration file, and `pip
+    #: install -e ".[dev]"` installs both of these tables.
+    #:
+    #: The two pins interlock and neither means much alone: this one says what
+    #: that line installs, and `PERMITTED_RUN_STEPS` is what says the line is
+    #: still that line.
+    PERMITTED_DEPENDENCIES = (
+        "torch==2.2.2",
+        "mujoco==3.10.0",
+        "gymnasium>=1.0,<2",
+        "numpy<2",
+    )
+
+    #: The extras, as a mapping so that a *new* extra fails here too -- one CI
+    #: does not install is not a route by itself, but the install line is one
+    #: edit away and this is a whitelist. `pytest>=9` is the floor #124 added;
+    #: see the comment on the extra in `pyproject.toml`.
+    PERMITTED_EXTRAS = {"dev": ("pytest>=9", "pyyaml")}
+
+    #: The build backend's own table, pinned for the same reason the two above
+    #: are: it decides what the pinned install line puts in site-packages, and
+    #: a `force-include` there can drop a `.pth` whose first word is `import`
+    #: at the site-packages root, where Python executes it at interpreter
+    #: start. Nothing about the *dependencies* changes, and one line of it can
+    #: set `PYTEST_ADDOPTS` before pytest ever looks (#124).
+    PERMITTED_BUILD = {
+        "build": {"targets": {"wheel": {"packages": ["src/patchworks"]}}}
+    }
 
     #: The keys `[tool.pytest.ini_options]` is allowed to carry. Whitelisted
     #: rather than blacklisted for the reason the rest of this class is: it is
@@ -1076,15 +1215,29 @@ class TestBothChecksRunInCI:
         `test_pytests_native_table_is_not_read_here_and_cannot_hide` pins all
         three.
 
-        Opened in binary, which is `tomllib`'s own idiom rather than a
+        Opened in binary — in `pyproject` below, since #124 split the parse
+        out of this property — which is `tomllib`'s own idiom rather than a
         preference: TOML is UTF-8 by specification, and `read_text` would
         decode it in whatever the process locale is instead —
         `test_the_table_is_read_as_utf_8_whatever_the_locale_is` forces that
         locale away from UTF-8 and is what fails if this goes back to text.
         """
+        return self.pyproject["tool"]["pytest"]["ini_options"]
+
+    @property
+    def pyproject(self):
+        """`pyproject.toml`, parsed — the whole document, where `configuration`
+        above names one table of it.
+
+        Split out at #124, which gave this file a second reader: what the run
+        is *installed* from is pinned now as well as what pytest is configured
+        by, and both are tables of the one document. Everything `configuration`
+        says about the parse — the spellings that resolve to one path, the
+        value written across lines, the binary open — is about this line, and
+        holds for either table.
+        """
         with (self.ROOT / "pyproject.toml").open("rb") as source:
-            parsed = tomllib.load(source)
-        return parsed["tool"]["pytest"]["ini_options"]
+            return tomllib.load(source)
 
     def mappings(self, document):
         """Every mapping in *document*, itself included, outermost first.
@@ -1238,8 +1391,87 @@ class TestBothChecksRunInCI:
     def test_the_suite_runs_whole_and_unfiltered(self):
         # The invocation is pinned exactly. Every way of narrowing it -- a
         # selection flag, a positional path, a `|| true` that swallows the exit
-        # code -- changes this string, and changing it fails here.
-        assert "pytest" in self.values_of("run", self.workflow["jobs"])
+        # code -- changes that string, and changing it fails here.
+        #
+        # And so is every *other* step, which until #124 this asked nothing
+        # about: it looked for one `run:` equal to `pytest` and left the rest
+        # of the job unread, so a step that installed a deselecting plugin
+        # passed. Both lists in order, and both entire -- a step added, a step
+        # removed, a step's command edited and a step's action bumped all fail
+        # here, which is the whitelist's usual cost and is the point of it.
+        job = self.workflow["jobs"]
+        assert self.values_of("run", job) == list(self.PERMITTED_RUN_STEPS)
+        assert self.values_of("uses", job) == list(self.PERMITTED_ACTIONS)
+        # And nothing redefines the shell those commands are handed to, which
+        # is the other half of pinning them: `defaults: run: shell:` under the
+        # job, or a `shell:` on a step, replaces the shell without changing a
+        # single character of any line above. A workflow-level `defaults:` is
+        # caught by the top-level key pin, in
+        # `test_nothing_reaches_the_run_through_its_environment` below.
+        for mapping in self.mappings(job):
+            assert "defaults" not in mapping
+            assert "shell" not in mapping
+            # And nothing moves the run to another directory, which is here
+            # rather than with the shell because of what it defeats:
+            # `RIVAL_CONFIGURATIONS` is looked for at `ROOT` and nowhere else,
+            # which assumes the run's working directory *is* the rootdir.
+            # `working-directory: docs` with a `docs/pytest.ini` in it makes
+            # that file the configfile and `docs` the rootdir -- the "root
+            # `pytest.ini` that makes that table inert" shape from this
+            # class's own opening, reached by moving the run rather than by
+            # adding the file where the check looks (#124).
+            assert "working-directory" not in mapping
+
+    def test_nothing_reaches_the_run_through_what_is_installed(self):
+        # The quietest route of the lot (#118, #124): an installed pytest
+        # plugin whose `pytest_collection_modifyitems` deselects narrows the
+        # run with no flag, no `env:` and no configuration file. It is named
+        # in `pyproject.toml` and installed by the line pinned above, so this
+        # is where it is caught -- as a whitelist, because what makes a
+        # distribution a pytest plugin is a `pytest11` entry point in *its*
+        # metadata, which cannot be read off a name listed here.
+        #
+        # Both tables, because `pip install -e ".[dev]"` installs both. Every
+        # way of failing is a raise or a mismatch: a table that is not there
+        # is a `KeyError` rather than an empty answer, which is the direction
+        # `configuration` fails in too.
+        project = self.pyproject["project"]
+        assert tuple(project["dependencies"]) == self.PERMITTED_DEPENDENCIES
+        assert {
+            extra: tuple(named)
+            for extra, named in project["optional-dependencies"].items()
+        } == self.PERMITTED_EXTRAS
+        # And the distribution that line installs is this one, so the metadata
+        # that could carry that entry point is in this very file: a
+        # `[project.entry-points.pytest11]` naming anything under `src/` makes
+        # patchworks its own deselecting plugin, and neither table above says
+        # a word about it. Refused entire rather than by group, because the
+        # group is the part that can be spelled more than one way and
+        # `[project.scripts]` -- where a console script goes -- is a different
+        # key and is left alone.
+        assert "entry-points" not in project
+        # Declared `dynamic`, the table is not written here at all: a metadata
+        # hook fills it in at build time and the installed distribution ends
+        # up carrying the entry point anyway. That is the *one* way the build
+        # backend reaches this run -- a build requirement is imported in an
+        # isolated environment the run never sees, but a metadata hook writes
+        # the metadata pytest then reads -- so it is refused here rather than
+        # left to the paragraph about evasion.
+        assert "entry-points" not in project.get("dynamic", ())
+        # And the same argument as `PERMITTED_EXTRAS`, one table over: a PEP
+        # 735 `[dependency-groups]` is not installed by the pinned line as it
+        # stands, but it is `pip install --group dev` away, which is exactly
+        # why a new *extra* is refused above. Refused for the same reason and
+        # in the same breath, or the whitelist would be arguing both ways.
+        assert "dependency-groups" not in self.pyproject
+        # Last, the backend's own build table, because *what* that line
+        # materialises in site-packages is as much "what is installed" as
+        # which distributions it fetches. A `force-include` can drop a `.pth`
+        # at the site-packages root, and a `.pth` line beginning `import` is
+        # executed at interpreter start -- before pytest reads `PYTEST_ADDOPTS`
+        # from an environment that line just wrote (#124). Whitelisted like
+        # the rest: the one table this build needs, and nothing beside it.
+        assert self.pyproject["tool"]["hatch"] == self.PERMITTED_BUILD
 
     def test_nothing_reaches_the_run_through_its_environment(self):
         # pytest reads `PYTEST_ADDOPTS` from the environment, so an entry here
@@ -1291,7 +1523,7 @@ class TestTheWorkflowReaderReadsWhatGitHubReads:
     """The reader's own behaviour, against workflows written for the occasion.
 
     Split out from :class:`TestBothChecksRunInCI` rather than added to it: the
-    five assertions there are the whitelist itself, read off this repository's
+    six assertions there are the whitelist itself, read off this repository's
     own files, and these read a workflow written to exercise one thing. What
     earns a test here is anything that could be changed with the rest of the
     suite still green — which is not hypothetical, and is why this class
@@ -1529,7 +1761,7 @@ class TestTheConfigurationReaderReadsWhatPytestReads:
     """`configuration`'s own behaviour, against tables written for the occasion.
 
     The counterpart to :class:`TestTheWorkflowReaderReadsWhatGitHubReads`, one
-    format over and for the same reason: the five assertions in
+    format over and for the same reason: the six assertions in
     :class:`TestBothChecksRunInCI` read this repository's own `pyproject.toml`,
     which writes its table one way, so nothing else in this file exercises what
     the reader does with any other way of writing it.
@@ -1707,10 +1939,14 @@ class TestTheConfigurationReaderReadsWhatPytestReads:
         # there and is empty.
         #
         # Written in two halves. This reader's behaviour holds under any
-        # pytest and is asserted first; pytest's own is asserted after a probe
-        # that skips where the native table is not read at all, since there is
-        # no divergence to pin then. The `dev` extra names no pytest floor,
-        # and a red here is supposed to mean the run was narrowed.
+        # pytest and is asserted first; pytest's own needs a pytest that reads
+        # that table, which is why the `dev` extra floors it at 9 (#124).
+        # It used to *skip* below where the table came back unread, on the
+        # grounds that there is no divergence to pin under an older pytest --
+        # but the extra named no floor, so the skip was reachable, and a test
+        # that can only skip is the same shape as a test that cannot fail
+        # (#77). With the floor there, an unread table means the floor is not
+        # being honoured, and this is the notice.
         native = '[tool.pytest]\naddopts = ["-k", "nothing"]\n'
         beside_keys = native + '[tool.pytest.ini_options]\ntestpaths = ["tests"]\n'
         beside_header = native + "[tool.pytest.ini_options]\n"
@@ -1730,8 +1966,10 @@ class TestTheConfigurationReaderReadsWhatPytestReads:
 
         path = self.reader(tmp_path, native).ROOT / "pyproject.toml"
         read_by_pytest = load_config_dict_from_file(path)
-        if not read_by_pytest:
-            pytest.skip("this pytest does not read the native [tool.pytest] table")
+        assert read_by_pytest, (
+            "this pytest does not read the native [tool.pytest] table, so it "
+            "is older than the >=9 floor the dev extra names"
+        )
         assert "addopts" in read_by_pytest
         both = self.reader(tmp_path, beside_keys)
         with pytest.raises(pytest.UsageError, match="Cannot use both"):
