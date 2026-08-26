@@ -630,10 +630,11 @@ def drive(
     * **A rotating drag**, `pert.active == mjPERT_ROTATE`, ctrl + the **left**
       button. It turns `pert.refquat` and moves no point at all.
 
-    `pert.active2` is never written by the viewer, `key_callback` reports
-    presses and not releases, and no modifier reaches Python except through
-    that bitmask -- so those three, and the `r`/`1`-`9` keys, are the whole
-    palette.
+    `pert.active2` is never written by the viewer, `key_callback` is handed a
+    key code and nothing else -- presses, not releases, and no modifier state
+    -- so those three acts, and the `r`/`1`-`9` keys, are the whole palette.
+    It is the palette `prototypes/sandbox/watch.py` already describes from the
+    other end: "double-click a puck and ctrl-drag it".
 
     **The retarget gesture is two selections: left-double-click the puck, then
     left-double-click the zone.** `10-the-demo-surface.md` used to call it a

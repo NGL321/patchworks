@@ -51,11 +51,11 @@ disk restores a world the same way the one held in memory does.
 tick's reading, and #116 ruled that it stays that way. A trailing record
 fabricated after a run -- to give a marker fired on the last tick somewhere to
 land -- would have to carry *something* in the four arrays, and neither answer
-is honest: zeros read back as a graph that agreed on every edge and a body that
-did not move, which is the reading :func:`_nothing` and :meth:`Trace.save`'s
-refusal to pad both exist to refuse, and *not captured* is a shape the other
-records disagree with, so :meth:`Trace.save` would decline the trace it was
-meant to complete.
+is honest. **Zeros** read back as a graph that agreed on every edge and a body
+that did not move: the reading :func:`_nothing` exists to be distinct from, and
+the one :meth:`Trace.save` already declines to pad with. ***Not captured*** is
+a shape the rest of the trace disagrees with, so :meth:`Trace.save` would
+refuse the very trace such a record was added to complete.
 
 So the marker is what gives instead, and the loss is stated rather than
 patched: see :meth:`Recorder.mark`, *What this cannot see*, and

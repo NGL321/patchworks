@@ -249,18 +249,6 @@ unchanged — plus per-cell prediction error and `‖Δ private‖` (~150 cells 
 **per-edge disagreement** (~700 floats) and the **actuator's commanded and applied rows** (six),
 plus any event markers that fired. The trace is that contract plus those arrays, not a new format.
 
-**Every record is one tick's reading, and a trace holds no record that no tick produced** (#116).
-The consequence is a marker fired on a run's *last* tick: markers ride on the next capture, so the
-last one has no capture left to ride, and it stays where the recorder can still show it rather than
-reaching the trace. Nothing is mis-recorded — a marker carries the tick it fired on, not the tick it
-was captured with — and what is lost is the last event, in the trace only. The alternative was a
-fabricated trailing record, and there is nothing honest to put in its arrays: zeros read back as a
-graph that agreed on every edge, and *not captured* is a shape the rest of the trace disagrees with.
-**So a run that must not lose its last event declares one tick more than it measures** — one
-iteration for the marker to be yielded on, at the cost of one tick and no semantics. That is the
-falsification sweep's obligation, alongside restarting the onset counter once per trial, and neither
-is checkable from inside the surface.
-
 The last two are what every mark a **boundary cell** gets is drawn from — the somatomotor strip, the
 actuator's paired bars, the drive mark and the edge overlay below — and they are in the record for
 the reason the first two are: a quantity the panel could only be handed live would make the live feed
@@ -272,6 +260,18 @@ resolution is chosen when rendering rather than baked into the recording, and th
 falsification sweep, and a debugging pass all read the same file. It also keeps the live budget near
 zero: the env runs ~400 ticks/s with rendering on one laptop CPU core, and a 10 Hz panel decimated
 off a state log does not threaten that.
+
+**Every record is one tick's reading, and a trace holds no record that no tick produced** (#116).
+The consequence is a marker fired on a run's *last* tick: markers ride on the next capture, so the
+last one has no capture left to ride, and it stays where the recorder can still show it rather than
+reaching the trace. Nothing is mis-recorded — a marker carries the tick it fired on, not the tick it
+was captured with — and what is lost is the last event, in the trace only. The alternative was a
+fabricated trailing record, and there is nothing honest to put in its arrays: zeros read back as a
+graph that agreed on every edge, and *not captured* is a shape the rest of the trace disagrees with.
+**So a run that must not lose its last event declares one tick more than it measures** — one
+iteration for the marker to be yielded on, at the cost of one tick and no semantics. That is the
+falsification sweep's obligation, alongside restarting the onset counter once per trial, and neither
+is checkable from inside the surface.
 
 ## The front door
 
