@@ -6,8 +6,12 @@
 |---|---|---|
 | ctrl-drag a **link** | `disturb_arm(joint, impulse)` | `08` event 1 |
 | ctrl-drag a **puck** | `perturb(puck, xy)` | `08` event 2 |
-| **right-click a puck, then click a zone** | `retarget(goal_puck, goal_zone)` | `08` event 3 |
+| **left-double-click a puck, then left-double-click a zone** | `retarget(goal_puck, goal_zone)` | `08` event 3 |
 | `r` | rearrange without resetting the arm | setup |
+
+The third row is what the spec used to call a right-click. #116 ruled on the
+button after #96 found it unbindable, and :func:`drive`, *What the viewer
+reports*, is where the whole of that reading lives.
 
 **The scene window is MuJoCo's passive viewer**, as `prototypes/sandbox/watch.py`
 already runs it -- its camera, its picking, its drag. :func:`drive` opens that
@@ -90,10 +94,12 @@ IMPULSE_PER_METRE = 1.0
 #: a gesture, and firing on one would teleport a puck to where it already is --
 #: leaving a marker that onset latency would then be measured from
 #: (`docs/spec/10-the-demo-surface.md`, *Onset, and the near-misses*). It also
-#: happens to be what leaves MuJoCo's *rotate* drag alone: ctrl-left-drag turns
-#: the reference orientation and leaves the reference position where it was, so
-#: it arrives here as a displacement of zero and is passed over rather than
-#: special-cased.
+#: happens to be what leaves MuJoCo's *rotate* drag alone: ctrl + the left
+#: button is `mjPERT_ROTATE`, which turns the reference orientation and leaves
+#: the reference position where it was, so it arrives here as a displacement of
+#: zero and is passed over rather than special-cased. The drag that fires a hand
+#: is the *translating* one, `mjPERT_TRANSLATE` -- ctrl + the right button (see
+#: :func:`drive`, *What the viewer reports*).
 MINIMUM_DRAG = 1e-3
 
 
@@ -333,9 +339,10 @@ class Gestures:
         viewer highlights it. That is why `08`'s events 2 and 3 read as one
         motion continued: the double-click that lets you shove the puck is the
         same one that names it, and the zone click after it says where it now
-        belongs. Note the button: MuJoCo's passive viewer reports picks and
-        drags and no other mouse traffic, and the pick it reports is its
-        selection. See :func:`drive`, *What the viewer reports*.
+        belongs. Note the button: a pointing is a **left double-click**,
+        because that is the only mouse act the passive viewer turns into a
+        selection. See :func:`drive`, *What the viewer reports*, for the whole
+        of why, and #116 for the ruling that fixed it there.
         """
         referent = self.referent(body, point)
         if referent.kind is ReferentKind.PUCK:
@@ -605,23 +612,72 @@ def drive(
 
     **What the viewer reports.** `launch_passive` offers exactly one event
     hook, `key_callback`, and one piece of readable mouse state: the
-    :class:`~mujoco.MjvPerturb` struct, which holds what was picked and what is
-    being dragged. So the picking, the ray and the drag are inherited entire --
-    this function casts no ray and tracks no cursor -- and the price is that a
-    *button* is not a thing that can be read. The retarget gesture's first
-    pointing is therefore MuJoCo's selection, which is the pick the viewer
-    already makes a human perform before it will let them drag anything
-    (`prototypes/sandbox/watch.py`: "double-click a puck and ctrl-drag it").
-    A raw right-click, as `10-the-demo-surface.md` names it, is not observable
-    through this API at all; the pointing it asks for is. **What a human
-    actually does** is therefore: *left-double-click* the puck, then
-    *left-double-click* the zone. MuJoCo writes `pert.select` only on a double
-    click and only for the left button -- a right double-click sets the
-    camera's `lookat` instead -- and the second click lands on the table geom
-    under the zone, since a zone is a site and no ray hits one. The spec's
-    "right-click" is met in its substance, which is *point, then point*, and
-    not in its button. That substitution is the one thing here a human at the
-    window has to confirm; nothing in the test suite can.
+    :class:`~mujoco.MjvPerturb` struct. So the picking, the ray and the drag
+    are inherited entire -- this function casts no ray and tracks no cursor --
+    and the price is that a *button* is not a field anything here can read.
+    What the viewer will deterministically say, read off MuJoCo 3.10's
+    `simulate/simulate.cc` and `engine/engine_vis_interact.c`, is exactly three
+    acts:
+
+    * **A selection**, in `pert.select` and `pert.localpos`. Written on a
+      *double-click*, and only when the button is the **left** one: MuJoCo's
+      selection mode is 1 for `mjBUTTON_LEFT` and 2 or 3 for anything else,
+      and those two move the camera's `lookat` or start it tracking instead.
+    * **A translating drag**, `pert.active == mjPERT_TRANSLATE`, which MuJoCo
+      sets on ctrl + the **right** button over something already selected. It
+      is the one act that moves `pert.refselpos`, which is to say the one that
+      names a *place*.
+    * **A rotating drag**, `pert.active == mjPERT_ROTATE`, ctrl + the **left**
+      button. It turns `pert.refquat` and moves no point at all.
+
+    `pert.active2` is never written by the viewer, `key_callback` reports
+    presses and not releases, and no modifier reaches Python except through
+    that bitmask -- so those three, and the `r`/`1`-`9` keys, are the whole
+    palette.
+
+    **The retarget gesture is two selections: left-double-click the puck, then
+    left-double-click the zone.** `10-the-demo-surface.md` used to call it a
+    right-click; #116 ruled on the button after #96 found that one unbindable,
+    and this is where that ruling landed. Its priority order was: take a legal
+    button pairing if one is deterministic, prefer a *drag* from puck to zone
+    if one is achievable, and re-implement picking only if neither is. **The
+    drag is closed by the list above**, not by preference: a drag that means
+    *put it there* has to report where *there* is, the only drag that reports a
+    place is the translating one, and a translating ctrl-drag on a puck is
+    already `perturb` -- two hands cannot fire from one gesture on one
+    referent. The rotating drag is genuinely distinguishable from it, and
+    carries an orientation rather than a position, so it can name no zone. So
+    the first option stands, picking stays inherited, and the ctrl-drag that
+    fires `08`'s events 1 and 2 is untouched. The second click lands on the
+    table geom under the zone, since a zone is a site and no ray hits one, and
+    :meth:`Gestures.referent` resolves it by where it landed.
+
+    The spec's *point at the thing, then point at where you want it* is met
+    exactly; its button is not, and cannot be. **That the gesture reads
+    correctly to a bystander is the one thing here a human at the window has to
+    confirm**; nothing in the test suite can, and which physical button a given
+    platform delivers as MuJoCo's "left" or "right" is a question for the same
+    human.
+
+    **What this cannot see: a marker fired on the last tick of a run.** The
+    order within an iteration is *tick, capture, then gesture* -- a hand fires
+    after this tick's record has already been yielded, so its marker rides on
+    the **next** iteration's capture
+    (:meth:`~patchworks.surface.record.Recorder.mark`). On the last iteration
+    there is no next one, and the marker stays in
+    :attr:`~patchworks.surface.record.Recorder.pending` rather than reaching
+    the trace. Nothing is mis-recorded: the marker carries the tick it fired
+    on, and `pending` is where a caller can still read it. What is lost is the
+    last event of the run, in the trace only.
+
+    It is left that way on purpose (#116): the alternative is a trailing record
+    that no tick produced, and this record has no honest arrays to put in one
+    -- see :mod:`~patchworks.surface.record`, *What a trace cannot hold*. **A
+    run that must not lose its last event declares one tick more than it
+    measures**, which costs one tick and no semantics; that is the falsification
+    sweep's obligation, alongside the per-trial
+    :meth:`~patchworks.surface.onset.OnsetCounter.restart` that #95 handed
+    forward, and neither is a thing this loop can check for its caller.
 
     **The keys are drained here, not handled in the callback.** MuJoCo calls
     `key_callback` on its own UI thread, and `r` rearranges the world -- so
@@ -712,8 +768,9 @@ def main(argv: list[str] | None = None) -> None:
     """`mjpython -m patchworks.surface.gestures` -- the demo, drivable by hand.
 
     An agent, a world, and the window: enough to sit in front of and perturb.
-    Ctrl-drag a link or a puck, click a puck and then a zone, `r` to rearrange,
-    `1` - `9` for the pairs. On macOS the passive viewer needs `mjpython`.
+    Ctrl-drag a link or a puck, left-double-click a puck and then a zone, `r`
+    to rearrange, `1` - `9` for the pairs. On macOS the passive viewer needs
+    `mjpython`.
 
     The dome panel is the other window and is not opened here. It reads the
     records this yields (`docs/spec/10-the-demo-surface.md`, *Two windows*),
