@@ -1711,8 +1711,6 @@ class TestTheConfigurationReaderReadsWhatPytestReads:
         # that skips where the native table is not read at all, since there is
         # no divergence to pin then. The `dev` extra names no pytest floor,
         # and a red here is supposed to mean the run was narrowed.
-        from _pytest.config.findpaths import load_config_dict_from_file
-
         native = '[tool.pytest]\naddopts = ["-k", "nothing"]\n'
         beside_keys = native + '[tool.pytest.ini_options]\ntestpaths = ["tests"]\n'
         beside_header = native + "[tool.pytest.ini_options]\n"
@@ -1725,6 +1723,11 @@ class TestTheConfigurationReaderReadsWhatPytestReads:
 
         # And pytest's half. Each file is written again rather than reused:
         # `reader` writes them all to the one `pyproject.toml`.
+        # Imported here rather than at the top of the body: a pytest that
+        # moved or renamed this helper should take pytest's half down and
+        # not the half above, which needs nothing of pytest's internals.
+        from _pytest.config.findpaths import load_config_dict_from_file
+
         path = self.reader(tmp_path, native).ROOT / "pyproject.toml"
         read_by_pytest = load_config_dict_from_file(path)
         if not read_by_pytest:
