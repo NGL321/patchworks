@@ -68,6 +68,7 @@ showing through an honest picture rather than anything to fix here, and
 from __future__ import annotations
 
 import time
+import traceback
 import warnings
 from pathlib import Path
 from typing import Callable, Iterable, Iterator
@@ -199,10 +200,16 @@ def show(
             # a graph perfectly at rest -- and that refusal arriving here must
             # close the view and not the run. Warned rather than swallowed, and
             # once rather than per frame, because the panels are closed with it.
+            #
+            # **With the traceback**, because this is the one place a genuine
+            # bug in a panel would otherwise become a one-line notice: a broad
+            # `except` that kept the run going and printed only the exception's
+            # `repr` would be the difference between a display refusing and a
+            # display broken, made invisible.
             panel.close()
             warnings.warn(
                 f"the panel stopped drawing at tick {record.tick} and the run is "
-                f"carrying on without it: {failure!r}",
+                f"carrying on without it: {failure!r}\n{traceback.format_exc()}",
                 stacklevel=2,
             )
             continue
