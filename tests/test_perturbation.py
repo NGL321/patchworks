@@ -848,46 +848,42 @@ class TestBothChecksRunInCI:
     exactly here and still never run pytest. Neither of those is a spelling,
     so parsing does not reach either: refusing them means pinning every `run:`
     and every key under `jobs:`, a wider whitelist than #90 argued for and a
-    decision about this class rather than a gap in it. A third shape is
-    outside their reach and is *not* a decision — the `pyproject.toml` scan's,
-    described next, which is a gap and is recorded as one.
+    decision about this class rather than a gap in it. Those two are the whole
+    of what is outside: the third shape that used to stand here — the
+    `pyproject.toml` scan's — was a gap rather than a decision, and #118
+    closed it.
 
-    **And `pyproject.toml` is still read as text, which is a known hole and
-    not merely a weaker claim.** `tomllib` arrives in 3.11 and this project's
-    floor is 3.10, so the rootdir table is scanned rather than parsed. Four
-    spellings were tried and each fails *closed* — a re-spelt table header
-    leaves the split with nothing to split on and raises, and a key written
-    across lines fails the whitelist — and they are named below and counted
-    apart from the routes.
-
-    But four spellings were never a proof about TOML, and #117 found a fifth
-    that does **not** fail closed. The scan ends at the first line that
-    begins `[`, reading it as the next table header; a value written as a
-    multi-line TOML string can put such a line inside itself, and every key
-    after it then goes unread. A `pythonpath` opened as a multi-line string
-    holding a bracketed line, followed by an `addopts`, is valid TOML that
-    pytest honours — checked against pytest itself, which collects the suite
-    and reports every test deselected — and it passes all five assertions
-    here with `-k nothing` live in the rootdir table. That is a live
-    narrowing route this class does not catch. Unlike the two shapes above it
-    is a **gap rather than a decision**: closing it means parsing TOML, so it
-    means `tomli` on the 3.10 floor or raising that floor to 3.11 for
-    `tomllib` — the dependency question #117 settled for the workflow and was
-    never asked for this file. It is recorded here rather than fixed quietly
-    or left implied by "four spellings", and it is why the count below is
-    forty-three caught of forty-four known. The scan is unchanged from before
-    #117; the parser rewrite neither caused it nor reaches it.
+    **And `pyproject.toml` is parsed too, since #118.** It was read as text
+    until then, because `tomllib` arrives in 3.11 and this project's floor was
+    3.10. Four spellings of the *table* were tried against that scan and each
+    failed *closed*, which was the weaker claim it supported — but four
+    spellings were never a proof about TOML, and #117 found a fifth that did
+    **not** fail closed. The scan ended at the first line beginning `[`,
+    reading it as the next table header; a value written as a multi-line TOML
+    string can put such a line inside itself, and every key after it then went
+    unread. A `pythonpath` opened that way over an `addopts = "-k nothing"` is
+    valid TOML that pytest honours — checked against pytest itself, which
+    collected the suite and reported every test deselected — and it passed all
+    five assertions here. That was a live narrowing route, and closing it was
+    the same argument #117 made for `ci.yml`: the ways to write a TOML key are
+    no more enumerable by looking at a line than the ways to write a YAML one.
+    The floor moved to 3.11 for it, ruled on in #118 and cheaper than a second
+    test-only dependency, since CI already pins 3.12 and nothing in `src/` is
+    version-conditional. `configuration` reads the table now: the four
+    spellings of the table resolve to the one path it looks up, and a value
+    written across lines is a value rather than a place the reader stops.
 
     **Which is how the list below should be read.** These five assertions hold
     down every route that writes a key they read, in any spelling of it. That
-    is the forty-three named here, each one kill-tested on its own — written
-    into a scratch copy of this repository, the five assertions run against
-    that copy, and the route caught. It is not every route there is: the two
-    shapes above are outside it by decision, and the `pyproject.toml` scan has
-    one route outside it by gap, so the tally is forty-three caught of
-    forty-four known.
+    is the forty-four named here, each one kill-tested on its own — written
+    into a scratch copy of the files these assertions read, which is `ci.yml`,
+    `pyproject.toml` and the `conftest.py` tree; the five assertions run
+    against that copy, unmutated first and then per route; and the route
+    caught. It is not every route there is: the two
+    shapes above are outside it by decision, so the tally is forty-four caught
+    of forty-four known.
 
-    The forty-three, by where they reach. **The invocation**, five: `-k`, a
+    The forty-four, by where they reach. **The invocation**, five: `-k`, a
     positional path, `--collect-only`, `|| true`, `python -m pytest`. **A gate
     on the step**, four: `continue-on-error` and a step-level `if:`, each as
     an ordinary key *and as a sequence item's first key*, where the leading
@@ -915,8 +911,10 @@ class TestBothChecksRunInCI:
     that each is proven to run. A **tab** after the dash is still not in this
     class: YAML refuses it outright, "found character that cannot start any
     token", so it fails at the parser and loudly rather than here and quietly.
-    **The rootdir configuration**, three: an `addopts`, a narrowed `testpaths`,
-    and a `norecursedirs` in `pyproject.toml`. **A file that outranks or
+    **The rootdir configuration**, four: an `addopts`, a narrowed `testpaths`,
+    and a `norecursedirs` in `pyproject.toml`, and an `addopts` written below
+    a multi-line string holding a bracketed line, which the scan read as the
+    next table header and stopped at (#118). **A file that outranks or
     rivals that table**, six — `pytest.toml`, `.pytest.toml`, `pytest.ini`,
     `.pytest.ini`, `tox.ini`, `setup.cfg` — each carrying a narrowing
     configuration. And **a `conftest.py` narrowing collection**, ten: in
@@ -928,14 +926,17 @@ class TestBothChecksRunInCI:
     capture pattern, which binds the hook name without an assignment anywhere;
     and a root `conftest.py`.
 
-    All forty-three fail here. Four spellings of the `pyproject.toml` *table*
-    were run too and are not among them, because they are the weaker claim the
-    text scan supports: `[tool.pytest]` with a dotted `ini_options.addopts`,
-    the same with an inline `ini_options = {…}`, a header written
-    `[ tool.pytest.ini_options ]`, and an `addopts` opened as a multi-line
-    string. Each fails the check rather than passing it — three by raising on
-    the split, one by failing the whitelist — which is failing closed rather
-    than catching, and is counted separately for that reason.
+    All forty-four fail here. Four spellings of the `pyproject.toml` *table*
+    were run too and are counted apart from them, because they are four ways
+    of writing one table rather than four ways of reaching the run:
+    `[tool.pytest]` with a dotted `ini_options.addopts`, the same with an
+    inline `ini_options = {…}`, a header written `[ tool.pytest.ini_options ]`,
+    and an `addopts` opened as a multi-line string. What #118 changed is how
+    they are met. Against the scan, three of them left the split with nothing
+    to split on and raised, and the fourth failed the whitelist — failing
+    closed rather than catching. Parsed, each is read as the keys it writes
+    and its `addopts` fails the whitelist like any other, which is why the
+    same run that catches the forty-four reports these four as read.
 
     A fixtures-only `conftest.py` — the one shape of that file which narrows
     nothing — still passes, `tests/conftest.py` as #110 wrote it included. So
