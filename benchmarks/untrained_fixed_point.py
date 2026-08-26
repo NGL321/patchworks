@@ -72,7 +72,7 @@ measured ~9 s a reading on the real dome, which is not a thing to put on a
 Runtimes on the development laptop, for budgeting: `characterise` is ~40 s on
 the small dome and ~1 min on the real one, `sensitivity` ~1 min and
 `attenuation` ~20 s on the real dome, `drive` ~1 min a seed, and `learning` runs
-at ~105 ticks/s on the small dome with both rules on and ~45 ticks/s on the real
+at ~105 ticks/s on the small dome with both rules on and ~50 ticks/s on the real
 one. `attenuation` is the one whose cost is not ticks: it runs one
 message-passing phase per edge endpoint, 1364 of them on the real dome.
 """
