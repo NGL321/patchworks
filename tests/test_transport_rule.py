@@ -501,17 +501,24 @@ class TestTheObjectiveExcludesTheTrivialSolution:
         # but not zero, which is the whole of the point.
         assert taken[0] < 1e-12 / norm**2
         # One step off it, a full-size step: `1/(‖F x‖ + ‖y‖)` per
-        # `NORM_FLOOR`'s own comment, so `1/(2‖agreed‖)` here. The largest rung
-        # displaces by `0.2‖agreed‖`, so the triangle inequality holds every
-        # step in `[0.83, 1.24]` of a full one, and the bounds are stated at
-        # the round numbers outside that.
+        # `NORM_FLOOR`'s own comment, so `1/(2‖agreed‖)` here.
+        #
+        # The envelope is derived rather than sampled. Writing `D` for the
+        # denominator and `N` for the numerator, the gradient is
+        # `u/D − (N/D²)w` for two unit vectors `u` and `w`, so its norm lies in
+        # `[(1 − N/D)/D, (1 + N/D)/D]`. The largest rung displaces by
+        # `0.2‖agreed‖`, which puts `D` in `[1.8, 2.2]·‖agreed‖` and `N/D`
+        # under `1/9`, giving `[0.826, 1.235]` of a full step. Both ends are
+        # nearly attained -- `0.8264` and `1.2346` over 20000 directions -- so
+        # the bounds below sit just outside a bound that is tight, not a
+        # guess with room in it.
         full = 1.0 / (2.0 * norm)
         assert all(value > 0.8 * full for value in taken[1:])
         # Within a factor of two of each other across eight orders of
         # magnitude of disagreement, which is the whole of the point: there is
         # no basin here for an endpoint to settle into. That same envelope caps
-        # the ratio at `1.24/0.83 = 1.49`, so the two is headroom now rather
-        # than a bound that a small `agreed` could walk through.
+        # the ratio at `1.235/0.826 = 1.49`, so the two is headroom now rather
+        # than a bound a small `agreed` could walk through.
         assert max(taken[1:]) < 2 * min(taken[1:])
 
     def test_the_normaliser_is_the_current_magnitudes_not_a_running_average(
