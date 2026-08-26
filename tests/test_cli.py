@@ -208,7 +208,25 @@ class TestDoctorsChecks:
         finding = cli.check_interpreter()
         assert not finding.passed
         assert ">=99.0,<99.1" in finding.detail
-        assert "venv" in finding.remedy and "pip" in finding.remedy
+        assert finding.remedy.endswith(cli._venv_hint()), (
+            "the remedy is whatever _venv_hint chose, with nothing composed onto it"
+        )
+
+    def test_the_interpreter_remedy_does_not_say_venv_twice(self, monkeypatch):
+        """It used to prepend a venv command to one `_venv_hint` already carried.
+
+        Outside a venv that printed `python3.12 -m venv .venv &&` twice in a
+        row. Inside an out-of-bound one it was worse: make a new venv, then
+        install into the old broken one with its `pip`. Only `_venv_hint` knows
+        which case it is in, so only `_venv_hint` gets to answer.
+        """
+        monkeypatch.setattr(cli, "MINIMUM_PYTHON", (99, 0))
+        monkeypatch.setattr(cli, "BELOW_PYTHON", (99, 1))
+        for in_a_venv in (True, False):
+            monkeypatch.setattr(cli, "in_a_virtual_environment", lambda: in_a_venv)
+            remedy = cli.check_interpreter().remedy
+            assert remedy.count("-m venv") <= 1, remedy
+            assert remedy.count("pip install") == 1, remedy
 
     def test_the_dependencies_import_here_and_the_versions_are_reported_not_enforced(self):
         finding = cli.check_dependencies()
@@ -630,14 +648,38 @@ class TestCheckMeasuresAndExits:
         assert liveness.puck_displacement == pytest.approx(0.0)
 
     def test_the_commanded_and_applied_torques_are_reported_apart(self):
-        """`command` is pre-clip and `applied` is not, so one number cannot label both.
-
-        A gap between them is the graph asking for more than the arm will give,
-        which is worth seeing rather than averaging away.
-        """
+        """`command` is pre-clip and `applied` is not, so one number cannot label both."""
         printed = cli.format_liveness(a_liveness())
         assert "torque |mean| asked  : 0.295   (pre-clip" in printed
         assert "torque |mean| applied: 0.290   (post-clip; 1 = saturated)" in printed
+
+    def test_each_torque_figure_is_measured_from_its_own_field(self, monkeypatch):
+        """And measured from it, not both from `command`.
+
+        A gap between the two is the graph asking for more torque than the arm
+        will give, which is the thing worth seeing -- so a `check` that read
+        `command` twice would report saturation as never happening. Held by
+        driving a run where the two differ by construction.
+        """
+        import patchworks.agent
+
+        real_run = patchworks.agent.run
+
+        def wrapped(agent, ticks, *, seed=None):
+            def ticking():
+                for outcome in real_run(agent, ticks, seed=seed):
+                    yield dataclasses.replace(
+                        outcome, command=np.full(3, 4.0), applied=np.full(3, 1.0)
+                    )
+
+            return ticking()
+
+        monkeypatch.setattr(patchworks.agent, "run", wrapped)
+        liveness = cli.measure_liveness(
+            ticks=TICKS, seed=0, dome=build_graph(SMALL), image_size=IMAGE_SIZE
+        )
+        assert liveness.commanded_mean_abs == pytest.approx(4.0)
+        assert liveness.applied_mean_abs == pytest.approx(1.0)
 
     def test_the_puck_and_arm_lines_carry_their_units(self):
         printed = cli.format_liveness(a_liveness())
