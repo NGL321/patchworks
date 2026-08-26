@@ -26,6 +26,19 @@ is prose claiming an enforcement it has not got, so each finding below reports
 what was actually observed and the verdict aggregates nothing else; where a
 requirement is reported rather than enforced, the output says so in those
 words.
+
+**And what `doctor` cannot reach, it does not claim.** It runs *after*
+`patchworks/__init__.py`, which imports the architecture eagerly, which imports
+torch — so on a clone where nothing has been installed at all, `python -m
+patchworks doctor` ends in a bare `ModuleNotFoundError: No module named
+'torch'` and never reaches :func:`diagnose`. The install step comes first, and
+the README puts it first. Making `doctor` survive that means the package's
+front door importing lazily, which is a decision about `patchworks`' public
+shape rather than about this CLI, and #119 does not carry it — it is escalated
+rather than taken here. What `doctor` *can* still catch is a partial
+installation: `mujoco` and `gymnasium` reach the package only through
+:mod:`patchworks.sandbox`, which `__init__` does not import, so either being
+absent or broken arrives as a finding rather than a traceback.
 """
 
 from __future__ import annotations
@@ -791,6 +804,10 @@ Every failure is printed with the command that fixes it, and what was *not*
 checked is printed too, so a "ready" verdict cannot be read as covering more
 than it does. Nothing is ever installed or changed: this reports, and the
 commands are yours to run.
+
+This runs after the package has imported, so it cannot rescue a clone where
+nothing is installed at all -- there, `python -m patchworks doctor` fails on
+`import torch` before reaching any of this. Install first; the README says how.
 
 Exit code is 0 when every check passed and 1 when any did not.
 """

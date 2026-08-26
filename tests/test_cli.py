@@ -231,6 +231,32 @@ class TestDoctorsChecks:
         assert "torch" in finding.detail, "what did import is still worth printing"
         assert "pip" in finding.remedy
 
+    def test_a_partial_install_is_still_reachable_by_the_dependency_check(self):
+        """What `doctor` can still catch, given that it runs after the package imported.
+
+        `patchworks/__init__.py` imports the architecture eagerly, so torch and
+        numpy are already in by the time any of this runs and their checks can
+        only pass. `mujoco` and `gymnasium` reach the package only through
+        :mod:`patchworks.sandbox`, which `__init__` does not import — so those
+        two are the ones a finding can genuinely be about, and this holds that
+        that stays true. If `__init__` ever imports the sandbox, `doctor`'s
+        dependency check stops being able to fail and this says so.
+        """
+        import ast
+
+        source = Path(cli.__file__).parent / "__init__.py"
+        imported = {
+            f"patchworks.{alias.name}"
+            for node in ast.walk(ast.parse(source.read_text()))
+            if isinstance(node, ast.ImportFrom) and node.module is None
+            for alias in node.names
+        }
+        assert "patchworks.sandbox" not in imported, (
+            "the package's front door now pulls MuJoCo and Gymnasium, so doctor's "
+            "dependency check can no longer report either as missing -- it would "
+            "have crashed before running. Say so, or make the front door lazy."
+        )
+
     def test_the_package_modules_import(self):
         finding = cli.check_package()
         assert finding.passed
