@@ -586,7 +586,7 @@ class TestBothChecksRunInCI:
     runner outage, or the workflow file deleted — and neither of those is
     silent.
 
-    Kill-tested against twenty-seven ways of narrowing the run: `-k`, a
+    Kill-tested against twenty-nine ways of narrowing the run: `-k`, a
     positional path, `--collect-only`, `|| true`, `python -m pytest`,
     `continue-on-error` and a step-level `if:` both as an ordinary key **and as
     a sequence item's first key**, where the leading `- ` would hide them from
@@ -599,8 +599,10 @@ class TestBothChecksRunInCI:
     `pytest.toml`, `.pytest.toml`, `pytest.ini`, `.pytest.ini`, `tox.ini`,
     `setup.cfg` — carrying a narrowing configuration; and a `conftest.py`
     narrowing collection through a `collect_ignore`, a `collect_ignore_glob`, a
-    `pytest_ignore_collect`, or a `pytest_collection_modifyitems`. All
-    twenty-seven fail here, and a fixtures-only `conftest.py` — the one shape of
+    `pytest_ignore_collect`, or a `pytest_collection_modifyitems` — that last
+    one in a sub-directory of `tests`, where it is handed the whole item list
+    just the same, and either hook reached by `import` rather than by `def`.
+    All twenty-nine fail here, and a fixtures-only `conftest.py` — the one shape of
     that file which narrows nothing — still passes. So does a harmless `-q`
     *not*: the cost of the design is that a benign edit to the invocation has
     to come with an edit to this class, which is the whitelist working rather
@@ -695,10 +697,12 @@ class TestBothChecksRunInCI:
         )
 
     def names_bound_by(self, source):
-        """Every name a module binds, at any depth: `def`, `class`, assignment.
+        """Every name a module binds: `def`, `class`, assignment, **import**.
 
-        At any depth because a hook defined inside an `if` is a hook: pytest
-        finds it by name on the imported module either way.
+        Import included because pytest reads hooks as attributes of the
+        imported module and does not care how they got there: `from _hooks
+        import pytest_ignore_collect` binds the attribute as surely as a `def`
+        does. At any depth, too — a hook defined inside an `if` is a hook.
         """
         names = set()
         for node in ast.walk(ast.parse(source)):
@@ -706,6 +710,8 @@ class TestBothChecksRunInCI:
                 names.add(node.name)
             elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
                 names.add(node.id)
+            elif isinstance(node, ast.alias):
+                names.add(node.asname or node.name.split(".")[0])
         return names
 
     def test_the_workflow_runs_on_every_push(self):
@@ -765,8 +771,17 @@ class TestBothChecksRunInCI:
         # `conftest.py` pytest imports on its own.
         for name in self.RIVAL_CONFIGURATIONS:
             assert not (self.ROOT / name).exists()
-        for directory in (self.ROOT, self.ROOT / "tests"):
-            conftest = directory / "conftest.py"
+        # Every `conftest.py` pytest imports, which the line above has just
+        # pinned down to the rootdir and the `tests` tree: a
+        # `pytest_collection_modifyitems` is a session hook wherever it sits,
+        # and one in a sub-directory is handed the whole item list. The walk
+        # stops at that tree deliberately rather than sweeping the repository,
+        # which on a checkout holding worktrees would read other checkouts.
+        conftests = [
+            self.ROOT / "conftest.py",
+            *sorted((self.ROOT / "tests").rglob("conftest.py")),
+        ]
+        for conftest in conftests:
             if conftest.exists():
                 # A fixtures-only `conftest.py` is fine and this should not be
                 # the thing standing in its way; what narrows collection is the
