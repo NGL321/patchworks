@@ -263,7 +263,9 @@ def live(
     window and nothing else. On macOS that means `mjpython`, which is MuJoCo's
     requirement for the passive viewer and not this module's.
 
-    `save` writes the run's trace, which is what :func:`replay` reads back.
+    `save` writes the run's trace, which is what :func:`replay` reads back. It
+    is written when the feed ends and before the window is held open, so a hold
+    that is interrupted still leaves the file.
 
     The agent is seeded rather than left to the global torch stream, so that
     `--seed` names the whole run: the same seed gives the same body, the same
@@ -290,11 +292,14 @@ def live(
                 scene=scene.frame,
                 since=OnsetCounter().count,
             )
+            # Written the moment the feed ends, and **before** the window is
+            # held open: a hold waits on a human, and a human who walks away
+            # and interrupts the process later should still find the file.
+            if save is not None:
+                print(f"trace written to {recorder.trace.save(save)}")
             if hold and not window.closed:
                 print("the run has ended; close the panel window to finish.")
                 window.wait()
-        if save is not None:
-            print(f"trace written to {recorder.trace.save(save)}")
     finally:
         world.close()
 
