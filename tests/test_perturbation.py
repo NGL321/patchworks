@@ -582,9 +582,19 @@ class TestBothChecksRunInCI:
     *known* to run the whole suite on every push: the trigger, the invocation,
     the step's environment, and every configuration file pytest would read.
     Anything else fails here and has to be re-argued rather than slipping past.
-    The one thing outside their reach is the run never starting at all — a
-    runner outage, or the workflow file deleted — and neither of those is
-    silent.
+
+    **What is outside their reach**, stated because a whitelist that reads as
+    complete and is not would be this file's own failure mode: the run never
+    starting at all — a runner outage, or the workflow file deleted — neither
+    of which is silent; and two shapes that are, both found while closing the
+    routes below and both left open rather than chosen alone (#109). A step
+    earlier in the job can write `PYTEST_ADDOPTS` into `$GITHUB_ENV`, which
+    reaches the pytest step with no `env:` block anywhere for the check below
+    to see. And a `defaults: run: shell:` under `jobs:` replaces the shell
+    `run: pytest` is handed to, so that line can be pinned exactly here and
+    still never run pytest. Refusing either means pinning every `run:` line
+    and every key under `jobs:` — a wider whitelist than #90 argued for, and a
+    decision about this class rather than a gap in it.
 
     Kill-tested against twenty-nine ways of narrowing the run: `-k`, a
     positional path, `--collect-only`, `|| true`, `python -m pytest`,
