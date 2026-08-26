@@ -440,10 +440,10 @@ def serve(stream: BinaryIO, *, title: str = "patchworks", scale: int = 2) -> int
     with state:
         while latest[0] is None and not done[0]:
             state.wait()
-        first, finished, latest[0] = latest[0], done[0], None
+        first, latest[0] = latest[0], None
     if first is None:
         glfw.terminate()
-        return 0 if finished else 1
+        return 0
 
     height, width = first.shape[:2]
     window = glfw.create_window(width * scale, height * scale, title, None, None)
