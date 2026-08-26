@@ -163,15 +163,17 @@ A_SPREAD = [
 # on — a bias row is not of a kind and an endpoint is not the widest of
 # anything — so these are arbitrary representatives, spread across their array
 # and no more meaningful than any other. Picking them by a rule would dress a
-# choice up as a derivation, and the sweep beside each already makes the
-# standing claim over every row and every endpoint; these are what make a
-# failure name one.
+# choice up as a derivation, and what each stands in for reads the same at
+# every row and every endpoint: the bias rows have the whole-population sweep
+# beside them and are parametrised so that a failure names one, and the four
+# endpoints are four samples of a claim :class:`TestThePermittedChannel` makes
+# about that numbering as a whole.
 #
 # What typing them costs is that a dome retuned smaller can leave one off the
 # end of its array, where it fails as an `IndexError` from inside a helper
-# rather than as anything about the dome. They are gathered here, and typed
-# nowhere else, so that :class:`TestTheCellsTheseTestsName` can bound all of
-# them against the arrays they index.
+# rather than as anything about the dome. They are gathered here rather than
+# typed at each use, so that :class:`TestTheCellsTheseTestsName` can bound all
+# of them against the arrays they index.
 
 #: A bias row well inside the population, for the tests that want a single row
 #: rather than a spread.
