@@ -33,6 +33,12 @@ Built so far:
 * :mod:`patchworks.surface` — the demo surface: the tick record, and the one
   renderer that reads it. Outside the architecture by construction — display
   only, and no cell can reach it. Not imported here; import it directly.
+* :mod:`patchworks.cli` — the `patchworks` command: `doctor`, `check`, `dome`
+  and `demo`, and the `mjpython` re-exec so that nobody has to know about it.
+  Outside the architecture by the same rule as the surface, and for the same
+  reason. Not imported here — importing it would put argparse in the path of
+  every `import patchworks`; `python -m patchworks` and the console script both
+  reach it directly.
 """
 
 from . import (

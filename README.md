@@ -30,6 +30,20 @@ it has been asked to put it. There is no agent yet — this frame was driven by 
 > a build can start cold with no architectural question left open. The two loops that belong at the
 > top of this page (*I moved the puck* · *I changed the goal*) don't exist until it does.
 
+What *does* run is the world, the dome's construction, and an untrained agent driving the arm.
+From a fresh clone:
+
+```bash
+python3.12 -m venv .venv                # the shared venv, at the repo root
+.venv/bin/pip install -e '.[dev]'
+.venv/bin/patchworks doctor             # can this installation run? a line per check, and the fix
+.venv/bin/patchworks check              # is it alive? ~4 s headless, and the numbers a bug report wants
+```
+
+`patchworks` on its own lists the rest — `dome` for the graph's shape, `demo` for the scene window
+you can interfere with by hand. There is no `mjpython` to remember: `demo` finds it, or stops and
+tells you the command. [The longer tour is below](#-try-it-yourself).
+
 ## 🧩 The conjunction
 
 Five commitments, none of which is remarkable alone:
@@ -161,8 +175,17 @@ python3.12 -m venv .venv
 .venv/bin/pytest                                   # the world, held against the spec
 .venv/bin/python benchmarks/achievability.py       # the scripted lower bound: 14 of 72, in ~3-4 min
 .venv/bin/python benchmarks/timescale_selection.py # the timescale go/no-go, in ~2 min
-.venv/bin/python -m patchworks                     # the dome, and what construction records
+.venv/bin/patchworks doctor                        # can this installation run, and what to do if not
+.venv/bin/patchworks dome                          # the dome, and what construction records
+.venv/bin/patchworks check                         # the untrained agent, driving the arm, in ~4 s
+.venv/bin/patchworks demo                          # the scene window, and your hands in it
 ```
+
+`patchworks demo` opens a MuJoCo window, and on macOS a MuJoCo window has to own the process's main
+thread — which only MuJoCo's `mjpython` launcher gives it. **You do not have to know that**: `demo`
+finds `mjpython` and re-execs into it, or stops and prints the exact command. Inside the window,
+shift-ctrl-drag a link or a puck, left-double-click a puck and then a zone to set a goal, `r` to
+rearrange, `1`-`9` for the goal pairs.
 
 <sub>These instructions live here and only here. `prototypes/sandbox/README.md` describes what the
 files in that directory are and what broke while building them; it does not repeat setup.</sub>

@@ -13,10 +13,11 @@ use them.
 **What rests on a human at the screen**, and is asserted nowhere:
 
 * that `patchworks demo` actually opens a scene window, and that the window is
-  usable once open. What is tested is the decision *before* it — re-exec, or
-  refuse by name — and that the refusal names a command.
-* that `mjpython` re-exec succeeds. The plan to exec is asserted; the exec is
-  not performed, because performing it would replace the pytest process.
+  usable once open. What is tested is the decision *before* it — which
+  interpreter, or a refusal naming the command — and never the window.
+* that the exec into `mjpython` succeeds. The plan is asserted and `os.execv`
+  is asserted to be *called* with it, against a stand-in; the real exec is
+  never performed, because it would replace the pytest process.
 
 `patchworks check` is run here on the small dome (`tests/conftest.py`) against
 a 16x16 render, for a handful of ticks. The full dome for three hundred ticks
@@ -358,127 +359,111 @@ class TestDoctorsVerdict:
 
 
 class TestTheMjpythonProblem:
-    """Re-exec, or refuse with the exact command. Never a human being told to remember.
+    """Exec the right interpreter, or refuse with the exact command.
 
     Every rule is exercised through :func:`~patchworks.cli.window_plan`, whose
     inputs are all arguments, so these run identically on any platform and none
-    of them launches anything.
+    of them launches anything or replaces this process.
     """
 
-    def test_off_macos_a_window_just_runs(self):
+    def test_off_macos_the_module_runs_under_this_interpreter(self):
         assert not cli.needs_mjpython("linux")
-        assert cli.window_plan("demo", (), platform="linux").run_here
+        plan = cli.window_plan(
+            "a.module", ("--seed=3",), platform="linux", executable="/v/bin/python"
+        )
+        assert plan.reexec == ("/v/bin/python", "-m", "a.module", "--seed=3")
+        assert not plan.refusal
 
-    def test_macos_needs_it(self):
+    def test_macos_needs_the_launcher(self):
         assert cli.needs_mjpython("darwin")
 
-    def test_already_under_the_launcher_just_runs(self):
+    def test_macos_with_a_launcher_execs_into_it(self):
         plan = cli.window_plan(
-            "demo", (), platform="darwin", already_under=True, reexeced=False
-        )
-        assert plan.run_here
-        assert not plan.reexec and not plan.refusal
-
-    def test_macos_with_a_launcher_re_execs_into_it(self):
-        plan = cli.window_plan(
-            "demo",
+            "a.module",
             ("--seed=3",),
             platform="darwin",
-            already_under=False,
             launcher=Path("/venv/bin/mjpython"),
-            reexeced=False,
         )
-        assert plan.reexec == (
-            "/venv/bin/mjpython",
-            "-m",
-            "patchworks",
-            "demo",
-            "--seed=3",
-        )
-        assert not plan.run_here and not plan.refusal
+        assert plan.reexec == ("/venv/bin/mjpython", "-m", "a.module", "--seed=3")
+        assert not plan.refusal
 
     def test_macos_with_no_launcher_refuses_with_the_exact_command(self):
         plan = cli.window_plan(
-            "demo",
+            "a.module",
             ("--seed=3",),
             platform="darwin",
-            already_under=False,
             launcher=None,
-            reexeced=False,
-        )
-        assert not plan.run_here and not plan.reexec
-        assert "mjpython -m patchworks demo --seed=3" in plan.refusal
-        assert "pip" in plan.refusal, "and how to get an mjpython in the first place"
-        assert "main thread" in plan.refusal, "and why, so it is not folklore"
-
-    def test_a_second_re_exec_refuses_rather_than_looping(self):
-        """The loop guard.
-
-        Detection reads a private MuJoCo attribute, and a private name can
-        move. What that must degrade to is one refusal naming the command, not
-        a process that execs itself forever — so a plan made with the marker
-        already set never execs again.
-        """
-        plan = cli.window_plan(
-            "demo",
-            (),
-            platform="darwin",
-            already_under=False,
-            launcher=Path("/venv/bin/mjpython"),
-            reexeced=True,
-        )
-        assert not plan.reexec and not plan.run_here
-        assert "stopping rather than doing it again" in plan.refusal
-        assert "/venv/bin/mjpython -m patchworks demo" in plan.refusal
-
-    def test_the_marker_is_read_from_the_environment(self, monkeypatch):
-        monkeypatch.setenv(cli.REEXEC_MARKER, "1")
-        plan = cli.window_plan(
-            "demo",
-            (),
-            platform="darwin",
-            already_under=False,
-            launcher=Path("/venv/bin/mjpython"),
+            executable="/v/bin/python",
         )
         assert not plan.reexec
+        assert "mjpython -m a.module --seed=3" in plan.refusal
+        assert "/v/bin/python" in plan.refusal, "and where it looked"
+        assert "pip" in plan.refusal, "and how to get one in the first place"
+        assert "main thread" in plan.refusal, "and why, so it is not folklore"
 
-    def test_running_here_calls_the_run_and_succeeds(self, monkeypatch):
-        monkeypatch.setattr(cli, "window_plan", lambda *a, **k: cli.WindowPlan(run_here=True))
-        ran = []
-        assert cli.open_window_with("demo", (), lambda: ran.append(True)) == 0
-        assert ran == [True]
+    def test_launcher_none_means_there_is_none_not_go_and_look(self):
+        """The defect the suite found while this file was being written.
 
-    def test_a_refusal_goes_to_stderr_and_exits_one_without_running_anything(
-        self, monkeypatch, capsys
-    ):
+        `None` is `mjpython_launcher`'s answer for *there is no launcher*, so it
+        cannot also be the not-given default: a test for the refusing path
+        passed `launcher=None` and got an exec plan back, because the real
+        launcher on this machine had been looked up behind its back.
+        """
+        assert cli.window_plan(
+            "a.module", (), platform="darwin", launcher=None
+        ).refusal
+        assert cli.window_plan("a.module", (), platform="darwin").reexec, (
+            "and omitting it still looks one up"
+        )
+
+    def test_the_demo_hands_off_rather_than_importing_the_surface(self, monkeypatch):
+        """The edge `TestTheArchitectureDoesNotImportTheSurface` forbids is never created.
+
+        That guard (`tests/test_dome_panel.py`) is what stops a learning rule
+        reaching for a measured persistence, and it is written as a whitelist of
+        one directory. Rather than widen it for a dispatcher -- a decision about
+        its scope that #119 does not carry -- `demo` execs the module that is
+        already the demo's own entry point. So the import edge does not exist
+        rather than being excused, and this asserts the *behaviour* that follows
+        from that, not only the absence of a line.
+        """
+        seen = []
+        monkeypatch.setattr(cli, "open_window", lambda module, argv: seen.append((module, argv)) or 0)
+        monkeypatch.delitem(sys.modules, "patchworks.surface.gestures", raising=False)
+        arguments = cli.build_parser().parse_args(["demo", "--seed=2"])
+        assert arguments.handler(arguments) == 0
+        assert seen == [("patchworks.surface.gestures", ("--ticks=100000", "--seed=2", "--split=train"))]
+        assert "patchworks.surface.gestures" not in sys.modules
+
+    def test_an_exec_plan_is_carried_out_and_never_returns(self, monkeypatch):
+        """`os.execv` replaces the process, so there is no exit code on this path."""
+        monkeypatch.setattr(
+            cli, "window_plan", lambda *a, **k: cli.WindowPlan(reexec=("/bin/x", "-m", "m"))
+        )
+        execed = []
+
+        def fake_execv(path, argv):
+            execed.append((path, argv))
+            raise SystemExit(0)  # stands in for the process being replaced
+
+        monkeypatch.setattr(cli.os, "execv", fake_execv)
+        with pytest.raises(SystemExit):
+            cli.open_window("m", ())
+        assert execed == [("/bin/x", ["/bin/x", "-m", "m"])]
+
+    def test_a_refusal_goes_to_stderr_and_exits_one_without_exec(self, monkeypatch, capsys):
         monkeypatch.setattr(
             cli, "window_plan", lambda *a, **k: cli.WindowPlan(refusal="run this instead")
         )
 
-        def must_not_run():
-            raise AssertionError("a refused window must not run the thing anyway")
+        def must_not_exec(*_args):
+            raise AssertionError("a refused window must not exec anything anyway")
 
-        assert cli.open_window_with("demo", (), must_not_run) == 1
+        monkeypatch.setattr(cli.os, "execv", must_not_exec)
+        assert cli.open_window("m", ()) == 1
         captured = capsys.readouterr()
         assert "run this instead" in captured.err
         assert captured.out == ""
-
-    def test_the_demo_subcommand_refuses_without_importing_the_viewer(
-        self, monkeypatch, capsys
-    ):
-        """The refusal path never reaches `patchworks.surface.gestures`.
-
-        Which is what makes it safe: the whole point of refusing is that this
-        process cannot open a window, so it must not get as far as trying.
-        """
-        monkeypatch.setattr(
-            cli, "window_plan", lambda *a, **k: cli.WindowPlan(refusal="not here")
-        )
-        monkeypatch.delitem(sys.modules, "patchworks.surface.gestures", raising=False)
-        arguments = cli.build_parser().parse_args(["demo", "--seed=2"])
-        assert arguments.handler(arguments) == 1
-        assert "patchworks.surface.gestures" not in sys.modules
-        assert "not here" in capsys.readouterr().err
 
     def test_the_launcher_is_looked_for_beside_this_interpreter_first(self, monkeypatch):
         """It embeds an interpreter, so one from another venv would run another install."""

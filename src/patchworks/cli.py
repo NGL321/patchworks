@@ -10,9 +10,9 @@ Three things were undiscoverable before it, and each had tripped someone up:
 that `python -m patchworks` printed the dome and was *not* the demo; that the
 demo needs `mjpython` rather than `python` on macOS; and that a worktree needs
 `PYTHONPATH`. The first is now :func:`_dome`, one subcommand among several
-rather than the default. The second is :func:`window_plan`, which re-execs or
-refuses by name — a human never has to know it. The third is the venv's own
-`bin/patchworks`, which needs no path set at all.
+rather than the default. The second is :func:`window_plan`, which execs the
+right interpreter or refuses by name — a human never has to know it. The third
+is the venv's own `bin/patchworks`, which needs no path set at all.
 
 **Nothing here is part of the architecture** (#77, and `CONTEXT.md`'s *Demo
 surface*). No cell reads anything this computes, every seed is passed
@@ -36,7 +36,6 @@ import os
 import shutil
 import sys
 import time
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -50,14 +49,8 @@ from pathlib import Path
 MINIMUM_PYTHON = (3, 11)
 BELOW_PYTHON = (3, 13)
 
-#: The launcher MuJoCo's passive viewer needs on macOS, and the environment
-#: marker that stops :func:`window_plan` re-execing into it twice. The marker
-#: is a loop guard rather than a feature: detection reads a private MuJoCo
-#: attribute (see :func:`under_mjpython`), and if that name ever moves, the
-#: failure this turns into is one refusal with the command to run rather than
-#: an exec that never terminates.
+#: The launcher MuJoCo's passive viewer needs on macOS.
 MJPYTHON = "mjpython"
-REEXEC_MARKER = "PATCHWORKS_MJPYTHON_REEXEC"
 
 
 class _Unset:
@@ -397,117 +390,99 @@ def _doctor(arguments: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 # the mjpython problem
 # ---------------------------------------------------------------------------
+#
+# **A window subcommand hands off rather than importing.** `patchworks demo`
+# does not import `patchworks.surface.gestures` and call its `main`; it execs
+# the right interpreter on that module, which is the same thing a human typing
+# the command would get. Two reasons, and the first is the load-bearing one:
+#
+# 1. `tests/test_dome_panel.py`'s `TestTheArchitectureDoesNotImportTheSurface`
+#    holds that **nothing outside `surface/` imports the surface** -- the door
+#    that stops a learning rule reaching for a measured persistence, and one
+#    the naming scan in `tests/test_timescale.py` cannot see. Widening it for a
+#    dispatcher is a decision about that guard's scope, and this ticket does not
+#    carry it. Handing off keeps the edge from existing rather than excusing it.
+# 2. On macOS the interpreter has to *be* `mjpython` before the viewer starts,
+#    and there is no importing your way into that. An exec is what the platform
+#    actually requires, so writing it as one is writing what is true.
+#
+# It also means there is no exec loop to guard against: what is exec'd is a
+# different module, with no dispatcher in it to come back here.
 
 
 @dataclass(frozen=True)
 class WindowPlan:
-    """What to do about `mjpython` before opening a window.
+    """How to launch a window subcommand: an exec, or a refusal.
 
-    Exactly one of the three is true. `reexec` is the argv to `os.execv`;
-    `refusal` is what to print and why. Returned as data rather than acted on
-    so that :func:`window_plan`'s rules can be tested without a test ever
-    exec'ing anything or opening a window.
+    Exactly one is set. `reexec` is the argv for `os.execv`; `refusal` is what
+    to print and why. Returned as data rather than acted on, which is what lets
+    every rule below be tested for platforms that are not the one running the
+    test -- and without a window ever opening or a process ever being replaced.
     """
 
-    run_here: bool = False
     reexec: tuple[str, ...] = ()
     refusal: str = ""
 
 
-def under_mjpython() -> bool:
-    """Is this process already the launcher's?
-
-    Asked of MuJoCo, because MuJoCo's own answer is the one that matters: the
-    viewer refuses unless `mujoco.viewer._MJPYTHON` is set, and that attribute
-    is set by the launcher itself. `sys.executable` is no use here — under
-    `mjpython` it still reads as the venv's `python3.12`, which was measured
-    rather than assumed.
-
-    It is a private name, and if it ever moves this returns `False` where it
-    should have returned `True`. That is why :func:`window_plan` carries
-    :data:`REEXEC_MARKER`: the consequence is one refusal naming the command to
-    run, not an exec loop.
-    """
-    try:
-        from mujoco import viewer
-    except Exception:
-        return False
-    return getattr(viewer, "_MJPYTHON", None) is not None
+#: The module `patchworks demo` hands off to: the scene window #96 built, whose
+#: own `__main__` is what a human used to be told to type. Named as a string
+#: rather than imported, deliberately -- see the note at the top of this
+#: section.
+DEMO_MODULE = "patchworks.surface.gestures"
 
 
 def window_plan(
-    subcommand: str,
+    module: str,
     argv: tuple[str, ...],
     *,
     platform: str = sys.platform,
-    already_under: bool | _Unset = _UNSET,
     launcher: Path | None | _Unset = _UNSET,
-    reexeced: bool | _Unset = _UNSET,
+    executable: str = sys.executable,
 ) -> WindowPlan:
-    """Decide how a window-opening subcommand should be launched.
+    """Decide which interpreter should run a module that opens a MuJoCo window.
 
-    The rule the ticket asks for, in one place: **re-exec, or refuse with the
-    exact command**. A human never types `mjpython` because they were told to.
+    The rule the ticket asks for, in one place: **re-exec into the right
+    interpreter, or refuse with the exact command**. A human never types
+    `mjpython` because they were told to.
+
+    Off macOS that interpreter is this one and the exec is a formality, kept so
+    that there is one path rather than two. On macOS it is `mjpython`, and if
+    there is none the refusal says what it is for, where it was looked for, how
+    to get one, and what to run afterwards.
 
     Every input the decision turns on is an argument with a live default, so
-    the rules can be exercised on a Linux box, or for a Linux box, without
-    anything being true of the machine running the test.
+    the rules can be exercised for a platform that is not the one running.
     """
-    if isinstance(already_under, _Unset):
-        already_under = under_mjpython()
     if isinstance(launcher, _Unset):
         launcher = mjpython_launcher()
-    if isinstance(reexeced, _Unset):
-        reexeced = os.environ.get(REEXEC_MARKER) == "1"
 
-    if not needs_mjpython(platform) or already_under:
-        return WindowPlan(run_here=True)
-
-    command = f"{launcher or MJPYTHON} -m patchworks {subcommand}"
-    if " ".join(argv):
-        command += " " + " ".join(argv)
-
-    if reexeced:
-        # We already exec'd into something named `mjpython` and came back
-        # looking like a plain interpreter. Refusing is the only move that
-        # terminates.
-        return WindowPlan(
-            refusal=(
-                f"patchworks {subcommand} re-exec'd into {launcher or MJPYTHON} and the "
-                f"process still does not look like MuJoCo's launcher, so it is stopping "
-                f"rather than doing it again.\n"
-                f"Run it by hand and report what happens:\n\n    {command}\n"
-            )
-        )
+    if not needs_mjpython(platform):
+        return WindowPlan(reexec=(executable, "-m", module, *argv))
     if launcher is None:
+        command = " ".join((MJPYTHON, "-m", module, *argv))
         return WindowPlan(
             refusal=(
-                f"patchworks {subcommand} opens a MuJoCo window, and on macOS that "
-                f"window has to own the main thread -- which only MuJoCo's `mjpython` "
-                f"launcher gives it.\n"
-                f"No `mjpython` was found beside {sys.executable} or on PATH. It ships "
-                f"with the `mujoco` wheel, so:\n\n"
+                f"This opens a MuJoCo window, and on macOS a MuJoCo window has to own "
+                f"the process's main thread -- which only MuJoCo's `mjpython` launcher "
+                f"gives it.\n\n"
+                f"No `mjpython` was found beside {executable} or on PATH. It ships with "
+                f"the `mujoco` wheel, so installing the dependencies puts one there:\n\n"
                 f"    {_venv_hint()}\n\n"
                 f"and then run:\n\n    {command}\n"
             )
         )
-    return WindowPlan(reexec=(str(launcher), "-m", "patchworks", subcommand, *argv))
+    return WindowPlan(reexec=(str(launcher), "-m", module, *argv))
 
 
-def open_window_with(
-    subcommand: str, argv: tuple[str, ...], run: Callable[[], None]
-) -> int:
-    """Carry out a :class:`WindowPlan`: run here, re-exec, or refuse.
+def open_window(module: str, argv: tuple[str, ...]) -> int:
+    """Carry out a :class:`WindowPlan`: exec, or print the refusal and fail.
 
-    `run` is called with no arguments when the plan says to run here. The
-    re-exec replaces this process, so nothing after it returns.
+    The exec replaces this process, so on the success path nothing after it
+    runs and there is no exit code to return. The refusal goes to stderr and
+    exits 1.
     """
-    plan = window_plan(subcommand, argv)
-    if plan.run_here:
-        run()
-        return 0
+    plan = window_plan(module, argv)
     if plan.reexec:
-        os.environ[REEXEC_MARKER] = "1"
         os.execv(plan.reexec[0], list(plan.reexec))
     print(plan.refusal, file=sys.stderr)
     return 1
@@ -738,29 +713,25 @@ def _dome(arguments: argparse.Namespace) -> int:
 
 
 def _demo(arguments: argparse.Namespace) -> int:
-    """The hands-on demo window, launched without anyone having to know `mjpython`.
+    """The hands-on scene window, launched without anyone having to know `mjpython`.
 
-    A dispatch entry, not a new window: `patchworks.surface.gestures.main` is
-    what #96 built and what a human was previously expected to reach by typing
-    `mjpython -m patchworks.surface.gestures`. What this adds is
-    :func:`window_plan`, so the launcher is found or named rather than
-    remembered.
+    A launcher, not a new window: `patchworks.surface.gestures` is what #96
+    built, and what a human was previously expected to reach by typing
+    `mjpython -m patchworks.surface.gestures` from memory. What this adds is
+    finding the launcher, or naming it -- see the note above :class:`WindowPlan`
+    for why it execs rather than imports.
 
-    The dome panel is the *other* window and is not opened here — #122 is
+    The dome panel is the *other* window and is not opened here; #122 is
     building `patchworks watch` for it.
     """
-    argv = (
-        f"--ticks={arguments.ticks}",
-        f"--seed={arguments.seed}",
-        f"--split={arguments.split}",
+    return open_window(
+        DEMO_MODULE,
+        (
+            f"--ticks={arguments.ticks}",
+            f"--seed={arguments.seed}",
+            f"--split={arguments.split}",
+        ),
     )
-
-    def run() -> None:
-        from patchworks.surface.gestures import main as gestures_main
-
-        gestures_main(list(argv))
-
-    return open_window_with("demo", argv, run)
 
 
 # ---------------------------------------------------------------------------

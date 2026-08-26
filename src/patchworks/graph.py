@@ -857,5 +857,5 @@ class Dome:
         return "\n".join(lines)
 
 
-def main() -> None:  # pragma: no cover - the entry point behind `python -m patchworks`
+def main() -> None:  # pragma: no cover - what `patchworks dome` prints (patchworks/cli.py)
     print(build_graph().report())
