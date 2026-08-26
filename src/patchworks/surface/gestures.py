@@ -672,7 +672,7 @@ def drive(
     last event of the run, in the trace only.
 
     It is left that way on purpose (#116): the alternative is a trailing record
-    that no tick produced, and this record has no honest arrays to put in one
+    that no tick produced, and there is nothing honest to put in its arrays
     -- see :mod:`~patchworks.surface.record`, *What a trace cannot hold*. **A
     run that must not lose its last event declares one tick more than it
     measures**, which costs one tick and no semantics; that is the falsification
