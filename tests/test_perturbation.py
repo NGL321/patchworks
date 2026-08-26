@@ -971,11 +971,12 @@ class TestBothChecksRunInCI:
 
     **pytest's other table is counted there too, and is still met by
     raising**: `[tool.pytest]` with native TOML types, which pytest 9 reads
-    and `configuration` does not. It cannot narrow the run quietly — on its
-    own it deselects the suite while the lookup here raises `KeyError`, and
-    written beside `[tool.pytest.ini_options]` pytest refuses the file, exit
-    4 — so using it means removing the table this reads, which is this check
-    going red. Both halves were run, and
+    and `configuration` does not. It cannot narrow the run quietly, in any of
+    the three ways it can be written: on its own the lookup here raises; beside
+    a `[tool.pytest.ini_options]` carrying keys pytest refuses the file, exit
+    4; and beside an empty header — which pytest does *not* refuse, since it
+    conflicts the two only when both hold something — the table this reads
+    answers `{}`, which is not the permitted set. All three were run;
     `test_pytests_native_table_is_not_read_here_and_cannot_hide` holds them
     down.
 
@@ -1059,14 +1060,19 @@ class TestBothChecksRunInCI:
         that path, and that is the whole of the claim.** pytest 9 also reads a
         second table — `[tool.pytest]` with native TOML types — which this
         does not, so "whatever pytest reads, this reads" would be false. It
-        cannot narrow the run quietly, and that was checked rather than
-        argued: on its own it deselects the suite and the lookup here raises
-        `KeyError`, so this check goes red; written *alongside*
-        `[tool.pytest.ini_options]`, pytest refuses the file outright — "Cannot
-        use both … simultaneously", exit 4 — so the table this reads cannot be
-        left in place beside it.
-        `test_pytests_native_table_is_not_read_here_and_cannot_hide` pins both
-        halves.
+        cannot narrow the run quietly, and each way of writing it was checked
+        rather than argued. **On its own** it deselects the suite and the
+        lookup here raises `KeyError`, so this check goes red. **Beside a
+        `[tool.pytest.ini_options]` that carries keys** — this repository's,
+        say — pytest refuses the file outright, "Cannot use both …
+        simultaneously", exit 4. **Beside an empty
+        `[tool.pytest.ini_options]` header** pytest refuses nothing, because
+        it conflicts the two tables only when both hold something; the native
+        table is honoured with the header still written, and what catches that
+        is the whitelist rather than the raise — `configuration` answers `{}`,
+        and an empty table is not the permitted set.
+        `test_pytests_native_table_is_not_read_here_and_cannot_hide` pins all
+        three.
 
         Opened in binary, which is `tomllib`'s own idiom rather than a
         preference: TOML is UTF-8 by specification, and `read_text` would
@@ -1698,10 +1704,17 @@ class TestTheConfigurationReaderReadsWhatPytestReads:
         from _pytest.config.findpaths import load_config_dict_from_file
 
         native = self.reader(tmp_path, '[tool.pytest]\naddopts = ["-k", "nothing"]\n')
-        path = native.ROOT / "pyproject.toml"
-        assert "addopts" in load_config_dict_from_file(path)
+        read_by_pytest = load_config_dict_from_file(native.ROOT / "pyproject.toml")
+        if not read_by_pytest:
+            # The native table is pytest 9's, and the `dev` extra names no
+            # floor. Skipped rather than red under an older one: there is no
+            # divergence to pin if pytest does not read that table either.
+            pytest.skip("this pytest does not read the native [tool.pytest] table")
+        assert "addopts" in read_by_pytest
         with pytest.raises(KeyError):
             native.configuration
+        # Beside a table that carries keys, pytest refuses the file outright,
+        # so the table this reads cannot be left in place next to it.
         both = self.reader(
             tmp_path,
             '[tool.pytest]\naddopts = ["-k", "nothing"]\n'
@@ -1709,6 +1722,19 @@ class TestTheConfigurationReaderReadsWhatPytestReads:
         )
         with pytest.raises(pytest.UsageError, match="Cannot use both"):
             load_config_dict_from_file(both.ROOT / "pyproject.toml")
+        # But beside an *empty* header it refuses nothing -- it conflicts the
+        # two only when both hold something -- so the narrowing arrives with
+        # `[tool.pytest.ini_options]` still written above it. What catches
+        # that one is the whitelist rather than the raise: the table this
+        # reads is there and is empty, and empty is not the permitted set.
+        empty = self.reader(
+            tmp_path,
+            '[tool.pytest]\naddopts = ["-k", "nothing"]\n'
+            "[tool.pytest.ini_options]\n",
+        )
+        assert load_config_dict_from_file(empty.ROOT / "pyproject.toml")
+        assert empty.configuration == {}
+        assert set(empty.configuration) != TestBothChecksRunInCI.PERMITTED_CONFIGURATION
 
     def test_the_table_is_read_as_utf_8_whatever_the_locale_is(self, tmp_path):
         # `configuration` opens the file in binary and lets `tomllib` decode
