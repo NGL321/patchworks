@@ -828,14 +828,17 @@ class TestTheGammaASheafIsBuiltWith:
             Sheaf(dome, gamma=RefusesToBeQuoted())
 
     def test_a_proxy_that_raises_on_every_access_leaves_as_what_it_raised(self, dome):
-        # The other half of the same shape. #107 promised that nothing but a
-        # `ValueError` escapes; #112 withdrew that rather than restructure the
-        # function around arrivals no caller produces. This is one of them: a
-        # proxy that raises at the attribute lookup, which `hasattr` lets
-        # through because it is not an `AttributeError`. A proxy that raises
-        # inside `__float__` escapes the same way, and that is the half that
-        # could not be closed cheaply -- `_checked_gamma`'s docstring says why.
-        # Pinned here rather than promised away.
+        # The other half of the same shape, and one of the two arrivals #112
+        # left escaping rather than restructure the function to catch. The
+        # guard that lets it out is `_checked_gamma`'s own
+        # `hasattr(gamma, "__float__")`, not the `hasattr(gamma, "item")` it
+        # meets first: `_would_be_misread` swallows that one and returns
+        # `False`. A proxy raising inside `__float__` gets out the same way.
+        #
+        # This characterises the status quo; it is not a contract. The
+        # docstring's cheap wrap of the two lookups would close this escape
+        # without costing a refusal, and retiring this test is the right move
+        # for whoever makes that change.
 
         class RaisesOnEveryAccess:
             def __getattr__(self, name):

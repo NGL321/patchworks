@@ -153,20 +153,25 @@ def _checked_gamma(gamma: object) -> float:
 
     **That is a claim about its refusals, not about everything that can leave.**
     #107 wrote the stronger one — nothing but a `ValueError` escapes — and #112
-    withdrew it rather than restructure the function around shapes no caller
-    produces. A stand-in for a number that raises on its way to being one
-    leaves as what it raised: the guard below asks `hasattr`, which swallows
+    withdrew it rather than restructure the function around it. Two arrivals
+    still leave as what they raised. One is a stand-in for a number that raises
+    on its way to being one: the guard below asks `hasattr`, which swallows
     only `AttributeError`, and the coercion catches only the four classes it
-    names — so a proxy for an absent config key escapes as its own `KeyError`
-    whether it raises at the attribute lookup or inside `__float__`. Wrapping
-    the two lookups would close the first half and keep every refusal it makes
-    now; the second half would need a wider `except` at the coercion, which
-    would also swallow the `DeprecationWarning` a 1-element array leaks there
-    under `-W error::DeprecationWarning` (set nowhere in this repo) and mask
-    real faults with it. The `__float__`/`__index__` test itself stays either
-    way: it is what refuses `memoryview(b"0.5")`, whose `float()` is `0.5`.
-    Half a guarantee did not justify the surgery, so what stands is the
-    smaller, true claim: **reach a refusal and it is a `ValueError`.**
+    names, so a proxy for an absent config key escapes as its own exception
+    from either the lookup or `__float__` — naming, on the lookup half, the
+    dunder it probed rather than the key the caller was resolving. The other is
+    a 1-element array under `-W error::DeprecationWarning`, a filter set
+    nowhere in this repo: a sweep slicing its grid rather than indexing it does
+    produce that shape, so what puts the escape out of reach here is the absent
+    filter, not the arrival.
+
+    Neither justified the surgery. Wrapping the two lookups is cheap and costs
+    no refusal, but closes only the first half; the rest needs a wider `except`
+    at the coercion, which would swallow whatever a caller's `__float__` raises
+    for reasons of its own. The `__float__`/`__index__` test stays either way —
+    it is what refuses `memoryview(b"0.5")`, whose `float()` is `0.5`. What
+    stands is the smaller, true claim: **reach a refusal and it is a
+    `ValueError`.**
     """
     rule = (
         "gamma is a single global scalar in (0, 1] "
