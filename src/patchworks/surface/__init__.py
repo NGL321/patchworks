@@ -9,7 +9,7 @@ implements, and its opening constraint governs every module in it:
     for looking at, never fed back. No cell reads anything the surface
     computes, and switching the whole surface off must change no trajectory.
 
-Seven modules, and the seam between them is the record:
+Eight modules, and the seam between them is the record:
 
 * :mod:`patchworks.surface.record` -- the tick record. The snapshot/restore
   contract, unchanged, plus per-cell prediction error and `‖Δ private‖`, plus

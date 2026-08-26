@@ -32,6 +32,7 @@ omission. What can be held down without one is everything up to the blit:
 import contextlib
 import io
 import os
+import subprocess
 import threading
 import time
 
@@ -51,6 +52,7 @@ from patchworks.surface import (
     measured_persistence,
 )
 from patchworks.surface import watch as watch_module
+from patchworks.surface import window as window_module
 from patchworks.surface.watch import (
     compose,
     frame_size,
@@ -167,11 +169,15 @@ class Recording:
         self.entered = threading.Event()
         self.release = threading.Event()
         self.hold = False
+        self.broken = False
+        self.closed = False
 
     def write(self, payload):
         if self.hold:
             self.entered.set()
             self.release.wait(10.0)
+        if self.broken:
+            raise BrokenPipeError(32, "Broken pipe")
         self.written.append(bytes(payload))
         return len(payload)
 
@@ -179,7 +185,35 @@ class Recording:
         pass
 
     def close(self):
-        pass
+        self.closed = True
+
+
+class Child:
+    """Enough of `Popen` to be killed. Killing it releases the stream it feeds.
+
+    Which is what a real child's death does: it breaks the pipe, and the write
+    the sender is stuck in fails.
+    """
+
+    def __init__(self, stream=None):
+        self.stream = stream
+        self.killed = False
+        self.returncode = None
+
+    def kill(self):
+        self.killed = True
+        self.returncode = -9
+        if self.stream is not None:
+            self.stream.broken = True
+            self.stream.release.set()
+
+    def poll(self):
+        return self.returncode
+
+    def wait(self, timeout=None):
+        if self.returncode is None:
+            raise subprocess.TimeoutExpired("child", timeout)
+        return self.returncode
 
 
 class Broken:
@@ -256,10 +290,26 @@ class TestTheFrameStreamRoundTrips:
         with pytest.raises(ValueError):
             FrameWindow(Recording(), height, width)
 
-    def test_a_window_opens_at_a_whole_number_of_screen_pixels_per_frame_pixel(self):
-        """Refused before anything is spawned, which is why this opens nothing."""
+    def test_everything_refusable_is_refused_before_a_child_is_spawned(
+        self, monkeypatch
+    ):
+        """A raise after the `Popen` leaves a process nobody has a handle to.
+
+        Which is why this test can call `open_window` at all: nothing it passes
+        gets as far as spawning, and the `Popen` is replaced so that a
+        regression is a failure here rather than a stray window.
+        """
+        monkeypatch.setattr(
+            window_module.subprocess,
+            "Popen",
+            lambda *a, **k: pytest.fail("a child was spawned for a refused window"),
+        )
         with pytest.raises(ValueError, match="whole number"):
             open_window(4, 4, scale=0)
+        with pytest.raises(ValueError, match="65535"):
+            open_window(70000, 4)
+        with pytest.raises(ValueError, match="positive number of pixels"):
+            open_window(0, 4)
 
 
 class TestTheRunNeverWaitsOnTheDisplay:
@@ -278,6 +328,54 @@ class TestTheRunNeverWaitsOnTheDisplay:
         window.close()
         # [0] is the header; the second frame never went, and the third did.
         assert [payload[:1] for payload in stream.written[1:]] == [b"\x01", b"\x03"]
+
+    def test_closing_kills_a_child_the_sender_is_stuck_writing_to(self):
+        """The deadlock this design walks straight into if the order is wrong.
+
+        A write blocked on a full pipe holds the stream's own lock, so closing
+        that stream waits behind the write instead of interrupting it. What
+        unblocks it is the child going away. Order it the other way -- close,
+        then kill -- and the kill is unreachable and `close()` never returns.
+
+        Reachable rather than theoretical: the child reads nothing until GLFW
+        has opened a window, and one panel frame is bigger than a pipe buffer.
+        """
+        stream = Recording()
+        child = Child(stream)
+        window = FrameWindow(stream, 2, 2, process=child, grace=0.05)
+        stream.hold = True
+        window.show(np.zeros((2, 2, 3), np.uint8))
+        assert stream.entered.wait(10.0), "the sender never started writing"
+        finished = threading.Event()
+        threading.Thread(
+            target=lambda: (window.close(), finished.set()), daemon=True
+        ).start()
+        assert finished.wait(10.0), "close() is behind the stuck write"
+        assert child.killed, "the child was not killed out of the sender's way"
+        # And once the kill has broken the pipe under the sender, the stream is
+        # closed as usual -- the kill is what makes that reachable.
+        assert stream.closed
+        assert window.closed
+
+    def test_closing_returns_even_with_no_child_to_kill(self):
+        """A bare stream has nothing to unblock a stuck sender.
+
+        So the choice is a leaked file descriptor until the process ends, or a
+        caller deadlocked on `close()`. It takes the first, and the stream is
+        left alone rather than closed under a thread that is still inside it.
+        """
+        stream = Recording()
+        window = FrameWindow(stream, 2, 2, grace=0.05)
+        stream.hold = True
+        window.show(np.zeros((2, 2, 3), np.uint8))
+        assert stream.entered.wait(10.0)
+        finished = threading.Event()
+        threading.Thread(
+            target=lambda: (window.close(), finished.set()), daemon=True
+        ).start()
+        assert finished.wait(10.0), "close() did not return"
+        assert not stream.closed, "a stream a thread is still inside was closed"
+        stream.release.set()
 
     def test_a_window_that_has_gone_is_closed_and_shows_nothing(self):
         window = FrameWindow(Broken(), 2, 2)
@@ -383,7 +481,8 @@ class TestClosingThePanelChangesNothingButTheView:
                     where = f"at tick {tick}"
                     assert np.array_equal(left.command, right.command), where
                     assert np.array_equal(left.applied, right.applied), where
-                    for name in ("stalks", "charts", "prediction", "broadcast", "incoming"):
+                    held = ("stalks", "charts", "prediction", "broadcast", "incoming")
+                    for name in held:
                         assert torch.equal(
                             getattr(plain.sheaf, name), getattr(watched.sheaf, name)
                         ), f"{name} differs {where}"
@@ -563,6 +662,46 @@ class TestTheTwoEntryPointsDrawTheRun:
         replayed = panel_window[1].finish()
         assert len(replayed) == len(live_frames)
 
+    def test_a_capture_the_patch_lattice_cannot_tile_is_refused_up_front(self):
+        """Not left to fail once inside the loop, where a display must not stop.
+
+        `DomePanel.frame` refuses a render the patch cells were never cut from,
+        and inside :func:`show` that refusal closes the panel and lets the run
+        carry on -- which is right there and wrong here: the whole run would go
+        by with a dead window. So the number is checked where it is chosen.
+        """
+        dome = build_graph()
+        with pytest.raises(ValueError, match="does not divide 100"):
+            watch_module.check_capture(100, dome)
+        watch_module.check_capture(64, dome)
+
+    def test_live_refuses_that_capture_before_it_arranges_anything(
+        self, scene_window, panel_window
+    ):
+        with pytest.raises(ValueError, match="patch lattice"):
+            live(ticks=12, capture=100)
+        assert scene_window == [] and panel_window == []
+
+    def test_an_interrupted_run_still_leaves_its_trace(
+        self, scene_window, panel_window, tmp_path, monkeypatch
+    ):
+        """The default is 100,000 ticks; the usual way to end one is ctrl-C.
+
+        A save that only ran on the success path would throw the run's one
+        artefact away in exactly the case the human meant to stop watching.
+        """
+        path = tmp_path / "run.npz"
+
+        def interrupted(feed, window, **arguments):
+            for _record in feed:
+                raise KeyboardInterrupt
+            raise AssertionError("the feed produced nothing to interrupt")
+
+        monkeypatch.setattr(watch_module, "show", interrupted)
+        with pytest.raises(KeyboardInterrupt):
+            live(ticks=12, split="any", save=path, hold=False)
+        assert path.exists()
+
     def test_replay_measures_its_trail_off_the_sheaf_the_seed_names(
         self, scene_window, panel_window, tmp_path, monkeypatch
     ):
@@ -622,7 +761,9 @@ class TestTheParsingIsSeparableFromTheDoing:
             called.update(kw)
 
         monkeypatch.setattr(watch_module, "replay", replayed)
-        monkeypatch.setattr(watch_module, "live", lambda **k: pytest.fail("ran a world"))
+        monkeypatch.setattr(
+            watch_module, "live", lambda **k: pytest.fail("ran a world")
+        )
         main(["--replay", "run.npz", "--fps", "3", "--no-hold", "--edges", "--raw"])
         assert called["path"] == "run.npz"
         assert called["fps"] == 3

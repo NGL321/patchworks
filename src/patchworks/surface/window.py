@@ -83,7 +83,14 @@ from typing import BinaryIO, Iterator
 
 import numpy as np
 
-__all__ = ["MAGIC", "FrameWindow", "frames", "open_window", "serve"]
+__all__ = [
+    "MAGIC",
+    "FrameWindow",
+    "check_frame",
+    "frames",
+    "open_window",
+    "serve",
+]
 
 #: The stream's first eight bytes: a magic, then the frame shape. Every frame
 #: after it is exactly `height * width * 3` bytes of C-ordered RGB, and there is
@@ -102,6 +109,26 @@ _IDLE = 1.0 / 60.0
 #: Seconds :meth:`FrameWindow.close` gives the child to go away on its own
 #: before killing it. It has only to fall out of a read and destroy a window.
 _GRACE = 5.0
+
+
+def check_frame(height: int, width: int) -> None:
+    """Refuse a frame shape this protocol cannot carry. Returns nothing.
+
+    Called by :class:`FrameWindow` and, **before the child is spawned**, by
+    :func:`open_window`: a shape refused after the `Popen` leaves a process
+    nobody holds a reference to, waiting on a stdin that will only close when
+    the garbage collector gets to it.
+    """
+    for name, size in (("height", height), ("width", width)):
+        if isinstance(size, bool) or not isinstance(size, int) or size < 1:
+            raise ValueError(
+                f"a frame is a positive number of pixels {name}; got {size!r}"
+            )
+    if height > 0xFFFF or width > 0xFFFF:
+        raise ValueError(
+            "a frame stream carries a shape in two 16-bit fields, so a frame is "
+            f"at most 65535 pixels each way; got {height}x{width}"
+        )
 
 
 def _read_exactly(stream: BinaryIO, count: int) -> bytes | None:
@@ -184,23 +211,16 @@ class FrameWindow:
         width: int,
         *,
         process: subprocess.Popen | None = None,
+        grace: float = _GRACE,
     ) -> None:
-        for name, size in (("height", height), ("width", width)):
-            if isinstance(size, bool) or not isinstance(size, int) or size < 1:
-                raise ValueError(
-                    f"a frame is a positive number of pixels {name}; got {size!r}"
-                )
-        if height > 0xFFFF or width > 0xFFFF:
-            raise ValueError(
-                f"a frame stream carries a shape in two 16-bit fields, so a frame is "
-                f"at most 65535 pixels each way; got {height}x{width}"
-            )
+        check_frame(height, width)
         self.height = height
         self.width = width
         self.dropped = 0
         """Frames :meth:`show` was handed while an unsent one was still waiting."""
         self._stream = stream
         self._process = process
+        self._grace = grace
         self._state = threading.Condition()
         self._pending: bytes | None = None
         self._stopping = False
@@ -296,20 +316,44 @@ class FrameWindow:
         it is the run's last one, and the last frame of a run is the one worth
         leaving on screen. Dropping it would have made the final picture of
         every capture and every replay the second-to-last one.
+
+        **A sender still writing is killed out of the way before the stream is
+        touched.** A write blocked on a full pipe holds the stream's own lock,
+        so `close()` on that stream waits behind the write rather than
+        interrupting it -- and anything sequenced after the close would never
+        run. What unblocks it is the child going away, which breaks the pipe. So
+        the order is: give the sender its grace; if it is still in a write, kill
+        the child and give it the grace again; only then close the stream, which
+        is what tells a *healthy* child there is nothing more coming.
+
+        It is not a hypothetical. The child reads no byte until it has started
+        GLFW and opened a window, and one panel frame is bigger than a pipe
+        buffer, so a window shown a frame the instant it is opened can have its
+        sender blocked for the whole of Cocoa's startup.
+
+        A window built on a **bare stream** has no child to kill, so a sender
+        still stuck after the grace leaves the stream open rather than deadlock
+        the caller on it. That costs a file descriptor until the process ends,
+        which is the lesser of the two.
         """
         with self._state:
             if self._stopping:
                 return
             self._stopping = True
             self._state.notify()
-        self._sender.join(timeout=_GRACE)
-        try:
-            self._stream.close()
-        except (BrokenPipeError, OSError, ValueError):
-            pass
-        if self._process is not None:
+        self._sender.join(timeout=self._grace)
+        if self._sender.is_alive() and self._process is not None:
+            self._process.kill()
+            self._process.wait()
+            self._sender.join(timeout=self._grace)
+        if not self._sender.is_alive():
             try:
-                self._process.wait(timeout=_GRACE)
+                self._stream.close()
+            except (BrokenPipeError, OSError, ValueError):
+                pass
+        if self._process is not None and self._process.poll() is None:
+            try:
+                self._process.wait(timeout=self._grace)
             except subprocess.TimeoutExpired:
                 self._process.kill()
                 self._process.wait()
@@ -369,6 +413,10 @@ def open_window(
     which is what the child wants: it draws pixels and has no use for the Cocoa
     dispatch `mjpython` exists to provide.
     """
+    # Everything refusable is refused **before** the `Popen` below. A child
+    # spawned and then abandoned by a raise holds a pipe nobody has a reference
+    # to, and only closes when the garbage collector reaches it.
+    check_frame(height, width)
     if isinstance(scale, bool) or not isinstance(scale, int) or scale < 1:
         raise ValueError(
             "a window opens at a whole number of screen pixels per frame pixel, at "
@@ -410,16 +458,6 @@ def serve(stream: BinaryIO, *, title: str = "patchworks", scale: int = 2) -> int
     stream open and waits (:meth:`FrameWindow.wait`), and a parent that wants
     the window gone closes it (:meth:`FrameWindow.close`).
     """
-    import glfw
-    from OpenGL import GL
-
-    if not glfw.init():
-        print(
-            "could not initialise GLFW; the panel window cannot open",
-            file=sys.stderr,
-        )
-        return 1
-
     state = threading.Condition()
     latest: list[np.ndarray | None] = [None]
     done = [False]
@@ -437,8 +475,23 @@ def serve(stream: BinaryIO, *, title: str = "patchworks", scale: int = 2) -> int
                 done[0] = True
                 state.notify()
 
+    # **The reader starts before GLFW does.** Cocoa's startup is not
+    # instantaneous and one panel frame is bigger than a pipe buffer, so a
+    # parent that shows a frame immediately would otherwise sit blocked in a
+    # write for the whole of it -- which is the run's loop waiting on a window
+    # opening, the one thing this module is arranged to prevent.
     reader = threading.Thread(target=read, name="patchworks-frames", daemon=True)
     reader.start()
+
+    import glfw
+    from OpenGL import GL
+
+    if not glfw.init():
+        print(
+            "could not initialise GLFW; the panel window cannot open",
+            file=sys.stderr,
+        )
+        return 1
 
     # The first frame is what says how big the window should be, so the window
     # is not opened until one arrives. A feed that ends without sending one
@@ -466,16 +519,22 @@ def serve(stream: BinaryIO, *, title: str = "patchworks", scale: int = 2) -> int
     # a tenth of a second at a time. The pass is paced twice over -- the event
     # wait times out at :data:`_IDLE`, and the swap waits for vertical retrace
     # -- because either alone can fail to throttle an occluded window.
+    #
+    # **Draw first, then ask whether there is more.** The other order loses the
+    # whole picture when the feed is one frame long: the stream can reach its
+    # end while GLFW is still opening the window, and a loop that checked for
+    # the end before drawing would open the window and destroy it having blitted
+    # nothing.
     current = first
     while not glfw.window_should_close(window):
+        _blit(GL, glfw, window, current)
+        glfw.wait_events_timeout(_IDLE)
         with state:
             fresh, finished, latest[0] = latest[0], done[0], None
         if fresh is not None:
             current = fresh
         elif finished:
             break
-        _blit(GL, glfw, window, current)
-        glfw.wait_events_timeout(_IDLE)
 
     glfw.destroy_window(window)
     glfw.terminate()

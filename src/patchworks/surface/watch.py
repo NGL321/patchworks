@@ -92,6 +92,7 @@ from .window import FrameWindow, open_window
 
 __all__ = [
     "DEFAULT_SCALE",
+    "check_capture",
     "compose",
     "frame_size",
     "live",
@@ -139,6 +140,32 @@ def compose(dome_frame: np.ndarray, readout_frame: np.ndarray) -> np.ndarray:
             "at the other's width."
         )
     return np.concatenate((dome_frame, readout_frame), axis=0)
+
+
+def check_capture(capture: int, dome: Dome) -> None:
+    """Refuse a scene resolution the patch lattice does not tile. Returns nothing.
+
+    `Renderer`'s own docstring puts this constraint "on this side of the seam,
+    where the number is chosen", and these two entry points are now that side.
+    Checked **before** the renderer is built, because the alternative is a run
+    that starts, warns once out of :func:`show` on its first record, and then
+    goes the whole way with a closed panel: `DomePanel.frame` refuses a render
+    the cells were never cut from, and that refusal arrives inside the loop
+    where a display's failure must not stop the run. With `--ticks 100000` that
+    is a typo costing an afternoon.
+    """
+    grid = dome.spec.patch_grid
+    if not isinstance(capture, int) or isinstance(capture, bool) or capture < 1:
+        raise ValueError(
+            f"a scene render is a positive number of pixels square; got {capture!r}"
+        )
+    if capture % grid:
+        raise ValueError(
+            f"the boundary band cuts the scene render along the {grid}x{grid} patch "
+            f"lattice, one block per patch cell, and {grid} does not divide "
+            f"{capture}. Pick a resolution it does -- with this dome, "
+            f"{grid * 2}, {grid * 4} and {grid * 8} all tile."
+        )
 
 
 def frame_size(panel: DomePanel, readout: PrivateComponentPanel) -> tuple[int, int]:
@@ -264,14 +291,16 @@ def live(
     requirement for the passive viewer and not this module's.
 
     `save` writes the run's trace, which is what :func:`replay` reads back. It
-    is written when the feed ends and before the window is held open, so a hold
-    that is interrupted still leaves the file.
+    is written when the feed ends **however it ended** -- interrupt included --
+    and before the window is held open, because the usual way to end a run of
+    100,000 ticks is to stop watching it.
 
     The agent is seeded rather than left to the global torch stream, so that
     `--seed` names the whole run: the same seed gives the same body, the same
     biases and therefore the same trail on replay.
     """
     dome = build_graph(spec)
+    check_capture(capture, dome)
     world = PlanarPushSandbox(split=split)
     try:
         agent = Agent(world, dome=dome, generator=torch.Generator().manual_seed(seed))
@@ -284,19 +313,24 @@ def live(
         with Renderer(size=capture) as scene, open_window(
             height, width, title="patchworks — the dome panel", scale=scale
         ) as window:
-            show(
-                drive(recorder, ticks, seed=seed),
-                window,
-                panel=panel,
-                readout=readout,
-                scene=scene.frame,
-                since=OnsetCounter().count,
-            )
-            # Written the moment the feed ends, and **before** the window is
-            # held open: a hold waits on a human, and a human who walks away
-            # and interrupts the process later should still find the file.
-            if save is not None:
-                print(f"trace written to {recorder.trace.save(save)}")
+            try:
+                show(
+                    drive(recorder, ticks, seed=seed),
+                    window,
+                    panel=panel,
+                    readout=readout,
+                    scene=scene.frame,
+                    since=OnsetCounter().count,
+                )
+            finally:
+                # Written the moment the feed ends **however it ended**, and
+                # before the window is held open. The default is 100,000 ticks
+                # and the usual way to end one is ctrl-C or closing the scene
+                # window; a save that only ran on the success path would throw
+                # away the one artefact the run existed to leave, in exactly the
+                # case a human meant to stop watching rather than to discard it.
+                if save is not None:
+                    print(f"trace written to {recorder.trace.save(save)}")
             if hold and not window.closed:
                 print("the run has ended; close the panel window to finish.")
                 window.wait()
@@ -329,6 +363,7 @@ def replay(
     the scratch world it owns is the one the record restores into.
     """
     dome = build_graph(spec)
+    check_capture(capture, dome)
     sheaf = Sheaf(dome, generator=torch.Generator().manual_seed(seed))
     panel = DomePanel(
         dome, measured_persistence(sheaf), pitch=pitch, edges=edges, raw=raw
