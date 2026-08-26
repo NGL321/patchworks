@@ -586,7 +586,7 @@ class TestBothChecksRunInCI:
     runner outage, or the workflow file deleted — and neither of those is
     silent.
 
-    Kill-tested against twenty-six ways of narrowing the run: `-k`, a
+    Kill-tested against twenty-seven ways of narrowing the run: `-k`, a
     positional path, `--collect-only`, `|| true`, `python -m pytest`,
     `continue-on-error` and a step-level `if:` both as an ordinary key **and as
     a sequence item's first key**, where the leading `- ` would hide them from
@@ -600,7 +600,7 @@ class TestBothChecksRunInCI:
     `setup.cfg` — carrying a narrowing configuration; and a `conftest.py`
     narrowing collection through a `collect_ignore`, a `collect_ignore_glob`, a
     `pytest_ignore_collect`, or a `pytest_collection_modifyitems`. All
-    twenty-six fail here, and a fixtures-only `conftest.py` — the one shape of
+    twenty-seven fail here, and a fixtures-only `conftest.py` — the one shape of
     that file which narrows nothing — still passes. So does a harmless `-q`
     *not*: the cost of the design is that a benign edit to the invocation has
     to come with an edit to this class, which is the whitelist working rather
