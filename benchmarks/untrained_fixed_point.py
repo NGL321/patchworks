@@ -36,6 +36,11 @@ the influence that input has, per level, in the units the stalk is in. Holding
 the world still is what makes it a clean read: the world is out of the loop, so
 what is left is the graph's own transfer.
 
+`--learn N` takes the same reading on an adapting surface that has had N ticks
+of both rules first, which is the only way to tell an attenuation the draw
+produced from one learning cannot lift. The rules stay off during the hold
+either way, so the variants differ in the external write and in nothing else.
+
 The drive variants are ADR-0009's own instrument, used for the one job that ADR
 permits it — "pinning a stalk to debug, and to isolate whether the drive edge
 is doing the work". Nothing here changes :data:`~patchworks.agent.DRIVE_ASSERTION`.
@@ -63,9 +68,11 @@ measured ~9 s a reading on the real dome, which is not a thing to put on a
 100k-tick run.
 
 Runtimes on the development laptop, for budgeting: `characterise` is ~40 s on
-the small dome and ~1 min on the real one, `sensitivity` ~1 min on the real
-dome, `attenuation` seconds, and `learning` runs at ~105 ticks/s on the small
-dome with both rules on and ~25 ticks/s on the real one.
+the small dome and ~1 min on the real one, `sensitivity` ~1 min and
+`attenuation` ~20 s on the real dome, `drive` ~1 min a seed, and `learning` runs
+at ~105 ticks/s on the small dome with both rules on and ~45 ticks/s on the real
+one. `attenuation` is the one whose cost is not ticks: it runs one
+message-passing phase per edge endpoint, 1364 of them on the real dome.
 """
 
 from __future__ import annotations
@@ -83,6 +90,7 @@ from patchworks.agent import DRIVE_ASSERTION, Agent, run
 from patchworks.diagnostics import Condition, Diagnostics
 from patchworks.graph import DEFAULT_SPEC, Dome, DomeSpec, build_graph
 from patchworks.learning import BiasRule, SparsityAnneal, TransportRule
+from patchworks.restriction import pair_index
 from patchworks.sandbox import PlanarPushSandbox
 from patchworks.sandbox.env import ARM_JOINTS
 from patchworks.tick import Sheaf
@@ -118,11 +126,12 @@ _TICK_STATE = (
 )
 
 #: How far the arm has to be from a joint's stop to count as off it, in radians.
-#: A tenth of a degree, which is loose enough for MuJoCo's limits to be the soft
-#: constraints they are -- a joint held against its stop by sustained torque
-#: settles a few thousandths past it -- and tight enough that the nearest thing
-#: #120 measured off a stop, a link resting on a puck 0.04 rad short of one,
-#: reads as off it.
+#: A hundredth of a radian, 0.57 degrees. Loose enough for MuJoCo's limits to be
+#: the soft constraints they are -- a joint held against its stop by sustained
+#: torque settles a few thousandths of a radian past it, which at a tenth of
+#: this would read as off the stop -- and tight enough that the nearest thing
+#: #120 measured genuinely off a stop, a link resting on a puck 0.04 rad short
+#: of one, still reads as off it.
 AT_LIMIT = 1e-2
 
 
@@ -283,13 +292,53 @@ def hold(agent: Agent, observation: dict, applied: np.ndarray, drive, ticks: int
     return agent.sheaf.stalks.clone(), command
 
 
-def sensitivity(name: str, split: str, seed: int, ticks: int, hold_ticks: int) -> None:
-    """What each external input is worth at the fixed point, per level."""
+def teaching(agent: Agent, ticks: int, seed: int):
+    """Run with both rules on, yielding each tick's outcome.
+
+    Written once because two measurements want the same loop: `learning`
+    watches it go by, and `sensitivity --learn` only wants the adapting surface
+    it leaves behind. The shape is the one `tests/test_assembled_loop.py` fixes
+    -- `agent.tick()`, then the rules, never the reverse -- and both rules join
+    on the second tick: the first leaves `incoming` at the constructor's zeros,
+    which is the unit delay, and leaves the bias rule with no previous
+    prediction to have erred against.
+    """
+    bias = BiasRule(agent.sheaf)
+    transport = TransportRule(agent.sheaf, anneal=SparsityAnneal())
+    for outcome in run(agent, ticks, seed=seed):
+        if agent.sheaf.ticks > 1:
+            bias.step()
+            transport.step()
+        yield outcome
+
+
+def taught(agent: Agent, ticks: int, seed: int):
+    """`teaching`, run to the end; the last tick comes back."""
+    outcome = None
+    for outcome in teaching(agent, ticks, seed):
+        pass
+    return outcome
+
+
+def sensitivity(
+    name: str, split: str, seed: int, ticks: int, hold_ticks: int, learn: int = 0
+) -> None:
+    """What each external input is worth at the fixed point, per level.
+
+    `learn` runs the same measurement on an adapting surface that has had that
+    many ticks of both rules, which is the only way to tell an attenuation the
+    draw produced from one learning cannot lift. Nothing is learned during the
+    hold itself: the rules are off there, so the six variants differ in the
+    external write and in nothing else.
+    """
     env, agent = build(name, split, seed)
     try:
-        outcome = None
-        for outcome in run(agent, ticks, seed=seed):
-            pass
+        if learn:
+            outcome = taught(agent, learn, seed)
+        else:
+            outcome = None
+            for outcome in run(agent, ticks, seed=seed):
+                pass
         observation, applied = outcome.observation, outcome.applied
         base = snapshot(agent.sheaf)
 
@@ -316,8 +365,13 @@ def sensitivity(name: str, split: str, seed: int, ticks: int, hold_ticks: int) -
             variant("drive 1.0 -> 10.0", observation, applied, 10.0),
         ]
 
+        how = (
+            f"{learn} ticks with both rules on"
+            if learn
+            else f"{ticks} ticks, untrained"
+        )
         print(
-            f"\n{name} dome, split {split!r}, seed {seed}: {ticks} ticks, then the "
+            f"\n{name} dome, split {split!r}, seed {seed}: {how}, then the "
             f"world held still for {hold_ticks}"
         )
         print(f"  settled pose {np.round(observation['qpos'], 4)}")
@@ -326,7 +380,14 @@ def sensitivity(name: str, split: str, seed: int, ticks: int, hold_ticks: int) -
             "\n  the largest change each altered write makes to a node stalk, by "
             "level, and to the command"
         )
-        groups = "  ".join(f"L{level}{column[:4]:>4s}" for level, column in levels(agent.dome))
+        # Eight wide and two apart, which is the `{v:8.2e}` the rows below
+        # print in: a narrower header drifts left of its column, and on the real
+        # dome's thirteen groups the drift passes a whole column, so a reader
+        # lands on the wrong level in the one table that says where a signal
+        # dies.
+        groups = "  ".join(
+            f"{f'L{level}{column[:4]}':>8s}" for level, column in levels(agent.dome)
+        )
         print(f"  {'variant':18s} {'command':>9s}  {groups}")
         for label, stalks, command in variants:
             moved = (stalks - reference[1]).abs()
@@ -371,22 +432,41 @@ def attenuation(name: str, split: str, seed: int, ticks: int, epsilon: float) ->
         sheaf.inference_phase()
         body = ((sheaf.prediction - before).norm(dim=-1) / epsilon).numpy()
 
-        # The edge: how much of a change in what a neighbour broadcast survives
-        # one message-passing step into the node stalk that reconciles with it.
+        # The edge: how much of a change in what *one* neighbour broadcast
+        # survives one message-passing step into the node stalk that reconciles
+        # with it. Perturbing `broadcast[2e + side]` moves the stalk at the
+        # edge's *other* end, because the phase reads its incoming through the
+        # partner flip.
+        #
+        # One endpoint at a time, and only the rows that endpoint has. Both
+        # matter and both are easy to get wrong. The phase sums over every
+        # incident edge, so perturbing all of them at once and dividing by one
+        # `epsilon` attributes a cell's whole response to a single edge -- and a
+        # predicting cell here has mean degree 5 to 7. And `broadcast` is padded
+        # to the widest edge stalk in the graph while rows past an edge's own
+        # `m` are structurally zero in the maps, so a nudge spread over all of
+        # them spends most of itself on directions `spread()` discards: half of
+        # it on an `m = 4` interior edge, seven eighths on a drive edge.
         restore(sheaf, base)
         sheaf.message_passing_phase()
         quiet = sheaf.stalks.clone()
-        restore(sheaf, base)
-        with torch.no_grad():
-            sheaf.broadcast += nudge(tuple(sheaf.broadcast.shape))
-        sheaf.message_passing_phase()
-        moved = sheaf.stalks - quiet
-        edge = np.array(
-            [
-                float(moved[sheaf.layout.slice(cell)].norm() / epsilon)
-                for cell in agent.dome.predicting
-            ]
-        )
+        transfers = []
+        for e in agent.dome.edges:
+            for side in (0, 1):
+                receiver = (e.v, e.u)[side]
+                # A boundary cell's stalk is the world's next word anyway, so
+                # what a neighbour's belief did to it is not a hop in the taper.
+                if agent.dome.cells[receiver].is_boundary:
+                    continue
+                restore(sheaf, base)
+                with torch.no_grad():
+                    sheaf.broadcast[pair_index(e.id, side), : e.m] += nudge((e.m,))
+                sheaf.message_passing_phase()
+                where = sheaf.layout.slice(receiver)
+                transfers.append(
+                    float((sheaf.stalks[where] - quiet[where]).norm() / epsilon)
+                )
+        edge = np.array(transfers)
 
         # What ADR-0010's gauge leaves the transport rule room to grow that to.
         # The maps are drawn at `INITIAL_NORM = 1` and projected back inside
@@ -394,7 +474,10 @@ def attenuation(name: str, split: str, seed: int, ticks: int, epsilon: float) ->
         headroom = sheaf.maps.rho / float(sheaf.maps.norms().mean())
 
         print(f"\n{name} dome, split {split!r}, seed {seed}, after {ticks} ticks")
-        print(f"  nudge {epsilon:g}, over {len(body)} predicting cells")
+        print(
+            f"  nudge {epsilon:g}, over {len(body)} predicting cells and "
+            f"{len(edge)} edge endpoints whose far end runs a body"
+        )
         for label, values in (
             ("body   d|prediction| / d|evidence|", body),
             ("edge   d|node stalk| / d|belief| ", edge),
@@ -486,8 +569,6 @@ def learning(name: str, split: str, seed: int, ticks: int, every: int) -> None:
     """Both rules on, long, with the paired per-edge instrument on a cadence."""
     env, agent = build(name, split, seed)
     try:
-        bias = BiasRule(agent.sheaf)
-        transport = TransportRule(agent.sheaf, anneal=SparsityAnneal())
         # Every reading below passes `whole_graph=False`, which is the override
         # `read` offers and is what keeps the expensive half off this run
         # entirely: one whole-graph reading is a `3764 x 3764` eigendecomposition
@@ -502,13 +583,7 @@ def learning(name: str, split: str, seed: int, ticks: int, every: int) -> None:
         )
         started = time.time()
         commands, poses = [], []
-        for i, outcome in enumerate(run(agent, ticks, seed=seed), start=1):
-            # Both rules join on the second tick. The first leaves `incoming`
-            # at the constructor's zeros -- the unit delay -- and leaves the
-            # bias rule without a previous prediction to have erred against.
-            if agent.sheaf.ticks > 1:
-                bias.step()
-                transport.step()
+        for i, outcome in enumerate(teaching(agent, ticks, seed), start=1):
             commands.append(outcome.command.copy())
             poses.append(outcome.observation["qpos"].copy())
             if i % every:
@@ -559,6 +634,12 @@ def main(argv: list[str] | None = None) -> None:
     p = sub.add_parser("sensitivity", parents=[one], help="what each input is worth")
     p.add_argument("--ticks", type=int, default=1500)
     p.add_argument("--hold", type=int, default=400)
+    p.add_argument(
+        "--learn",
+        type=int,
+        default=0,
+        help="run this many ticks with both rules on first, instead of --ticks untrained",
+    )
 
     p = sub.add_parser("attenuation", parents=[one], help="the two factors of one hop")
     p.add_argument("--ticks", type=int, default=1500)
@@ -577,7 +658,9 @@ def main(argv: list[str] | None = None) -> None:
     if args.measurement == "characterise":
         characterise(args.domes, args.splits, args.seeds, args.ticks)
     elif args.measurement == "sensitivity":
-        sensitivity(args.dome, args.split, args.seed, args.ticks, args.hold)
+        sensitivity(
+            args.dome, args.split, args.seed, args.ticks, args.hold, args.learn
+        )
     elif args.measurement == "attenuation":
         attenuation(args.dome, args.split, args.seed, args.ticks, args.epsilon)
     elif args.measurement == "drive":

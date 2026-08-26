@@ -25,6 +25,7 @@ import pytest
 import torch
 
 import untrained_fixed_point as fixed_point
+from patchworks import tick
 from patchworks.agent import Agent, run
 from patchworks.graph import build_graph
 
@@ -46,6 +47,16 @@ def test_sensitivity_runs(capsys):
     out = capsys.readouterr().out
     for variant in ("render blanked", "efference + 0.5", "drive 1.0 -> 0.0"):
         assert variant in out
+    assert "untrained" in out
+
+
+def test_sensitivity_runs_on_a_taught_surface(capsys):
+    """`--learn` is the same table off an adapting surface the rules have moved,
+    and the header has to say which of the two a reader is looking at."""
+    fixed_point.sensitivity("small", "train", 0, ticks=0, hold_ticks=2, learn=TICKS)
+    out = capsys.readouterr().out
+    assert "with both rules on" in out
+    assert "render blanked" in out
 
 
 def test_attenuation_runs(capsys):
@@ -88,6 +99,23 @@ def test_a_restored_sheaf_is_where_it_was(settled):
     for name in fixed_point._TICK_STATE:
         assert torch.equal(getattr(settled.sheaf, name), state[name]), name
     assert settled.sheaf.ticks == state["ticks"]
+
+
+def test_the_restored_state_is_everything_the_tick_produced(monkeypatch, settled):
+    """The check above iterates `_TICK_STATE`, so it cannot see a tensor missing
+    from it -- which is the failure that matters. `incoming` was added to `Sheaf`
+    for the transport rule after the tick already had six buffers; the next such
+    addition, unnoticed here, would start `sensitivity`'s six variants from six
+    different values of it and the table would silently mean nothing.
+
+    So the list is held against one the tick maintains for its own reasons.
+    `Sheaf.assert_no_tape` names every quantity a tick produces, it runs on
+    every tick, and a new buffer that escaped it would be a hole in the locality
+    guard rather than a quiet one here."""
+    guarded: dict[str, torch.Tensor] = {}
+    monkeypatch.setattr(tick, "assert_no_tape", lambda **named: guarded.update(named))
+    settled.sheaf.assert_no_tape()
+    assert set(guarded) == set(fixed_point._TICK_STATE)
 
 
 def test_the_small_dome_is_the_suite_s_own(settled):
