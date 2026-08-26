@@ -29,6 +29,7 @@ omission. What can be held down without one is everything up to the blit:
   that only a hand on a mouse exercises.
 """
 
+import contextlib
 import io
 import os
 import threading
@@ -470,6 +471,118 @@ class TestLiveAndReplayAreOneCodePathWithTwoFeeds:
         assert slept == []
         assert list(paced(feed, 1000.0)) == feed
         assert slept and all(nap > 0 for nap in slept)
+
+
+class FakeViewer:
+    """Enough of `mujoco.viewer`'s handle to run :func:`drive` with no display.
+
+    `tests/test_gestures.py` has the full one, with a script of what the human
+    did; nothing here is about a gesture, so this is the handle and no script.
+    """
+
+    def __init__(self, model, data, key_callback):
+        import mujoco
+
+        self.model, self.data, self.key_callback = model, data, key_callback
+        self.perturb = mujoco.MjvPerturb()
+        self.cam = mujoco.MjvCamera()
+        self.syncs = 0
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exception):
+        return False
+
+    def is_running(self):
+        return True
+
+    @contextlib.contextmanager
+    def lock(self):
+        yield
+
+    def sync(self):
+        self.syncs += 1
+
+
+@pytest.fixture
+def scene_window(monkeypatch):
+    """`launch_passive`, with no window behind it. Returns the handles made."""
+    import mujoco.viewer
+
+    handles = []
+
+    def launch_passive(model, data, *, key_callback=None, **kwargs):
+        handles.append(FakeViewer(model, data, key_callback))
+        return handles[-1]
+
+    monkeypatch.setattr(mujoco.viewer, "launch_passive", launch_passive)
+    return handles
+
+
+@pytest.fixture
+def panel_window(monkeypatch):
+    """`open_window`, with a pipe where the child process would be."""
+    opened = []
+
+    def open_window(height, width, *, title="patchworks", scale=2):
+        pipe = Pipe()
+        opened.append(pipe)
+        return FrameWindow(pipe.write, height, width)
+
+    monkeypatch.setattr(watch_module, "open_window", open_window)
+    return opened
+
+
+class TestTheTwoEntryPointsDrawTheRun:
+    def test_live_runs_the_agent_in_the_scene_window_and_draws_beside_it(
+        self, scene_window, panel_window, tmp_path
+    ):
+        """`live` is `drive` plus this window, and `--save` leaves the trace."""
+        path = tmp_path / "run.npz"
+        live(ticks=12, split="any", save=path, hold=False)
+        assert len(scene_window) == 1, "the scene window is MuJoCo's, opened once"
+        assert scene_window[0].syncs >= 12
+        assert len(panel_window) == 1
+        drawn = panel_window[0].finish()
+        assert drawn, "the panel drew nothing beside the scene"
+        assert path.exists()
+        assert len(Trace.load(path)) == len(drawn)
+
+    def test_replay_draws_the_same_window_from_a_file_and_opens_no_world(
+        self, scene_window, panel_window, tmp_path
+    ):
+        """The sibling flag: same window, same panels, a file for a feed."""
+        path = tmp_path / "run.npz"
+        live(ticks=12, split="any", save=path, hold=False)
+        assert len(panel_window) == 1
+        live_frames = panel_window[0].finish()
+
+        replay(path, fps=0, hold=False)
+        assert len(scene_window) == 1, "replay opened no scene window"
+        replayed = panel_window[1].finish()
+        assert len(replayed) == len(live_frames)
+
+    def test_a_replay_is_reproducible_from_its_seed(
+        self, scene_window, panel_window, tmp_path
+    ):
+        """A trace holds no biases, so the trail's persistences are measured here.
+
+        Which makes `--seed` load-bearing rather than decorative: measured off
+        an unseeded sheaf, two replays of one file would draw two different
+        trails over the same recorded marks.
+        """
+        path = tmp_path / "run.npz"
+        live(ticks=12, split="any", save=path, hold=False)
+        panel_window[-1].finish()
+
+        replay(path, seed=0, fps=0, hold=False)
+        once = panel_window[-1].finish()
+        replay(path, seed=0, fps=0, hold=False)
+        again = panel_window[-1].finish()
+        assert once and len(once) == len(again)
+        for at, (one, other) in enumerate(zip(once, again)):
+            assert np.array_equal(one, other), f"frame {at} differs between replays"
 
 
 class TestTheParsingIsSeparableFromTheDoing:
