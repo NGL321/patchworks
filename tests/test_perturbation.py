@@ -102,8 +102,8 @@ _DOME = build_graph(SMALL)
 
 #: This dome's widest cell — seven edges — and a predicting cell, so the
 #: transport rule's per-edge path is exercised where it has most to reach.
-#: Six cells tie at seven; the first of them is taken, which is a rule rather
-#: than a choice.
+#: Several cells tie at the widest degree and `.index` takes the lowest, which
+#: is a rule rather than a choice: the same spec always yields the same cell.
 WIDEST = _DOME.degrees.index(max(_DOME.degrees))
 
 #: The dome's one drive boundary cell: three edges, each of mask width 1. The
@@ -351,8 +351,8 @@ class TestTheCellsTheseTestsName:
     predicting one the tests below would still pass while guarding something
     else. So each derivation's premise is asserted here, and the counts the
     shared spec's comment claims with it. This is the class that fails when the
-    dome is retuned, which is the point — it is a prompt to re-read the file,
-    not a number to update in seven places.
+    dome is retuned, which is the point: retuning it should send someone back
+    through this file rather than pass quietly.
     """
 
     def test_the_dome_is_the_size_the_shared_spec_claims(self, dome):
