@@ -408,6 +408,30 @@ class TestThePointerReadsWholeGestures:
         pointer.sample(0, puck, (0.0, 0.0, 0.0), start + [0.0, 0.05, 0.0])
         assert env.puck_pose(2)[:2] == pytest.approx(start[:2] + [0.0, 0.05], abs=1e-9)
 
+    def test_a_rotating_ctrl_drag_names_no_place_and_fires_no_hand(
+        self, gestures, recorder, env
+    ):
+        """#116, and the whole of why retarget is not a drag.
+
+        MuJoCo tells its two ctrl-drags apart in one field -- `mjPERT_TRANSLATE`
+        for ctrl + the right button and `mjPERT_ROTATE` for ctrl + the left --
+        so a rotating drag *is* deterministically distinguishable from the drag
+        that already means `perturb`, and would have been the retarget-by-drag
+        the spec would rather have had. What it does not carry is a
+        destination: `mjv_movePerturb` turns `refquat` for it and leaves
+        `refselpos` exactly where the press froze it, so there is no zone for it
+        to name. Nothing fires, and nothing is special-cased to make that true.
+        """
+        pointer = Pointer(gestures)
+        puck, start = body(env, "puck_0"), self.grip(env, "puck_0")
+        rotating = int(mujoco.mjtPertBit.mjPERT_ROTATE)
+        for _ in range(5):
+            # `refselpos` stands still for the whole of it, which is the point.
+            assert pointer.sample(rotating, puck, (0.0, 0.0, 0.0), start) is None
+        assert pointer.sample(0, puck, (0.0, 0.0, 0.0), start) is None
+        assert recorder.pending == ()
+        assert env.puck_pose(0)[:2] == pytest.approx(start[:2], abs=1e-9)
+
     def test_the_struct_as_found_is_not_a_gesture(self, gestures, env):
         """A viewer opened with something already selected has clicked nothing."""
         pointer = Pointer(gestures)
@@ -809,3 +833,78 @@ class TestTheSceneWindowIsMujocosPassiveViewer:
 
         window.script[4] = shut
         assert len(list(drive(recorder, ticks=50, realtime=False))) == 3
+
+
+def retargets_on_iteration(window, env, at, puck=1, zone=2):
+    """Script a retarget whose second pointing lands in iteration `at`.
+
+    The loop's order within one iteration is *tick, capture, gesture*, and the
+    fake viewer runs its script from `sync()`, which falls between the capture
+    and the gesture. So a step filed under `at` is read by the pointer during
+    iteration `at` and by nothing before it.
+
+    **Three samples is the floor**, hence the refusal below: the pointer latches
+    what it finds without firing (*the struct as found is not a gesture*), so
+    iteration 1 is spent priming and the two pointings need the two after it.
+    Filed any earlier, the puck pointing lands on the priming sample and
+    `Gestures.pick` is never called -- and a test asserting that nothing reached
+    the trace would pass with nothing ever fired, which is the shape of a test
+    that cannot fail.
+    """
+    if at < 3:
+        raise ValueError(
+            f"the earliest iteration a retarget can land on is 3, not {at!r}: "
+            "one sample primes the pointer and the two pointings follow it."
+        )
+    named = body(env, f"puck_{puck}")
+
+    def point_at_the_puck(handle):
+        handle.perturb.select = named
+        handle.perturb.localpos[:] = [0.0, 0.0, 0.0]
+
+    def point_at_the_zone(handle):
+        handle.perturb.select = 0  # the table under the zone: a zone is a site
+        handle.perturb.localpos[:] = zone_point(zone)
+
+    window.script.update({at - 1: point_at_the_puck, at: point_at_the_zone})
+
+
+class TestAMarkerFiredOnTheRunsLastTick:
+    """#116's second ruling: a trace holds no record that no tick produced.
+
+    A marker rides on the *next* capture, so the last tick of a run has no
+    capture left to carry one. The loss is real, bounded and stated -- see
+    :meth:`~patchworks.surface.record.Recorder.mark`, *What this cannot see* --
+    and the remedy belongs to whoever declares the ticks.
+    """
+
+    def test_it_stays_pending_and_never_reaches_the_trace(self, recorder, window, env):
+        retargets_on_iteration(window, env, at=4)
+        fired = [
+            event
+            for record in drive(recorder, ticks=4, realtime=False)
+            for event in record.events
+        ]
+        assert fired == [], "a marker fired after the last capture reached the trace"
+        # Nothing is mis-recorded: the hand landed, the marker exists, it says
+        # what it did, and it carries the tick it fired on -- the last one.
+        assert [marker.kind for marker in recorder.pending] == [EventKind.RETARGET]
+        assert recorder.pending[0].detail == (1.0, 2.0)
+        assert recorder.pending[0].tick == recorder.agent.sheaf.ticks
+        assert (env.task.goal_puck, env.task.goal_zone) == (1, 2)
+
+    def test_one_more_declared_tick_is_the_whole_of_the_remedy(
+        self, recorder, window, env
+    ):
+        """The same gesture on the same iteration, with one tick more declared."""
+        retargets_on_iteration(window, env, at=4)
+        records = list(drive(recorder, ticks=5, realtime=False))
+        carrying = [record for record in records if record.events]
+        assert len(carrying) == 1, [len(r.events) for r in records]
+        (marker,) = carrying[0].events
+        assert marker.kind is EventKind.RETARGET
+        assert marker.detail == (1.0, 2.0)
+        assert marker.tick == carrying[0].tick - 1, (
+            "the marker was restamped to the capture that carried it"
+        )
+        assert recorder.pending == ()

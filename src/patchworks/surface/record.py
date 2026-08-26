@@ -46,6 +46,23 @@ and is the same kind of thing: privileged state, read, never fed back.
 and the sampler's RNG -- plus those arrays and any markers that fired. What
 :meth:`Trace.save` writes is that and nothing else, so a record read back off
 disk restores a world the same way the one held in memory does.
+
+**What a trace cannot hold: a record no tick produced.** Every record is one
+tick's reading, and #116 ruled that it stays that way. A trailing record
+fabricated after a run -- to give a marker fired on the last tick somewhere to
+land -- would have to carry *something* in the four arrays, and neither answer
+is honest. **Zeros** are a reading nobody took, four times over: a graph that
+agreed on every edge, cells that predicted perfectly and moved no private
+component, and an actuator commanded nothing and applying nothing. That is the
+reading :func:`_nothing` exists to be distinct from, and the one
+:meth:`Trace.save` already declines to pad with. ***Not captured*** is
+a shape the rest of the trace disagrees with, so :meth:`Trace.save` would
+refuse the very trace such a record was added to complete.
+
+So the marker is what gives instead, and the loss is stated rather than
+patched: see :meth:`Recorder.mark`, *What this cannot see*, and
+:func:`~patchworks.surface.gestures.drive`. A run that must not lose its last
+event **declares one tick more than it measures**.
 """
 
 from __future__ import annotations
@@ -478,10 +495,25 @@ class Recorder:
         A tick that fires one is always captured, whatever the decimation says,
         because a marker decimated away is a marker lost.
 
-        There is one tick in which a marker exists and no record holds it: the
-        one between firing and the next :meth:`observe`. A run that stops in it
-        leaves the marker in :attr:`pending`, where a caller can see it, rather
-        than dropping it somewhere nothing reports.
+        **What this cannot see: the end of the run.** There is one tick in
+        which a marker exists and no record holds it -- the one between firing
+        and the next :meth:`observe` -- and a run that stops in it never takes
+        that next observation. The marker is then left in :attr:`pending`,
+        where a caller can still read it, rather than dropped somewhere nothing
+        reports; but it does not reach the trace, and this class cannot tell
+        that the loop above it has ended. The tick it carries is right either
+        way, so nothing recorded is wrong: what is lost is the last event of
+        the run, in the trace only.
+
+        The remedy is the caller's, because the missing thing is a tick and
+        only the caller declares those. **A run that must not lose its last
+        event declares one tick more than it measures** -- one iteration for
+        the marker to be yielded on, at the cost of one tick and no semantics.
+        That is a falsification sweep's obligation, next to the per-trial
+        :meth:`~patchworks.surface.onset.OnsetCounter.restart` #95 handed
+        forward, and this recorder can check neither. Fabricating the missing
+        iteration here instead was ruled out in #116; see this module's
+        docstring, *What a trace cannot hold*.
         """
         event = Event(EventKind(kind), self.agent.sheaf.ticks, tuple(detail))
         self._pending.append(event)
@@ -613,6 +645,10 @@ class Recorder:
         :meth:`patchworks.surface.renderer.Renderer.frames` consumes, and a
         trace off disk is the same thing from the other end. Live and replay
         are one code path with two feeds.
+
+        A hand fired between two of these ticks is captured by the next one, so
+        a hand fired after the last of them is not: see :meth:`mark`, *What
+        this cannot see*. Declare one tick more than the measurement needs.
         """
         outcomes = run(self.agent, ticks, seed=seed)
 

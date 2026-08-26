@@ -146,6 +146,16 @@ class OnsetCounter:
     plausible latency rather than an error. Calling :meth:`restart` per trial
     is the harness's to get right; this counter cannot check it, and says so
     rather than implying otherwise.
+
+    **The harness owes one other thing, for the same reason.** A marker fired
+    on a run's last tick never reaches the trace, because the capture that
+    would have carried it is the next iteration's and there is no next one
+    (:meth:`~patchworks.surface.record.Recorder.mark`, *What this cannot see*;
+    #116). A trial that fires its event and stops on the tick it measures to
+    therefore hands this counter a feed with no marker in it, and gets `None`
+    where it expected a latency. So a trial **declares one tick more than it
+    measures**, as well as calling :meth:`restart` before its event. Both are
+    the harness's, and neither is checkable from here.
     """
 
     def __init__(self) -> None:

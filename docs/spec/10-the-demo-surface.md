@@ -204,17 +204,40 @@ trajectory, **stall** is the outline-near-zero-beside-standing-disagreement sign
 |---|---|---|
 | ctrl-drag a **link** | `disturb_arm(joint, impulse)` | `08` event 1 |
 | ctrl-drag a **puck** | `perturb(puck, xy)` | `08` event 2 |
-| **right-click a puck, then click a zone** | `retarget(goal_puck, goal_zone)` | `08` event 3 |
+| **left-double-click a puck, then left-double-click a zone** | `retarget(goal_puck, goal_zone)` | `08` event 3 |
 | `r` | rearrange without resetting the arm | setup |
 
 Ctrl-drag is MuJoCo's own gesture and is already bound; the **referent** decides which hand it is,
-which is why events 1 and 2 need no new binding and read as one motion with two targets.
+which is why events 1 and 2 need no new binding and read as one motion with two targets. It is the
+*translating* ctrl-drag — MuJoCo's `mjPERT_TRANSLATE`, ctrl + the right button. Ctrl + the left
+button is `mjPERT_ROTATE`, which turns a reference orientation and moves nothing, so it fires no
+hand.
 
 Retarget is the one that needed designing, because it has no world-side handle to grab. Click-then-
 click is chosen over a keypress because it reads to a bystander with no caption — you point at the
 thing, then point at where you now want it — and the third event of the demo is precisely the one a
 viewer must understand without help. Number keys cycling the 3×3 pairs remain as the headless and
 scripted path.
+
+**The button, corrected in #116.** This section named a right-click until #96 found that a raw
+button is not observable through `mujoco.viewer.launch_passive` at all: it offers one event hook,
+`key_callback`, and one piece of readable mouse state, `MjvPerturb`, which has no button field.
+What that struct *does* report deterministically is three acts — a **selection**, written only on a
+**left** double-click (any other button moves the camera's `lookat` or starts it tracking); a
+**translating** ctrl-drag, the one act that moves a point to a place; and a **rotating** ctrl-drag,
+which carries an orientation and no place.
+
+So a pointing is a left double-click, and retarget is two of them. A **drag** from puck to zone
+would read more plainly still, and was preferred if it could be had, but it is closed rather than
+declined: the only drag that reports where it ended is the translating one, and a translating
+ctrl-drag on a puck already means `perturb`. Two hands cannot fire from one gesture on one referent,
+and the drag the viewer can tell apart from it carries no position to name a zone with.
+Re-implementing picking — authorised in #116 for this gesture alone — was therefore not needed, and
+the scene window stays MuJoCo's passive viewer with its picking and drag inherited entire.
+
+What this section argued for is *point at the thing, then point at where you now want it*, and that
+is met exactly. Whether two double-clicks read as well to a bystander as the single click imagined
+here is the one claim on this page that only a human at the window can settle.
 
 ## The trace
 
@@ -237,6 +260,18 @@ resolution is chosen when rendering rather than baked into the recording, and th
 falsification sweep, and a debugging pass all read the same file. It also keeps the live budget near
 zero: the env runs ~400 ticks/s with rendering on one laptop CPU core, and a 10 Hz panel decimated
 off a state log does not threaten that.
+
+**Every record is one tick's reading, and a trace holds no record that no tick produced** (#116).
+The consequence is a marker fired on a run's *last* tick: markers ride on the next capture, so the
+last one has no capture left to ride, and it stays where the recorder can still show it rather than
+reaching the trace. Nothing is mis-recorded — a marker carries the tick it fired on, not the tick it
+was captured with — and what is lost is the last event, in the trace only. The alternative was a
+fabricated trailing record, and there is nothing honest to put in its arrays: zeros read back as a
+graph that agreed on every edge, and *not captured* is a shape the rest of the trace disagrees with.
+**So a run that must not lose its last event declares one tick more than it measures** — one
+iteration for the marker to be yielded on, at the cost of one tick and no semantics. That is the
+falsification sweep's obligation, alongside restarting the onset counter once per trial, and neither
+is checkable from inside the surface.
 
 ## The front door
 
