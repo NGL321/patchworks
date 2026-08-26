@@ -763,7 +763,8 @@ class TestBothChecksRunInCI:
         # Every `env:` under `jobs:`, not the first one: GitHub hands a
         # job-level block to every step in the job, and YAML is happy to have
         # it written after `steps:`, past the point a first-match check stops.
-        assert self.nested_under(self.block("jobs"), "env:") == [self.PERMITTED_ENVIRONMENT]
+        jobs = self.block("jobs")
+        assert self.nested_under(jobs, "env:") == [self.PERMITTED_ENVIRONMENT]
         # And the level above, which `jobs:` does not contain: a workflow-level
         # `env:` reaches every step of every job. The top-level keys are pinned
         # rather than that one name refused, so it has nowhere to land.
