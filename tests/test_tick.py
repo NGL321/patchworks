@@ -738,9 +738,10 @@ class TestTheGammaASheafIsBuiltWith:
         assert drawn == []
 
     def test_a_magnitude_no_float_can_hold_is_refused_as_one_rule_too(self, dome, drawn):
-        # `float(10**400)` raises `OverflowError`, which is neither of the two
-        # the coercion catches -- so this arrived at the rule and left as a
-        # bare `OverflowError` rather than as the refusal it is.
+        # `float(10**400)` raises `OverflowError`, which the coercion's first
+        # arm does not catch -- so until the arm below it existed this arrived
+        # at the rule and left as a bare `OverflowError` rather than as the
+        # refusal it is.
         with pytest.raises(ValueError, match="gamma"):
             Sheaf(dome, gamma=10**400)
         assert drawn == []
@@ -829,12 +830,12 @@ class TestTheGammaASheafIsBuiltWith:
     def test_a_proxy_that_raises_on_every_access_leaves_as_what_it_raised(self, dome):
         # The other half of the same shape. #107 promised that nothing but a
         # `ValueError` escapes; #112 withdrew that rather than restructure the
-        # function around arrivals no caller produces. The guard is `hasattr`,
-        # which swallows only `AttributeError`, and it cannot be widened for
-        # free -- it is also what refuses `memoryview(b"0.5")`, whose `float()`
-        # is `0.5`. This is one arrival of that family -- a proxy that raises
-        # at the lookup; one that raises inside `__float__` escapes the same
-        # way -- pinned rather than promised away.
+        # function around arrivals no caller produces. This is one of them: a
+        # proxy that raises at the attribute lookup, which `hasattr` lets
+        # through because it is not an `AttributeError`. A proxy that raises
+        # inside `__float__` escapes the same way, and that is the half that
+        # could not be closed cheaply -- `_checked_gamma`'s docstring says why.
+        # Pinned here rather than promised away.
 
         class RaisesOnEveryAccess:
             def __getattr__(self, name):

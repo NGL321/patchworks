@@ -157,13 +157,16 @@ def _checked_gamma(gamma: object) -> float:
     produces. A stand-in for a number that raises on its way to being one
     leaves as what it raised: the guard below asks `hasattr`, which swallows
     only `AttributeError`, and the coercion catches only the four classes it
-    names, so a proxy for an absent config key comes back out as its own
-    `KeyError` whether it raises at the lookup or at the `__float__` call.
-    Widening the guard costs more than it buys — it is also what keeps a buffer
-    out, since `float(memoryview(b"0.5"))` is `0.5`. Separately, under
-    `-W error::DeprecationWarning`, which nothing in this repo sets, a
-    1-element array leaks one out of `float()`. What stands is the smaller,
-    true claim: **reach a refusal and it is a `ValueError`.**
+    names — so a proxy for an absent config key escapes as its own `KeyError`
+    whether it raises at the attribute lookup or inside `__float__`. Wrapping
+    the two lookups would close the first half and keep every refusal it makes
+    now; the second half would need a wider `except` at the coercion, which
+    would also swallow the `DeprecationWarning` a 1-element array leaks there
+    under `-W error::DeprecationWarning` (set nowhere in this repo) and mask
+    real faults with it. The `__float__`/`__index__` test itself stays either
+    way: it is what refuses `memoryview(b"0.5")`, whose `float()` is `0.5`.
+    Half a guarantee did not justify the surgery, so what stands is the
+    smaller, true claim: **reach a refusal and it is a `ValueError`.**
     """
     rule = (
         "gamma is a single global scalar in (0, 1] "
@@ -188,9 +191,10 @@ def _checked_gamma(gamma: object) -> float:
         as_float = float(gamma)
     # `RuntimeError` because a tensor on the meta device has no storage to
     # read a number out of, and torch says so with `NotImplementedError` — a
-    # subclass of it. A rule with one thing to catch cannot let a second class
-    # out through its own coercion. (A complex tensor never reaches here; the
-    # unwrapping above turns it away first.)
+    # subclass of it. A rule with one thing to catch should not let *that*
+    # arrival out through its own coercion; the docstring says which ones it
+    # still does. (A complex tensor never reaches here; the unwrapping above
+    # turns it away first.)
     except (RuntimeError, TypeError, ValueError):
         # **A single real** number: the likeliest arrival here is a sweep that
         # passed its whole grid rather than indexing a point out of it, and
