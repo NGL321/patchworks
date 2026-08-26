@@ -336,18 +336,24 @@ class TestADragIsReadInThePlane:
             assert gestures.drag(dragged(env, "base", (0.002, 0.0, 0.5))) is None
         assert recorder.pending == ()
 
-    def test_the_refusal_lifts_in_one_place_for_a_world_with_a_third_dimension(
-        self, recorder, env
-    ):
-        """Relaxable, not welded shut (#123). A world whose pucks could move in
-        z would hand its own tolerance in, and the drag that is refused here
-        fires there -- with its planar part, which is all either hand takes."""
+    def test_the_refusal_lifts_where_it_says_it_does(self, recorder, env):
+        """Relaxable, not welded shut (#123): the tolerance is handed in.
+
+        And **lifting it is not a third dimension** -- both hands still take
+        xy, so what a lifted tolerance restores is the planar shadow this
+        ticket was filed on, fired here deliberately to show exactly that. A
+        world whose pucks can move in z changes the hands; this seam is only
+        what would otherwise be in its way.
+        """
+        was = np.array(env.puck_pose(0)[:2])
         pull = dragged(env, "puck_0", (0.002, 0.0, 0.5))
         relaxed = Gestures(Hands(recorder), out_of_plane_tolerance=float("inf"))
         with warnings.catch_warnings():
             warnings.simplefilter("error")
             event = relaxed.drag(pull)
         assert event is not None and event.kind is EventKind.PERTURB
+        # The shadow, and nothing of the half-metre of z: 2 mm in the plane.
+        assert env.puck_pose(0)[:2] == pytest.approx(was + [0.002, 0.0], abs=1e-9)
 
     def test_a_lifted_refusal_still_hands_no_hand_a_drag_of_nothing(
         self, recorder, env

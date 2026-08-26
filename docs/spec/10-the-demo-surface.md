@@ -234,7 +234,10 @@ So there are two constraints, they do different jobs, and **both are kept**:
   measured against the planar one — about six degrees — not on the planar magnitude alone. A drag
   outside it fires no hand, leaves no marker, and **warns**, naming the shifted drag as the way to
   express a planar pull. A human given nothing and told nothing is left wondering which of the two
-  happened, and "look from above" would have been advice that does not help.
+  happened, and "look from above" would have been advice that does not help. The warning is for a
+  pull that would otherwise have fired a hand: a drag that named the table, a wall, or nothing is a
+  **miss**, fires nothing as it always did, and says nothing — blaming the pull for what was an aim
+  would teach the human the wrong lesson about their own gesture.
 - **The camera's tilt is held straight down**, re-asserted every tick rather than set once at
   startup, and what it holds is the **picture**: the arena's plane fills the screen, so a drag's
   planar half is the motion the human watches themselves make. It is re-assertion and not
@@ -249,8 +252,13 @@ rather than decided in passing.
 
 #123 ruled for both constraints, for the redundancy, and **neither is to be removed as redundant with
 the other** — but the division of labour is the one above, and the camera hold must not be read as
-enforcing the plane, because it cannot. Both are relaxable in one place for a world that has a third
-dimension: the tolerance the gesture layer is built with, and the loop's `hold_camera`.
+enforcing the plane, because it cannot.
+
+Both relax in one place — the tolerance the gesture layer is built with, and the loop's
+`hold_camera` — and **neither relaxation is a third dimension**. Both hands take xy, so lifting the
+tolerance stops the refusing and restores the planar shadow this ticket was filed on. A world whose
+pucks can move in z changes the hands; these seams are only what would otherwise be welded across
+its path.
 
 **The perturbation ghost stays three-dimensional.** MuJoCo draws the drag as a spring in 3D and
 nothing on this surface can make it do otherwise. Held top-down that is mostly harmless — the planar
@@ -272,7 +280,8 @@ button is not observable through `mujoco.viewer.launch_passive` at all: it offer
 What that struct *does* report deterministically is three acts — a **selection**, written only on a
 **left** double-click (any other button moves the camera's `lookat` or starts it tracking); a
 **translating** ctrl-drag, the one act that moves a point to a place; and a **rotating** ctrl-drag,
-which carries an orientation and no place.
+which carries an orientation and no place. The shift key is not a field either, and it is what
+chooses the plane the translating drag moves in — see the planar note above.
 
 So a pointing is a left double-click, and retarget is two of them. A **drag** from puck to zone
 would read more plainly still, and was preferred if it could be had, but it is closed rather than
