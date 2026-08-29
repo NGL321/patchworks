@@ -29,6 +29,13 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends libgl1 libosmesa6 \
     && rm -rf /var/lib/apt/lists/*
 
+# The whole tree, before the install, because the install is an editable one:
+# `pip install -e` needs the source present and leaves a path to it rather than
+# a copy. The cost is that any edit invalidates the layer below, so a rebuild
+# after a one-line change reinstalls torch. Accepted rather than worked around
+# with a two-stage requirements copy: the alternative is a second place where
+# the dependency set is written down, and one of the things this image is for
+# is that there is exactly one.
 WORKDIR /app
 COPY . /app
 
@@ -90,10 +97,12 @@ RUN apt-get update \
 COPY docker/desktop-entrypoint.sh /usr/local/bin/desktop-entrypoint
 RUN chmod 755 /usr/local/bin/desktop-entrypoint
 
-# Fixed, and fixed here rather than left to a default, because `--pitch` and
-# `--scale` size the panel against the screen they open on: a geometry that
-# moved would make those flags mean something different from one run to the
-# next.
+# The image's screen, named here rather than left to whatever Xvfb defaults to,
+# because `--pitch` and `--scale` size the panel against the screen it opens
+# on: a geometry that varied would make those flags mean something different
+# from one run to the next. Overridable with `-e` for a screen of another size
+# -- what matters is that it is the same on every run that does not say
+# otherwise.
 ENV PATCHWORKS_DISPLAY=:0 \
     PATCHWORKS_GEOMETRY=1600x1000x24 \
     PATCHWORKS_NOVNC_PORT=6080

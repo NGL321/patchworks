@@ -251,14 +251,21 @@ result rather than buried as a default.
   only if tick wall-time on CPU proves insufficient, matching the Notes' existing "paid compute if a
   specific need is demonstrated". Nothing is provisioned until that fires.
 - **A container is the supported execution target**, on `linux/amd64` and `linux/arm64`
-  ([ADR-0012](../adr/0012-a-container-is-the-supported-execution-target.md), and the `Dockerfile` at
-  the repository root). It is the only target with automated evidence behind it on more than one
-  architecture: `.github/workflows/docker.yml` builds both stages on native runners and runs
-  `doctor` and `check` in the built image on each. **Running on a host directly is best-effort
-  rather than claimed** — that includes the development laptop above, which stays exactly what this
-  list already calls it, a correctness-only target checked by hand. The container's own tick and
-  `env.step()` figures are a different machine's and belong beside these numbers rather than in the
-  table above them.
+  ([ADR-0012](../adr/0012-a-container-is-the-supported-execution-target.md), and the `Dockerfile` at the
+  repository root). It is the only target with automated evidence behind it on more than one architecture:
+  `.github/workflows/docker.yml` builds both stages on native runners and runs `doctor` and `check` in the
+  built image on each. **Running on a host directly is best-effort rather than claimed** — that includes the
+  development laptop above, which stays exactly what this list already calls it, a correctness-only target
+  checked by hand.
+  - **The container's own figures, and they are a different machine's** — not a correction to the table
+    above. From `benchmarks/agent_tick.py` and `benchmarks/sandbox_throughput.py` in the headless image on
+    an i5-11600K under Docker Desktop's Linux VM, `MUJOCO_GL=osmesa`: **`env.step()` 7.07 ms** median, of
+    which the camera pass is 6.6 ms — 48× the physics beside it — **the tick without the world 1.19 ms**,
+    and a whole tick **8.29 ms**. Software render, virtualised kernel, different CPU; the readable part is
+    the ratio, and it is the laptop's shape — the environment costs several times the agent.
+  - **The demo's software GL costs nothing measurable.** Through the desktop tag's Xvfb and mesa GLX
+    instead of osmesa, `env.step()` is **6.71 ms** — 149 ticks/s against 148. ADR-0012 said that was a
+    claim to measure rather than assume, and this is the measurement.
 
 ## What this file does not decide
 

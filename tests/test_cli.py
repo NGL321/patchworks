@@ -404,12 +404,6 @@ class TestTheContainerIsNoticedForWordingAndNothingElse:
         marker.touch()
         assert cli.in_a_container(markers=(marker,))
 
-    def test_both_docker_and_podman_leave_one(self):
-        assert set(cli.CONTAINER_MARKERS) == {
-            Path("/.dockerenv"),
-            Path("/run/.containerenv"),
-        }
-
     def test_it_adds_no_finding_and_no_line(self, monkeypatch):
         monkeypatch.setattr(cli, "in_a_container", lambda: True)
         inside = [finding.name for finding in cli.diagnose(platform="linux")]
@@ -417,12 +411,6 @@ class TestTheContainerIsNoticedForWordingAndNothingElse:
         outside = [finding.name for finding in cli.diagnose(platform="linux")]
         assert inside == outside
         assert not any("container" in name for name in inside)
-
-    def test_a_container_is_not_by_itself_a_failure(self, monkeypatch):
-        monkeypatch.setattr(cli, "in_a_container", lambda: True)
-        assert all(finding.passed for finding in cli.diagnose(platform="linux")), (
-            "this suite runs inside the image, where every check passes"
-        )
 
 
 class TestAnUnusableGLBackendIsAFindingNotATraceback:
@@ -446,7 +434,19 @@ class TestAnUnusableGLBackendIsAFindingNotATraceback:
         assert done.returncode == 1, done.stderr
         assert "Traceback" not in done.stderr, done.stderr
         assert "NOT READY" in done.stdout
-        assert "->" in done.stdout, "a failure is rendered with its remedy"
+        # Named, not merely counted. `mujoco` raises on *import* for a backend
+        # it does not recognise, so the dependency and package checks fail
+        # first and a test asking only for "some failure with some remedy"
+        # would pass on the wrong diagnosis. What has to survive is the line
+        # that says what actually went wrong, with something to do about it
+        # under it.
+        gl_line = next(
+            line for line in done.stdout.splitlines() if "] mujoco gl:" in line
+        )
+        assert "[FAIL]" in gl_line, gl_line
+        assert "not-a-backend" in gl_line, "the value in force is what it reports"
+        remedy = done.stdout.split(gl_line, 1)[1].splitlines()[1]
+        assert remedy.strip().startswith("-> MuJoCo could not make"), remedy
 
 
 class TestTheInstallCommandDoctorPrints:

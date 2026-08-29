@@ -103,29 +103,25 @@ jobs:
       # One tag per architecture, which the manifest job below folds into the
       # tags a human types. A pull request stops here: it has built both stages
       # and run three commands in them, and it publishes nothing.
+      #
+      # **Tagged and pushed rather than rebuilt.** These are the images the
+      # three steps above actually ran -- `docker tag` renames what is already
+      # in this runner's daemon. A second `build-push-action` with `push: true`
+      # would be a fresh build, identical only as far as a cache hit, and the
+      # README's sentence is that what is published is what was run.
       - name: Push this architecture's tags
         if: github.ref == 'refs/heads/action' && github.event_name != 'pull_request'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          target: headless
-          push: true
-          tags: |
-            ${{ env.IMAGE }}:latest-${{ matrix.arch }}
-            ${{ env.IMAGE }}:${{ github.sha }}-${{ matrix.arch }}
-          cache-from: type=gha,scope=headless-${{ matrix.arch }}
-
-      - name: Push this architecture's desktop tags
-        if: github.ref == 'refs/heads/action' && github.event_name != 'pull_request'
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          target: desktop
-          push: true
-          tags: |
-            ${{ env.IMAGE }}:desktop-${{ matrix.arch }}
-            ${{ env.IMAGE }}:desktop-${{ github.sha }}-${{ matrix.arch }}
-          cache-from: type=gha,scope=desktop-${{ matrix.arch }}
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          docker tag patchworks:headless "$IMAGE:latest-$ARCH"
+          docker tag patchworks:headless "$IMAGE:$GITHUB_SHA-$ARCH"
+          docker tag patchworks:desktop  "$IMAGE:desktop-$ARCH"
+          docker tag patchworks:desktop  "$IMAGE:desktop-$GITHUB_SHA-$ARCH"
+          docker push "$IMAGE:latest-$ARCH"
+          docker push "$IMAGE:$GITHUB_SHA-$ARCH"
+          docker push "$IMAGE:desktop-$ARCH"
+          docker push "$IMAGE:desktop-$GITHUB_SHA-$ARCH"
 
   manifest:
     # The two architecture tags, gathered under the names the README uses --

@@ -331,6 +331,32 @@ _GL_PROBE_XML = """
 """
 
 
+def _gl_remedy() -> str:
+    """What to do about a GL context that could not be made, where you are.
+
+    One sentence of observation and then advice that differs, because the
+    advice differs (ADR-0012). The host text sends a reader after a GL driver;
+    inside an image that is a chase after something that is not the problem,
+    since the image ships osmesa and the only thing left to be wrong is which
+    backend the command was given. Written here rather than inline in the
+    `Finding` so that the shared opening cannot drift between the two.
+    """
+    opening = "MuJoCo could not make an offscreen GL context."
+    if in_a_container():
+        return (
+            f"{opening} This is a container, and the image already has osmesa "
+            f"in it, so MUJOCO_GL is what to look at: the headless tag sets it "
+            f"to osmesa, and the desktop tag unsets it and renders through its "
+            f"own X server. A command that overrode both is the case this "
+            f"reports."
+        )
+    return (
+        f"{opening} On a headless machine, install osmesa and set "
+        f"MUJOCO_GL=osmesa (this is what CI does); on a desktop, check the "
+        f"platform's GL drivers."
+    )
+
+
 def check_mujoco_gl() -> Finding:
     """Does MuJoCo's offscreen render path work here?
 
@@ -360,27 +386,7 @@ def check_mujoco_gl() -> Finding:
             passed=False,
             detail=f"offscreen render failed with MUJOCO_GL={backend} "
             f"({type(failure).__name__}: {failure})",
-            remedy=(
-                # Worded for where it is being read (ADR-0012). The host text
-                # sends a reader after a GL driver, and inside an image that is
-                # a chase after something that is not the problem: the image
-                # ships osmesa, so what is left to be wrong is which backend
-                # the command was given.
-                (
-                    "MuJoCo could not make an offscreen GL context. This is a "
-                    "container, and the image already has osmesa in it, so "
-                    "MUJOCO_GL is what to look at: the headless tag sets it to "
-                    "osmesa, and the desktop tag unsets it and renders through "
-                    "its own X server. A command that overrode both is the case "
-                    "this reports."
-                )
-                if in_a_container()
-                else (
-                    "MuJoCo could not make an offscreen GL context. On a headless "
-                    "machine, install osmesa and set MUJOCO_GL=osmesa (this is what "
-                    "CI does); on a desktop, check the platform's GL drivers."
-                )
-            ),
+            remedy=_gl_remedy(),
         )
     return Finding(
         name="mujoco gl",
