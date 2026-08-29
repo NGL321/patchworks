@@ -1087,8 +1087,16 @@ class TestBothChecksRunInCI:
     #: difference is not a preference: a mapping's keys are unordered in YAML
     #: and a sequence's items are not, so `steps:` has an order and comparing
     #: it costs nothing that is really free to move.
+    #: The torch line is a second `pip install` and is pinned like the rest.
+    #: It installs one named package, at the version `pyproject.toml` already
+    #: pins, from one named index -- the CPU build, ADR-0013 -- so it is no
+    #: wider a door than the line below it: a deselecting plugin appended to it
+    #: fails this comparison the same way. The install *set* is unchanged and
+    #: `PERMITTED_DEPENDENCIES` below is therefore unchanged too; what moved is
+    #: which wheel of torch, not which packages.
     PERMITTED_RUN_STEPS = (
         "sudo apt-get update && sudo apt-get install -y libgl1 libosmesa6",
+        "pip install --index-url https://download.pytorch.org/whl/cpu torch==2.2.2",
         'pip install -e ".[dev]"',
         "pytest",
     )

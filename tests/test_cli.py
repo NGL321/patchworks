@@ -330,10 +330,42 @@ class TestDoctorsChecks:
             raise RuntimeError("could not create an OpenGL context")
 
         monkeypatch.setattr(mujoco, "Renderer", refuse)
+        # Forced, because this file is itself run inside the image (`docker run
+        # --entrypoint pytest ...`), where the answer is otherwise True and the
+        # remedy is the other one below.
+        monkeypatch.setattr(cli, "in_a_container", lambda: False)
         finding = cli.check_mujoco_gl()
         assert not finding.passed
         assert "could not create an OpenGL context" in finding.detail
         assert "MUJOCO_GL=osmesa" in finding.remedy
+
+    def test_the_gl_remedy_in_a_container_does_not_send_anyone_after_a_driver(
+        self, monkeypatch
+    ):
+        """The same failure, worded for where it is being read.
+
+        ADR-0012: the host remedy -- install osmesa, or check the platform's GL
+        drivers -- is advice for a host, and a human reading it inside the image
+        would go looking for a driver that is not the problem. The image already
+        has osmesa, so what is left to say is which tag and which backend.
+        """
+        import mujoco
+
+        def refuse(*_args, **_kwargs):
+            raise RuntimeError("could not create an OpenGL context")
+
+        monkeypatch.setattr(mujoco, "Renderer", refuse)
+        monkeypatch.setattr(cli, "in_a_container", lambda: True)
+        finding = cli.check_mujoco_gl()
+        assert not finding.passed
+        assert "container" in finding.remedy
+        assert "driver" not in finding.remedy, (
+            "there is no host GL driver to go and look at from in here"
+        )
+        assert "MUJOCO_GL" in finding.remedy, (
+            "the one thing that can be wrong in an image that ships osmesa"
+        )
+
 
     def test_mjpython_is_not_wanted_off_macos(self):
         finding = cli.check_mjpython(platform="linux")
@@ -356,6 +388,65 @@ class TestDoctorsChecks:
         assert finding.passed
         assert "/somewhere/mjpython" in finding.detail
         assert "re-execs into it by itself" in finding.detail
+
+
+class TestTheContainerIsNoticedForWordingAndNothingElse:
+    """ADR-0012's last consequence, held down.
+
+    Being in a container is not a failure, and every line `doctor` prints is an
+    observation with a verdict -- so the detection changes what one remedy says
+    and must change nothing else about the report.
+    """
+
+    def test_a_runtimes_marker_file_is_what_is_looked_at(self, tmp_path):
+        marker = tmp_path / ".dockerenv"
+        assert not cli.in_a_container(markers=(marker,))
+        marker.touch()
+        assert cli.in_a_container(markers=(marker,))
+
+    def test_it_adds_no_finding_and_no_line(self, monkeypatch):
+        monkeypatch.setattr(cli, "in_a_container", lambda: True)
+        inside = [finding.name for finding in cli.diagnose(platform="linux")]
+        monkeypatch.setattr(cli, "in_a_container", lambda: False)
+        outside = [finding.name for finding in cli.diagnose(platform="linux")]
+        assert inside == outside
+        assert not any("container" in name for name in inside)
+
+
+class TestAnUnusableGLBackendIsAFindingNotATraceback:
+    """#125's surviving criterion, verified by forcing the failure.
+
+    `MUJOCO_GL` is read when `mujoco` is imported, so the only way to force
+    this one is to start a process with the variable already wrong -- which is
+    also exactly how a human hits it. What is asserted is the shape of the
+    failure and not its wording: a report, a named check, a remedy, an exit
+    code, and no traceback.
+    """
+
+    def test_doctor_reports_it_and_exits_one(self):
+        done = subprocess.run(
+            [sys.executable, "-m", "patchworks", "doctor"],
+            cwd=ROOT,
+            env={**os.environ, "MUJOCO_GL": "not-a-backend"},
+            capture_output=True,
+            text=True,
+        )
+        assert done.returncode == 1, done.stderr
+        assert "Traceback" not in done.stderr, done.stderr
+        assert "NOT READY" in done.stdout
+        # Named, not merely counted. `mujoco` raises on *import* for a backend
+        # it does not recognise, so the dependency and package checks fail
+        # first and a test asking only for "some failure with some remedy"
+        # would pass on the wrong diagnosis. What has to survive is the line
+        # that says what actually went wrong, with something to do about it
+        # under it.
+        gl_line = next(
+            line for line in done.stdout.splitlines() if "] mujoco gl:" in line
+        )
+        assert "[FAIL]" in gl_line, gl_line
+        assert "not-a-backend" in gl_line, "the value in force is what it reports"
+        remedy = done.stdout.split(gl_line, 1)[1].splitlines()[1]
+        assert remedy.strip().startswith("-> MuJoCo could not make"), remedy
 
 
 class TestTheInstallCommandDoctorPrints:

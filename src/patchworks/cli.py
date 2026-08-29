@@ -294,6 +294,29 @@ def check_package() -> Finding:
     )
 
 
+#: The files a container runtime leaves in the filesystem: Docker's, and
+#: podman's for a container started by anything OCI. Looked at rather than
+#: `/proc/1/cgroup` parsed, because a marker file is a question with a yes or a
+#: no in it and cgroup lines have meant different things across cgroup v1, v2
+#: and every rootless runtime -- and what rests on the answer here is the
+#: wording of one sentence, so a wrong guess costs a sentence.
+CONTAINER_MARKERS = (Path("/.dockerenv"), Path("/run/.containerenv"))
+
+
+def in_a_container(markers: tuple[Path, ...] = CONTAINER_MARKERS) -> bool:
+    """Is this process inside a container?
+
+    **Asked for one remedy's wording and for nothing else** (ADR-0012). It is
+    not a check, there is no `Finding` for it and `doctor` prints no line about
+    it: being in a container is not a failure, and every line `doctor` prints
+    is an observation with a verdict.
+
+    `markers` is an argument so the two answers can both be tested on a machine
+    that can only be one of them.
+    """
+    return any(marker.exists() for marker in markers)
+
+
 #: The smallest world that makes MuJoCo build a GL context: one body, one geom,
 #: no physics worth stepping. The check below renders it rather than the arena,
 #: so that a GL failure is reported as a GL failure instead of arriving inside
@@ -306,6 +329,32 @@ _GL_PROBE_XML = """
   </worldbody>
 </mujoco>
 """
+
+
+def _gl_remedy() -> str:
+    """What to do about a GL context that could not be made, where you are.
+
+    One sentence of observation and then advice that differs, because the
+    advice differs (ADR-0012). The host text sends a reader after a GL driver;
+    inside an image that is a chase after something that is not the problem,
+    since the image ships osmesa and the only thing left to be wrong is which
+    backend the command was given. Written here rather than inline in the
+    `Finding` so that the shared opening cannot drift between the two.
+    """
+    opening = "MuJoCo could not make an offscreen GL context."
+    if in_a_container():
+        return (
+            f"{opening} This is a container, and the image already has osmesa "
+            f"in it, so MUJOCO_GL is what to look at: the headless tag sets it "
+            f"to osmesa, and the desktop tag unsets it and renders through its "
+            f"own X server. A command that overrode both is the case this "
+            f"reports."
+        )
+    return (
+        f"{opening} On a headless machine, install osmesa and set "
+        f"MUJOCO_GL=osmesa (this is what CI does); on a desktop, check the "
+        f"platform's GL drivers."
+    )
 
 
 def check_mujoco_gl() -> Finding:
@@ -337,11 +386,7 @@ def check_mujoco_gl() -> Finding:
             passed=False,
             detail=f"offscreen render failed with MUJOCO_GL={backend} "
             f"({type(failure).__name__}: {failure})",
-            remedy=(
-                "MuJoCo could not make an offscreen GL context. On a headless "
-                "machine, install osmesa and set MUJOCO_GL=osmesa (this is what "
-                "CI does); on a desktop, check the platform's GL drivers."
-            ),
+            remedy=_gl_remedy(),
         )
     return Finding(
         name="mujoco gl",

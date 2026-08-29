@@ -1,0 +1,5 @@
+# The desktop tag's entrypoint is read by /bin/sh inside a Linux image. A CRLF
+# checkout on a Windows host would go into the build context as-is and the
+# kernel would look for an interpreter named "/bin/sh\r", so line endings are
+# not the checkout's choice here.
+*.sh text eol=lf

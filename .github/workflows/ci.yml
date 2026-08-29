@@ -36,6 +36,26 @@ jobs:
       - name: Install mujoco's runtime GL libraries
         run: sudo apt-get update && sudo apt-get install -y libgl1 libosmesa6
 
+      - name: Install the CPU build of torch
+        # PyPI's `torch==2.2.2` is the CUDA build: on x86_64 it pulls the whole
+        # CUDA 12.1 runtime, ~2.5 GB this job downloads and then asserts it will
+        # not use -- `tests/test_package.py::test_torch_is_pinned_and_cpu_only`
+        # has always asked for `torch.cuda.is_available() is False`
+        # (ADR-0013). CPU is the declared target
+        # (docs/spec/09-the-build-stack.md, "The compute target").
+        #
+        # The pin does not move: `torch==2.2.2` in pyproject.toml is satisfied
+        # by `2.2.2+cpu`, because the specifier carries no local version of its
+        # own. Only where the wheel comes from moves.
+        #
+        # Its own step, before the editable install, and with `--index-url`
+        # rather than `--extra-index-url`: one index resolves torch and every
+        # one of its dependencies, so nothing here depends on how pip orders
+        # two indexes or on `2.2.2+cpu` sorting above `2.2.2`. The line below
+        # then finds the requirement already satisfied and does not reinstall
+        # it.
+        run: pip install --index-url https://download.pytorch.org/whl/cpu torch==2.2.2
+
       - name: Install patchworks
         run: pip install -e ".[dev]"
 
