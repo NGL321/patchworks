@@ -1,0 +1,13 @@
+# The build context is the repository, and these are the parts of it that an
+# image has no use for. `.git` is the large one -- the history is not in the
+# image, and copying it would bust the layer cache on every commit; `.venv*`
+# would be a host's interpreter copied over the image's own, and `docs/images`
+# is the README's screenshots, which no command in the image reads.
+.git
+.gitignore
+.venv*
+docs/images
+# Build and test residue from a host build of the same tree.
+**/__pycache__
+*.egg-info
+.pytest_cache

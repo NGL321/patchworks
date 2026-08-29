@@ -1,0 +1,161 @@
+# The container target, built and verified on both architectures (ADR-0012,
+# docs/adr/0012-a-container-is-the-supported-execution-target.md).
+#
+# **`ci.yml` is not touched by this file and does not run anything in here.**
+# The two workflows answer different questions: `ci.yml` runs the pinned suite
+# on every push, and this one asks whether the image the README's front door
+# names actually builds and runs on the platforms the README claims. No
+# `pytest` runs here, deliberately -- `TestBothChecksRunInCI` is a whitelist
+# over `ci.yml` alone, so a suite invocation inside a Dockerfile would be a
+# pinned run the guard cannot see. If this workflow ever grows one, that guard
+# has to grow a Dockerfile reader in the same change (ADR-0012, Consequences).
+#
+# Both architectures build on their own hardware. `ubuntu-24.04-arm` is a free
+# hosted runner for public repositories, so there is no QEMU here and no
+# emulated torch install to wait for.
+name: Docker
+
+on:
+  push:
+  pull_request:
+  # Weekly, so that the README's `docker run` line is a fact about today rather
+  # than a memory of the last push: the base image, the Debian archive and the
+  # wheels it pulls all move underneath a repository that is not building.
+  schedule:
+    - cron: "17 4 * * 1"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE: ghcr.io/ngl321/patchworks
+
+jobs:
+  build:
+    name: ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      # Neither architecture is allowed to hide behind the other: the claim is
+      # that both work, so both are built and run even when one has failed.
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-latest
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Built into the runner's own daemon rather than pushed first, so that
+      # what the next two steps run is the image this commit produced and not
+      # whatever the registry happens to hold.
+      - name: Build the headless stage
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: headless
+          load: true
+          tags: patchworks:headless
+          cache-from: type=gha,scope=headless-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=headless-${{ matrix.arch }}
+
+      - name: Build the desktop stage
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: desktop
+          load: true
+          tags: patchworks:desktop
+          cache-from: type=gha,scope=desktop-${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=desktop-${{ matrix.arch }}
+
+      # The headless tier is the guaranteed floor, and this is what makes that
+      # a measurement rather than a claim: the same two commands the README
+      # puts in front of a reader, run in the image a reader would pull.
+      - name: doctor, in the headless image
+        run: docker run --rm patchworks:headless doctor
+
+      - name: check, in the headless image
+        run: docker run --rm patchworks:headless check
+
+      # The desktop tag's own floor: the entrypoint really starts a display,
+      # really unsets MUJOCO_GL, and MuJoCo really makes a context against
+      # mesa's software GL. That a *window* opens rests on a human at the
+      # screen and is asserted nowhere -- `doctor` says so itself.
+      - name: doctor, through the desktop tag's display stack
+        run: docker run --rm patchworks:desktop doctor
+
+      - name: Log in to GHCR
+        if: github.ref == 'refs/heads/action' && github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # One tag per architecture, which the manifest job below folds into the
+      # tags a human types. A pull request stops here: it has built both stages
+      # and run three commands in them, and it publishes nothing.
+      - name: Push this architecture's tags
+        if: github.ref == 'refs/heads/action' && github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: headless
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:latest-${{ matrix.arch }}
+            ${{ env.IMAGE }}:${{ github.sha }}-${{ matrix.arch }}
+          cache-from: type=gha,scope=headless-${{ matrix.arch }}
+
+      - name: Push this architecture's desktop tags
+        if: github.ref == 'refs/heads/action' && github.event_name != 'pull_request'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: desktop
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:desktop-${{ matrix.arch }}
+            ${{ env.IMAGE }}:desktop-${{ github.sha }}-${{ matrix.arch }}
+          cache-from: type=gha,scope=desktop-${{ matrix.arch }}
+
+  manifest:
+    # The two architecture tags, gathered under the names the README uses --
+    # `docker run ghcr.io/ngl321/patchworks doctor` has to reach the right one
+    # by itself, on a laptop of either kind, which is what a manifest list is
+    # for. `needs` both, so a manifest is never published over an architecture
+    # that did not build or did not run.
+    name: manifest
+    needs: build
+    if: github.ref == 'refs/heads/action' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: latest and this commit
+        run: |
+          docker buildx imagetools create \
+            --tag "$IMAGE:latest" \
+            --tag "$IMAGE:$GITHUB_SHA" \
+            "$IMAGE:latest-amd64" "$IMAGE:latest-arm64"
+          docker buildx imagetools create \
+            --tag "$IMAGE:desktop" \
+            --tag "$IMAGE:desktop-$GITHUB_SHA" \
+            "$IMAGE:desktop-amd64" "$IMAGE:desktop-arm64"

@@ -2,7 +2,7 @@
 
 [![status: spec complete](https://img.shields.io/badge/status-spec_complete-2ea44f)](docs/spec/)
 [![agent: not built](https://img.shields.io/badge/agent-not_built-lightgrey)](#-try-it-yourself)
-[![decisions: 11 ADRs](https://img.shields.io/badge/decisions-11_ADRs-blue)](docs/adr/)
+[![decisions: 12 ADRs](https://img.shields.io/badge/decisions-12_ADRs-blue)](docs/adr/)
 [![MuJoCo 3.10](https://img.shields.io/badge/MuJoCo-3.10.0-orange)](prototypes/sandbox/)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776ab)](prototypes/sandbox/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
@@ -26,23 +26,39 @@ until it runs.
 it has been asked to put it. There is no agent yet — this frame was driven by constant torque.</em></p>
 
 > 🚧 **This is a specification, not a system.** Nothing has been trained. The design is finished —
-> ten spec files, eleven decision records, and a sandbox that runs — worked out to the point where
+> ten spec files, twelve decision records, and a sandbox that runs — worked out to the point where
 > a build can start cold with no architectural question left open. The two loops that belong at the
 > top of this page (*I moved the puck* · *I changed the goal*) don't exist until it does.
 
-What *does* run is the world, the dome's construction, and an untrained agent driving the arm.
-From a fresh clone:
+What *does* run is the world, the dome's construction, and an untrained agent driving the arm. On
+any machine that can run a container — no clone, no venv, no interpreter version to have:
 
 ```bash
-python3.12 -m venv .venv                # the shared venv, at the repo root
-.venv/bin/pip install -e '.[dev]'
-.venv/bin/patchworks doctor             # can this installation run? a line per check, and the fix
-.venv/bin/patchworks check              # is it alive? ~4 s headless, and the numbers a bug report wants
+docker run --rm ghcr.io/ngl321/patchworks doctor  # can this installation run? a line per check, and the fix
+docker run --rm ghcr.io/ngl321/patchworks check   # is it alive? ~4 s headless, and the numbers a bug report wants
+```
+
+`linux/amd64` and `linux/arm64`, each built on its own hardware and each run — `doctor` and
+`check` — before it is published, on every push and once a week
+([`docker.yml`](.github/workflows/docker.yml)). That is the whole of what "supported" means here,
+and it is why the container is the target rather than one of several
+([ADR-0012](docs/adr/0012-a-container-is-the-supported-execution-target.md)).
+
+**What is headless, and what needs a screen.** `doctor`, `check`, `dome`, the benchmarks and the
+suite open no window and are the default tag. Everything that does open one — `demo`, the
+two-window surface, **and `--replay`, which opens a frame window of its own even though it renders
+no scene** — needs the `:desktop` tag, which carries an X server and serves it to a browser:
+
+```bash
+docker run --rm -p 6080:6080 ghcr.io/ngl321/patchworks:desktop demo
+# then open http://localhost:6080/vnc.html
 ```
 
 `patchworks` on its own lists the rest — `dome` for the graph's shape, `demo` for the scene window
-you can interfere with by hand. There is no `mjpython` to remember: `demo` finds it, or stops and
-tells you the command. [The longer tour is below](#-try-it-yourself).
+you can interfere with by hand. Running on the host instead, from a clone and a venv, is
+[below](#-try-it-yourself) and is best-effort rather than claimed: it works, and nothing but the
+container has automated evidence behind it on more than one architecture. There is no `mjpython` to
+remember either way: `demo` finds it, or stops and tells you the command.
 
 ## 🧩 The conjunction
 
@@ -142,6 +158,51 @@ weights, nothing to install.
 
 What does exist is the world it will have to live in, and half the acceptance demo works today.
 
+### In a container
+
+The supported target, and the shortest route to all of it
+([ADR-0012](docs/adr/0012-a-container-is-the-supported-execution-target.md)). Two tags off one
+Dockerfile: the default one is headless and is the guaranteed floor, and `:desktop` is that image
+plus an X server, a window manager and noVNC.
+
+```bash
+docker run --rm ghcr.io/ngl321/patchworks doctor          # every check, and the fix for each
+docker run --rm ghcr.io/ngl321/patchworks check           # the untrained agent, driving the arm
+docker run --rm ghcr.io/ngl321/patchworks dome            # the dome, and what construction records
+docker run --rm --entrypoint pytest ghcr.io/ngl321/patchworks       # the suite, in the image
+docker run --rm --entrypoint python ghcr.io/ngl321/patchworks \
+    benchmarks/achievability.py                           # the scripted lower bound
+```
+
+`ENTRYPOINT` is `patchworks`, so a command reads the way the CLI does; `--entrypoint` is how the
+suite and the benchmarks are reached. Mount something on `/work` and a run's artifacts outlive the
+container:
+
+```bash
+docker run --rm -v patchworks-work:/work -p 6080:6080 ghcr.io/ngl321/patchworks:desktop \
+    -- python -m patchworks.surface.watch --ticks 2000 --save /work/run.npz
+```
+
+The desktop tag's entrypoint starts the display, unsets `MUJOCO_GL` — `demo` runs the viewer and
+the observation render in one process, and the viewer needs the GLX backend rather than the
+headless osmesa one — and then execs a `patchworks` command, or, after a `--`, whatever you asked
+for. Open <http://localhost:6080/vnc.html> to watch and to drive it.
+
+**What the demo runs on in there is mesa's software GL**, for the window and for the 64×64
+observation render alike. It is fast enough to drive by hand and it is not the host's numbers.
+
+**What is verified in there, and what rests on a human at the screen.** Both windows open on the
+container's own X server — the scene viewer and the panel beside it — and `doctor` passes through
+the display stack, both on every push. Whether each *gesture* survives the browser round-trip is
+checked by hand, and any that does not will be named right here rather than treated as a blocker:
+the headless tier is the floor, and the desktop tier is honest about what it delivers.
+
+### Developing on the host
+
+A clone, a venv and the commands run directly. This is what the container packages, and it is
+**best-effort rather than claimed**: the container is the only target with automated evidence
+behind it on more than one architecture, and every block below is POSIX.
+
 ```bash
 python3.12 -m venv .venv-proto
 .venv-proto/bin/pip install 'mujoco==3.10.0' gymnasium numpy imageio
@@ -197,7 +258,8 @@ error per cell, the somatomotor strip, and `‖Δ(private component)‖` against
 **Shift-ctrl-drag** a link or a puck and you are performing events 1 and 2 of the acceptance demo by
 hand; left-double-click a puck and then a zone for event 3, and `r` rearranges the world without
 resetting the arm. `1`-`9` cycle the goal pairs. Replay needs no scene window and runs under plain
-`python`. The panel is closable and closing it changes nothing but the view; `--pitch` sizes a
+`python` — but it is not display-free: it opens a frame window of its own, so in a container it is
+the `:desktop` tag like everything else that opens one. The panel is closable and closing it changes nothing but the view; `--pitch` sizes a
 lattice slot and `--scale` sizes the window.
 
 <sub>These instructions live here and only here. `prototypes/sandbox/README.md` describes what the
@@ -208,7 +270,7 @@ files in that directory are and what broke while building them; it does not repe
 | | |
 |---|---|
 | [`docs/spec/`](docs/spec/) | Ten files, in reading order. The system, completely specified. Start with [the cell and its sheaf](docs/spec/01-cell-and-sheaf.md). |
-| [`docs/adr/`](docs/adr/) | Eleven decisions that needed a reason on the record. |
+| [`docs/adr/`](docs/adr/) | Twelve decisions that needed a reason on the record. |
 | [`docs/research/`](docs/research/) | The citation passes, including the ones that found defects. |
 | [`CONTEXT.md`](CONTEXT.md) | The vocabulary. Narrow senses, deliberately. |
 | [`src/patchworks/sandbox/`](src/patchworks/sandbox/) | The world, as a `gymnasium.Env`. |

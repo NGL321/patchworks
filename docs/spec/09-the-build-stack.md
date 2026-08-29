@@ -250,6 +250,15 @@ result rather than buried as a default.
 - **A rented NVIDIA cloud box is the named escape hatch**, and it is *gated on measurement* — reached
   only if tick wall-time on CPU proves insufficient, matching the Notes' existing "paid compute if a
   specific need is demonstrated". Nothing is provisioned until that fires.
+- **A container is the supported execution target**, on `linux/amd64` and `linux/arm64`
+  ([ADR-0012](../adr/0012-a-container-is-the-supported-execution-target.md), and the `Dockerfile` at
+  the repository root). It is the only target with automated evidence behind it on more than one
+  architecture: `.github/workflows/docker.yml` builds both stages on native runners and runs
+  `doctor` and `check` in the built image on each. **Running on a host directly is best-effort
+  rather than claimed** — that includes the development laptop above, which stays exactly what this
+  list already calls it, a correctness-only target checked by hand. The container's own tick and
+  `env.step()` figures are a different machine's and belong beside these numbers rather than in the
+  table above them.
 
 ## What this file does not decide
 
