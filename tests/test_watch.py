@@ -881,23 +881,78 @@ class TestTheParsingIsSeparableFromTheDoing:
 
 
 class TestNoDisplayIsTouchedUntilOneIsOpened:
-    def test_importing_the_surface_imports_no_graphics_library(self):
-        """`import patchworks.surface` must not need a display to succeed.
+    """What the surface may put in `sys.modules` just by being imported.
 
-        glfw and pyopengl arrive with `mujoco`, which `pyproject.toml` pins
-        exactly, so neither is a new dependency -- but a headless sweep that
-        imports the record should not be loading a window toolkit, and
-        `patchworks.surface.gestures` defers `mujoco.viewer` for the same
-        reason.
+    **Measured against `mujoco`'s own floor rather than against zero**, and
+    that is the whole of what makes this test true wherever it runs. It used to
+    ask for `["0", "0"]` and was green on the development laptop and red
+    everywhere the repository actually runs: under `MUJOCO_GL=osmesa` -- CI's
+    value, and the container image's default (ADR-0012) --
+    `mujoco/osmesa/__init__.py` does `from OpenGL import GL` at import, and
+    `patchworks.surface` reaches `mujoco` through
+    `record` -> `patchworks.sandbox.env`. So pyopengl was in `sys.modules`
+    before any code in `surface/` had a say, and the assertion was reporting a
+    dependency's backend as this package's fault. On macOS, where MuJoCo
+    defaults to CGL, the same probe imported nothing and the test passed --
+    which is how it survived to be found by the container.
+
+    The claim being held has not been narrowed to fit the failure. It is
+    *whether importing the surface loads a graphics library that importing
+    `mujoco` alone would not*, which is the question the original docstring was
+    asking and a fixed pair of digits could not ask on more than one platform.
+    """
+
+    @staticmethod
+    def _graphics_libraries_after(imports: str) -> list[str]:
+        """Is glfw, and is pyopengl, in a fresh interpreter's `sys.modules`?
+
+        A subprocess because the answer is about what an import *does*, and
+        this one has already been done in the process running the suite.
         """
         import subprocess
         import sys
 
         probe = (
-            "import sys, patchworks.surface, patchworks.surface.window; "
+            f"import sys; {imports}; "
             "print(int('glfw' in sys.modules), int('OpenGL' in sys.modules))"
         )
         done = subprocess.run(
             [sys.executable, "-c", probe], capture_output=True, text=True, check=True
         )
-        assert done.stdout.split() == ["0", "0"], done.stdout
+        return done.stdout.split()
+
+    def test_importing_the_surface_imports_no_graphics_library(self):
+        """`import patchworks.surface` must not need a display to succeed.
+
+        `patchworks.surface.gestures` defers `mujoco.viewer`, and
+        `patchworks.surface.window` spawns its glfw child as a bare script path
+        rather than importing it -- so neither library should arrive through
+        this package, whatever MuJoCo's backend brings with it.
+        """
+        floor = self._graphics_libraries_after("import mujoco")
+        surface = self._graphics_libraries_after(
+            "import patchworks.surface, patchworks.surface.window"
+        )
+        assert surface == floor, (
+            f"importing the surface loaded a graphics library that importing "
+            f"mujoco alone does not: mujoco {floor}, surface {surface} "
+            f"(glfw, OpenGL)"
+        )
+
+    def test_the_window_toolkit_is_nobodys_import(self):
+        """glfw stays an absolute zero, and is asserted as one.
+
+        The floor above is MuJoCo's offscreen backend, which is a renderer;
+        **glfw is a window toolkit and no headless import has any business
+        loading it** -- not the surface's, and not MuJoCo's either. Held apart
+        from the comparison so that a day when `import mujoco` starts pulling
+        glfw in reddens here rather than quietly raising the floor the test
+        above measures against.
+        """
+        assert self._graphics_libraries_after("import mujoco")[0] == "0"
+        assert (
+            self._graphics_libraries_after(
+                "import patchworks.surface, patchworks.surface.window"
+            )[0]
+            == "0"
+        )
