@@ -259,10 +259,15 @@ result rather than buried as a default.
   checked by hand.
   - **The container's own figures, and they are a different machine's** — not a correction to the table
     above. From `benchmarks/agent_tick.py` and `benchmarks/sandbox_throughput.py` in the headless image on
-    an i5-11600K under Docker Desktop's Linux VM, `MUJOCO_GL=osmesa`: **`env.step()` 7.07 ms** median, of
-    which the camera pass is 6.6 ms — 48× the physics beside it — **the tick without the world 1.19 ms**,
-    and a whole tick **8.29 ms**. Software render, virtualised kernel, different CPU; the readable part is
+    an i5-11600K under Docker Desktop's Linux VM, `MUJOCO_GL=osmesa`: **`env.step()` 7.02 ms** median, of
+    which the camera pass is 6.6 ms — 48× the physics beside it — **the tick without the world 1.16 ms**,
+    and a whole tick **8.16 ms**. Software render, virtualised kernel, different CPU; the readable part is
     the ratio, and it is the laptop's shape — the environment costs several times the agent.
+  - **The CUDA build bought none of it, which is why the image no longer carries one**
+    ([ADR-0013](../adr/0013-the-cpu-build-of-torch-is-what-ci-tests.md)). The same three figures on
+    `torch==2.2.2`'s PyPI wheel were 7.07 / 1.19 / 8.29 ms — under 2% apart, inside this machine's noise —
+    and `patchworks check` produces the identical trajectory on both. What the CUDA build did cost was
+    **3.85 GB**: the amd64 image is **1.34 GB** built against `2.2.2+cpu` and was **5.19 GB** before.
   - **The demo's software GL costs nothing measurable.** Through the desktop tag's Xvfb and mesa GLX
     instead of osmesa, `env.step()` is **6.71 ms** — 149 ticks/s against 148. ADR-0012 said that was a
     claim to measure rather than assume, and this is the measurement.

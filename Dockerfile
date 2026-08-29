@@ -39,13 +39,22 @@ RUN apt-get update \
 WORKDIR /app
 COPY . /app
 
-# `pip install -e ".[dev]"` and nothing else reaches pip, in this stage or the
-# next. That is what makes the sentence "the image's Python environment is
-# bit-for-bit the set CI tested" true rather than nearly true, and it is why
-# the desktop stage's display packages come from apt: Debian ships `novnc` and
-# `websockify`, so nothing about the display has to be bought with a pip
-# install. Do not tidy that into a `pip install novnc` -- it would put a
-# package in this environment that no CI run has ever had in it.
+# These two lines and nothing else reach pip, in this stage or the next, and
+# they are `ci.yml`'s two install steps -- `--no-cache-dir` apart, which keeps
+# pip's download cache out of the layer and installs nothing extra. That is what
+# makes the sentence "the image's Python environment is bit-for-bit the set CI
+# tested" true rather than nearly true, and it is why the desktop stage's
+# display packages come from apt: Debian ships `novnc` and `websockify`, so
+# nothing about the display has to be bought with a pip install. Do not tidy
+# that into a `pip install novnc` -- it would put a package in this environment
+# that no CI run has ever had in it.
+#
+# **The two files move together or not at all.** The torch line is here because
+# it is there (ADR-0013): PyPI's `torch==2.2.2` is the CUDA build, ~3.7 GB of
+# CUDA in an image whose suite asserts `torch.cuda.is_available() is False`.
+# Changing it in only one of the two files would buy the same gigabytes and
+# spend the sentence above, which is the one thing ADR-0012 exists to protect.
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.2.2
 RUN pip install --no-cache-dir -e ".[dev]"
 
 # CI's value, and the one backend this repository has actually exercised. The

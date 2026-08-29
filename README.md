@@ -2,7 +2,7 @@
 
 [![status: spec complete](https://img.shields.io/badge/status-spec_complete-2ea44f)](docs/spec/)
 [![agent: not built](https://img.shields.io/badge/agent-not_built-lightgrey)](#-try-it-yourself)
-[![decisions: 12 ADRs](https://img.shields.io/badge/decisions-12_ADRs-blue)](docs/adr/)
+[![decisions: 13 ADRs](https://img.shields.io/badge/decisions-13_ADRs-blue)](docs/adr/)
 [![MuJoCo 3.10](https://img.shields.io/badge/MuJoCo-3.10.0-orange)](prototypes/sandbox/)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776ab)](prototypes/sandbox/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
@@ -26,7 +26,7 @@ until it runs.
 it has been asked to put it. There is no agent yet — this frame was driven by constant torque.</em></p>
 
 > 🚧 **This is a specification, not a system.** Nothing has been trained. The design is finished —
-> ten spec files, twelve decision records, and a sandbox that runs — worked out to the point where
+> ten spec files, thirteen decision records, and a sandbox that runs — worked out to the point where
 > a build can start cold with no architectural question left open. The two loops that belong at the
 > top of this page (*I moved the puck* · *I changed the goal*) don't exist until it does.
 
@@ -270,7 +270,7 @@ files in that directory are and what broke while building them; it does not repe
 | | |
 |---|---|
 | [`docs/spec/`](docs/spec/) | Ten files, in reading order. The system, completely specified. Start with [the cell and its sheaf](docs/spec/01-cell-and-sheaf.md). |
-| [`docs/adr/`](docs/adr/) | Twelve decisions that needed a reason on the record. |
+| [`docs/adr/`](docs/adr/) | Thirteen decisions that needed a reason on the record. |
 | [`docs/research/`](docs/research/) | The citation passes, including the ones that found defects. |
 | [`CONTEXT.md`](CONTEXT.md) | The vocabulary. Narrow senses, deliberately. |
 | [`src/patchworks/sandbox/`](src/patchworks/sandbox/) | The world, as a `gymnasium.Env`. |

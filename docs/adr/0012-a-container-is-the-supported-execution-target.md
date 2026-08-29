@@ -61,10 +61,17 @@ two platform-neutral criteria are carried forward.
 3. **`MUJOCO_GL=osmesa` is the image default** — CI's value, the one backend this repository has
    actually exercised — overridden in the one place that opens windows. `egl` is declined: it needs a
    driver the image cannot assume.
-4. **The image's Python environment is exactly what CI tested.** `pip install -e ".[dev]"` and nothing
+4. **The image's Python environment is exactly what CI tested.**
+   *([ADR-0013](./0013-the-cpu-build-of-torch-is-what-ci-tests.md) amends this: the sentence stands,
+   and torch is now installed from the CPU index in `ci.yml` and the `Dockerfile` together, so it
+   goes on standing. Two install lines rather than one.)* `pip install -e ".[dev]"` and nothing
    else; the whole display stack comes from apt, where Debian ships `novnc` and `websockify`. The base
    image is pinned by digest; apt packages are named and unpinned.
-5. **`ci.yml` is untouched.** A separate workflow builds both architectures on their native runners —
+5. **`ci.yml` is untouched.**
+   *(True of this decision and of [#131](https://github.com/NGL321/patchworks/issues/131), which
+   implemented it. [ADR-0013](./0013-the-cpu-build-of-torch-is-what-ci-tests.md) later edits `ci.yml`
+   deliberately, and edits `TestBothChecksRunInCI`'s whitelist in the same change — which is what
+   decision 4 above requires of anything that changes the image's install.)* A separate workflow builds both architectures on their native runners —
    `ubuntu-latest` and `ubuntu-24.04-arm`, free for public repositories — runs `doctor` and `check` in
    the built image, and pushes a manifest to GHCR from the default branch only.
 
