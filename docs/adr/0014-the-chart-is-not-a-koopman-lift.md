@@ -137,6 +137,22 @@ systems**. `K . encode` is not one. Any future move to treat a cell as a linear 
 both in full. That is one trade arriving from two directions, and it is the standing cost of this
 ADR.
 
+**Invoked once, and discharged.** [#146](https://github.com/NGL321/patchworks/issues/146) asked
+whether cells adjacent to a motor edge need a **bilinear** operator, `z' = A z + (B + sum_i u_i C_i) z`,
+on the ground that such a cell models a *driven* system where Koopman theory wants an autonomous one.
+The premise does not survive this ADR: **no cell here is autonomous.** A fresh node stalk arrives every
+tick from reconciliation, so driven-ness is universal and sorts nothing. Nor does closed-loop
+self-causation sort cells — every cell's prediction reaches the world through the motor rim and
+returns, differing only in latency, and every cell causes its own next input directly through the
+persisting chart at a latency of one tick, which is *shorter* than a motor-adjacent cell's two-tick
+loop out through the world and back by efference copy. **There is therefore no boundary at which a
+linear cell would give way to a bilinear one**, and the question is all cells or none. Bruder et al.
+(2021, arXiv:2010.09961) is stated over Koopman lifts of control-affine systems and does not reach
+`K . encode`, exactly as this ADR's escape says. What survives is not about motor edges at all: whether
+a cell's linear maps should be **conditioned on the evidence it is currently seeing**, which is fog on
+[#127](https://github.com/NGL321/patchworks/issues/127) and is asked of the restriction maps and `K`
+together.
+
 ### The transfer is of mechanism, not of results.
 
 The state-space-model literature is about deep stacks trained by backprop on sequence benchmarks.
