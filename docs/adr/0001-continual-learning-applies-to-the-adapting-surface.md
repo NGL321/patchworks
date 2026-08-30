@@ -48,6 +48,30 @@ the graph is aware.
   of the flex-priority ladder in [`01-cell-and-sheaf.md`](../spec/01-cell-and-sheaf.md). If a later rung
   is taken and the body unfreezes per-cell, revisit this ADR rather than leaving it standing as a
   general licence to freeze things.
+
+### Amended by [#138](https://github.com/NGL321/patchworks/issues/138): that trigger has fired
+
+The clause above named its own trigger, and the Koopman conversion pulls it. A rung of the ladder is
+taken and the body unfreezes per-cell — **for one map of the three.** The amendment discharges the
+trigger rather than leaving it hanging, and restates what "the shared frozen body" now means.
+
+**The frozen body is `encode`, nonlinear, and `decode`, linear and gauge-fixed
+([ADR-0014](./0014-the-linear-readout-is-gauge-fixed.md)).** What advanced the chart — a frozen
+nonlinear `step` — is gone, replaced by `K`, a **per-cell learned linear operator**. So the adapting
+surface is now the per-cell biases, the per-cell operators `K`, and the restriction maps.
+
+This is a genuine narrowing of the freeze and it is taken deliberately, not conceded: `K`'s spectrum
+is a settable design variable where a frozen random map's Jacobian was not, and that settability is
+the whole reason for the conversion. The freeze remains non-load-bearing, and one map of three coming
+unfrozen is exactly the ladder behaving as designed.
+
+**The invariant that keeps the split honest, written down rather than left emergent:** *buffers are
+the frozen body; parameters are the adapting surface.* The body's weights are registered as buffers,
+so no optimiser can reach them and the freeze is enforced by construction; the per-cell surface is
+registered as parameters, and the prediction rule's target is *defined* as what was registered rather
+than filtered against a list. It is enforced rather than merely asserted — the standing perturbation
+test already checks that no cell's update moves when another's parameters do
+([ADR-0011](./0011-the-locality-guarantee-is-enforced-not-inherited.md)).
 - The motivating thesis is worth recording, because it is what the frozen body is *for*: **highly
   constrained small networks, each solving a specific sub-problem and coupled by this graph and sheaf,
   beat a wider unconstrained network at the same job.** Constraint is the design rather than a

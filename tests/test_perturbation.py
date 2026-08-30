@@ -31,7 +31,7 @@ traverses it. It does not touch the shared-storage class, because that class
 never goes near a gradient. This file is what covers the rest.
 
 **What "the update" means here.** The gradient each rule would apply, taken
-without applying it — :meth:`~patchworks.learning.BiasRule.gradient` and
+without applying it — :meth:`~patchworks.learning.PredictionRule.gradient` and
 :meth:`~patchworks.learning.TransportRule.gradient`. Updates are compared
 **bit-identically** (`torch.equal`), which is the only comparison a leak cannot
 hide under: a tolerance is a budget, and a coupling small enough to fit inside
@@ -51,7 +51,7 @@ in `src/patchworks/learning.py`, and caught all five. In the order they would
 occur to someone editing that module:
 
 1. the bias objective mixing cells inside the parameter it differentiates;
-2. :meth:`~patchworks.learning.ForwardPath.bias_parameters` handing back a view
+2. :meth:`~patchworks.learning.ForwardPath.trained_parameters` handing back a view
    on the live surface and writing through it;
 3. the transport objective recomputing a neighbour's belief from that
    neighbour's *current* map instead of taking it from
@@ -82,7 +82,7 @@ import yaml
 from patchworks.graph import CellKind, build_graph
 from patchworks.learning import (
     MAPS_PARAMETER,
-    BiasRule,
+    PredictionRule,
     ForwardPath,
     SparsityAnneal,
     TransportPath,
@@ -162,7 +162,7 @@ A_SPREAD = [
 #
 # Two of the index sets below are not cell ids and are not derived: the bias
 # rows, which number the predicting cells in `dome.predicting` order (see
-# :func:`perturb_the_biases_of`), and the edge endpoints, which number the two
+# :func:`perturb_the_surface_of`), and the edge endpoints, which number the two
 # ends of every edge as `2 * edge.id + side` — what the `running` fixture
 # writes through and what `endpoint ^ 1` flips. Neither numbering offers
 # anything to select on — a bias row is not of a kind and an endpoint is not
@@ -212,7 +212,7 @@ def running(dome):
     A freshly built sheaf is all zeros and a fresh dome is unstimulated, so
     every update below would be trivially zero and a leak would have nothing to
     carry. Three ticks, because the transport rule refuses to run before two
-    have happened where the bias rule needs one: an edge carries a unit delay,
+    have happened where the prediction rule needs one: an edge carries a unit delay,
     so on an untouched sheaf the first tick still reconciles against the
     constructor's zeros. Seeding `broadcast` here puts a belief on every edge
     before the first of the three, so `incoming` carries something real from
@@ -239,8 +239,13 @@ def running(dome):
 # -- reading an update -----------------------------------------------------
 
 
-def bias_update(sheaf, rule=BiasRule):
-    """The bias rule's update, keyed by bias name, each `[cells, ·]`."""
+def surface_update(sheaf, rule=PredictionRule):
+    """The prediction rule's update, keyed by parameter name.
+
+    Since #139 that is the three bias vectors **and** `K`, so the perturbation
+    test covers the widened target without being told about it: the rule's
+    target is `named_parameters()` whole, and so is this.
+    """
     return rule(sheaf).gradient()
 
 
@@ -264,7 +269,7 @@ def moved_rows(before, after):
     )
 
 
-def cells_whose_bias_update_moved(before, after):
+def cells_whose_surface_update_moved(before, after):
     """The union over all six bias vectors: which cells' updates moved at all."""
     return frozenset().union(
         *(moved_rows(before[name], after[name]) for name in before)
@@ -274,19 +279,25 @@ def cells_whose_bias_update_moved(before, after):
 # -- perturbing one cell ---------------------------------------------------
 
 
-def perturb_the_biases_of(sheaf, cell, *, seed=11):
-    """Move every one of one cell's six bias vectors, and no other cell's.
+def perturb_the_surface_of(sheaf, cell, *, seed=11):
+    """Move every one of one cell's own inference parameters, and no other cell's.
 
-    `cell` here indexes the **biases' own `[cells, ·]` leading dimension** —
+    The three surviving bias vectors and `K` — the whole of what the prediction
+    rule trains, so the guarantee is checked over the widened target rather
+    than over the half of it that predates #139.
+
+    `cell` here indexes the **surface's own `[cells, ·]` leading dimension** —
     the predicting cells in `dome.predicting` order — where
     :func:`perturb_the_restriction_maps_of` takes a dome cell id, since every
-    cell in the graph holds maps and only predicting cells hold biases. The two
-    numberings are kept apart rather than reconciled, because each rule's
-    update is indexed the way that rule's parameter is.
+    cell in the graph holds maps and only predicting cells hold a body's
+    surface. The two numberings are kept apart rather than reconciled, because
+    each rule's update is indexed the way that rule's parameter is.
     """
     generator = torch.Generator().manual_seed(seed)
     with torch.no_grad():
-        for parameter in sheaf.biases.parameters():
+        for parameter in list(sheaf.biases.parameters()) + list(
+            sheaf.operators.parameters()
+        ):
             parameter[cell] += torch.empty(parameter.shape[1:]).normal_(
                 0.0, NUDGE, generator=generator
             )
@@ -353,17 +364,17 @@ class LeakingForwardPath(ForwardPath):
 
     LEAKED = "biases.decode_output_bias"
 
-    def bias_parameters(self):
+    def trained_parameters(self):
         parameters = {name: value.detach() for name, value in self.named_parameters()}
         leaked = parameters[self.LEAKED]
         leaked.sub_(leaked.mean(0, keepdim=True))
         return parameters
 
 
-class LeakingBiasRule(BiasRule):
+class LeakingPredictionRule(PredictionRule):
     def __init__(self, sheaf, **keywords):
         super().__init__(sheaf, **keywords)
-        self.path = LeakingForwardPath(sheaf.body, sheaf.biases)
+        self.path = LeakingForwardPath(sheaf.body, sheaf.biases, sheaf.operators)
 
 
 class LeakingTransportPath(TransportPath):
@@ -470,7 +481,7 @@ class TestTheCellsTheseTestsName:
         # rather than instead of it.
         #
         # Bounded against the arrays those helpers subscript, not against the
-        # counts beside them: `perturb_the_biases_of` writes into every one of
+        # counts beside them: `perturb_the_surface_of` writes into every one of
         # the six bias parameters, and `CellBiases.subset` sets `cells` in a
         # statement of its own, so a bound taken on `biases.cells` would be
         # reading a number kept in step by hand rather than the rows there are.
@@ -480,28 +491,28 @@ class TestTheCellsTheseTestsName:
 
 
 class TestPerturbingOneCellsBiases:
-    """The bias rule's per-cell path. Prediction error is a cell's own quantity
+    """The prediction rule's per-cell path. Prediction error is a cell's own quantity
     and crosses no edge, so the claim here admits no exception at all.
 
     `cell` is a row of the population's biases, not a dome cell id — see
-    :func:`perturb_the_biases_of`.
+    :func:`perturb_the_surface_of`.
     """
 
     @pytest.mark.parametrize("cell", NAMED_BIAS_ROWS)
     def test_no_other_cells_update_moves(self, running, cell):
         before, after = readings(
-            running, cell, bias_update, perturb_the_biases_of, BiasRule
+            running, cell, surface_update, perturb_the_surface_of, PredictionRule
         )
-        assert cells_whose_bias_update_moved(before, after) == {cell}
+        assert cells_whose_surface_update_moved(before, after) == {cell}
 
     def test_every_cell_in_the_graph(self, running):
         # The standing sweep. Parametrising the four above keeps the failure
         # readable; this is the claim the guard actually makes.
         for cell in range(running.biases.cells):
             before, after = readings(
-                running, cell, bias_update, perturb_the_biases_of, BiasRule
+                running, cell, surface_update, perturb_the_surface_of, PredictionRule
             )
-            assert cells_whose_bias_update_moved(before, after) == {cell}, cell
+            assert cells_whose_surface_update_moved(before, after) == {cell}, cell
 
     def test_the_perturbed_cell_is_felt_on_every_one_of_its_six_biases(self, running):
         # The teeth. Without this the assertions above would pass just as
@@ -509,7 +520,7 @@ class TestPerturbingOneCellsBiases:
         # tell "no leak" from "no signal" is not a guard.
         cell = A_BIAS_ROW
         before, after = readings(
-            running, cell, bias_update, perturb_the_biases_of, BiasRule
+            running, cell, surface_update, perturb_the_surface_of, PredictionRule
         )
         for name in before:
             assert moved_rows(before[name], after[name]) == {cell}, name
@@ -633,10 +644,10 @@ class TestThePermittedChannel:
         # prediction error is cell-owned and temporal, so nothing a neighbour
         # holds is an argument of the bias objective at all. Moving every map
         # in the graph leaves every cell's bias update bit-identical.
-        before = bias_update(running)
+        before = surface_update(running)
         with torch.no_grad():
             running.maps.maps.mul_(0.5)
-        after = bias_update(running)
+        after = surface_update(running)
         for name in before:
             assert torch.equal(before[name], after[name]), name
 
@@ -680,7 +691,7 @@ class TestTheSharedStorageCase:
     ):
         sheaf = copy.deepcopy(running)
         surface = sheaf.biases.decode_output_bias.clone()
-        LeakingBiasRule(sheaf).gradient()
+        LeakingPredictionRule(sheaf).gradient()
         assert not torch.equal(sheaf.biases.decode_output_bias, surface)
         sheaf.assert_no_tape()
 
@@ -689,7 +700,7 @@ class TestTheSharedStorageCase:
         # whole step of each leaking rule and watch it pass. `step` calls
         # `assert_no_tape` on the way in and on the way out, so this is the
         # cheap check getting every chance it is ever given.
-        for leaking in (LeakingBiasRule, LeakingTransportRule):
+        for leaking in (LeakingPredictionRule, LeakingTransportRule):
             sheaf = copy.deepcopy(running)
             leaking(sheaf).step()
             sheaf.assert_no_tape()
@@ -708,9 +719,9 @@ class TestTheSharedStorageCase:
         # "this test catches it" is demonstrated rather than asserted.
         cell = A_BIAS_ROW
         before, after = readings(
-            running, cell, bias_update, perturb_the_biases_of, LeakingBiasRule
+            running, cell, surface_update, perturb_the_surface_of, LeakingPredictionRule
         )
-        moved = cells_whose_bias_update_moved(before, after)
+        moved = cells_whose_surface_update_moved(before, after)
         assert moved != {cell}
         assert moved == frozenset(range(running.biases.cells))
 

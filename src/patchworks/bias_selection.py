@@ -40,10 +40,18 @@ piece of evidence: the depth-timescale correspondence is built rather than
 found, so it can no longer be cited as the mechanism working. What stays
 falsifiable is behavioural.
 
-The module also carries `02-tick-semantics.md`'s **`gamma x floor <` fold
-margin** check (:func:`fold_margin_check`) — same sweep, same afternoon. The
-margin is read from `encode` and `step` only, since the quantity bounded is the
-chart's own round trip and `decode` is not on it.
+The module also carries the **fold margin** check (:func:`fold_margin_check`) —
+same sweep, same afternoon. Since #138 the margin is read from **`encode`
+alone**, because `encode` is the body's only nonlinearity and so the only map
+that has folds at all. The check is **demoted rather than deleted** (#140): it
+survives as a construction-time diagnostic and keeps its ADR-0005 falsification
+duty, but it is no longer a bound on `gamma`, whose constraint is exactly two
+things — capped at 1.0 globally, and ADR-0010's provable
+`lambda_max(sum_e F^T F) <= rho^2 deg(v)`.
+
+The rig also produces **`a`**, the scalar in `K = a.I` at construction
+(:func:`operator_scale_rule`) — a fifth part of the construction, and a number
+this run produces per body exactly as :meth:`Sweep.slow_cap` is.
 
 **The go/no-go is read as a shape check.** The body's widths are fixed but
 nothing is trained, so the sweep runs plausible chart and stalk sequences rather
@@ -58,7 +66,7 @@ from dataclasses import dataclass, field
 
 import torch
 
-from .body import CellBiases, CellBody
+from .body import DEFAULT_OPERATOR_SCALE, DEFAULT_RHO_K, CellBiases, CellBody
 from .graph import Dome
 
 __all__ = [
@@ -320,11 +328,12 @@ class Measurement:
     """Fraction of visited regions with `rho >= 1`. Harmless where dwell is short."""
 
     margin: torch.Tensor
-    """Median fold margin along the trajectory, over `encode` and `step`.
+    """Median fold margin along the trajectory, over `encode`.
 
     Hanin & Rolnick's distance to the nearest region boundary,
-    `min_i |z_i| / ||grad z_i||`, minimised over the two maps on the chart's
-    round trip. `decode` is not on that round trip and is not read.
+    `min_i |z_i| / ||grad z_i||`. Read from `encode` alone since #138: `K` and
+    `decode` are linear and have no folds, so there is no second map to
+    minimise over.
     """
 
     ticks: int
@@ -459,15 +468,24 @@ def measure(
     burn_in: int = DEFAULT_BURN_IN,
     drive_correlation: float = DEFAULT_DRIVE_CORRELATION,
     drive_scale: float = 1.0,
+    operator_scale: float = DEFAULT_OPERATOR_SCALE,
     generator: torch.Generator | None = None,
 ) -> Measurement:
     """Measure every candidate over a driven trajectory, in one batched run.
 
     The measured object is the **chart's own round trip**,
-    `d chart_{t+1} / d chart_t` through `encode` then `step` — what has to fail
-    to contract for a cell to hold state. `decode` reads the chart out onto the
+    `d chart_{t+1} / d chart_t` through `encode` then `K` — what has to fail to
+    contract for a cell to hold state. `decode` reads the chart out onto the
     node stalk and is not on that loop, so it is neither differentiated nor read
     for a fold margin.
+
+    **The recurrence is `K @ J_encode`** since #138, and at construction
+    `K = a.I` exactly, so this measures a scaled version of what it measured
+    before and selection stays well-defined. `operator_scale` is that `a`, and
+    :func:`operator_scale_rule` is what chooses it.
+
+    **The narrow caveat, and it is the honest one:** selection places `tau` at
+    construction, and a *learned* `K` will move it. That drift is #143's.
 
     Not measured at a frozen chart and stalk: the operating point varies as it
     will at runtime, which is the second of the go/no-go's three requirements
@@ -501,12 +519,13 @@ def measure(
             # Through the body's own forward path, not a copy of it: a rig that
             # re-implemented `encode` and `step` would keep measuring the old
             # body after one was swapped in under it.
-            fused_pre, fused = body.apply_map(
-                "encode", torch.cat((chart, stalks[t]), dim=-1), biases
-            )
-            step_pre, chart = body.apply_map("step", fused, biases)
+            fused_pre, fused = body.encode_parts(chart, stalks[t], biases)
+            # `K = a.I` at construction, so advancing the chart is a scalar
+            # multiply and the whole of `a`'s effect on this measurement is
+            # visible right here (#140). It is not a free scalar: it multiplies
+            # every eigenvalue below, and therefore every placed `tau`.
+            chart = operator_scale * fused
             encode_active = (fused_pre > 0).to(chart.dtype)
-            step_active = (step_pre > 0).to(chart.dtype)
             # Overflow reads downstream as no unit active, which is a zero
             # Jacobian and the fastest candidate in the sweep. Recorded here,
             # while the two are still distinguishable.
@@ -516,26 +535,20 @@ def measure(
                 continue
 
             # The chart's own round trip: `encode`'s Jacobian restricted to the
-            # chart half of its input, then `step`'s. The node stalk half is
-            # where this tick's evidence entered and is not part of the loop.
+            # chart half of its input, then the cell's `K`. The node stalk half
+            # is where this tick's evidence entered and is not part of the loop.
             through_encode = _map_jacobian(
                 body.encode_hidden_weight, body.encode_output_weight, encode_active
             )[:, :, : shape.k]
-            through_step = _map_jacobian(
-                body.step_hidden_weight, body.step_output_weight, step_active
-            )
-            jacobian = through_step @ through_encode
+            jacobian = operator_scale * through_encode
             rho.append(torch.linalg.eigvals(jacobian).abs().amax(dim=-1))
-            margins.append(
-                torch.minimum(
-                    _fold_margin(fused_pre, body.encode_hidden_weight),
-                    _fold_margin(step_pre, body.step_hidden_weight),
-                )
-            )
+            # Read from `encode` alone: after #138 it is the body's only
+            # nonlinearity, so it is the only map that has folds at all.
+            margins.append(_fold_margin(fused_pre, body.encode_hidden_weight))
 
             # A cell's activation region is which units of the round trip are on.
             # The chart crossing a fold is that pattern changing.
-            here = torch.cat((encode_active, step_active), dim=-1)
+            here = encode_active
             if region is not None:
                 crossings += (here != region).any(dim=-1).to(crossings.dtype)
             region = here
@@ -632,6 +645,7 @@ def sweep(
     burn_in: int = DEFAULT_BURN_IN,
     drive_correlation: float = DEFAULT_DRIVE_CORRELATION,
     bias_variance: float | None = None,
+    operator_scale: float = DEFAULT_OPERATOR_SCALE,
     generator: torch.Generator | None = None,
 ) -> Sweep:
     """Draw `draws` candidate bias vectors and measure each on a driven trajectory."""
@@ -645,9 +659,100 @@ def sweep(
             ticks=ticks,
             burn_in=burn_in,
             drive_correlation=drive_correlation,
+            operator_scale=operator_scale,
             generator=generator,
         ),
     )
+
+
+#: How many values of `a` :func:`operator_scale_rule` tries across the band.
+#: Log-spaced, because `a` multiplies a rate.
+DEFAULT_SCALE_STEPS = 12
+
+
+def operator_scale_rule(
+    body: CellBody,
+    *,
+    target: TargetRange,
+    rho_k: float = DEFAULT_RHO_K,
+    steps: int = DEFAULT_SCALE_STEPS,
+    draws: int = DEFAULT_DRAWS,
+    ticks: int = DEFAULT_TICKS,
+    burn_in: int = DEFAULT_BURN_IN,
+    drive_correlation: float = DEFAULT_DRIVE_CORRELATION,
+    safety_factor: float = DEFAULT_SAFETY_FACTOR,
+    generator: torch.Generator | None = None,
+) -> float:
+    """`a`: **the largest value in the band for which `slow_cap` still admits the
+    target `tau` band** (ticket #140).
+
+    A number this run produces **per body**, exactly as :meth:`Sweep.slow_cap`
+    already is — the module's existing habit rather than a new one. Read
+    plainly: *take the longest memory that still demonstrably forgets.*
+
+    **Why the timescale constraint is the binding one, and not transmission.**
+    Nothing rides on transmission at initialisation — the standing diagnosis
+    (#120) is that the untrained graph transmits ~1e-14 whatever `a` is —
+    whereas the construction-time go/no-go must be **valid**, and `a` multiplies
+    every cell's placed `tau`. So `a` is fixed against the thing that would
+    otherwise be silently wrong.
+
+    **The two faces guard opposite failures**, and it is easy to get backwards.
+    Lower face (`a` too small): `rho -> 0`, the chart is wiped every tick and
+    the cell collapses toward its bias. Upper face (`a` too large): the cell
+    **never forgets** and stops settling at all. Not a zeroing — a
+    never-letting-go.
+
+    Searched by scanning the band downward from its ceiling and returning the
+    first value that admits the target's slow end, rather than by bisection: the
+    scan makes no monotonicity assumption it has not measured, and the whole
+    scan is one construction-time afternoon of the same sweep the go/no-go runs.
+
+    **When nothing admits the target it returns the ceiling, not the floor**,
+    and the direction is the whole point. The failure that puts the rule here is
+    that cells forget *too fast* for the target's slow end, and answering that
+    complaint with the smallest `a` in the band would hand back the fastest
+    cells available — the two faces run opposite ways, and picking the wrong one
+    is silent. The ceiling is the band's best attempt at the target, and the
+    go/no-go is what reports that the attempt fell short; this function does not
+    get to hide a no-go by choosing a number.
+
+    **Measured on the default dome (#157), and worth knowing before reading a
+    number out of this:** `a` is *not* the binding constraint on the present
+    body. Containment holds for every one of 2048 candidates at every `a` in
+    the band, so the upper face never binds, and `slow_cap` simply rises with
+    `a` — 0.90 ticks at `a = 0.5` to 2.50 ticks at `a = 1.0`. Both readings of
+    the demo's horizons ask for a slow end of 14 ticks or more, so the target is
+    unreachable by roughly 6x whatever `a` does, and this returns the ceiling.
+    That is a pre-existing property of a body whose effective timescale sits
+    around one tick (`01-cell-and-sheaf.md`), not something the conversion
+    caused — and raising `a` to the ceiling is the direction that helps it.
+    """
+    if steps < 1:
+        raise ValueError(f"the scan takes at least one step, got {steps}")
+    if rho_k < 1.0:
+        raise ValueError(f"the operator band needs rho_k >= 1, got {rho_k}")
+    floor = 1.0 / rho_k
+    for i in range(steps):
+        # Log-spaced from the ceiling down, so the *largest* admissible value is
+        # the one found first.
+        scale = (
+            1.0
+            if steps == 1
+            else float(math.exp(math.log(floor) * i / (steps - 1)))
+        )
+        drawn = sweep(
+            body,
+            draws=draws,
+            ticks=ticks,
+            burn_in=burn_in,
+            drive_correlation=drive_correlation,
+            operator_scale=scale,
+            generator=generator,
+        )
+        if drawn.measurement.slow_cap(safety_factor) >= target.slowest:
+            return scale
+    return 1.0
 
 
 @dataclass(frozen=True)
@@ -872,6 +977,14 @@ def fold_margin_check(
     `margins` is one measured fold margin per entry of `cells`, which are dome
     cell ids — the selected cells', so the check runs on the body the graph will
     actually have rather than on a body it might have had.
+
+    **Demoted, not deleted** (#140). The margin it reads is now `encode`'s
+    alone, and the product it caps no longer *bounds* `gamma`: that bound was
+    never binding — `DEFAULT_GAMMA` is 1.0, the global ceiling `02` permits —
+    and `02`'s stated reason for it, that a shifted operating point changes the
+    cell's effective timescale, is the premise #138 retired when timescale moved
+    into `K`. What survives is a construction-time **diagnostic**, and the
+    number it produces is what #155's fold-margin precondition consumes.
     """
     if margins.shape != (len(cells),):
         raise ValueError(
@@ -1157,6 +1270,7 @@ def go_no_go(
     drive_correlation: float = DEFAULT_DRIVE_CORRELATION,
     overlap: float = DEFAULT_OVERLAP,
     safety_factor: float = DEFAULT_SAFETY_FACTOR,
+    operator_scale: float = DEFAULT_OPERATOR_SCALE,
     drawn: Sweep | None = None,
     generator: torch.Generator | None = None,
 ) -> GoNoGo:
@@ -1175,6 +1289,7 @@ def go_no_go(
             ticks=ticks,
             burn_in=burn_in,
             drive_correlation=drive_correlation,
+            operator_scale=operator_scale,
             generator=generator,
         )
     draws = drawn.candidates.cells

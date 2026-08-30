@@ -21,7 +21,7 @@ import pytest
 import timescale_selection
 import torch
 
-from patchworks.body import BodyShape, CellBiases, CellBody
+from patchworks.body import BodyShape, CellBiases, CellBody, CellOperators
 from patchworks.graph import DomeSpec, build_graph
 from patchworks.sandbox import CONTROL_HZ
 from patchworks.bias_selection import (
@@ -36,6 +36,7 @@ from patchworks.bias_selection import (
     fold_margin_check,
     go_no_go,
     measure,
+    operator_scale_rule,
     select,
     sweep,
 )
@@ -179,19 +180,58 @@ class TestWhatIsMeasured:
         implied = -1.0 / m.effective_timescale
         assert not torch.allclose(m.contraction, implied, atol=1e-3)
 
-    def test_the_fold_margin_reads_encode_and_step_only(self, body):
-        # `decode` is not on the chart's round trip, so moving its biases moves
-        # no margin. Anything that read it would be bounding the wrong loop.
+    def test_the_fold_margin_reads_encode_alone(self, body):
+        # `decode` is not on the chart's round trip, so moving its bias moves no
+        # margin. Anything that read it would be bounding the wrong loop. Since
+        # #138 `encode` is also the *only* map with folds at all -- `K` and
+        # `decode` are linear -- so this is now the whole of what the margin can
+        # be read from.
         biases = CellBiases(body.shape, 4, generator=torch.Generator().manual_seed(6))
         before = measure(
             body, biases, ticks=8, generator=torch.Generator().manual_seed(7)
         )
         with torch.no_grad():
-            for role in ("hidden", "output"):
-                getattr(biases, f"decode_{role}_bias").add_(3.0)
+            biases.decode_output_bias.add_(3.0)
         after = measure(body, biases, ticks=8, generator=torch.Generator().manual_seed(7))
         assert torch.equal(before.margin, after.margin)
         assert torch.equal(before.effective_timescale, after.effective_timescale)
+
+    def test_moving_encodes_biases_does_move_the_margin(self, body):
+        # The other half: a margin that never moved would be reading nothing.
+        biases = CellBiases(body.shape, 4, generator=torch.Generator().manual_seed(6))
+        before = measure(
+            body, biases, ticks=8, generator=torch.Generator().manual_seed(7)
+        )
+        with torch.no_grad():
+            biases.encode_hidden_bias.add_(3.0)
+        after = measure(body, biases, ticks=8, generator=torch.Generator().manual_seed(7))
+        assert not torch.equal(before.margin, after.margin)
+
+    def test_the_operator_scale_multiplies_every_placed_timescale(self, body):
+        # #140's coupling, which is why `a` is not free: the recurrence is
+        # `K @ J_encode` and at construction `K = a.I`, so `a` scales every
+        # eigenvalue and therefore every `tau` the rig places.
+        biases = CellBiases(body.shape, 8, generator=torch.Generator().manual_seed(6))
+        full = measure(
+            body, biases, ticks=8, generator=torch.Generator().manual_seed(7)
+        )
+        half = measure(
+            body,
+            biases,
+            ticks=8,
+            operator_scale=0.5,
+            generator=torch.Generator().manual_seed(7),
+        )
+        assert float(half.rho_median.median()) < float(full.rho_median.median())
+        assert float(half.effective_timescale.median()) < float(
+            full.effective_timescale.median()
+        )
+        # The margin is *not* asserted equal, and the reason is worth writing
+        # down: `a` scales the advanced chart, and that chart is half of
+        # `encode`'s input on the next tick, so `a` moves the operating point
+        # the margin is read at. What the margin no longer carries is a second
+        # map's folds -- that is the claim above, and it is read there by moving
+        # `decode`'s bias rather than by scaling `K`.
 
     def test_the_rig_follows_the_bodys_dtype(self, body):
         # The body carries `device` and `dtype`; a rig that allocated its own
@@ -269,13 +309,91 @@ class TestContainmentAndTheSlowCap:
         # An overflowed chart makes every pre-activation NaN, which reads
         # downstream as no unit active: a zero Jacobian, rho = 0, and the
         # fastest, most contained candidate in the sweep.
+        #
+        # The variance is 200 rather than #85's 40 because the conversion took
+        # a nonlinear map off the round trip: with `K = a.I` the recurrence is
+        # `encode` alone and a body that used to overflow at 40 now runs to
+        # `rho ~ 14.9` and stays finite. Measured, not guessed -- 200 is the
+        # first of 40/200/1000/5000 at which all 16 candidates leave the reals.
         wild = CellBody(
-            body.shape, weight_variance=40.0, generator=torch.Generator().manual_seed(13)
+            body.shape,
+            weight_variance=200.0,
+            generator=torch.Generator().manual_seed(13),
         )
         biases = CellBiases(body.shape, 16, generator=torch.Generator().manual_seed(14))
         m = measure(wild, biases, ticks=16, generator=torch.Generator().manual_seed(15))
         assert not bool(m.finite.all())
         assert not bool(m.contained()[~m.finite].any())
+
+
+class TestTheOperatorScaleRule:
+    """`a`, the scalar in `K = a.I`, as a rule the rig produces (#140)."""
+
+    def test_a_reachable_target_takes_the_largest_admissible_scale(self, body):
+        # The rule as stated: *the largest value in the band for which
+        # `slow_cap` still admits the target*. A target the body clears easily
+        # is admitted at the ceiling, so the ceiling is what comes back.
+        a = operator_scale_rule(
+            body,
+            target=TargetRange(0.2, 0.5),
+            draws=64,
+            ticks=8,
+            generator=torch.Generator().manual_seed(SEED),
+        )
+        assert a == 1.0
+
+    def test_an_unreachable_target_falls_back_to_the_ceiling_not_the_floor(
+        self, body
+    ):
+        # The direction matters and is silent if it is wrong. What puts the rule
+        # here is cells forgetting *too fast*, and the floor is the fastest `a`
+        # in the band -- the opposite of the answer. The go/no-go reports the
+        # shortfall; this does not hide it by choosing a small number.
+        a = operator_scale_rule(
+            body,
+            target=TargetRange(3.0, 1000.0),
+            draws=64,
+            ticks=8,
+            generator=torch.Generator().manual_seed(SEED),
+        )
+        assert a == 1.0
+
+    def test_the_scale_it_returns_is_inside_the_band(self, body):
+        for rho_k in (2.0, 4.0):
+            a = operator_scale_rule(
+                body,
+                target=TargetRange(0.2, 0.5),
+                rho_k=rho_k,
+                draws=32,
+                ticks=8,
+                steps=4,
+                generator=torch.Generator().manual_seed(SEED),
+            )
+            assert 1.0 / rho_k <= a <= 1.0
+
+    def test_slow_cap_rises_with_the_scale(self, body):
+        # What makes the scan's "first admissible from the top" the largest
+        # admissible: `a` multiplies every eigenvalue, so it multiplies every
+        # placed `tau` and the cap over them rises with it. Measured rather
+        # than assumed -- the scan does not rely on it, but the rule reads
+        # oddly if it is false.
+        caps = [
+            sweep(
+                body,
+                draws=64,
+                ticks=8,
+                operator_scale=scale,
+                generator=torch.Generator().manual_seed(SEED),
+            ).measurement.slow_cap()
+            for scale in (0.5, 0.75, 1.0)
+        ]
+        assert caps[0] < caps[1] < caps[2]
+
+    def test_a_band_below_one_is_refused(self, body):
+        with pytest.raises(ValueError, match="rho_k >= 1"):
+            operator_scale_rule(
+                body, target=TargetRange(0.2, 0.5), rho_k=0.5, draws=8, ticks=4
+            )
 
 
 class TestSelection:
@@ -331,7 +449,8 @@ class TestSelection:
         cells = selection.biases.cells
         chart = torch.zeros((cells, body.shape.k))
         stalk = torch.zeros((cells, body.shape.n))
-        advanced, predicted = body(chart, stalk, selection.biases)
+        operators = CellOperators(body.shape, cells)
+        advanced, predicted = body(chart, stalk, selection.biases, operators)
         assert advanced.shape == (cells, body.shape.k)
         assert predicted.shape == (cells, body.shape.n)
 
@@ -506,10 +625,19 @@ class TestTheMeasuredBody:
         assert 0.7 < float(torch.quantile(tau, 0.5)) < 1.3
         assert float(tau.max()) < 10.0
 
-    def test_that_agrees_with_the_prototype_it_was_promoted_from(self, drawn):
-        # `selection_sweep.trajectory_lambda([45], [13], 1.2)` reports
-        # lam_med = -1.47 and a realised tau of 0.68 ticks at the body's widths.
-        assert -1.8 < float(drawn.measurement.contraction.median()) < -0.9
+    def test_the_contraction_the_conversion_left(self, drawn):
+        # **Superseded, and the supersession is the point.** The prototype it
+        # was promoted from measured a round trip through `encode` *and* a
+        # nonlinear `step` -- `selection_sweep.trajectory_lambda([45], [13],
+        # 1.2)` reported lam_med = -1.47 -- and #138 took `step` off that loop.
+        # The round trip is now `encode` then `a.I`, so it contracts less, and
+        # the old window cannot be met by the body that actually runs.
+        #
+        # Re-measured on this fixture at `a = 1.0`: median -0.794, p05 -0.932,
+        # p95 -0.589. Recorded rather than asserted as a requirement, with a
+        # window wide enough that only a real change to the body or the rig
+        # trips it.
+        assert -1.0 < float(drawn.measurement.contraction.median()) < -0.6
 
     def test_the_median_fold_margin_is_the_recorded_one(self, drawn):
         # `01-cell-and-sheaf.md` records 0.019 for [45]/[13] at sigma_w^2 = 1.2.

@@ -34,16 +34,29 @@ This also makes two things expressible that a two-tier scheme cannot represent:
 The cell's forward path factors in three parts:
 
 ```
-encode:  chart (k) × node stalk (n) → chart (k)      fuses persisted state with new evidence
-step:    chart (k)                  → chart (k)      the prediction
-decode:  chart (k)                  → node stalk (n)
+encode:  chart (k) × node stalk (n) → chart (k)      nonlinear, frozen, shared
+K:       chart (k)                  → chart (k)      linear, per-cell, learned
+decode:  chart (k)                  → node stalk (n) linear, frozen, shared
 ```
 
-`encode` takes the persisted chart as well as the incoming node stalk: it fuses the cell's
-prior belief with new evidence into a single chart, which `step` alone advances. See
-[`02-tick-semantics.md`](./02-tick-semantics.md) for why (patchworks#4) — in short, `step`
-already committed to a single argument, and reconciliation's corrections are meant to re-enter
-as evidence rather than as a second stream `step` has to learn to weight.
+`encode` fuses the cell's prior belief with new evidence into a single chart, which the cell's own
+operator `K` alone advances; `decode` reads the prediction back out. See
+[`02-tick-semantics.md`](./02-tick-semantics.md) for why `encode` takes both arguments
+(patchworks#4) — in short, what advances the chart already committed to a single argument, and
+reconciliation's corrections are meant to re-enter as evidence rather than as a second stream the
+advance has to learn to weight.
+
+> **The Koopman conversion** ([#138](https://github.com/NGL321/patchworks/issues/138)). What advances
+> the chart was a frozen nonlinear map called `step`; it is now `K`, a dense per-cell **learned linear
+> operator**. `decode` linearised with it and is frozen as a **gauge**. **`encode` is the body's only
+> nonlinearity.** The governing principle is that everything that can be linear should be linear and
+> the nonlinearity is frozen — linear dynamical systems are tractable and computable, and `K`'s
+> spectrum is a settable design variable where a frozen random map's Jacobian was not.
+>
+> Linearity is taken here for **tractability** and for what it makes `σ_max(K)` mean, and explicitly
+> *not* to buy the Koopman literature's prior work: every published lift is larger than its state
+> while `encode` compresses, so `encode` is not an EDMD dictionary and the frozen body's real
+> precedent is the reservoir.
 
 **`k < n`, fixed by construction.** This is the low-dimensional requirement, and it is a shape
 invariant no training story may violate. *Which* features occupy the `k` chart dimensions is
@@ -88,6 +101,40 @@ The *degree* of compression (`n/k`) is a hyperparameter; the spec commits to `k 
 more. That a useful `k` turns out to be much smaller than `n` is a finding the proof-of-concept
 reports, not a number fixed here.
 
+**`n` is uniform across *domains*, not only across cells**
+([#128](https://github.com/NGL321/patchworks/issues/128)). One frozen `encode` is shared by every
+cell in every domain, and `encode` is `ℝᵏ × ℝⁿ → ℝᵏ`, so sharing it forces one `n` — the sentence
+above about a body driven by cells of differing width binds unchanged, from a narrower premise.
+
+The reason to share it is that **the frozen nonlinearity is an architectural constraint, not a fitted
+shape.** It is random and highly nonlinear, and it exists to place nonlinearity at one specific point
+while keeping everything else linear. A random lift has no domain content it could be *wrong* about,
+so there is nothing for a second domain to disagree with. The consequence is the strong form of the
+architecture's portability claim: **same frozen maps, same dimensions, same rules, different
+operators.** Two cells in one domain already have different operators, so cross-domain difference is
+the same kind of object as cross-cell difference — one the architecture already has and already
+survives.
+
+**And the cell contract now asserts something about the world, which it did not before.** A cell
+asserts that **its piece admits a small linear lift**. The honest form matters: Koopman theory gives
+*any* nonlinear system a linear representation in some observable space, so linearisability is not the
+assumption — **sufficiency of a small finite lift is**, and that is quantitative and domain-sensitive
+in a way "the sheaf is domain-general" is not. The contract asserts the property *of a cell's piece*
+and does **not** grant it per domain: each domain owes the evidence, measured, before it is believed.
+See [ADR-0017](../adr/0017-a-cell-asserts-its-piece-admits-a-small-linear-lift.md).
+
+**What the cell contract may and may not know about its world**, stated once:
+
+| | |
+|---|---|
+| **Interface** | world-independent; boundary cells are exempt and absorb the world's shape at the seam (ADR-0006) |
+| **Algorithm** | world-independent in both halves — the frozen maps are an architectural constraint, `K`'s linearity a structural commitment |
+| **`n`** | world-independent, and now cross-domain |
+| **`k`** | world-independent in kind; its value is open |
+| **The small-lift assertion** | **a claim about the world** — not granted by the contract, discharged per domain by evidence |
+
+Everything world-shaped stays confined to boundary cells and to the graph.
+
 ### What a cell predicts
 
 **One prediction: the temporal one.** The cell advances its chart one tick, `z(t) → ẑ(t+1)`, and
@@ -101,10 +148,11 @@ genuine modelling rather than a redundant recomputation.
 
 ### State and persistence
 
-**The chart persists across ticks.** It is the cell's state; `step` moves it. The cell is therefore
+**The chart persists across ticks.** It is the cell's state; `K` moves it. The cell is therefore
 a recurrent unit, and inherits the classical failure modes of one — see *Known exposure* below.
 
-The **adapting surface** — biases and restriction maps — persists and never freezes (see
+The **adapting surface** — biases, the operators `K`, and restriction maps — persists and never
+freezes (see
 [ADR-0001](../adr/0001-continual-learning-applies-to-the-adapting-surface.md)). The rest of the
 cell body does not adapt at all; see *The cell body* below.
 
@@ -131,28 +179,76 @@ exactly.
 slow cell is slow because its content *persists*, not because it updates rarely. A hand-forced clock
 divisor survives there as an instrument, never as the mechanism.
 
-A relay cell is the degenerate instance of the contract: `step` is the identity.
+A relay cell is the degenerate instance of the contract: `K` is the identity — which is now
+literally the construction every cell starts from, scaled by `a`.
 
 ### The cell body
 
-Uniformity above is taken in its strongest available form. The **cell body** — the `encode` / `step` /
-`decode` machinery of the forward path — is **one set of weights, shared by every cell and frozen**.
-It never adapts. All adaptation lives in the **adapting surface**: per-cell biases, and the
-restriction maps.
+Uniformity above is taken in its strongest available form, and the conversion narrowed what it
+covers. The **cell body** is the `encode` / `K` / `decode` machinery of the forward path, and its
+**frozen, shared** half is now `encode` and `decode`: one set of weights for every cell, never
+adapting. All adaptation lives in the **adapting surface**: per-cell biases, the per-cell operators
+`K`, and the restriction maps.
 
-**The restriction maps carry the specialisation.** This is the load-bearing half of the claim and the
-half that is easiest to under-read. Each cell learns its own linear map into each incident edge stalk,
-independently at both ends of every edge, under a sparsity pressure and a structural mask. That is a
-substantial, genuinely per-cell surface — not a thin residue left over after freezing the body. Cells
-do not need to learn *different activities*: identical machinery is sufficient, and arguably desirable,
-provided each cell's metric space is tuned to a separate linear decomposition of the highly non-linear
-global problem. The decomposition specialises the cell; the machinery does not have to.
+**Buffers are the frozen body; parameters are the adapting surface.** That is the invariant the
+implementation enforces the split with, and it is what makes the prediction rule's target *defined*
+rather than listed — registering something as a per-cell parameter is what trains it
+([`07-local-learning-rule.md`](./07-local-learning-rule.md)).
 
-**`step` is a feed-forward map**, a single forward pass — not a descent flow run across a fixed surface.
-Whatever geometry the body's solution space turns out to have is a property of the trained map, never an
-inner loop at inference time. A per-tick inner solve would contradict
+**`decode` is frozen as a gauge, not as a capacity choice.** With a linear readout a cell's
+prediction is `D K z`, and if both `D` and `K` were learned the factorisation would be
+non-identifiable — `D K = (D M)(M⁻¹ K)` — so `K` could be rescaled freely and compensated in `D`, and
+`σ_max(K)` would not be a well-defined quantity to constrain at all. Since a settable, bounded
+`σ_max(K)` is the entire reason the conversion was taken, freezing `decode` is what makes the knob
+exist. The same move as *Scale is gauge-fixed* below, applied to the body instead of the sheaf; see
+[ADR-0014](../adr/0014-the-linear-readout-is-gauge-fixed.md).
+
+**Its cost is stated rather than hidden, and it is pre-registered as the gauge's falsification:**
+every cell's predictions are confined to the *same* fixed `k`-dimensional linear subspace of its
+`n`-dimensional node stalk, where a nonlinear `decode` reached a curved `k`-manifold. The
+accommodation moves to the restriction maps, which are learned and whose job is already to set the
+stalk's basis. If that subspace proves systematically unreachable for real stalks, the gauge is
+wrong. A second cost is nameable precisely: completeness results for stable Koopman embeddings hold
+over the embedding and the operator *jointly*, and with `encode` frozen and `decode` gauge-fixed only
+`K` is free, so that completeness does not transfer to this design.
+
+**The restriction maps carry the specialisation, and now so does `K`.** Each cell learns its own
+linear map into each incident edge stalk, independently at both ends of every edge, under a sparsity
+pressure and a structural mask. That is a substantial, genuinely per-cell surface — not a thin residue
+left over after freezing the body. Cells do not need to learn *different activities*: identical
+machinery is sufficient, provided each cell's metric space is tuned to a separate linear decomposition
+of the highly non-linear global problem. The decomposition specialises the cell.
+
+What the conversion changed is that the cell's **dynamics** are now specialised too, directly:
+`K`'s `k × k` learned entries are a far more direct instrument of cell individuality than translating
+a frozen arrangement of folds ever was, and the fold framing survives only as a description of
+`encode`.
+
+**Advancing the chart is a single evaluation**, not a descent flow run across a fixed surface — and
+after the conversion it is one matrix multiply. A per-tick inner solve would contradict
 [ADR-0002](../adr/0002-message-passing-is-one-step-not-a-solve.md), cost unbounded compute, and blur
 *one prediction, the temporal one*.
+
+**`K` is `a·I` at construction, carries no bias, and is dense.** Identity rather than a random draw so
+that an untrained graph is *quiescent* rather than noisy: a cell not yet predicting anything should
+not be emitting. No bias because an affine `K` makes the **dynamics** affine — a drift compounding
+every tick, which is exactly the persistent offset ADR-0004 refuses to let a linear map launder away;
+`decode`'s output bias is the permitted kind, a static readout offset that never accumulates and
+without which a prediction is pinned to a subspace through the origin. Dense because structure is a
+**named fallback** rather than a silent default, and it now has a trigger: a band projection that
+fights the gradient every step is the observable that calls it.
+
+**`σ_max(K)` is bounded in a construction-time band**, `[1/ρ_K, 1]`, restored by projection after each
+learning step — see [ADR-0015](../adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md). The
+band is on the **norm, not the radius**: written on the radius it would leave the body's gain an
+unbounded factor, since for a non-normal matrix `ρ = 0.5` is compatible with `σ_max = 50`, and a dense
+`K` trained on a temporal objective finds exactly that. `ρ(K)` survives as the **reported** spectral
+quantity; it is not the constrained one.
+
+**`a` is a rule, not a number.** It is the largest value in the band for which the construction rig's
+`slow_cap` still admits the target `τ` band — a number the rig produces per body, exactly as
+`slow_cap` is ([`05-timescales.md`](./05-timescales.md)). Read plainly: *take the longest memory that
+still demonstrably forgets.*
 
 **Initialisation is a parameter of the body, not a commitment of this spec.** The proof-of-concept runs
 a **random, non-degenerate** initialisation: the reservoir-computing precedent — fixed internal
@@ -181,9 +277,11 @@ and dropping them costs no other part of the architecture.
 
 ### The body's construction
 
-The three maps' *interface* dimensions are `n` and `k`, fixed above. Their *internal* width, their
-depth, and their activation were left open, and all three are spent by the same quantity — the **fold
-margin** [ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md) bounds and
+The three maps' *interface* dimensions are `n` and `k`, fixed above. **After the conversion only
+`encode` has an internal width at all** — `K` and `decode` are linear and have no hidden layer — so
+what follows is about `encode`, and the two paragraphs on `step`'s and `decode`'s widths are kept
+below as the record of a body that no longer runs. Its width, depth, and activation were left open,
+and all three are spent by the same quantity — the **fold margin** [ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md) bounds and
 [`05-timescales.md`](./05-timescales.md) makes a precondition of persistence — so they are settled
 together here.
 
@@ -201,28 +299,33 @@ rather than merely weakening. The class is what the mechanism requires; **ReLU i
 below were computed for**, and a later swap within the class keeps every term intact but must
 re-derive them.
 
-**Each map's hidden width is its own minimum, `max{d_x + 1, d_y}`** — Park et al.'s exact floor for
+**The hidden width is its own minimum, `max{d_x + 1, d_y}`** — Park et al.'s exact floor for
 universal approximation by ReLU networks, below which Lu et al. find a phase transition rather than a
-degradation. Evaluated at `n = 32`, `k = 12`, that is **45** for `encode` (`ℝ³² × ℝ¹² → ℝ¹²`), **13**
-for `step` (`ℝ¹² → ℝ¹²`), and **32** for `decode` (`ℝ¹² → ℝ³²`). Written as the rule rather than as
-three constants because `n/k` and `k` are both rungs on the *Flex priority* ladder below: pull one and
-the widths re-derive themselves.
+degradation. Evaluated at `n = 32`, `k = 12`, that is **45** for `encode` (`ℝ¹² × ℝ³² → ℝ¹²`). Written
+as the rule rather than as a constant because `n/k` and `k` are both rungs on the *Flex priority*
+ladder below: pull one and the width re-derives itself.
+
+The rule used to give three widths — 45, **13** for `step` and **32** for `decode`. Both are gone with
+the maps' hidden layers, and the arithmetic is left here only so the numbers on record can be traced.
 
 **Sized *at* the floor, not above it.** The floor and the optimum turn out to be the same point, which
 is why this costs nothing to respect. Measured on
-[#42](https://github.com/NGL321/patchworks/issues/42)'s rig at `σ_w² = 1.2`, the median fold margin is
-**0.019** for `encode`/`step` at `[45]`/`[13]` against **0.0067** for a `[128]`/`[32]` body — while the
+[#42](https://github.com/NGL321/patchworks/issues/42)'s rig at `σ_w² = 1.2`, before the conversion,
+the median fold margin was **0.019** for `encode`/`step` at `[45]`/`[13]` against **0.0067** for a `[128]`/`[32]` body — while the
 spread the widths are sometimes imagined to buy is flat across the range (τ ratio 2.7 against 2.4).
 Wider bodies pay margin for nothing, exactly as Hanin & Rolnick's `1/#neurons` scaling predicts.
 Dropping `encode` *below* its floor buys nothing back either (44 measures 0.018, inside the noise), so
 the floor is free in both directions.
 
-**The margin is read from `encode` and `step` only.** The quantity ADR-0007 bounds is a property of the
-chart's own round trip, `d chart_{t+1} / d chart_t`, and `decode` is not on it — so a `decode` fold
-cannot move a cell's region, its dwell, or its timescale. It is still a fold: a cell crossing one has
-its *prediction* jump discontinuously. That arrives as prediction error and is the bias rule's food
-([`07-local-learning-rule.md`](./07-local-learning-rule.md)) — reducible model error, not a floor. The
-body has three maps and the margin has two, and that asymmetry is derived, not an oversight.
+**The margin is read from `encode` alone.** It used to be read from `encode` and `step`, the two maps
+on the chart's own round trip, with `decode` excluded because it is not on that loop. The conversion
+settled the question by removing the other two folds entirely: `K` and `decode` are linear, so
+`encode` is the only map that has folds at all. The body has three maps and the margin has one, and
+that is now exact rather than an asymmetry needing explanation.
+
+**Measured consequence**: the cap on `γ × floor` rose from **0.2600 to 0.3502**, a 35% loosening, on
+the construction sweep at 8192 draws, seed 42
+([`02-tick-semantics.md`](./02-tick-semantics.md)).
 
 **One hidden layer per map, and the reason is not that depth is useless.** With one hidden layer each
 per-cell bias translates its own fold and every fold stays a hyperplane — *The geometry* below reads
@@ -476,24 +579,29 @@ reserved for the local flatness above, which is the one place something depends 
 
 ### The division of labour between the two adapting surfaces
 
-The cell body is shared and frozen, so `step` is **one** map on **one** `k`-dimensional space: there
-are not `N` little geometries. But the biases are per-cell, and in a piecewise-linear network the
-weights fix the *directions* of every folding hyperplane while the biases fix **where each fold
-sits**. Cells therefore share one arrangement of folds **up to translation** — same fold directions,
-different offsets, and so genuinely different activation patterns and local behaviour.
+`encode` is shared and frozen, so the body's nonlinearity is **one** map on **one** `k`-dimensional
+space: there are not `N` little geometries in it. The biases are per-cell, and in a piecewise-linear
+network the weights fix the *directions* of every folding hyperplane while the biases fix **where each
+fold sits**. Cells therefore share one arrangement of folds **up to translation** — same fold
+directions, different offsets.
 
-**One arrangement of folds, translated per cell.** This is why bias-only adaptation is not the thin
-residue it sounds like.
+**That is no longer the architecture's instrument of cell individuality.** It was, while biases were
+the whole of the body's adapting surface; the conversion gave each cell a `k × k` learned operator,
+and `K` is a far more direct instrument than a translated fold arrangement. The fold framing was built
+on a fixed per-cell geometry that the biases navigate, with the differentiating work offloaded to the
+restriction maps — and after the conversion that premise holds for **one map, not three**. It
+survives exactly where it survives, as a description of `encode`, and nothing new is built on it.
 
 | Surface | Where it acts | What it does geometrically |
 |---|---|---|
-| **Biases** | inside the shared body | translate the folds of the shared nonlinear map |
+| **Biases** | inside `encode` | translate the folds of the shared nonlinear map |
+| **Operators `K`** | on the chart | the cell's own linear dynamics — where its individuality now principally lives |
 | **Restriction maps** | outside, on stalks | fix the basis of the node stalk and the transport into each edge stalk |
 
 The restriction maps never touch the body's geometry. They fix what features mean and how they
-relate; the biases move the shape that consumes them.
+relate; the biases move the shape that consumes them, and `K` moves what the chart does next.
 
-### Three lossy maps
+### Three lossy maps, and a fourth kind
 
 Information is discarded in exactly three places, and they are not the same kind of act:
 
@@ -505,6 +613,14 @@ Information is discarded in exactly three places, and they are not the same kind
 
 That asymmetry — compression nonlinear and private, restriction linear and shared — is the geometric
 statement of why there are three tiers rather than two.
+
+**A fourth place now discards information, and it is a new kind: `chart → node stalk`, in a frozen
+linear `decode`.** It is not on the list above because the three are about what a cell *takes in*,
+where this is about what it can *say*: the gauge confines every cell's prediction to one fixed
+`k`-dimensional subspace of its `n`-dimensional stalk, the same subspace in every cell. Whether that
+subspace is reachable — whether `H⁰`, the configurations reconciliation cannot move, has any useful
+overlap with it — is the one cohomological question the conversion creates, and it needs a graph that
+transmits before it can be measured.
 
 **"Projection" is deliberately not vocabulary.** It would invite the reading that inference happens
 inside a restriction map, which is exactly what the three-tier split exists to prevent.
@@ -584,14 +700,16 @@ Recorded, not pre-emptively solved.
   now *depends* on the recurrence holding content for hundreds of ticks. The fix, if it is ever
   needed, is a two-rung ladder, and neither rung is built.
 
-  **Rung one: a protected linear channel through `step`** — a designated subspace of the chart that
-  `step` passes with unit gain, ungated. It is an LSTM constant-error carousel and not a gate. It
+  **Rung one: a protected linear channel through `K`** — a designated subspace of the chart that
+  `K` passes with unit gain, ungated. (The conversion makes this rung cheaper to state and stranger to
+  need: `K` is *already* linear, so a protected channel is now a constraint on one block of a learned
+  matrix rather than a carve-out through a nonlinearity.) It is an LSTM constant-error carousel and not a gate. It
   costs no parameters and breaks no freeze, because it is a **construction** choice about the shared
   body, of the same kind as its initialisation, rather than per-cell adaptation. Per-cell variation
   keeps arriving where it already does, through the biases. Note that this rung does the *whole* of
   the job Patchworks actually has: the carousel was invented to preserve gradients through
-  backpropagation-through-time, and there is no BPTT here — the bias rule is a single local gradient
-  step through one tick of the cell's own frozen forward path
+  backpropagation-through-time, and there is no BPTT here — the prediction rule is a single local
+  gradient step through one tick of the cell's own forward path
   ([`07-local-learning-rule.md`](./07-local-learning-rule.md)). What transfers is the forward job,
   holding activation content across many ticks, and that is exactly what an ungated channel does.
 
@@ -600,13 +718,13 @@ Recorded, not pre-emptively solved.
   the first thing to reach for if rung one proves insufficient**, and the trigger is the one thing
   rung one structurally cannot do: **clear a channel deliberately.** An ungated channel holds
   unconditionally; it cannot flush stale content on decisive evidence. Its price is steep and should
-  be paid knowingly — a gate is per-cell parameters that are neither biases nor restriction maps, so a
-  **third parameter group**, and [ADR-0008](../adr/0008-the-local-rule-splits-by-parameter-not-by-cell.md)
+  be paid knowingly — a gate is per-cell parameters that are neither the cell's own inference parameters nor
+  restriction maps, so a **third parameter group**, and [ADR-0008](../adr/0008-the-local-rule-splits-by-parameter-not-by-cell.md)
   splits the local rule *by* parameter group, meaning a third learning rule with its own signal; or
   else part of the body comes unfrozen.
 
   One correction, and one object the wrong version was hiding. This entry previously named the escape
-  hatch on the **edge stalk**, which is the wrong tier: the recurrence is `chart(t) → chart(t+1)` through `step`, and the edge
+  hatch on the **edge stalk**, which is the wrong tier: the recurrence is `chart(t) → chart(t+1)` through `K`, and the edge
   stalk is not on that loop — its contents reach the chart a tick later, via reconciliation and
   `encode`. A pass-through subset of the edge stalk is a skip on the *spatial* path. And such a subset
   would be a different object worth naming separately: an edge-stalk direction that always passes

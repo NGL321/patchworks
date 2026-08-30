@@ -15,6 +15,23 @@ regardless of hop distance, and depth's genuine ratio is in *latency* rather tha
 Per-cell time constants appeared to be foreclosed by the shared frozen body of
 [ADR-0001](./0001-continual-learning-applies-to-the-adapting-surface.md).
 
+> **Amended by [#138](https://github.com/NGL321/patchworks/issues/138): that foreclosure is lifted.**
+> The Koopman conversion replaced the frozen nonlinear `step` with `K`, a per-cell learned linear
+> operator — and **a per-cell `K` *is* a per-cell time constant**, `k` of them. The premise on which
+> this ADR's four-way choice rejected one of its options no longer holds, so the choice is **reopened**.
+>
+> This ADR is **amended rather than superseded**, and the distinction is deliberate. Dropping it would
+> leave the proof of concept's central claim — compositional planning across timescales — with no
+> mechanism at all for the whole of the next stage. What is recorded here is that the foreclosure is
+> lifted and the replacement is **open**; no successor mechanism is named, because reading timescale
+> off `K`'s spectrum is a separate question with real difficulties of its own and is deliberately not
+> front-run.
+>
+> What is *not* affected: the runtime prohibition. The placement still happens once, at construction,
+> and still leaves no rate for a running cell to consult. Activation regions and fold margins also
+> survive, because `encode` is still ReLU — the mechanism this ADR built is described in
+> `05-timescales.md` as built, with the conversion's consequences marked around it.
+
 One divergence is recorded here because a reader who checks the source will find it. Active
 predictive coding's `T1`/`T2` — the source of the goal this decision serves — *is* a fixed clock
 divisor, and in APC it is the **mechanism**, not an instrument. This decision takes APC's goal,

@@ -1,15 +1,28 @@
-"""The shared frozen cell body (ticket #84, docs/spec/01-cell-and-sheaf.md).
+"""The cell body (tickets #84 and #138, docs/spec/01-cell-and-sheaf.md).
 
-What these tests hold down is the construction, not the behaviour: the widths,
-the freeze, the shape invariant `k < n`, and that the population is evaluated
-in one batched pass rather than a loop over cells. Nothing here trains
-anything -- nothing in the body ever will.
+What these tests hold down is the construction, not the behaviour: the width,
+the freeze, the shape invariant `k < n`, the operator band, and that the
+population is evaluated in one batched pass rather than a loop over cells.
+Nothing here trains anything -- nothing in the frozen half of the body ever
+will.
+
+After the Koopman conversion the body is `encode` (nonlinear, frozen), the
+per-cell operator `K` (linear, learned), and `decode` (linear, frozen as a
+gauge). `encode` is the only nonlinearity, so it is the only map with a hidden
+layer, a fold margin, or an activation region.
 """
 
 import pytest
 import torch
 
-from patchworks.body import BodyShape, CellBiases, CellBody, hidden_width
+from patchworks.body import (
+    DEFAULT_RHO_K,
+    BodyShape,
+    CellBiases,
+    CellBody,
+    CellOperators,
+    hidden_width,
+)
 
 # The proof of concept's values (docs/spec/06-graph-topology.md).
 N, K = 32, 12
@@ -31,43 +44,46 @@ def biases(shape):
     return CellBiases(shape, CELLS, generator=torch.Generator().manual_seed(1))
 
 
+@pytest.fixture
+def operators(shape):
+    return CellOperators(shape, CELLS)
+
+
 class TestWidths:
     def test_the_rule_is_the_floor(self):
         assert hidden_width(44, 12) == 45
         assert hidden_width(12, 12) == 13
         assert hidden_width(12, 32) == 32
 
-    def test_poc_widths(self, shape):
-        # encode: R^32 x R^12 -> R^12, step: R^12 -> R^12, decode: R^12 -> R^32.
-        # The record briefly printed 33 for decode; max(13, 32) = 32 and #84
-        # corrected the slip.
-        assert (shape.encode_width, shape.step_width, shape.decode_width) == (45, 13, 32)
+    def test_poc_width(self, shape):
+        # encode: R^12 x R^32 -> R^12. It is the only map with a hidden layer:
+        # `K` and `decode` are linear (#138).
+        assert shape.encode_width == 45
 
-    def test_widths_rederive_from_the_rule_when_n_and_k_move(self):
-        # n/k and k are both rungs on the flex ladder: pull one and the widths
-        # re-derive themselves rather than staying at three constants.
-        other = BodyShape(n=64, k=8)
-        assert other.encode_width == 73
-        assert other.step_width == 9
-        assert other.decode_width == 64
+    def test_the_width_rederives_from_the_rule_when_n_and_k_move(self):
+        # n/k and k are both rungs on the flex ladder: pull one and the width
+        # re-derives itself rather than staying a constant.
+        assert BodyShape(n=64, k=8).encode_width == 73
 
-    def test_weight_shapes_follow_the_widths(self, body):
+    def test_the_linear_maps_have_no_hidden_width(self, shape):
+        # The conversion deleted them, and reaching for one should say so
+        # rather than quietly return something plausible.
+        assert not hasattr(shape, "step_width")
+        assert not hasattr(shape, "decode_width")
+
+    def test_weight_shapes_follow_the_width(self, body):
         assert body.encode_hidden_weight.shape == (45, K + N)
         assert body.encode_output_weight.shape == (K, 45)
-        assert body.step_hidden_weight.shape == (13, K)
-        assert body.step_output_weight.shape == (K, 13)
-        assert body.decode_hidden_weight.shape == (32, K)
-        assert body.decode_output_weight.shape == (N, 32)
+        # `D`, one matrix and no hidden layer.
+        assert body.decode_weight.shape == (N, K)
 
-    def test_one_hidden_layer_per_map(self, body):
-        # Two weight matrices per map is one hidden layer. A second layer is
-        # measured expensive and over-subscribes the bias vector further.
+    def test_the_frozen_half_is_encode_and_decode_and_nothing_else(self, body):
         weights = [name for name, _ in body.named_buffers()]
-        assert sorted(weights) == sorted(
-            f"{m}_{role}_weight"
-            for m in ("encode", "step", "decode")
-            for role in ("hidden", "output")
-        )
+        assert sorted(weights) == [
+            "decode_weight",
+            "encode_hidden_weight",
+            "encode_output_weight",
+        ]
 
 
 class TestShapeInvariant:
@@ -92,30 +108,55 @@ class TestTheFreeze:
         # enforced, not a convention.
         assert list(body.parameters()) == []
 
-    def test_biases_are_the_only_trainable_surface(self, body, biases):
+    def test_the_surface_is_the_biases_and_the_operators(self, body, biases, operators):
+        # Buffers are the frozen body; parameters are the adapting surface.
         trainable = [p for p in body.parameters() if p.requires_grad]
         trainable += [p for p in biases.parameters() if p.requires_grad]
-        assert len(trainable) == 6  # hidden and output, for each of three maps
+        trainable += [p for p in operators.parameters() if p.requires_grad]
+        assert len(trainable) == 4  # three bias vectors and K
         assert all(p.shape[0] == CELLS for p in trainable)
+
+    def test_the_surface_is_233_numbers_per_cell(self, biases, operators):
+        # #138's ledger: 146 became 89 + K's 144. The conversion deletes 25
+        # learned per-cell numbers with `step` and 13 more with `decode`'s
+        # hidden layer, before it adds anything.
+        per_cell = sum(p[0].numel() for p in biases.parameters())
+        assert per_cell == 89
+        assert operators.K[0].numel() == 144
+        assert per_cell + operators.K[0].numel() == 233
 
     def test_biases_carry_a_leading_cell_dimension(self, biases):
         assert biases.encode_hidden_bias.shape == (CELLS, 45)
         assert biases.encode_output_bias.shape == (CELLS, K)
-        assert biases.step_hidden_bias.shape == (CELLS, 13)
-        assert biases.step_output_bias.shape == (CELLS, K)
-        assert biases.decode_hidden_bias.shape == (CELLS, 32)
         assert biases.decode_output_bias.shape == (CELLS, N)
 
-    def test_gradient_reaches_the_biases_through_the_frozen_path(self, body, biases):
-        # The bias rule is a local gradient step *through* the frozen forward
-        # path, so the freeze must not block autograd -- only ownership.
+    def test_the_deleted_bias_vectors_are_gone(self, biases):
+        # `step`'s pair went with the map, and `decode`'s hidden bias with the
+        # hidden layer. Only `decode`'s output bias survives: the constant
+        # observable.
+        names = sorted(name for name, _ in biases.named_parameters())
+        assert names == [
+            "decode_output_bias",
+            "encode_hidden_bias",
+            "encode_output_bias",
+        ]
+
+    def test_gradient_reaches_the_surface_through_the_frozen_path(
+        self, body, biases, operators
+    ):
+        # The prediction rule is a local gradient step *through* the frozen
+        # half of the path, so the freeze must not block autograd -- only
+        # ownership. `K` is on that path and takes a gradient with the biases,
+        # in one backward pass (#139).
         chart = torch.zeros(CELLS, K)
         stalk = torch.randn(CELLS, N)
-        _, prediction = body(chart, stalk, biases)
+        _, prediction = body(chart, stalk, biases, operators)
         prediction.pow(2).sum().backward()
-        for name, bias in biases.named_parameters():
-            assert bias.grad is not None, name
-            assert torch.isfinite(bias.grad).all(), name
+        for name, parameter in list(biases.named_parameters()) + list(
+            operators.named_parameters()
+        ):
+            assert parameter.grad is not None, name
+            assert torch.isfinite(parameter.grad).all(), name
 
     def test_the_body_is_shared_across_cells(self, body):
         # One set of weights for the whole population: nothing about the body
@@ -134,7 +175,8 @@ class TestInitialisation:
     def test_the_draw_is_reproducible_from_a_generator(self, shape):
         one = CellBody(shape, generator=torch.Generator().manual_seed(7))
         two = CellBody(shape, generator=torch.Generator().manual_seed(7))
-        assert torch.equal(one.step_hidden_weight, two.step_hidden_weight)
+        assert torch.equal(one.encode_hidden_weight, two.encode_hidden_weight)
+        assert torch.equal(one.decode_weight, two.decode_weight)
 
     def test_cells_differ_only_by_their_biases(self, shape, body):
         drawn = CellBiases(shape, CELLS, generator=torch.Generator().manual_seed(3))
@@ -148,12 +190,14 @@ class TestInitialisation:
 
 
 class TestForwardPath:
-    def test_the_three_maps_have_the_specified_signatures(self, body, biases):
+    def test_the_three_maps_have_the_specified_signatures(
+        self, body, biases, operators
+    ):
         chart = torch.randn(CELLS, K)
         stalk = torch.randn(CELLS, N)
         fused = body.encode(chart, stalk, biases)
         assert fused.shape == (CELLS, K)
-        assert body.step(fused, biases).shape == (CELLS, K)
+        assert operators.advance(fused).shape == (CELLS, K)
         assert body.decode(fused, biases).shape == (CELLS, N)
 
     def test_encode_fuses_prior_belief_with_new_evidence(self, body, biases):
@@ -165,30 +209,50 @@ class TestForwardPath:
         assert not torch.allclose(fused, body.encode(torch.randn(CELLS, K), stalk, biases))
         assert not torch.allclose(fused, body.encode(chart, torch.randn(CELLS, N), biases))
 
-    def test_forward_returns_the_advanced_chart_and_the_prediction(self, body, biases):
+    def test_forward_returns_the_advanced_chart_and_the_prediction(
+        self, body, biases, operators
+    ):
         chart = torch.randn(CELLS, K)
         stalk = torch.randn(CELLS, N)
-        advanced, prediction = body(chart, stalk, biases)
+        advanced, prediction = body(chart, stalk, biases, operators)
         assert advanced.shape == (CELLS, K)
         assert prediction.shape == (CELLS, N)
         expected_advanced, expected_prediction = body.advance(
-            body.encode(chart, stalk, biases), biases
+            body.encode(chart, stalk, biases), biases, operators
         )
         assert torch.equal(advanced, expected_advanced)
         assert torch.equal(prediction, expected_prediction)
 
+    def test_decode_is_linear_in_the_chart(self, body, biases):
+        # The readout gauge's claim, read straight off the map: `D z + b` is
+        # affine, so a doubled step in the chart doubles the step in the
+        # prediction, everywhere and not only inside a region.
+        chart = torch.randn(CELLS, K, dtype=torch.float64)
+        nudge = torch.randn(CELLS, K, dtype=torch.float64)
+        double = CellBody(body.shape, dtype=torch.float64)
+        with torch.no_grad():
+            double.decode_weight.copy_(body.decode_weight.double())
+        wide = CellBiases(body.shape, CELLS, dtype=torch.float64)
+        with torch.no_grad():
+            wide.decode_output_bias.copy_(biases.decode_output_bias.double())
+        one = double.decode(chart, wide)
+        two = double.decode(chart + nudge, wide)
+        three = double.decode(chart + 2 * nudge, wide)
+        assert torch.allclose(three - two, two - one, atol=1e-12)
+
     def test_the_activation_is_relu(self, shape):
-        # Piecewise-linear is what the timescale mechanism is made of, and ReLU
-        # is the instance: drive the hidden layer far negative and the map is
-        # exactly its output bias.
+        # Piecewise-linear is what the fold vocabulary is made of, and ReLU is
+        # the instance: drive `encode`'s hidden layer far negative and the map
+        # is exactly its output bias. `encode` is the only map this can be
+        # asked of now -- the other two are linear.
         body = CellBody(shape, generator=torch.Generator().manual_seed(11))
         biases = CellBiases(shape, CELLS, bias_variance=0.0)
         with torch.no_grad():
-            biases.step_hidden_bias -= 1e6
-        chart = torch.randn(CELLS, K)
-        assert torch.allclose(body.step(chart, biases), torch.zeros(CELLS, K))
+            biases.encode_hidden_bias -= 1e6
+        fused = body.encode(torch.randn(CELLS, K), torch.randn(CELLS, N), biases)
+        assert torch.allclose(fused, torch.zeros(CELLS, K))
 
-    def test_the_map_is_exactly_affine_inside_one_activation_region(self, shape):
+    def test_encode_is_exactly_affine_inside_one_activation_region(self, shape):
         # The partition into convex polytopes on each of which the map is
         # exactly affine is the object the timescale mechanism is made of.
         # Read in float64: the finite differences below cancel away most of a
@@ -204,42 +268,57 @@ class TestForwardPath:
         body = CellBody(shape, generator=generator, dtype=torch.float64)
         biases = CellBiases(shape, CELLS, generator=generator, dtype=torch.float64)
         chart = torch.randn(CELLS, K, generator=generator, dtype=torch.float64)
+        stalk = torch.randn(CELLS, N, generator=generator, dtype=torch.float64)
         nudge = 1e-6 * torch.randn(CELLS, K, generator=generator, dtype=torch.float64)
-        one = body.step(chart, biases)
-        two = body.step(chart + nudge, biases)
-        three = body.step(chart + 2 * nudge, biases)
+        one = body.encode(chart, stalk, biases)
+        two = body.encode(chart + nudge, stalk, biases)
+        three = body.encode(chart + 2 * nudge, stalk, biases)
         assert torch.allclose(three - two, two - one, atol=1e-15)
 
     @pytest.mark.parametrize("bad", [torch.zeros(CELLS, K + 1), torch.zeros(K)])
-    def test_a_misshaped_chart_is_refused(self, body, biases, bad):
+    def test_a_misshaped_chart_is_refused(self, body, biases, operators, bad):
         with pytest.raises(ValueError, match="chart"):
-            body.step(bad, biases)
+            body.decode(bad, biases)
+        with pytest.raises(ValueError, match="chart"):
+            operators.advance(bad)
 
 
 class TestBatchedExecution:
-    def test_the_population_is_one_evaluation_not_a_loop(self, body, biases):
+    def test_the_population_is_one_evaluation_not_a_loop(
+        self, body, biases, operators
+    ):
         # A per-cell loop must agree with the batched pass exactly -- that
-        # equality is what licenses only ever running the batched one.
+        # equality is what licenses only ever running the batched one. `K` is
+        # `[cells, k, k]` and one `bmm`, so it batches over a leading dimension
+        # like everything else rather than being many small models.
         chart = torch.randn(CELLS, K)
         stalk = torch.randn(CELLS, N)
-        advanced, prediction = body(chart, stalk, biases)
+        with torch.no_grad():
+            operators.K.normal_(0.0, 0.2, generator=torch.Generator().manual_seed(5))
+        advanced, prediction = body(chart, stalk, biases, operators)
 
         for cell in range(0, CELLS, 37):
             one = CellBiases(body.shape, 1, bias_variance=0.0)
+            alone = CellOperators(body.shape, 1)
             with torch.no_grad():
                 for name, bias in biases.named_parameters():
                     getattr(one, name).copy_(bias[cell : cell + 1])
+                alone.K.copy_(operators.K[cell : cell + 1])
             alone_advanced, alone_prediction = body(
-                chart[cell : cell + 1], stalk[cell : cell + 1], one
+                chart[cell : cell + 1], stalk[cell : cell + 1], one, alone
             )
             assert torch.allclose(alone_advanced, advanced[cell : cell + 1], atol=1e-6)
             assert torch.allclose(alone_prediction, prediction[cell : cell + 1], atol=1e-6)
 
     def test_the_population_size_is_not_baked_into_the_body(self, shape, body):
-        # One body, any number of cells: the cell count lives on the biases.
+        # One body, any number of cells: the cell count lives on the per-cell
+        # surface.
         for cells in (1, 7, CELLS):
             biases = CellBiases(shape, cells)
-            out, prediction = body(torch.randn(cells, K), torch.randn(cells, N), biases)
+            operators = CellOperators(shape, cells)
+            out, prediction = body(
+                torch.randn(cells, K), torch.randn(cells, N), biases, operators
+            )
             assert out.shape == (cells, K)
             assert prediction.shape == (cells, N)
 
@@ -248,12 +327,17 @@ class TestMismatchedSurfaces:
     def test_biases_from_a_different_shape_are_refused(self, body):
         other = CellBiases(BodyShape(n=64, k=8), CELLS)
         with pytest.raises(ValueError, match="this body"):
-            body.step(torch.randn(CELLS, K), other)
+            body.encode(torch.randn(CELLS, K), torch.randn(CELLS, N), other)
 
     def test_one_bias_vector_is_not_broadcast_over_a_population(self, shape, body):
         single = CellBiases(shape, 1)
         with pytest.raises(ValueError, match="cells"):
-            body.step(torch.randn(CELLS, K), single)
+            body.encode(torch.randn(CELLS, K), torch.randn(CELLS, N), single)
+
+    def test_one_operator_is_not_broadcast_over_a_population(self, shape):
+        single = CellOperators(shape, 1)
+        with pytest.raises(ValueError, match="cells"):
+            single.advance(torch.randn(CELLS, K))
 
 
 class TestSubset:
@@ -263,11 +347,8 @@ class TestSubset:
         index = torch.tensor([7, 3, 3, 0])
         kept = biases.subset(index)
         assert kept.cells == 4
-        for name in ("encode", "step", "decode"):
-            for role in range(2):
-                assert torch.equal(
-                    kept.of(name)[role], biases.of(name)[role][index]
-                )
+        for name, parameter in biases.named_parameters():
+            assert torch.equal(getattr(kept, name), parameter[index])
 
     def test_keeping_nothing_is_representable(self, biases):
         # A band no draw reached keeps nothing, which is a result rather than a
@@ -305,6 +386,110 @@ class TestSubset:
         with pytest.raises(ValueError, match="not mask them"):
             biases.subset(mask)
         assert biases.subset(mask.nonzero(as_tuple=False).flatten()).cells == 3
+
+
+class TestTheOperators:
+    """`K`, the per-cell operator the conversion put in `step`'s place (#138)."""
+
+    def test_k_is_dense_per_cell_and_square_in_the_chart(self, operators):
+        assert operators.K.shape == (CELLS, K, K)
+
+    def test_k_is_the_identity_scaled_at_construction(self, shape):
+        # `a.I` rather than a random draw, so an untrained graph is quiescent
+        # rather than noisy: a cell not yet predicting anything should not be
+        # emitting.
+        built = CellOperators(shape, 4, scale=0.5)
+        assert torch.equal(built.K, 0.5 * torch.eye(K).expand(4, K, K))
+
+    def test_k_carries_no_bias(self, operators):
+        # An affine `K` makes the *dynamics* affine -- a drift that compounds
+        # every tick, which is the persistent offset ADR-0004 refuses to let a
+        # linear map launder away. `decode`'s output bias is the permitted
+        # kind: a static readout offset that never accumulates.
+        assert [name for name, _ in operators.named_parameters()] == ["K"]
+
+    def test_advancing_is_exactly_the_matrix_product(self, operators):
+        with torch.no_grad():
+            operators.K.normal_(0.0, 0.3, generator=torch.Generator().manual_seed(2))
+        chart = torch.randn(CELLS, K)
+        expected = torch.stack(
+            [operators.K[c] @ chart[c] for c in range(CELLS)]
+        )
+        assert torch.allclose(operators.advance(chart), expected, atol=1e-6)
+
+    def test_a_scale_outside_the_band_is_refused(self, shape):
+        # The band is `[1/rho_K, 1]`, and `a` is inside it or it is not `a`.
+        with pytest.raises(ValueError, match=r"\[1/rho_k, 1\]"):
+            CellOperators(shape, 4, scale=1.5)
+        with pytest.raises(ValueError, match=r"\[1/rho_k, 1\]"):
+            CellOperators(shape, 4, scale=0.4, rho_k=2.0)
+
+
+class TestTheOperatorBand:
+    """#140: the band is on the norm, not the radius, and it is spectral."""
+
+    def test_the_band_is_restored_from_above(self, operators):
+        # The upper face is exactly 1: what it forbids is amplification, and a
+        # cell sitting at 1 is non-expansive rather than divergent.
+        with torch.no_grad():
+            operators.K.mul_(50.0)
+        operators.project()
+        assert torch.allclose(
+            operators.norms.detach(), torch.ones(CELLS), atol=1e-5
+        )
+
+    def test_the_band_is_restored_from_below(self, operators):
+        with torch.no_grad():
+            operators.K.mul_(1e-4)
+        operators.project()
+        assert torch.allclose(
+            operators.norms.detach(),
+            torch.full((CELLS,), 1.0 / DEFAULT_RHO_K),
+            atol=1e-5,
+        )
+
+    def test_an_operator_already_inside_the_band_is_left_alone(self, operators):
+        with torch.no_grad():
+            operators.K.mul_(0.75)
+        before = operators.K.detach().clone()
+        operators.project()
+        assert torch.allclose(operators.K.detach(), before, atol=1e-6)
+
+    def test_the_constrained_quantity_is_the_norm_not_the_radius(self, shape):
+        # The whole of #140's correction, as a construction: a matrix whose
+        # spectral radius is small and whose spectral norm is enormous. A band
+        # written on the radius would pass this untouched and leave `body` an
+        # unbounded factor in the transmission budget.
+        operators = CellOperators(shape, 1)
+        with torch.no_grad():
+            operators.K.zero_()
+            operators.K[0, 0, 1] = 50.0
+        assert float(operators.radii()[0]) == pytest.approx(0.0, abs=1e-6)
+        assert float(operators.norms.detach()[0]) == pytest.approx(50.0, rel=1e-4)
+        operators.project()
+        assert float(operators.norms.detach()[0]) == pytest.approx(1.0, rel=1e-4)
+
+    def test_projecting_is_a_rescale_and_keeps_the_direction(self, operators):
+        # ADR-0010's mechanism: the whole map is rescaled, so what the band
+        # restores is magnitude and never the operator's structure.
+        with torch.no_grad():
+            operators.K.normal_(0.0, 2.0, generator=torch.Generator().manual_seed(9))
+        before = operators.K.detach().clone()
+        operators.project()
+        ratio = (operators.K.detach() / before).flatten(1)
+        assert torch.allclose(ratio, ratio[:, :1].expand_as(ratio), atol=1e-5)
+
+    def test_a_band_below_one_is_refused(self, shape):
+        with pytest.raises(ValueError, match="rho_k >= 1"):
+            CellOperators(shape, 4, rho_k=0.5)
+
+    def test_the_kept_operators_are_the_ones_asked_for_in_that_order(self, operators):
+        with torch.no_grad():
+            operators.K.normal_(0.0, 0.3, generator=torch.Generator().manual_seed(4))
+        index = torch.tensor([7, 3, 3, 0])
+        kept = operators.subset(index)
+        assert kept.cells == 4
+        assert torch.equal(kept.K, operators.K[index])
 
 
 class TestBenchmark:

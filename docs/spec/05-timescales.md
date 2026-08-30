@@ -21,7 +21,7 @@ bought here:
 |---|---|
 | **Commitment** — holding an abstract intention steady while the rim churns | this section |
 | **Representation** — encoding a variable that only exists over seconds | this section |
-| **Memory** — retaining information across hundreds of ticks | recurrent failure modes; escape hatch is recurrent-state gating, a protected channel through `step` before a learned gate |
+| **Memory** — retaining information across hundreds of ticks | recurrent failure modes; escape hatch is recurrent-state gating, a protected channel through `K` before a learned gate |
 | **Credit** — associating an abstract belief with a much later outcome | [`#5`](https://github.com/NGL321/patchworks/issues/5) |
 
 Nothing in this section improves memory or credit assignment. Believing otherwise later would be a
@@ -96,14 +96,32 @@ dynamics, and that second half has no analogue in a formalism with no per-node r
 ### Persistence under the cell's own dynamics: the regional Jacobian
 
 Insulation is from *neighbours*. It is not insulation from the cell itself — the private component
-still passes through `encode` → `step` → `decode` every tick, and nothing about `ker δ` makes that
-round trip near-identity.
+still passes through `encode` → `K` → `decode` every tick, and nothing about `ker δ` makes that round
+trip near-identity.
 
-What supplies persistence is bias translation. Per `01-cell-and-sheaf.md`
-(*The division of labour between the two adapting surfaces*), the shared frozen body is one
-piecewise-linear map whose fold directions are fixed and whose fold offsets are per-cell. Each cell
-therefore operates in a **different activation region of the same map**, and each region has its own
-local Jacobian with its own spectrum.
+> **The Koopman conversion moved where persistence comes from, and this section has not been rewritten
+> around the successor** ([#138](https://github.com/NGL321/patchworks/issues/138),
+> [#140](https://github.com/NGL321/patchworks/issues/140)). What follows describes the mechanism as
+> built: persistence supplied by *bias translation*, read off the regional spectra of a frozen
+> piecewise-linear map. The conversion replaced the map that carried it. `K` is a per-cell learned
+> linear operator, so a cell's decay is now `ρ(K)` composed with `encode`'s regional Jacobian rather
+> than `step`'s regional spectrum alone — **twelve per-cell time constants where there were none**.
+>
+> That is the foreclosure ADR-0005 recorded and this conversion **lifts**: per-cell time constants
+> were rejected because they "appeared to be foreclosed by the shared frozen body", and a per-cell `K`
+> *is* a per-cell time constant. The four-way choice this document made is therefore **reopened**, and
+> its replacement is **not decided here** — reading timescale off `K`'s spectrum is a separate
+> question with its own difficulties, and it is deliberately not front-run.
+>
+> What survives unchanged in the meantime: activation regions and fold margins are still real,
+> because `encode` is still ReLU; the construction rig still places every cell's `τ` before anything
+> runs; and nothing stores a rate for a running cell to consult.
+
+What supplied persistence in the built mechanism is bias translation. Per `01-cell-and-sheaf.md`
+(*The division of labour between the two adapting surfaces*), `encode` is one piecewise-linear map
+whose fold directions are fixed and whose fold offsets are per-cell. Each cell therefore operates in a
+**different activation region of the same map**, and each region has its own local Jacobian with its
+own spectrum.
 
 **Two quantities, permanently distinguished.** An earlier draft of this section collapsed them, and
 [#27](https://github.com/NGL321/patchworks/issues/27)'s measurement found the collapse: at a fixed
@@ -150,12 +168,15 @@ Narrow: real spread, margins that may not hold. Recorded here because this secti
 bad choice.
 
 **That choice is now made, and it was cheaper than the axis suggests.**
-[`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md)'s *The body's construction* sizes each map at its own
+[`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md)'s *The body's construction* sized each map at its own
 minimum width — 45 / 13 / 32 for `encode` / `step` / `decode` — on the measurement that the wide end
 of the axis buys no spread to trade for the margin it costs (τ ratio 2.4 at `[128]`/`[32]` against 2.7
-at `[45]`/`[13]`, median fold margin 0.0067 against 0.019). The three maps are also **sized
-separately**, and the margin follows the narrowest map on the chart's round trip, so `encode` can meet
-a floor `step` never pays for.
+at `[45]`/`[13]`, median fold margin 0.0067 against 0.019).
+
+**After the conversion only `encode`'s 45 remains**: `K` and `decode` are linear and have no hidden
+width. The clause about the margin following the narrowest map on the round trip is spent — there is
+one map with folds now, so the margin is `encode`'s outright, which is what raised the measured cap
+from 0.2600 to 0.3502.
 
 [#42](https://github.com/NGL321/patchworks/issues/42) is why that choice costs nothing per cell:
 **inside a fixed body a cell's decay rate and its fold margin are uncorrelated** — `corr(log ρ, log
@@ -217,7 +238,8 @@ parameter of the body (`01-cell-and-sheaf.md`), and this is the first thing that
 on: the body is to be constructed for spread, not merely assumed to have it. Whether such a
 construction exists was [#27](https://github.com/NGL321/patchworks/issues/27) — *constructible but
 coupled* — and [#42](https://github.com/NGL321/patchworks/issues/42) took the coupling apart. The
-construction has four parts, and they are as much a constraint on the body as `n = 32` and `k = 12`:
+construction has **five** parts, and they are as much a constraint on the body as `n = 32` and
+`k = 12`. The fifth arrived with the Koopman conversion:
 
 1. **`σ_w²` is set for containment, and never asked to buy spread.** It is a global, shared,
    frozen quantity; using it to widen the `τ` distribution is what put a material fraction of
@@ -247,6 +269,28 @@ construction has four parts, and they are as much a constraint on the body as `n
    measured a 2.6× one-tick non-normal amplification, and the slow-and-stable band is thin (of
    20,000 draws at one candidate width, `ρ ∈ [0.98, 1)` holds 0.15% while `ρ ≥ 1` holds 0.53%), so
    a cell placed at `ρ = 0.99` is one bias update from crossing.
+5. **`a`, the scalar in `K = a·I` at construction, is the largest value in the operator band for
+   which the cap above still admits the target band.** A number the construction run produces *per
+   body*, exactly as the cap in (4) is — the module's existing habit rather than a new one. Read
+   plainly: *take the longest memory that still demonstrably forgets.*
+
+   It is not free, and the coupling is why it belongs here rather than in
+   [`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md) alone. The realised recurrence this rig measures
+   is `K @ J_encode`, and at construction that is `a · J_encode`, so **`a` multiplies every cell's
+   placed `τ`**. The two faces guard opposite failures and are easy to get backwards: too small and
+   `ρ → 0`, the chart is wiped every tick and the cell collapses toward its bias; too large and the
+   cell **never forgets** and stops settling at all — not a zeroing, a never-letting-go.
+
+   **The timescale constraint is the binding one, not transmission.** Nothing rides on transmission
+   at initialisation; the construction-time go/no-go must be *valid*.
+
+   **Measured on the default body (#157), and the honest reading is that `a` is not currently the
+   binding constraint.** Containment holds for all 2048 candidates at every `a` in the band, so the
+   upper face never binds, and the cap simply rises with `a` — 0.90 ticks at `a = 0.5` to 2.50 at
+   `a = 1.0`. Both readings of the demo's horizons ask for a slow end of 14 ticks or more, so the
+   target is unreachable by roughly 6× whatever `a` does, and the rule returns the **ceiling**. That
+   shortfall is a pre-existing property of a body whose effective timescale sits around one tick, and
+   it is what arm 1 of the go/no-go below exists to report.
 
 **Selected timescales are assigned by level, in overlapping bands.** The taper's gradient
 (`06-graph-topology.md`) is continuous, not two rates: adjacent levels overlap and only their
@@ -283,7 +327,8 @@ well spent. If the band is reachable but dwell is short against `τ`, the mechan
 it is not this one either — see *The precondition* above.
 
 The estimator is the rig's: `prototypes/regional-spectra/spread_pilot.py` and its extension
-`selection_sweep.py` — the latter adding separate `encode`/`step` widths, the fold-margin column,
+`selection_sweep.py` — the latter adding separate `encode`/`step` widths (before the conversion left
+one), the fold-margin column,
 the tail-reachability count and the trajectory `λ` estimator #42 decided on — hold the
 eigendecomposition, the seeds, the sample sizes (50 cells suffice), and the pseudospectral tooling
 for the non-normality gap. Two limits are structural rather than provisional, and the go/no-go is

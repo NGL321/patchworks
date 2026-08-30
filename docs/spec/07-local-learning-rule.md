@@ -4,32 +4,72 @@ What updates a cell's adapting surface, given the cell and sheaf contract fixed 
 [`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md) and the tick semantics fixed in
 [`02-tick-semantics.md`](./02-tick-semantics.md). Settled in
 [patchworks#5](https://github.com/NGL321/patchworks/issues/5); see
-[ADR-0008](../adr/0008-the-local-rule-splits-by-parameter-not-by-cell.md).
+[ADR-0008](../adr/0008-the-local-rule-splits-by-parameter-not-by-cell.md), amended by
+[#139](https://github.com/NGL321/patchworks/issues/139) when the Koopman conversion widened the first
+rule and renamed it.
 
 Terms used here are defined in [`CONTEXT.md`](../../CONTEXT.md).
 
 ## Two rules, not one
 
-The adapting surface has two parameter groups doing different jobs — biases run inference, restriction
-maps run transport (see *The division of labour between the two adapting surfaces*,
-[`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md)) — and the local learning rule respects that split
-rather than collapsing it. It is **two rules**, each training one parameter group off one of the two
-signals already sitting at a cell without any new channel.
+The adapting surface has two parameter groups doing different jobs — the cell's own inference
+parameters run inference, restriction maps run transport (see *The division of labour between the two
+adapting surfaces*, [`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md)) — and the local learning rule
+respects that split rather than collapsing it. It is **two rules**, each training one parameter group
+off one of the two signals already sitting at a cell without any new channel.
 
-### The bias rule
+The sentence the split is for: **prediction error trains how a cell thinks; disagreement trains how it
+talks.**
 
-Trains biases on **prediction error**: the difference between what `decode` predicted last tick and the
-node stalk the cell reads in as evidence this tick. Because reconciliation edits the node stalk between
-the two ticks, this signal already carries whatever the neighbours' disagreement did to the cell's
-belief — without the bias rule ever reading a neighbour directly.
+### The prediction rule
 
-The update is a local gradient step through the cell's own frozen forward path — `encode`, `step`,
-`decode` — stopped at the per-cell biases the shared body doesn't own. This is a closed backprop
-entirely inside one cell's small MLP: no different in kind from ordinary backprop-to-input, and no
-different in cost, since the body is small and the pass never leaves the cell.
+Trains the cell's own inference parameters — its **biases and its operator `K`** — on **prediction
+error**: the difference between what `decode` predicted last tick and the node stalk the cell reads in
+as evidence this tick. Because reconciliation edits the node stalk between the two ticks, this signal
+already carries whatever the neighbours' disagreement did to the cell's belief — without the rule ever
+reading a neighbour directly.
 
-This is the predictive-coding element of the architecture. It trains inference — the body's operating
-point — and never touches a restriction map.
+> **This was the bias rule until [#139](https://github.com/NGL321/patchworks/issues/139).** The
+> Koopman conversion gave each cell a learned operator, and ADR-0008 splits on *which already-local
+> signal a parameter group trains on* rather than on structure: `K` is on the same forward path, owned
+> by the same cell, trained on the same signal toward the same objective, in the same backward pass, on
+> the same cadence. So the rule **widened** rather than gaining a sibling, and it is renamed for its
+> signal — which is what the split is actually about, and what makes it pair symmetrically with the
+> transport rule. The name "bias rule" was never wrong so much as narrow: what it trained happened to
+> be all biases, and that coincidence ended with the conversion. **Prediction error keeps its name**;
+> it is the signal, and it is unchanged.
+
+The update is a local gradient step through the cell's own forward path — `encode`, `K`, `decode` —
+stopped at the per-cell surface the shared body doesn't own. This is a closed backprop entirely inside
+one cell: no different in kind from ordinary backprop-to-input, and no different in cost, since the
+body is small and the pass never leaves the cell. `decode` is linear and frozen, so **one backward pass
+yields both gradients** — `K` and the surviving biases lie on the same path and there is no second pass
+to arrange.
+
+**The band is restored after the step**, not inside the objective: `σ_max(K)` is projected back into
+`[1/ρ_K, 1]` exactly as ADR-0010's gauge projection restores a restriction map's scale
+([ADR-0015](../adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md)). That placement is what
+makes it a projection rather than a second rule — it is not in the objective, it has no gradient, and
+it reads nothing the cell did not already own.
+
+**No additive term, and the asymmetry with the transport rule is deliberate.** The band forbids
+non-normal transient amplification while a dense `K` trained on a temporal objective pulls toward it,
+so the projection and the gradient fight every step. The tempting fix — a soft penalty, the
+sparsity-pressure analogue — is refused: the right template for a stability constraint is a direct
+parameterisation rather than a penalty, so the fight is not a defect to damp but the **observable that
+triggers the fallback** from a dense `K` to a structured one. The transport rule carries an additive
+term and this one carries none, and that is now on the record with a reason rather than as an accident
+of what each rule happened to need.
+
+**What is trained is defined rather than listed.** There is no allowlist: the body's weights are
+registered as buffers and the per-cell surface as parameters, so *buffers are the frozen body,
+parameters are the adapting surface*, and registering `K` as a parameter **is** the widening. The
+alternative was rejected on its failure direction — an implicit target fails loudly, silently
+*training* a parameter added for another reason, where an explicit list fails quietly, leaving one
+never trained and sitting at its initial value forever.
+
+This is the predictive-coding element of the architecture. It trains inference — the cell's operating
+point and its chart's dynamics — and never touches a restriction map.
 
 ### The transport rule
 
@@ -92,6 +132,22 @@ Nothing else broadcasts. A global loss, confidence readout, or any other signal 
 a specific cell's error is explicitly rejected — that would be backprop across the architecture wearing
 a different name.
 
+**`K` descends at `η_K = c · η`, and `c` is a construction constant rather than a third signal.** The
+rates should differ for a mechanical reason: `K`'s gradient is scaled by the frozen `‖D‖·‖J_encode‖`
+where a bias gradient is not, so equal step sizes do not mean equal steps. What the clause above guards
+is that a permitted signal be *schedule-shaped rather than information-shaped*, and a fixed ratio
+carries no cell's error anywhere. It is visible and auditable, and sits beside `a` and `ρ_K` as one
+more number the build fixes — where a hidden per-group rate buried in an optimiser would be exactly
+the thing worth objecting to. Unlike `a` it is a **default with a retune duty rather than a rule**:
+nothing gates it at construction, so it inherits `η`'s own status as the thing to retune first once a
+run can be measured.
+
+**The cadence is every tick, for `K` as for the biases.** A slower cadence was considered and
+rejected: giving a parameter group its own *schedule* is a far stronger claim to separateness than a
+rate is, and it would stand up a second timescale mechanism beside the one the conversion just
+reopened. Timescale belongs to `K`'s spectrum ([`05-timescales.md`](./05-timescales.md)) and is not
+smuggled in here as an update schedule.
+
 ## What information cohomology does not supply
 
 Considered and disqualified as the shape of either rule; recorded in
@@ -106,10 +162,14 @@ both rules already take the same shape ADR-0002 requires of reconciliation — a
 applied after that tick's signals are read — so simultaneity across cells adds no new locality
 problem. Across ticks the risk splits by parameter group and neither half needed new mechanism:
 
-- The **bias rule** can leave a mid-depth cell oscillating between activation regions under
+- The **prediction rule** can leave a mid-depth cell oscillating between activation regions under
   ambiguous evidence rather than settling — the **settling floor**, a third kind alongside static and
   lag in ADR-0007's taxonomy. Bounded by the same `γ` that bounds reconciliation; tolerated, not
-  represented, like the other two.
+  represented, like the other two. The floor **survives the conversion**: it is defined over activation
+  regions, and those come from `encode`, which is still ReLU. Whether a learned `K` has an *analogous*
+  failure — an operator that never settles because its evidence is sign-flipping — is this decision's
+  pre-registered falsification and **is not settled here**: it cannot be answered by argument, because
+  it needs charts from a graph that transmits.
 - The **transport rule** needed no bound of its own. It was found to make ADR-0007's existing
   `γ × floor < fold margin` check go stale, since it trains the magnitudes the `Σ_e m_e` proxy stands in
   for, and the fix was a per-cell re-derivation on the anneal schedule. **[ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md)
@@ -117,6 +177,10 @@ problem. Across ticks the risk splits by parameter group and neither half needed
   `λ_max(Σ_e F_evᵀF_ev) ≤ ρ² · deg(v)`, so the denominator in
   [`02-tick-semantics.md`](./02-tick-semantics.md) is a provable bound rather than a proxy that has to
   be re-checked.
+
+ADR-0008's standing note that *stability under simultaneous, cell-local learning is explicitly not
+resolved by this ADR* is unchanged by the widening, and now has a named successor in the paragraph
+above rather than standing open with nothing pointing at it.
 
 Neither the **change gate** ([`05-timescales.md`](./05-timescales.md)) nor the probabilistic sheaf
 plays a role: confirmed orthogonal, and declined a third time respectively. See ADR-0007,

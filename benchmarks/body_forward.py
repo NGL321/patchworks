@@ -1,10 +1,14 @@
-"""Forward-pass wall time of the shared frozen cell body (ticket #84).
+"""Forward-pass wall time of the cell body (ticket #84).
 
 `docs/spec/09-the-build-stack.md`, *Measured, not assumed*, carried a numpy
 stand-in at body width 128 because the body's hidden width was not yet
 specified. It is now, so this measures the real thing: the whole population's
 inference-phase forward path at the sizes `06-graph-topology.md` fixes --
 ~150 predicting cells, `n = 32`, `k = 12` -- as one batched evaluation.
+
+Since #138 the path is `encode` (nonlinear, frozen), the per-cell operator `K`
+(one `bmm`), and a linear `decode`, so this measures a *cheaper* body than the
+number on record: two of the three maps lost their hidden layer.
 
 The tick carries no tape (`09-the-build-stack.md`, *The locality guard*), so
 the measured path runs under `torch.no_grad()`, which is how it runs for real.
@@ -22,7 +26,7 @@ import time
 
 import torch
 
-from patchworks.body import BodyShape, CellBiases, CellBody
+from patchworks.body import BodyShape, CellBiases, CellBody, CellOperators
 
 CELLS = 150
 REPEATS = 200
@@ -34,6 +38,7 @@ def time_forward(cells: int, shape: BodyShape, repeats: int = REPEATS) -> list[f
     generator = torch.Generator().manual_seed(0)
     body = CellBody(shape, generator=generator)
     biases = CellBiases(shape, cells, generator=generator)
+    operators = CellOperators(shape, cells)
     chart = torch.randn(cells, shape.k, generator=generator)
     node_stalk = torch.randn(cells, shape.n, generator=generator)
 
@@ -41,12 +46,13 @@ def time_forward(cells: int, shape: BodyShape, repeats: int = REPEATS) -> list[f
     with torch.no_grad():
         for i in range(WARMUP + repeats):
             start = time.perf_counter()
-            chart, _prediction = body(chart, node_stalk, biases)
+            chart, _prediction = body(chart, node_stalk, biases, operators)
             elapsed = time.perf_counter() - start
             if i >= WARMUP:
                 samples.append(elapsed * 1e3)
-            # The chart persists across ticks, and a frozen body contracts, so
-            # re-seed rather than let the population decay into one region.
+            # The chart persists across ticks, and the untrained body contracts
+            # (`K = a.I` with `a <= 1`, then `encode`), so re-seed rather than
+            # let the population decay into one region.
             if not torch.isfinite(chart).all() or chart.abs().max() < 1e-6:
                 chart = torch.randn(cells, shape.k, generator=generator)
     return samples

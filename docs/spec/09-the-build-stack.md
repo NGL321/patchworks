@@ -46,9 +46,11 @@ therefore moves total wall-clock by well under a third of something that is not 
 not a tick, which is why it is so much the smaller of the two. The stand-in was an
 order-of-magnitude figure taken before the body's hidden width was specified;
 [`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md)'s *The body's construction* has since sized each map
-at its own minimum, and `benchmarks/body_forward.py` times the real thing — one shared frozen body,
-per-cell biases with a `[cells, ·]` leading dimension, the whole population in a single batched
-`encode`/`step`/`decode` under `no_grad`. It costs **4% of `env.step()`**, and the cell count barely
+at its own minimum, and `benchmarks/body_forward.py` times the real thing — one shared frozen
+`encode` and `decode`, a per-cell surface with a `[cells, ·]` leading dimension, the whole population
+in a single batched `encode`/`K`/`decode` under `no_grad`. The figure below predates the Koopman
+conversion, which made the path **cheaper**: two of the three maps lost their hidden layer, and `K` is
+one `bmm`. It costs **4% of `env.step()`**, and the cell count barely
 shows: 1 cell is 0.075 ms and 1500 cells 0.26 ms, so what is being timed at this size is mostly
 per-op overhead rather than arithmetic.
 
@@ -110,13 +112,13 @@ Both halves of the local learning rule then run as a **separate** phase, as a fu
   contribution to each of its incident edges.
 
 Each cell's update builds a fresh, small graph — the closed backprop through the cell's own frozen
-forward path that `07-local-learning-rule.md` specifies for the bias rule, and the per-edge gradient plus
+forward path that `07-local-learning-rule.md` specifies for the prediction rule, and the per-edge gradient plus
 gauge projection for the transport rule — and that graph dies at the end of the step. A neighbour's
 parameters are not merely severed from it; they are not in it.
 
 **What is detached is the state, not the quantity being descended on.** Each rule *recomputes* its own
 objective live in that cell's own parameters; a number carried over dead from the tick has no gradient
-in anything. The bias rule re-runs the cell's own frozen forward path so that prediction error is live
+in anything. The prediction rule re-runs the cell's own forward path so that prediction error is live
 in the biases, against a detached target. The transport rule recomputes the disagreement on each
 incident edge so that it is live in that cell's own map — and this is the one place where the sheaf
 differs from a feedforward chain in a way that matters here. Disagreement on an edge is a function of
@@ -205,7 +207,7 @@ the guard rather than scaffolding around the cheap check.
 **Both halves are built, and both run in CI on every push**
 ([#90](https://github.com/NGL321/patchworks/issues/90)). The assertion is `assert_no_tape` in
 `src/patchworks/tick.py`, called on the way out of each phase and on the way into each rule; the
-perturbation test is `tests/test_perturbation.py`, covering the bias rule's per-cell path and the
+perturbation test is `tests/test_perturbation.py`, covering the prediction rule's per-cell path and the
 transport rule's per-edge path. It holds the tick's state **fixed** across a perturbation, because
 the guard is a claim about the learning phase: ticking between the two readings would let a
 perturbation reach a neighbour through reconciliation, which is the architecture working rather than

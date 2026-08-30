@@ -34,6 +34,12 @@ of biases, and the population's forward pass is a few `~150 × 32` matmuls in an
 environment is classic MuJoCo on the host, so every tick leaves the framework and comes back: the
 *loop* cannot be fused into one compiled program in either stack.
 
+*Footnote, [#138](https://github.com/NGL321/patchworks/issues/138).* A reader will check this against
+the Koopman conversion, which gave every cell its own operator, and the argument survives: `K` is
+`[cells, k, k]` and one `bmm` — still one batched op over a leading dimension, not many small models.
+It is worth noting only because ADR-0001's freeze is the premise, and that premise narrowed; the ADR
+already records that the frozen-body argument was **not** what decided the choice.
+
 **Measured on the development laptop** (i7-8750H, CPU) at the sizes in
 [`06-graph-topology.md`](../spec/06-graph-topology.md): `env.step()` including the 64×64 render is
 **3.18 ms**, against an agent tick of **1.04 ms** forward and roughly **3 ms** with gradients. The
