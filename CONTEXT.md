@@ -18,8 +18,11 @@ The low-dimensional coordinates a cell computes in — the compressed feature se
 from its node stalk and advances in time. Its dimension is fixed by construction and below
 that of the node stalk; its content is learned and need not correlate with any exposed
 feature. The word is used in its strict sense: coordinates on the cell's own piece of the
-problem, which is taken to be locally Euclidean and of the chart's dimension.
-_Avoid_: latent, internal representation, hidden state, embedding
+problem, which is taken to be locally Euclidean and of the chart's dimension. The chart
+**persists** across ticks and the cell's own operator advances it; it is not recomputed from the
+node stalk each tick, and it is not a lift — the design has no lifted space and no second
+dimension besides the piece's (ADR-0014).
+_Avoid_: latent, internal representation, hidden state, embedding, lift
 
 **Piece**:
 The part of the problem one cell owns — locally Euclidean, and of the chart's dimension. What

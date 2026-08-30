@@ -25,6 +25,13 @@ requirement removed, which is why it is the right formalism here and an atlas is
 `k < n` follows from this rather than being asserted alongside it: **`k` is the dimension of the
 piece; `n` is the room needed to talk about it with neighbours.**
 
+**That is the only reading of `k` this design has.** The Koopman conversion appeared to create a
+second one — a lift dimension, chosen to make dynamics linear, which the literature puts one to two
+orders of magnitude *above* the state rather than below it. It does not:
+[ADR-0014](./0014-the-chart-is-not-a-koopman-lift.md) records that the chart persists and `K` is a
+linear recurrence rather than a lift, so this sentence stands unamended and unshared. Nothing here
+changes; what changes is that nothing else may borrow `k`.
+
 ## What this ADR does not claim
 
 *Added by [#141](https://github.com/NGL321/patchworks/issues/141).*
