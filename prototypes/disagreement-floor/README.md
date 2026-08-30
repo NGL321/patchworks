@@ -39,6 +39,7 @@ docker run --rm -v "$PWD:/work" -w /work --entrypoint python patchworks:headless
 |---|---|
 | `hold` | settle, then hold the world still (ADR-0007's protocol) and read the floor per level. `--learn N` reads it on a surface that has had `N` ticks of both rules instead. |
 | `jitter` | the same quantity's tick-to-tick variation with the sandbox live. `--impulse` disturbs the arm first, because the untrained fixed point is a locked one. |
+| `trajectory` | (#178) the same read at nine budgets out to 100,000 ticks, on **one** run. Repeated `hold --learn N` costs the sum of the budgets; this costs the largest. |
 | `sweep` | the hold across splits and seeds — a static floor is positional, and one pose reports on one point of the overlap. |
 | `optimum` | the structural control: the whole-graph minimum achievable energy, and what the delta does when the body is suppressed and reconciliation runs alone. |
 
@@ -144,6 +145,53 @@ re-derivation — on the grounds that ADR-0010's gauge stops the **denominator**
 drifting. That argument is sound and it does not reach this: what drifts here is the
 **floor**, by 144x over 30,000 ticks, in the direction of safety but not by any bound
 the record holds.
+
+## Where it settles: 30,000 ticks was not the answer (#178)
+
+Everything above is read at one budget, and the closing paragraph records that the
+floor was **still falling** there. [#178](https://github.com/NGL321/patchworks/issues/178)
+asked where it lands. `trajectory`, one run to 100,000 ticks — #120's own long-run
+budget — read at nine budgets along the way:
+
+| ticks | 1000 | 2000 | 5000 | 10000 | 20000 | **30000** | 50000 | 75000 | 100000 |
+|---|---|---|---|---|---|---|---|---|---|
+| apex | 0.243 | 0.364 | 0.096 | 0.151 | 0.246 | **0.217** | 0.097 | 0.104 | **0.087** |
+| all-cell median | 0.310 | 0.292 | 0.207 | 0.115 | 0.106 | **0.062** | 0.046 | 0.039 | **0.040** |
+| tightest cell | 3.02 | 14.9 | 13.6 | 15.4 | 16.1 | **3.85** | 0.837 | 0.263 | **0.175** |
+| `γ_cap` | 0.109 | 0.022 | 0.024 | 0.021 | 0.020 | **0.085** | 0.392 | **1.000** | **1.000** |
+
+The 30,000 column is the control and it reproduces the run above to five decimals —
+apex 0.21728, all-cell 0.06214, level 4 median 0.14574 with p95 2.40283 and max
+3.85384. The checkpointing does not disturb the trajectory it measures.
+
+**Three findings, and the third is the one that moves.**
+
+1. **The apex does not descend; it wanders, then settles.** Between 1k and 30k it
+   ranges 0.096 to 0.364 — a **3.8x** spread with no trend, and 30,000 ticks happened
+   to land near a local *high*. The last three reads are 0.097 / 0.104 / 0.087, a band
+   an order of magnitude tighter. That narrowing, not any single value, is what says
+   the quantity has settled.
+2. **It settles above the break-even, but not far above.** 0.0866 against 0.0587 is
+   **1.47x**, so the apex recovers `0.3278 / 0.0866` = **3.79x** of #155's 5.585x
+   rather than the 1.51x that 30,000 ticks reported. Against the post-#157 cap of
+   0.3502 the figure is **4.05x**.
+3. **The mid-depth tail is gone.** This is the finding above that does *not* survive
+   the longer budget. At 30k a handful of mid-depth cells read p95 2.40 and max 3.85
+   and capped the global `γ` at **0.085**; by 75k the worst cell in the whole graph is
+   0.263 and by 100k it is 0.175, so `γ_cap` is **1.0** and nothing caps `γ` below the
+   1.0 that `tick.py:71` ships. The binding level moves to the apex — the level `02`
+   says should bind — and the constraint stops being on `γ` at all.
+
+The non-monotonicity is worth carrying to
+[#160](https://github.com/NGL321/patchworks/issues/160) on its own account. That ticket
+asks whether a construction-time check can stand against a quantity that moves 144x in
+a run; the answer here is that it does not even move *monotonically*, so a check run at
+one budget has ~3.8x of scatter under it independent of where the floor ends up.
+
+**One draw.** Seed 42, `train` split, and the pre-#157 body — the same base as the run
+above, which is what makes the 30k control valid. The sweep found the split makes no
+difference and the seed does, so the 100k figures are one trajectory, not a
+distribution over draws.
 
 ## What this does not settle
 
