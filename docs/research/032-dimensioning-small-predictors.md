@@ -11,6 +11,41 @@ reached, that is stated rather than papered over. Reservoir computing was establ
 structural precedent by [#13](https://github.com/NGL321/patchworks/issues/13) and that work is not
 redone here — only the *sizing* question it left open is asked.
 
+## Amendment, 2026-08-30: this pass defends `k_piece`, and there is no second `k`
+
+Added on the resolution of [#145](https://github.com/NGL321/patchworks/issues/145), which was opened
+to ask whether this pass's defence of `k = 12` also covers the Koopman conversion's use of the chart.
+**It does not, and it does not need to.**
+
+The pass defends `k = 12` as the width at which a chart **injectively names** the states of a piece,
+via the fractal generalisation of Takens. That is a claim about *representation*. The conversion
+raised a second and different question — how many observables make the piece's *dynamics linear* —
+which #145 named `k_lift`, and which the [#148](https://github.com/NGL321/patchworks/issues/148)
+citation pass priced at one to two orders of magnitude **above** the state, not below it. Read
+against that scale, `k = 12` under `n = 32` would be indefensible.
+
+**#145 resolved that the design has no `k_lift`, because it has no lift.** The chart *persists*, and
+`encode` fuses it with new evidence every tick, so `K` is a linear recurrence driven by a nonlinear
+input map rather than an EDMD dictionary over an instantaneous state. See
+[ADR-0014](../adr/0014-the-chart-is-not-a-koopman-lift.md).
+
+Two consequences for this document specifically:
+
+- **Nothing below is withdrawn, and the delay-embedding reading is *strengthened*.** A persisting
+  chart is a delay embedding, which is the object this pass's Sauer–Yorke–Casdagli argument was
+  already about. #148 §4 identified generating the dictionary from delays as *"the cheapest fix
+  available to this architecture specifically"* and noted that this pass's argument and that one are
+  the same argument. They are — and the architecture was already making it structurally.
+- **The size×delay trade-off below is load-bearing, not colour.** Duan et al.'s result that reservoir
+  size trades against delay depth is what licenses a small per-cell `k` in a graph with unit delay on
+  every edge. Under the reframe it stops being corroboration and becomes part of the defence.
+
+**What this pass still does not cover** is the chart's *double duty*: `k = 12` must now name the
+piece **and** carry the cell's memory, and a linear recurrence's recoverable short-term memory is
+bounded by its state dimension — the same bound §"`n = 32`" below applies when it caps one cell's
+linearly recoverable memory at 32 delay taps. The headroom argument here covers the naming job alone.
+That gap is its own ticket, blocked on transmission.
+
 ## Headline verdict, stated plainly
 
 **Nothing in the literature speaks to `n = 32` / `k = 12` / `m = 4` as a set, and the two bodies of
