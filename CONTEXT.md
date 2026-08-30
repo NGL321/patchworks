@@ -520,3 +520,21 @@ and the gestures bound to the hands. Display only — it reads privileged state 
 as `info` and no cell reads anything it computes, so switching it off changes no trajectory. Kept
 distinct from the acceptance demo, which is the protocol the surface displays.
 _Avoid_: the viewer, the visualisation, the UI, the demo (bare), instrumentation
+
+**Conversation**:
+The object the language domain models: a **time series of events** — silence, floor-holding, turn
+boundaries, and who waits for whom — rather than the text those events produce. The distinction is
+load-bearing rather than stylistic. It is what makes the rim tick-indexed instead of event-indexed,
+so idle is a value carrying information rather than padding to be skipped; it is why the heard and
+spoken rims are aligned on one tick axis rather than kept as two transcripts; and it is why a pause
+is world dynamics rather than a gap in the clock. A corpus is the same text with the events deleted,
+which is why it is not the unit here.
+_Avoid_: dialogue, exchange, transcript, chat, session, episode
+
+**Wedge**:
+The graph's shape when the rim is a character stream: a fast taper over a tick-indexed buffer, where
+depth is temporal extent, merging into the dome's own core, where depth is abstraction. The two
+meanings of depth are kept apart deliberately, and neither region borrows the other's. Sibling of the
+*dome*, built by the same construction rule and differing in the number of axes its rim is indexed
+on; abandonable on the same terms.
+_Avoid_: stack, dilated stack, pyramid, temporal hierarchy, the language dome

@@ -29,6 +29,15 @@ mistake worth avoiding now.
 
 ## Depth does not supply it
 
+**Scoped to a spatially-indexed rim by
+[ADR-0014](../adr/0014-depth-decimates-in-time-and-not-in-space.md), and not weakened here.** The
+argument below is about **spatial** pooling, where the cells a level covers are all written on the
+same tick, and it is sound there — the dome is entirely spatial, so nothing in this section changes
+for the sandbox. Where a rim's own axis is *time*, a cell covering four slots covers four ticks, and
+that is a genuine decimation. The distinction went unnoticed while there was one domain and the two
+readings coincided; see [`11-the-language-graph.md`](./11-the-language-graph.md), where the taper is
+taken as **this section's instrument and not its mechanism**, at the cost of a piece of evidence.
+
 `01-cell-and-sheaf.md` states that depth buys horizon, not rate. The reason, stated here because it
 is the argument the rest of this section rests on:
 
