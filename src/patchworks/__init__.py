@@ -34,8 +34,15 @@ Built so far:
 * :mod:`patchworks.surface` — the demo surface: the tick record, and the one
   renderer that reads it. Outside the architecture by construction — display
   only, and no cell can reach it. Not imported here; import it directly.
-* :mod:`patchworks.cli` — the `patchworks` command: `doctor`, `check`, `dome`
-  and `demo`, and the `mjpython` re-exec so that nobody has to know about it.
+* :mod:`patchworks.progress` — `patchworks run`'s readout: a long headless run
+  reporting on a cadence, off the paired instrument in
+  :mod:`patchworks.diagnostics` rather than off numbers of its own. Outside the
+  architecture by the same rule as the surface — running with the reporting off
+  produces a bit-identical trajectory. Not imported here; the CLI reaches it
+  when the subcommand is asked for, so nothing else pays for it.
+* :mod:`patchworks.cli` — the `patchworks` command: `doctor`, `check`, `run`,
+  `dome` and `demo`, and the `mjpython` re-exec so that nobody has to know about
+  it.
   Outside the architecture by the same rule as the surface, and for the same
   reason. Not imported here — importing it would put argparse in the path of
   every `import patchworks`; `python -m patchworks` and the console script both

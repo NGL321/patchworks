@@ -845,7 +845,7 @@ def measure_liveness(
         world.close()
 
 
-def _environment_line() -> str:
+def environment_line() -> str:
     """The one line a bug report needs before the numbers mean anything."""
     import platform as platform_module
 
@@ -882,7 +882,7 @@ def format_liveness(liveness: Liveness) -> str:
     lines = [
         f"patchworks check -- {liveness.ticks} ticks, headless, "
         f"seed {liveness.seed}, split {liveness.split}",
-        _environment_line(),
+        environment_line(),
         "",
         f"control rate         : {liveness.control_hz:.0f} Hz",
         f"torque |mean| asked  : {liveness.commanded_mean_abs:.3f}"
@@ -960,6 +960,68 @@ def _check(arguments: argparse.Namespace) -> int:
     )
     print(format_liveness(liveness))
     return 1 if liveness.non_finite else 0
+
+
+# ---------------------------------------------------------------------------
+# run
+# ---------------------------------------------------------------------------
+
+
+def _run(arguments: argparse.Namespace) -> int:
+    """Drive headless, report on a cadence, and fail only for a non-finite run.
+
+    Every refusal is made *before* the world is built, for the reason
+    :func:`refuse_bad_split` gives: past that point a bad argument surfaces
+    hours into a run that was supposed to be left alone.
+
+    `--ticks 0` is the unbounded run, which is what walking away means and why
+    it is the default; a negative count is a mistake rather than a request, and
+    is refused rather than quietly running forever.
+
+    :class:`KeyboardInterrupt` is caught here rather than allowed out, because
+    the second Ctrl-C — the one that stops a run that has stopped responding —
+    is a `KeyboardInterrupt` by design, and a traceback is not what a human who
+    just asked twice for a stop should be shown. 130 is the shell's own code for
+    a process killed by SIGINT.
+    """
+    from patchworks.progress import drive, refuse_bad_intervals
+
+    if arguments.ticks < 0:
+        print(
+            f"patchworks run: --ticks must be 0 (until interrupted) or more, "
+            f"got {arguments.ticks}",
+            file=sys.stderr,
+        )
+        return 2
+    # The loop's own rule, asked rather than restated. Written out twice it
+    # drifted at once; `refuse_bad_intervals` says why it is one function, and
+    # `spoken_as` is how a human gets told about the flag they typed rather than
+    # the parameter it becomes.
+    refusal = refuse_bad_intervals(
+        arguments.report_every,
+        arguments.whole_graph_every,
+        spoken_as=("--report-every", "--whole-graph-every"),
+    )
+    if refusal:
+        print(f"patchworks run: {refusal}", file=sys.stderr)
+        return 2
+    refusal = refuse_bad_split(arguments.split)
+    if refusal:
+        print(f"patchworks run: {refusal}", file=sys.stderr)
+        return 2
+
+    try:
+        summary = drive(
+            ticks=arguments.ticks or None,
+            seed=arguments.seed,
+            split=arguments.split,
+            report_every=arguments.report_every,
+            whole_graph_every=arguments.whole_graph_every,
+        )
+    except KeyboardInterrupt:
+        print("\npatchworks run: stopped.", file=sys.stderr)
+        return 130
+    return 1 if summary.non_finite else 0
 
 
 # ---------------------------------------------------------------------------
@@ -1070,6 +1132,34 @@ Exit code is 0 normally, 1 if anything went non-finite -- which is a bug
 rather than an untrained agent -- and 2 if the arguments were wrong.
 """
 
+RUN_DESCRIPTION = """\
+Drive the agent headless for as long as you like -- no window, no display, no
+GPU, sane over SSH -- printing a line every few hundred ticks so that you can
+start it, walk away, and come back to something that says whether it is still
+alive and whether anything has moved.
+
+Each line carries the tick and the wall-clock rate, per-edge disagreement
+(mean and max) beside the per-edge effective rank it has to be read with, how
+many edges still disagree, the torque asked for and applied, the command's
+per-joint spread, the arm's travel since the last line, and whether anything
+went non-finite. Those last two are the columns that make a locked loop
+obvious: an arm at exactly zero travel with a frozen command and the
+disagreement still high is a run that is alive and going nowhere (#120).
+
+The measurements are `patchworks.diagnostics`' paired instrument, and the
+expensive half of it -- one whole-graph decomposition -- is off unless
+`--whole-graph-every` asks for it: it costs seconds a reading on the real dome
+against milliseconds for the rest. The closing report states what the reporting
+actually cost, measured on this run rather than quoted.
+
+Ctrl-C stops at the end of the current tick and prints the final report. A
+second Ctrl-C stops immediately.
+
+Exit code is 0 normally -- including when interrupted, which is not a failure
+-- 1 if anything went non-finite, 2 if the arguments were wrong, and 130 if a
+second Ctrl-C stopped it before the final report.
+"""
+
 DOME_DESCRIPTION = """\
 Print the graph's shape -- the taper from the two-dimensional sensorimotor
 sheet to the deep core -- together with what construction recorded about it:
@@ -1102,9 +1192,12 @@ def build_parser() -> argparse.ArgumentParser:
     not only what its flags do — the whole point being that a human who knows
     nothing about this project can type `patchworks` and find out what to do.
 
-    `run` (#121) and `watch` (#122) are the next two subcommands and are not
-    here: each is its own ticket, and adding an empty one now would be a
-    registry pretending to be a feature.
+    `watch` (#122) is the next subcommand and is not here: it is its own
+    ticket, and adding an empty one now would be a registry pretending to be a
+    feature.
+
+    `run`'s defaults are read off :mod:`patchworks.progress` rather than
+    restated, so that the help text and the loop cannot say different numbers.
     """
     parser = argparse.ArgumentParser(
         prog="patchworks",
@@ -1144,6 +1237,56 @@ def build_parser() -> argparse.ArgumentParser:
         "--split", default="train", help="which task split to draw from (default: train)"
     )
     check.set_defaults(handler=_check)
+
+    # Imported here rather than at the top of the file: the defaults belong to
+    # the loop, and `build_parser` runs for every invocation including
+    # `--help`. Nothing under `patchworks.progress` loads the sandbox at import
+    # time, so this costs the modules `import patchworks` already brought in and
+    # not MuJoCo.
+    from patchworks.progress import DEFAULT_REPORT_EVERY, WHOLE_GRAPH_OFF
+
+    run_parser = subparsers.add_parser(
+        "run",
+        help="drive it headless for a long time, printing that it is progressing",
+        description=RUN_DESCRIPTION,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    run_parser.add_argument(
+        "--ticks",
+        type=int,
+        default=0,
+        help="how many ticks to run (default: 0, meaning until Ctrl-C)",
+    )
+    run_parser.add_argument(
+        "--seed",
+        type=int,
+        default=0,
+        help="the seed for the sheaf's draw and the world's layout (default: 0)",
+    )
+    run_parser.add_argument(
+        "--split", default="train", help="which task split to draw from (default: train)"
+    )
+    run_parser.add_argument(
+        "--report-every",
+        type=int,
+        default=DEFAULT_REPORT_EVERY,
+        help=(
+            f"ticks between report lines (default: {DEFAULT_REPORT_EVERY}, "
+            "about 10 s of world)"
+        ),
+    )
+    run_parser.add_argument(
+        "--whole-graph-every",
+        type=int,
+        default=WHOLE_GRAPH_OFF,
+        help=(
+            "ticks between whole-graph readings -- dim H^0, dim H^1 and the "
+            "minimum achievable energy. Must be a multiple of --report-every. "
+            "One eigendecomposition each, seconds rather than milliseconds on "
+            "the real dome, so the default is 0: never"
+        ),
+    )
+    run_parser.set_defaults(handler=_run)
 
     dome = subparsers.add_parser(
         "dome",

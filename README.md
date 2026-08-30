@@ -36,6 +36,7 @@ any machine that can run a container — no clone, no venv, no interpreter versi
 ```bash
 docker run --rm ghcr.io/ngl321/patchworks doctor  # can this installation run? a line per check, and the fix
 docker run --rm ghcr.io/ngl321/patchworks check   # is it alive? ~4 s headless, and the numbers a bug report wants
+docker run --rm ghcr.io/ngl321/patchworks run     # leave it running: headless, a line every 500 ticks, Ctrl-C to stop
 ```
 
 `linux/amd64` and `linux/arm64`, each built on its own hardware and each run — `doctor` and
@@ -44,7 +45,7 @@ docker run --rm ghcr.io/ngl321/patchworks check   # is it alive? ~4 s headless, 
 and it is why the container is the target rather than one of several
 ([ADR-0012](docs/adr/0012-a-container-is-the-supported-execution-target.md)).
 
-**What is headless, and what needs a screen.** `doctor`, `check`, `dome`, the benchmarks and the
+**What is headless, and what needs a screen.** `doctor`, `check`, `run`, `dome`, the benchmarks and the
 suite open no window and are the default tag. Everything that does open one — `demo`, the
 two-window surface, **and `--replay`, which opens a frame window of its own even though it renders
 no scene** — needs the `:desktop` tag, which carries an X server and serves it to a browser:
@@ -168,6 +169,7 @@ plus an X server, a window manager and noVNC.
 ```bash
 docker run --rm ghcr.io/ngl321/patchworks doctor          # every check, and the fix for each
 docker run --rm ghcr.io/ngl321/patchworks check           # the untrained agent, driving the arm
+docker run --rm ghcr.io/ngl321/patchworks run             # the same, for as long as you like, reporting as it goes
 docker run --rm ghcr.io/ngl321/patchworks dome            # the dome, and what construction records
 docker run --rm --entrypoint pytest ghcr.io/ngl321/patchworks       # the suite, in the image
 docker run --rm --entrypoint python ghcr.io/ngl321/patchworks \
@@ -239,6 +241,7 @@ python3.12 -m venv .venv
 .venv/bin/patchworks doctor                        # can this installation run, and what to do if not
 .venv/bin/patchworks dome                          # the dome, and what construction records
 .venv/bin/patchworks check                         # the untrained agent, driving the arm, in ~4 s
+.venv/bin/patchworks run                           # the same, unbounded, printing that it is progressing
 .venv/bin/patchworks demo                          # the scene window, and your hands in it
 ```
 
