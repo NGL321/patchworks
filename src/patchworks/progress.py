@@ -35,23 +35,33 @@ cadence of its own that must be a multiple of the reporting cadence.
 **What it all costs, measured.** On the real dome in the supported container
 (#131), 1500 ticks, default cadences:
 
-* the per-tick half — the accumulators and the finite check — **15 µs a tick**,
-  against a ~10 ms tick;
+* the per-tick half — the accumulators and the finite check — **~10 µs a
+  tick**, against a ~10 ms tick;
 * one report — the paired reading, the observation sweep, the stalk sweep and
-  the line — **4.5 ms**, once every 500 ticks;
-* the two together, timed in situ by the run itself, **0.60 % of wall clock**
-  (0.59, 0.72, 0.60 over three runs), against the ~1–2 % #92 measured for live
+  rendering the line — **~5 ms**, once every 500 ticks;
+* the two together, timed in situ by the run itself, **0.59 % of wall clock**
+  (0.59, 0.62, 0.57 over three runs), against the ~1–2 % #92 measured for live
   capture and the 10 % bound;
-* building the instrument, **~2 s**, once, before the first tick.
+* building the instrument, **~1.8 s**, once, before the first tick.
 
 Turning the whole-graph reading on is what changes that picture and is why it is
 off: at `--whole-graph-every 1000` over 2000 ticks the same run reported
 **35.4 %**, two readings at ~5.4 s each.
 
-None of those is a number this docstring asks to be believed. :class:`Progress`
+**That last figure does not match the ones already on record, and should not be
+read as correcting them.** :mod:`patchworks.diagnostics` records ~16 s for one
+whole-graph reading and #121 quotes 9.0 s; this run measured ~5.4 s. Which
+machine each was taken on is not recorded beside any of them, so what separates
+them is not known from here and is not guessed at. The reading all three support
+is the one none of them turns on: *seconds a reading, against milliseconds for
+everything else on the cadence*. Which is why it is off by default, and why no
+number here is load-bearing.
+
+None of these is a number this docstring asks to be believed. :class:`Progress`
 times its own work and :func:`format_summary` prints it as a share of the run's
 wall clock, so every run states its own overhead on its own machine — the figures
-above are simply what that said here.
+above are simply what that said here, and `benchmarks/run_reporting.py` is how
+they were taken.
 
 **Interruption is clean.** Ctrl-C sets a flag, the loop finishes the tick it is
 on, and the final report prints — see :func:`stopping_on_interrupt`. A second
@@ -147,8 +157,8 @@ class Report:
 
     energy_max: float
     """The worst edge's energy. Printed beside the mean because a mean that has
-    fallen while one edge holds all the error is a different run from one where
-    the fall is everywhere."""
+    fallen while one edge holds all the disagreement is a different run from one
+    where the fall is everywhere."""
 
     disagreeing_edges: int
     """Edges whose energy is not exactly zero. #120's signature quotes `682 of
@@ -243,6 +253,58 @@ class Summary:
     """Everywhere anything non-finite was seen, pooled across the run."""
 
 
+def refuse_bad_intervals(
+    every: object,
+    whole_graph_every: object,
+    *,
+    spoken_as: tuple[str, str] = ("every", "whole_graph_every"),
+) -> str:
+    """The refusal for a cadence pair that will not work, or `""` if it will.
+
+    One function rather than a check in the constructor and a second one in the
+    CLI, which is what this was first. The two spellings drifted immediately —
+    the same rule, worded differently in two places — and a subcommand whose
+    refusal does not match the loop's is one that will eventually accept
+    something the loop then rejects, after the world has been built.
+
+    Asked **before** anything is built, which is what
+    :func:`patchworks.cli.refuse_bad_split` exists for and the reason it is
+    followed here: past that point a bad cadence surfaces only after the world,
+    the agent and a decomposition have all been paid for.
+
+    `spoken_as` is what the two are called *to the person reading the refusal* —
+    the parameter names here, the flag names from the CLI. A human who typed
+    `--report-every` should not be told about an `every` they have never heard
+    of, and the alternative to naming them is two copies of the rule.
+
+    Named `intervals` rather than for the word the prose uses, because
+    `tests/test_timescale.py` forbids the architecture's *identifiers* from
+    naming a schedule (ADR-0005) and scans the whole package for it. The
+    prohibition is about the architecture reading a timescale at run time and
+    nothing here does — but the scan is deliberately blunt, exemption is for
+    modules that genuinely name one, and a readout's reporting interval is not
+    that. So the identifier avoids the word and the docstrings, which the scan
+    does not read, go on using it.
+    """
+    report_name, whole_name = spoken_as
+    for name, value, floor in (
+        (report_name, every, 1),
+        (whole_name, whole_graph_every, 0),
+    ):
+        if isinstance(value, bool) or not isinstance(value, int) or value < floor:
+            meaning = "" if floor else ", with 0 meaning never"
+            return f"{name} is a cadence in ticks, >= {floor}{meaning}; got {value!r}"
+    assert isinstance(every, int) and isinstance(whole_graph_every, int)
+    if whole_graph_every and whole_graph_every % every:
+        return (
+            f"{whole_name} ({whole_graph_every}) must be a multiple of "
+            f"{report_name} ({every}), so that every whole-graph reading lands on "
+            "a report that also carries its paired per-edge reading of the same "
+            "configuration. See patchworks.diagnostics, Two cadences."
+        )
+    return ""
+
+
 # ---------------------------------------------------------------------------
 # taking the readings
 # ---------------------------------------------------------------------------
@@ -273,24 +335,9 @@ class Progress:
         out: TextIO | None = None,
         generator: torch.Generator | None = None,
     ) -> None:
-        if isinstance(every, bool) or not isinstance(every, int) or every < 1:
-            raise ValueError(f"every is a cadence in ticks, >= 1; got {every!r}")
-        if (
-            isinstance(whole_graph_every, bool)
-            or not isinstance(whole_graph_every, int)
-            or whole_graph_every < 0
-        ):
-            raise ValueError(
-                "whole_graph_every is a cadence in ticks, >= 0 with 0 meaning "
-                f"never; got {whole_graph_every!r}"
-            )
-        if whole_graph_every and whole_graph_every % every:
-            raise ValueError(
-                f"whole_graph_every ({whole_graph_every}) must be a multiple of "
-                f"every ({every}), so that every whole-graph reading lands on a "
-                "report that also carries its paired per-edge reading of the "
-                "same configuration. See patchworks.diagnostics, Two cadences."
-            )
+        refusal = refuse_bad_intervals(every, whole_graph_every)
+        if refusal:
+            raise ValueError(refusal)
         self.every = every
         self.whole_graph_every = whole_graph_every
         self.out = out
@@ -429,8 +476,13 @@ class Progress:
         )
         report = self._assemble(tick, reading, outcome)
         self.reports.append(report)
-        self._reset(tick)
-        self.reporting_seconds += time.perf_counter() - started
+        # **The printing is inside the timer and before the reset**, and both of
+        # those were wrong the other way round first. Formatting and writing a
+        # line is part of what reporting costs — it is the only part that grows
+        # when the whole-graph line is turned on — so a figure taken before it
+        # is systematically low. And resetting the window before the print
+        # charges the print to the *next* window, which is a cost landing on the
+        # one number, `t/s`, that is supposed to be the machine's rate.
         if self.out is not None:
             print(format_report(report), file=self.out, flush=True)
             if report.whole_graph is not None:
@@ -439,6 +491,8 @@ class Progress:
                     file=self.out,
                     flush=True,
                 )
+        self._reset(tick)
+        self.reporting_seconds += time.perf_counter() - started
         return report
 
     def _assemble(self, tick: int, reading: Reading, outcome: TickOutcome) -> Report:
@@ -754,7 +808,13 @@ _COLUMNS: tuple[tuple[str, int, Callable[[Report], str]], ...] = (
     ("torque", 7, lambda r: f"{r.commanded_mean_abs:.3f}"),
     ("applied", 7, lambda r: f"{r.applied_mean_abs:.3f}"),
     ("cmd sd", 9, lambda r: f"{r.command_spread:.1e}"),
-    ("travel", 8, lambda r: f"{r.travel:.3f}"),
+    # `%g` rather than a fixed number of decimal places, so that **no non-zero
+    # travel can render as zero**. A locked arm and an arm creeping at 0.004
+    # rad a window are different runs, and `%.3f` prints both as `0.000` --
+    # which would put the one column the stuck reading hangs on into
+    # disagreement with the verdict below it, in the direction that says a
+    # moving run is frozen.
+    ("travel", 9, lambda r: f"{r.travel:.3g}"),
     ("non-finite", 10, lambda r: "SEE BELOW" if r.non_finite else "-"),
 )
 
@@ -794,7 +854,7 @@ def format_preamble(
     progress: Progress,
 ) -> str:
     """What is printed once, above the table: what is running and what the columns are."""
-    from patchworks.cli import _environment_line
+    from patchworks.cli import environment_line
 
     how_many = "until interrupted" if ticks is None else f"{ticks} ticks"
     world = (
@@ -809,7 +869,7 @@ def format_preamble(
     )
     lines = [
         f"patchworks run -- {how_many}{world}, headless, seed {seed}, split {split}",
-        _environment_line(),
+        environment_line(),
         "",
         f"reporting every {progress.every} ticks; whole-graph readings {whole}; "
         "Ctrl-C stops cleanly",
@@ -918,7 +978,9 @@ def format_summary(summary: Summary) -> str:
             f"   (measured total {last.energy_mean * last.edges:.6g})"
         )
 
-    travel = ", ".join(f"{value:.2f}" for value in last.arm_travel)
+    # `%g` for the reason the travel column uses it: a joint that moved must not
+    # be able to print as one that did not.
+    travel = ", ".join(f"{value:.3g}" for value in last.arm_travel)
     spread = ", ".join(f"{value:.2e}" for value in last.commanded_sd)
     lines += [
         "",
@@ -945,16 +1007,34 @@ def format_summary(summary: Summary) -> str:
     if stationary:
         span = sum(report.since for report in stationary)
         worst = max(report.command_spread for report in stationary)
-        energy = stationary[-1].energy_mean
+        settled = stationary[-1]
         lines += [
             "",
-            f"STUCK: the last {len(stationary)} report(s), {span} ticks, moved the "
-            f"arm exactly 0 radians,",
-            f"held the command constant to {worst:.1e}, and left "
-            f"{stationary[-1].disagreeing_edges} of {stationary[-1].edges} edges "
-            f"disagreeing (mean energy {energy:.4g}).",
-            "A constant command against a saturated arm with the error signal "
-            "still large is",
-            "#120's locked loop: the run is alive and it is not going anywhere.",
+            f"the arm has not moved at all for the last {len(stationary)} "
+            f"report(s), {span} ticks,",
+            f"and the command over them held constant to {worst:.1e}.",
         ]
+        # **The #120 verdict is only printed when all three of its parts were
+        # measured**, not when the arm alone stopped. Its sentence claims a
+        # frozen command against a saturated arm *with the disagreement still
+        # large*, and a still arm on a graph that has actually agreed is a
+        # different picture — ADR-0007's quiescent hold is one — which this
+        # would otherwise diagnose as a locked loop.
+        if settled.disagreeing_edges == settled.edges and settled.energy_mean > 0.0:
+            lines += [
+                f"STUCK: {settled.disagreeing_edges} of {settled.edges} edges are "
+                f"still disagreeing over the same span (mean energy "
+                f"{settled.energy_mean:.4g}).",
+                "A constant command against a saturated arm with the "
+                "disagreement still large is",
+                "#120's locked loop: the run is alive and it is not going "
+                "anywhere.",
+            ]
+        else:
+            lines.append(
+                f"The disagreement is not what a locked loop shows: "
+                f"{settled.disagreeing_edges} of {settled.edges} edges disagree, "
+                f"mean energy {settled.energy_mean:.4g}. Read the pair above "
+                "before calling this #120."
+            )
     return "\n".join(lines)

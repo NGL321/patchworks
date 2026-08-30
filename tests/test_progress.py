@@ -513,19 +513,41 @@ class TestTheLockedLoopIsVisible:
         last = locked.reports[-1]
         assert last.travel == 0.0, "a pinned arm has to read as zero travel"
         assert last.command_spread < 1e-04, "a frozen command has to read as no spread"
-        assert last.disagreeing_edges == last.edges, "and the error signal is still up"
+        assert last.disagreeing_edges == last.edges, "and the disagreement is still up"
         assert last.energy_mean > 0.0
 
         line = format_report(last)
-        assert "0.000" in line, f"the travel column is not visibly zero: {line}"
+        # A bare `0` in the travel column, which is what exactly-no-motion reads
+        # as and what nothing that moved can print.
+        assert line.split()[-2] == "0", f"the travel column is not visibly zero: {line}"
         assert f"{last.edges}/{last.edges}" in line
 
     def test_the_summary_says_stuck_in_words(self, locked):
         printed = format_summary(a_summary(reports=tuple(locked.reports)))
         assert "STUCK" in printed
         assert "#120" in printed
-        assert "moved the arm exactly 0 radians" in printed
-        assert "disagreeing" in printed
+        assert "has not moved at all" in printed
+        assert "still disagreeing" in printed
+
+    def test_a_still_arm_alone_is_not_enough_to_call_it_120(self):
+        """The verdict claims three things, so it may not fire on one of them.
+
+        Its sentence is *a constant command against a saturated arm with the
+        disagreement still large*. An arm that has stopped on a graph that has
+        actually agreed — ADR-0007's quiescent hold is one such picture — is a
+        different run, and diagnosing it as #120 would be the readout claiming
+        something it did not measure.
+        """
+        agreed = a_report(
+            arm_travel=(0.0, 0.0, 0.0),
+            disagreeing_edges=0,
+            energy_mean=0.0,
+            energy_max=0.0,
+        )
+        printed = format_summary(a_summary(reports=(agreed,)))
+        assert "has not moved at all" in printed, "the fact is still reported"
+        assert "STUCK" not in printed, "but the #120 verdict is not"
+        assert "not what a locked loop shows" in printed
 
     def test_a_run_that_is_moving_is_not_called_stuck(self, sheaf):
         """The reading that would make the verdict worthless is the false positive."""
@@ -535,6 +557,23 @@ class TestTheLockedLoopIsVisible:
             watching.after(an_outcome(qpos=(0.1 * step, 0.0, 0.0)))
         printed = format_summary(a_summary(reports=tuple(watching.reports)))
         assert "STUCK" not in printed
+
+    def test_travel_that_is_not_zero_never_prints_as_zero(self):
+        """The column the stuck reading hangs on cannot contradict the verdict.
+
+        Found by running the real thing: an arm creeping at `0.004` rad a window
+        printed `0.000` in the travel column and `[0.00, 0.00, 0.00]` in the
+        closing block, while the verdict — correctly — did not call it stuck. A
+        reader had a table saying the arm was still and no explanation for the
+        missing verdict.
+        """
+        creeping = a_report(arm_travel=(0.004, 0.0, 0.0))
+        assert "0.004" in format_report(creeping)
+        assert "0.004" in format_summary(a_summary(reports=(creeping,)))
+        assert "STUCK" not in format_summary(a_summary(reports=(creeping,)))
+
+        still = a_report(arm_travel=(0.0, 0.0, 0.0))
+        assert "STUCK" in format_summary(a_summary(reports=(still,)))
 
     def test_the_stationary_span_is_exact_zero_with_no_threshold_beside_it(self):
         """A tolerance here would be a number invented to make a verdict come out.
@@ -602,8 +641,48 @@ class TestInterruptionIsClean:
         assert len(seen) == 3
         assert sheaf.ticks == 3
 
-    def test_an_interrupted_run_still_prints_a_final_report(self, dome, capsys):
-        """The reason the flag exists: the numbers survive the stop."""
+    def test_a_real_interrupt_stops_the_run_and_prints_the_final_report(
+        self, dome, monkeypatch
+    ):
+        """A real SIGINT through the real `drive`, not a hand-built summary.
+
+        The handler this installs is the one a terminal's Ctrl-C reaches, so the
+        only honest way to test it is to send the signal. Sent from inside the
+        loop, at a known tick, so the test is deterministic rather than a race
+        against a timer.
+        """
+        stream = _Capturing()
+
+        class Interrupting(Progress):
+            def after(self, outcome):
+                report = super().after(outcome)
+                if self.sheaf.ticks == 3:
+                    signal.raise_signal(signal.SIGINT)
+                return report
+
+        monkeypatch.setattr(progress_module, "Progress", Interrupting)
+        summary = drive(
+            ticks=10_000,  # far more than it will get to run
+            seed=0,
+            report_every=2,
+            dome=dome,
+            image_size=IMAGE_SIZE,
+            out=stream,
+        )
+        assert summary.interrupted is True
+        assert summary.ticks == 3, "the tick in flight has to finish, and then stop"
+        assert "patchworks run -- interrupted after 3 ticks" in stream.text
+        assert "stopping at the end of this tick" in stream.text
+        assert "reporting cost" in stream.text
+        assert "Traceback" not in stream.text
+
+    def test_the_final_report_lands_on_the_tick_the_run_stopped_on(self, dome):
+        """Off the cadence, which is why `Progress.report` exists beside it.
+
+        A run stopped between reports would otherwise close with numbers from
+        whenever the last cadence tick happened to be — or, on a run shorter
+        than one cadence, with none at all.
+        """
         stream = _Capturing()
         summary = drive(
             ticks=TICKS,
@@ -722,6 +801,49 @@ class TestWhatTheRunReports:
         assert first.energy_mean == second.energy_mean
         assert first.arm_travel == second.arm_travel
         assert first.commanded_sd == second.commanded_sd
+
+
+class TestBenchmark:
+    """`benchmarks/run_reporting.py` still runs against the API.
+
+    **Nothing about the cost is asserted here, and that is the point.** The
+    figures in :mod:`patchworks.progress`' docstring are wall-clock measurements
+    of a particular machine; a test pinning them would fail on a slower one and
+    say nothing about the code. What is worth holding is that the measurement
+    keeps a reproduction — the numbers in that docstring came out of this script,
+    and a script that stopped running against the current API would leave them
+    unreproducible while every test stayed green.
+
+    The same shape and the same reason as
+    `tests/test_untrained_fixed_point.py` and
+    `tests/test_agent.py::TestBenchmark`: both measurements are asked to complete
+    on the small dome, at tick counts far too short to measure anything.
+    """
+
+    def test_both_measurements_run(self, capsys):
+        import run_reporting
+
+        run_reporting.cost(ticks=4, trials=1, spec=SMALL, image_size=IMAGE_SIZE)
+        run_reporting.locked(ticks=4, every=2, spec=SMALL, image_size=IMAGE_SIZE)
+        printed = capsys.readouterr().out
+        assert "per-tick half" in printed
+        assert "what #120 measured" in printed
+
+    def test_the_halves_are_timed_apart_and_the_cadence_is_not_landed_on(self):
+        """The mistake this function was written around, held down.
+
+        Tick 0 is a multiple of every cadence, so timing the per-tick half on a
+        fresh sheaf reports on every call and times a report instead — which
+        overstated it two hundredfold when it happened. The per-tick figure has
+        to come back far below one report's.
+        """
+        import run_reporting
+
+        per_tick, one_report = run_reporting.halves(
+            run_reporting._a_sheaf(SMALL), ticks=200
+        )
+        assert per_tick > 0.0
+        assert per_tick < one_report / 10
 
 
 # ---------------------------------------------------------------------------

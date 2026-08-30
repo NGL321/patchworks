@@ -845,7 +845,7 @@ def measure_liveness(
         world.close()
 
 
-def _environment_line() -> str:
+def environment_line() -> str:
     """The one line a bug report needs before the numbers mean anything."""
     import platform as platform_module
 
@@ -882,7 +882,7 @@ def format_liveness(liveness: Liveness) -> str:
     lines = [
         f"patchworks check -- {liveness.ticks} ticks, headless, "
         f"seed {liveness.seed}, split {liveness.split}",
-        _environment_line(),
+        environment_line(),
         "",
         f"control rate         : {liveness.control_hz:.0f} Hz",
         f"torque |mean| asked  : {liveness.commanded_mean_abs:.3f}"
@@ -984,7 +984,7 @@ def _run(arguments: argparse.Namespace) -> int:
     just asked twice for a stop should be shown. 130 is the shell's own code for
     a process killed by SIGINT.
     """
-    from patchworks.progress import drive
+    from patchworks.progress import drive, refuse_bad_intervals
 
     if arguments.ticks < 0:
         print(
@@ -993,23 +993,17 @@ def _run(arguments: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 2
-    if arguments.report_every < 1:
-        print(
-            f"patchworks run: --report-every is a cadence in ticks, at least 1, "
-            f"got {arguments.report_every}",
-            file=sys.stderr,
-        )
-        return 2
-    if arguments.whole_graph_every < 0 or (
-        arguments.whole_graph_every % arguments.report_every
-    ):
-        print(
-            f"patchworks run: --whole-graph-every must be 0 (never) or a "
-            f"multiple of --report-every ({arguments.report_every}), so that "
-            f"each whole-graph reading lands on a report of the same "
-            f"configuration; got {arguments.whole_graph_every}",
-            file=sys.stderr,
-        )
+    # The loop's own rule, asked rather than restated. Written out twice it
+    # drifted at once; `refuse_bad_intervals` says why it is one function, and
+    # `spoken_as` is how a human gets told about the flag they typed rather than
+    # the parameter it becomes.
+    refusal = refuse_bad_intervals(
+        arguments.report_every,
+        arguments.whole_graph_every,
+        spoken_as=("--report-every", "--whole-graph-every"),
+    )
+    if refusal:
+        print(f"patchworks run: {refusal}", file=sys.stderr)
         return 2
     refusal = refuse_bad_split(arguments.split)
     if refusal:
@@ -1153,15 +1147,17 @@ obvious: an arm at exactly zero travel with a frozen command and the
 disagreement still high is a run that is alive and going nowhere (#120).
 
 The measurements are `patchworks.diagnostics`' paired instrument, and the
-expensive half of it -- the whole-graph decomposition, ~9 s on the real dome --
-is off unless `--whole-graph-every` asks for it. The closing report states what
-the reporting actually cost, measured on this run.
+expensive half of it -- one whole-graph decomposition -- is off unless
+`--whole-graph-every` asks for it: it costs seconds a reading on the real dome
+against milliseconds for the rest. The closing report states what the reporting
+actually cost, measured on this run rather than quoted.
 
 Ctrl-C stops at the end of the current tick and prints the final report. A
 second Ctrl-C stops immediately.
 
 Exit code is 0 normally -- including when interrupted, which is not a failure
--- 1 if anything went non-finite, and 2 if the arguments were wrong.
+-- 1 if anything went non-finite, 2 if the arguments were wrong, and 130 if a
+second Ctrl-C stopped it before the final report.
 """
 
 DOME_DESCRIPTION = """\
@@ -1286,7 +1282,8 @@ def build_parser() -> argparse.ArgumentParser:
         help=(
             "ticks between whole-graph readings -- dim H^0, dim H^1 and the "
             "minimum achievable energy. Must be a multiple of --report-every. "
-            "Costs ~9 s each on the real dome, so the default is 0: never"
+            "One eigendecomposition each, seconds rather than milliseconds on "
+            "the real dome, so the default is 0: never"
         ),
     )
     run_parser.set_defaults(handler=_run)
