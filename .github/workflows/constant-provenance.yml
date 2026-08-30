@@ -1,0 +1,143 @@
+name: Constant provenance
+
+# The networked half of the check a constant's provenance rests on (#180 §5).
+#
+# The hermetic half is `tests/test_constant_registers.py`, which holds every
+# provisional entry well-formed and every scanned constant accounted for. It
+# cannot ask GitHub whether the issue a constant waits on has closed, and must
+# not learn how: `tests/test_cli.py` exists in part to break every route from
+# the suite to a subprocess, and a `gh`-shelling test would be the suite's first
+# network-dependent one -- failing offline, on the development laptop, which is
+# where #85 was closed from.
+#
+# So the question moves here. The trigger matters more than the sweep: a
+# schedule catches a stale warrant eventually, `issues: closed` catches it **at
+# the moment it becomes true**. #85 closes, this finds `DEFAULT_GAMMA`
+# provisional on #85, and says so -- which is the exact failure #180's title
+# names, become an automatic notification.
+
+on:
+  issues:
+    types: [closed]
+  # A net for anything closed while this workflow was broken, disabled, or
+  # while the repository had no runner minutes. Mondays, early.
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  overdue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # No install step and no dependencies: the generator reads source files
+      # with `ast` and the standard library. It does not import patchworks, so
+      # this job does not pay for torch or MuJoCo to answer a question about
+      # comments.
+      - name: Collect the provisional constants
+        id: collect
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          sys.path.insert(0, "tools")
+          import constant_registers as registers
+
+          rows = [
+              {"name": e.name, "issue": e.provisional, "source": e.source}
+              for e in registers.provisionals()
+          ]
+          print("provisionals=" + json.dumps(rows))
+          PY
+
+      - name: Raise anything now overdue
+        uses: actions/github-script@v7
+        env:
+          PROVISIONALS: ${{ steps.collect.outputs.provisionals }}
+        with:
+          script: |
+            const provisionals = JSON.parse(process.env.PROVISIONALS);
+            const closedNow = context.eventName === 'issues'
+              ? String(context.payload.issue.number)
+              : null;
+
+            // On `issues: closed` only that issue is in question. On the
+            // scheduled sweep every provisional is, so each one's state is
+            // asked for -- which is why the sweep is weekly and the trigger is
+            // what this mechanism actually runs on.
+            const overdue = [];
+            for (const entry of provisionals) {
+              if (closedNow !== null && entry.issue !== closedNow) continue;
+              const { data: issue } = await github.rest.issues.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: Number(entry.issue),
+              });
+              if (issue.state === 'closed') {
+                overdue.push({ ...entry, title: issue.title });
+              }
+            }
+
+            if (overdue.length === 0) {
+              core.info('No constant is resting on a closed issue.');
+              return;
+            }
+
+            const lines = overdue.map(
+              (e) => `- \`${e.name}\` (\`${e.source}\`) is \`@provisional ${e.issue}\`, ` +
+                     `and #${e.issue} — *${e.title}* — is closed.`
+            );
+            const body = [
+              'A constant is resting on a precondition that has since been met.',
+              '',
+              ...lines,
+              '',
+              'The comment at each definition site was true when it was written; that is',
+              'the failure mode this check exists for (#180). Either the constant is now',
+              'derivable and should be re-typed with a `@depends_on`, or the precondition',
+              'moved and the `@provisional` should name what it actually waits on.',
+              '',
+              'Raised by `.github/workflows/constant-provenance.yml`.',
+            ].join('\n');
+
+            const title = `Overdue constant provenance: ${overdue
+              .map((e) => e.name)
+              .join(', ')}`;
+
+            // One open issue at a time. A trigger that fires on every close
+            // would otherwise file the same report repeatedly, and a report
+            // nobody can keep up with is a report nobody reads.
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'overdue-provenance',
+            });
+            if (existing.data.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.data[0].number,
+                body,
+              });
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['overdue-provenance'],
+            });

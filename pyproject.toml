@@ -72,4 +72,10 @@ testpaths = ["tests"]
 # only through the sys.path entry pytest's default "prepend" import mode
 # happens to leave behind, and adding a tests/__init__.py -- or running under
 # --import-mode=importlib -- takes it away again.
-pythonpath = ["benchmarks", "tests"]
+#
+# tools/ is on it so `tests/test_constant_registers.py` can import the register
+# generator rather than shell out to it. The generator is not part of the
+# installed package -- nothing under `src/patchworks` imports it, and it reads
+# source files rather than running the architecture -- but the hermetic half of
+# the provenance check is a test, so the test has to reach it (#185).
+pythonpath = ["benchmarks", "tests", "tools"]

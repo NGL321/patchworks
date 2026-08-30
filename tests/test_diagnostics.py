@@ -77,7 +77,7 @@ def assembled_coboundary(sheaf):
     reading is a second opinion rather than the same arithmetic run twice.
     """
     dome = sheaf.dome
-    n = dome.spec.n
+    n = dome.shape.n
     row = {cell_id: i for i, cell_id in enumerate(dome.predicting)}
     rows = sum(edge.m for edge in dome.edges)
     delta = torch.zeros(rows, len(dome.predicting) * n, dtype=torch.float64)
@@ -588,7 +588,7 @@ class TestTheWholeGraphReading:
     def test_the_rank_is_what_both_dimensions_are_counted_from(self, diagnostics, dome):
         measured = diagnostics.read(Condition.DRIVEN).whole_graph
         rows = sum(edge.m for edge in dome.edges)
-        columns = len(dome.predicting) * dome.spec.n
+        columns = len(dome.predicting) * dome.shape.n
         assert measured.dim_h0 == columns - measured.rank
         assert measured.dim_h1 == rows - measured.rank
 

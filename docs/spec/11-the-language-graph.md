@@ -252,8 +252,13 @@ This carries a falsification, and it is already in the register
 
 ### Dimensions
 
-`n = 32`, `k = 12`, interior `m = 4`, boundary `m = 8`, drive `m = 1` — one `n` and one frozen
-dictionary across both domains, which is #128's decision and not this document's to revisit.
+`n` and `k` are **the body's**, and the wedge takes them rather than restating them:
+`patchworks.body.NODE_STALK_DIM` and `patchworks.body.CHART_DIM`, whose warrant is in
+`06-graph-topology.md`'s *Dimensions* and in the architecture register. One `n` and one frozen
+dictionary across both domains is #128's decision and not this document's to revisit — and a second
+declaration here would be a second place that decision lives, which is what
+[#186](https://github.com/NGL321/patchworks/issues/186) took out. Interior `m = 4`, boundary `m = 8`,
+drive `m = 1` are the dome's, on `DomeSpec`.
 
 Boundary stalks:
 

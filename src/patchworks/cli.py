@@ -56,6 +56,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:  # the annotation only -- see `measure_liveness`
     from patchworks.graph import Dome
 
+#: @type stipulated
+#: @flexibility fixed by pyproject.toml's requires-python; tests/test_cli.py asserts both bounds against the specifier
+#: @warrant pyproject.toml, requires-python
 #: The interpreter bounds, as `pyproject.toml`'s `requires-python` states them.
 #: Held as tuples rather than parsed from the specifier at runtime because
 #: parsing one needs `packaging`, which is not in the dependency set and is not
@@ -64,8 +67,12 @@ if TYPE_CHECKING:  # the annotation only -- see `measure_liveness`
 #: asserts both bounds against it, so the guarantee is a test's rather than a
 #: comment's.
 MINIMUM_PYTHON = (3, 11)
+#: @type stipulated
+#: @flexibility fixed by pyproject.toml's requires-python; tests/test_cli.py asserts both bounds against the specifier
+#: @warrant pyproject.toml, requires-python
 BELOW_PYTHON = (3, 13)
 
+#: @register none
 #: The launcher MuJoCo's passive viewer needs on macOS.
 MJPYTHON = "mjpython"
 
@@ -85,6 +92,9 @@ class _Unset:
 
 _UNSET = _Unset()
 
+#: @type chosen
+#: @flexibility bounded by a human's patience: 300 at 50 Hz is six seconds of world and about four of wall clock end to end
+#: @warrant here
 #: How many ticks `patchworks check` runs. 300 at 50 Hz is six seconds of
 #: world and about four of wall clock end to end on the development laptop —
 #: two of them the run and two the imports torch and MuJoCo cost before it
@@ -213,6 +223,10 @@ def check_interpreter() -> Finding:
     )
 
 
+#: @type derived
+#: @depends_on pyproject.toml, project.dependencies
+#: @flexibility none independently: tests/test_cli.py holds this table against the pins, so it reddens rather than drifts
+#: @warrant pyproject.toml, dependencies
 #: The runtime dependencies `doctor` imports, with `pyproject.toml`'s
 #: requirement for each quoted verbatim beside it. `tests/test_cli.py` holds
 #: this table against `[project].dependencies`, so a pin that moves there and
@@ -294,6 +308,9 @@ def check_package() -> Finding:
     )
 
 
+#: @type stipulated
+#: @flexibility none: the paths are Docker's and podman's, not this project's
+#: @warrant docs/adr/0012-a-container-is-the-supported-execution-target.md
 #: The files a container runtime leaves in the filesystem: Docker's, and
 #: podman's for a container started by anything OCI. Looked at rather than
 #: `/proc/1/cgroup` parsed, because a marker file is a question with a yes or a
@@ -463,6 +480,7 @@ def check_mjpython(platform: str = sys.platform) -> Finding:
     )
 
 
+#: @register none
 #: What `doctor` does *not* check, said out loud. A verdict that reads as
 #: "ready" while a whole class of failure was never looked at is the overstated
 #: prose this project keeps finding against itself, so the unchecked classes
@@ -556,6 +574,7 @@ class WindowPlan:
     refusal: str = ""
 
 
+#: @register none
 #: The module `patchworks demo` hands off to: the scene window #96 built, whose
 #: own `__main__` is what a human used to be told to type. Named as a string
 #: rather than imported, deliberately -- see the note at the top of this
@@ -1077,6 +1096,7 @@ def _demo(arguments: argparse.Namespace) -> int:
 # ---------------------------------------------------------------------------
 
 
+#: @register none
 DESCRIPTION = """\
 patchworks -- an embodied graph architecture: many small predictors, each in its
 own metric space, reconciled into a model of a world none of them sees whole.
@@ -1090,11 +1110,13 @@ for anything that cannot, the command to fix it. Then `patchworks check`, which
 runs the thing for a few seconds and prints the numbers a bug report wants.
 """
 
+#: @register none
 EPILOG = """\
 docs/spec/ has the architecture, CONTEXT.md the vocabulary, and docs/adr/ the
 decisions that needed a reason on the record.
 """
 
+#: @register none
 #: Each subcommand's own `--help`, hand-wrapped. `RawDescriptionHelpFormatter`
 #: is what keeps the paragraphs and the indented commands intact, and the price
 #: of it is that argparse re-wraps nothing — so these are written at the width
@@ -1117,6 +1139,7 @@ nothing is installed at all -- there, `python -m patchworks doctor` fails on
 Exit code is 0 when every check passed and 1 when any did not.
 """
 
+#: @register none
 CHECK_DESCRIPTION = """\
 Run the untrained agent against the world for a few hundred ticks, headless
 and in a few seconds, and print what it did: control rate, torque magnitude
@@ -1132,6 +1155,7 @@ Exit code is 0 normally, 1 if anything went non-finite -- which is a bug
 rather than an untrained agent -- and 2 if the arguments were wrong.
 """
 
+#: @register none
 RUN_DESCRIPTION = """\
 Drive the agent headless for as long as you like -- no window, no display, no
 GPU, sane over SSH -- printing a line every few hundred ticks so that you can
@@ -1160,6 +1184,7 @@ Exit code is 0 normally -- including when interrupted, which is not a failure
 second Ctrl-C stopped it before the final report.
 """
 
+#: @register none
 DOME_DESCRIPTION = """\
 Print the graph's shape -- the taper from the two-dimensional sensorimotor
 sheet to the deep core -- together with what construction recorded about it:
@@ -1170,6 +1195,7 @@ unchanged; what changed is that it is now one subcommand among several rather
 than the whole tool. It builds no world and opens nothing.
 """
 
+#: @register none
 DEMO_DESCRIPTION = """\
 Open the scene window and run the agent in it, so that a human can sit in
 front of it and interfere: shift-ctrl-drag a link or a puck, left-double-click

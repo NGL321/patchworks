@@ -61,6 +61,9 @@ __all__ = [
     "reconciliation_gain",
 ]
 
+#: @provisional 85
+#: @flexibility unknown
+#: @warrant docs/spec/02-tick-semantics.md, Reconciliation gain
 #: The single global `γ` of the reconciliation gain, `γ ≤ 1`
 #: (`docs/spec/02-tick-semantics.md`, *Reconciliation gain*). One scalar for the
 #: whole graph: the per-cell variation is entirely in the denominator, which is
@@ -291,7 +294,7 @@ class StalkLayout:
         #: bin every padded scatter is aimed at.
         self.pad = total
 
-        n = dome.spec.n
+        n = dome.shape.n
         #: `[predicting cells, n]`: where the population the body runs on lives,
         #: in the row order the biases are indexed by.
         self.predicting_positions = torch.tensor(
@@ -450,7 +453,7 @@ class Sheaf:
         self.stalks = self.layout.empty()
         #: `[predicting cells, k]`: the persisted chart. The cell's private
         #: state; reconciliation never reaches it.
-        self.charts = torch.zeros(len(dome.predicting), dome.spec.k)
+        self.charts = torch.zeros(len(dome.predicting), dome.shape.k)
         #: `[pairs, m_max]`: what every cell put on every incident edge stalk
         #: **this** tick. Read one tick later, which is the unit delay.
         self.broadcast = torch.zeros(self.maps.pairs, self.maps.edge_width)
@@ -462,7 +465,7 @@ class Sheaf:
         #: reconciliation edited it. What the prediction rule's prediction error is
         #: measured against next tick — though the rule never descends on *this*
         #: tensor, which is dead and has no gradient in anything.
-        self.prediction = torch.zeros(len(dome.predicting), dome.spec.n)
+        self.prediction = torch.zeros(len(dome.predicting), dome.shape.n)
         #: `[predicting cells, k]` and `[predicting cells, n]`: what the last
         #: inference phase **read** — the persisted chart it advanced from and
         #: the node stalk it took as evidence. Kept for the same reason
@@ -470,8 +473,8 @@ class Sheaf:
         #: path, live in the biases and `K`, against the node stalk reconciliation has
         #: since left behind (`docs/spec/09-the-build-stack.md`, *Learning is a
         #: separate phase over detached inputs*).
-        self.prior_charts = torch.zeros(len(dome.predicting), dome.spec.k)
-        self.prior_evidence = torch.zeros(len(dome.predicting), dome.spec.n)
+        self.prior_charts = torch.zeros(len(dome.predicting), dome.shape.k)
+        self.prior_evidence = torch.zeros(len(dome.predicting), dome.shape.n)
         self.ticks = 0
 
     # -- the two phases ----------------------------------------------------
