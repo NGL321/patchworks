@@ -239,7 +239,11 @@ _Avoid_: reconciliation phase, phase two, communication phase
 The disagreement-reducing computation a cell runs during the message-passing phase: a single
 local descent step against a neighbour's restricted belief. Penalised rather than enforced —
 cells are pulled toward agreement, never projected onto it. Its step size is per cell, normalised so
-that degree does not become an accidental rate difference.
+that degree does not become an accidental rate difference. **Not** the consensus step of the
+sheaf-ADMM literature, which carries this vocabulary in its own senses and whose local updates are
+iterated to convergence on a stated global objective — there `k` counts solver iterations and the
+state is re-initialised on every input, where here it is one step per tick against a state that
+persists in world-time; see ADR-0002.
 _Avoid_: consensus, synchronisation, message passing (bare — reserve that word for the phase)
 
 **Cell-local**:
