@@ -869,3 +869,316 @@ with the nonlinearity outside, and who disagrees"*, part of
 [#143](https://github.com/NGL321/patchworks/issues/143). Companion to
 `docs/research/148-local-linear-operator-citations.md`, whose form, reading-depth key and per-source
 discipline this document follows.
+
+---
+
+# Follow-up pass — 2026-08-30 (patchworks#173): the two bodies §3 could not reach
+
+Opened by [patchworks#173](https://github.com/NGL321/patchworks/issues/173) as a targeted gap-closing
+pass, not a survey. §3 above left the design's novelty residue **one property wide** and named two
+sources it could not reach as the most likely places that residue would shrink. This pass reads both
+bodies and follows the citation graph **one hop** out of the closer of the two. It does not re-run
+§3, and it revises no closed design; new threats are flagged in §7.5 below.
+
+**Both arXiv identifiers resolve.** `2605.31005` and `2604.11275` are real, current papers, and this
+pass reached **both bodies in full** via arXiv's HTML renderings. The two `[CITE]`/`[ABS]` entries in
+*What could not be reached* are hereby discharged and upgraded to `[FULL]`.
+
+## 7.1 Verdict, stated plainly
+
+**Neither source claims the conjunction, and the residue survives — but it moved, and it moved by
+more than one property's worth of ground.**
+
+Sheaf-ADMM is much closer than §3.2's one-line `[CITE]` entry allowed for. It is the **first single
+source in this record to hold three of the conjunction's properties at once**: a learned per-agent
+operator, learned restriction maps into edge stalks, and an update rule that is local by
+construction. §3.5's table had those three claimed only across *separate* sources. That is a real
+narrowing and the record should stop implying otherwise.
+
+What Sheaf-ADMM does **not** have is precisely the pair Patchworks is built on, and it fails on both
+in the loudest possible way:
+
+- It has **two** global objectives stacked on each other — an inner one the ADMM iterations are
+  provably solving, and an outer task loss that is backpropagated through the whole unrolled solver.
+- It has **no world-time at all**. The agent state is re-initialised to zero on every input and the
+  iterations relax toward a fixed point inside a single forward pass. Coordination *over time* is
+  listed in the paper's own Future Directions.
+
+ST-Sheaf GNN does not come close. Both discriminating questions §3.2 flagged resolve against it: node
+state does **not** persist across time steps, and it is trained by ordinary end-to-end backpropagation
+under a global forecasting loss.
+
+## 7.2 Sheaf-ADMM, read in full
+
+**Seely, Cupiał & Jones** (Sakana AI, Tokyo; Cupiał also University of Warsaw), *"Learning Multi-Agent
+Coordination via Sheaf-ADMM"*, arXiv:2605.31005v1 **[cs.LG], 29 May 2026, CC BY 4.0.
+[FULL — body read via arXiv HTML]**
+
+The four discriminating questions #173 asked, answered from the body.
+
+### (1) Are the per-agent operators learned? — **Yes, but amortised, and they are not a recurrence.**
+
+Each agent solves a convex subproblem whose *parameters* are emitted by a shared learned encoder:
+*"An encoder network `Enc_θ(d_i)` produces the parameters of `f_i`, shared across agents."* For the
+quadratic family this collapses to a per-agent **linear solve**:
+
+> `x_i^{k+1} = (Q_i + ρI)^{-1}(ρ(z_i^k − u_i^k) − q_i)`
+>
+> *"This is a single linear solve per agent. The encoder outputs `(Q_i, q_i)`."*
+
+So there is a learned, per-agent, linear operator — nearer to a **cell**'s `K` than anything in §3.
+Two differences, both structural. First, it is not the agent's own parameter: `Q_i` is produced by a
+network **shared across all agents** from that agent's local view, so what is learned is one map from
+view to operator, not `N` operators. Second, and more importantly, it is applied to the *consensus
+target* `z_i − u_i`, not to the agent's own previous state — it is a proximal step, not a recurrence.
+
+### (2) Are the restriction maps learned? — **Yes, unambiguously, and this is the paper's headline contribution.**
+
+> *"Our framework retains the ADMM semantics from Hanks et al. (2025b) but learns the sheaf structure
+> and local agent subproblem parameterizations end-to-end from data."*
+
+> *"Restriction maps `F_{i→e}` determine what information agents share. On grid graphs, edges have
+> spatial directions (up, down, left, right for 4-connectivity). We learn a base restriction map per
+> direction, shared across all agents. The encoder outputs low-rank updates `ΔF_i = U_i V_i^ᵀ` that
+> modulate the base maps: `F_{i→e} ← F_{i→e} + ΔF_i`."*
+
+And in the training list: *"Beyond encoder weights `θ` and decoder weights `ψ`, we learn the base
+restriction maps `{F_{i→e}}` (shared by direction) and the penalty `ρ` (positivity enforced via
+softplus)."*
+
+The vocabulary is also the same vocabulary, not a paraphrase of it — see §7.5.
+
+### (3) Is there a global objective the local updates are provably solving? — **Yes. Twice.**
+
+This is the decisive answer and it decides in Patchworks' favour.
+
+**Inner objective.** The ADMM iterations are a solver for the consensus problem
+
+> `minimize_x Σ_{i=1}^{N} f_i(x_i)  subject to  x ∈ C`   (Eq. 6)
+
+with the sheaf supplying the constraint set, `C = {x | x ∈ ker(F)}`. The method section says so
+directly: *"Agents then run `K` iterations of ADMM toward solving (6)."* The z-update is gradient
+descent on the sheaf Dirichlet energy, and the paper states the convergence property it is relying
+on: *"Starting from an arbitrary initial state `x^0`, gradient descent on `xᵀL_F x` converges to the
+projection of `x^0` onto `ker(L_F) = ker(F)`."* Convexity is deliberate: *"In Sheaf-ADMM, the encoder
+and decoder handle non-convexity but the latent iterations are convex. Convexity allows for
+convergence guarantees but is not a strict requirement."*
+
+**Outer objective.** The whole solver is a differentiable layer inside a backprop graph:
+
+> *"All operations are differentiable. We unroll `K` ADMM iterations and minimize a task loss between
+> the global prediction `Ŷ` and the target `Y`. Gradients flow through decoder, ADMM iterations, and
+> encoder."*
+
+and in the experimental setup, *"Models are trained end-to-end with cross-entropy loss."*
+
+Locality here is the locality of a **decomposition**, not of a learning rule. The update is local
+because ADMM decomposes a global problem into per-agent pieces — the global problem is still there,
+named, and is the thing the locality is in service of. Patchworks has no such object at any level:
+there is no functional the transport rule descends on globally and no loss backpropagated through the
+graph. **This is exactly the property #173 predicted would keep the residue alive, and it does.**
+
+### (4) Is there a state persisting in world-time? — **No. It is a relaxation to a fixed point.**
+
+Algorithm 1, verbatim from the paper's own pseudocode:
+
+```
+def forward(d, F, K, T):
+    for i in agents:
+        params[i] = encoder(d[i])
+    z, u = zeros(), zeros()
+    for k in range(K):
+        ...
+```
+
+The consensus and dual variables are **zeroed at the start of every forward pass**; the loop index
+`k` is a solver iteration, not a tick. The output is read off the final iterate: *"After `K` ADMM
+iterations, a shared decoder maps each agent's final state and local view to a local prediction."*
+The tasks — MNIST, maze pathfinding, Sudoku — are all static structured prediction. Convergence
+behaviour is characterised as a fixed-point approach (*"Performance improves with the number of ADMM
+iterations `K` up to a task-dependent saturation point"*; *"local proposals repeatedly revise against
+the consensus before converging"*), and the paper puts world-time squarely in its Future Directions:
+*"dynamic environments requiring coordination over time."*
+
+So Patchworks' **tick** has no counterpart here. Sheaf-ADMM's `K` is the analogue of a
+**message-passing phase** iterated to convergence — which is exactly the reading CONTEXT.md forbids
+for Patchworks (*"Exactly one simultaneous step per tick — not an iterative solve run to
+convergence"*). The two designs differ on that sentence.
+
+## 7.3 ST-Sheaf GNN, read in full
+
+**Mostafa, Younis & Ahmadi**, arXiv:2604.11275. **[FULL — body read via arXiv HTML]** Note a title
+discrepancy worth recording: the arXiv landing page carries *"Dynamic Sheaf Diffusion Networks with
+Adaptive Local Structure for Heterogeneous Spatio-Temporal Graph Learning"* (as cited in §3.2), while
+the HTML rendering of v1 is titled *"Sheaf Diffusion with Adaptive Local Structure for Spatio-Temporal
+Forecasting"*. Same paper, same authors, same abstract.
+
+Both questions §3.2 left open are now settled, and both settle against the conjunction.
+
+**(a) Does node state persist across time steps? — No, and the paper says so in one sentence.**
+
+> *"The sheaf diffusion will operate independently on each timestep `t ∈ {1,…,T}`."*
+
+Time is handled *before* the sheaf, by attention over a fixed window: *"To model temporal
+dependencies, we apply self-attention along the time dimension independently for each node."* The
+whole input window is ingested at once (12 steps for the traffic sets, 48 for Air Quality), each
+frame is diffused separately, and *"After `L` diffusion layers, the final representations are decoded
+to forecasts `Ŷ` … via a linear projection."* The `ℓ` index is depth, not world-time. There is no
+state carried from one world-time step to the next — which is the property §3.5's last row turns on.
+
+**(b) How is it trained? — Ordinary end-to-end backpropagation under a global loss.**
+
+> *"We utilize Adam optimizer with an initial learning rate set to 0.01, a mini-batch size of 12 (to
+> match sequence length), and the MAE loss function."*
+
+No local rule anywhere. What it does have, and what §3.5 already credits it with, is genuinely
+learned restriction maps, and they are *input-conditioned* rather than merely learned:
+`[r_{u⊴e}, r_{v⊴e}] = MLP([h_u ‖ h_v])`, diagonal, *"conditioned on the node representations at a
+given time step."* That is a stronger form of "learned restriction map" than Patchworks uses.
+
+**Net effect on the residue: none.** ST-Sheaf GNN was already `[ABS]`-credited in §3.5's
+"learned linear restriction maps" row and it stays there; it acquires no other row.
+
+## 7.4 One hop out: the sheaf-ADMM / distributed-optimisation-on-sheaves neighbourhood
+
+Followed one hop from Sheaf-ADMM, the source closest to the conjunction. The neighbourhood is a
+single research line (Hanks, Riess, Hale, Fairbanks, and collaborators) and it is uniformly a
+**control-theory** line: sheaves given, dynamics given, guarantees proved.
+
+- **Hanks, Riess, Cohen, Gross, Hale & Fairbanks**, *"Distributed Multi-agent Coordination over
+  Cellular Sheaves"*, **IEEE CDC 2025**, pp. 3057–3064, doi `10.1109/CDC57313.2025.11312066`,
+  arXiv:2504.02049. **[CITE]** Sheaf-ADMM's own characterisation, verbatim: it *"develop[s]
+  sheaf-constrained ADMM for multi-agent problems with fixed, hand-specified sheaves."* Restriction
+  maps **not** learned. This is the direct parent of §7.2 and it is one property further away.
+- **Zhao, Hanks, Riess, Cohen, Hale & Fairbanks**, *"Asynchronous Nonlinear Sheaf Diffusion for
+  Multi-Agent Coordination"*, arXiv:2510.00270. **[ABS]** Relaxes synchrony — of interest to
+  Patchworks' tick semantics — but the result is a **global-objective** theorem: under bounded
+  delays, nonlinear sheaf diffusion converges to a minimizer of the Dirichlet energy of the
+  coordination sheaf at a linear rate. Same shape as everything else in this line: locality in
+  service of a functional. Body not reached.
+- **Anwer, Riess & Hale**, *"Multi-Agent System Identification with Nonlinear Sheaf Diffusion"*,
+  arXiv:2605.11204 **[eess.SY], 11 May 2026. [FULL — body read via arXiv HTML]** The one neighbour
+  that both *learns* something and has *state persisting in real time*, so it was read rather than
+  skimmed. It is nonetheless not the conjunction: the sheaf is **given**, verbatim *"Suppose the
+  sheaf `F` is fixed and known to the observer"*, the estimation is an offline global least squares
+  over collected trajectories, and the thing recovered is a shared edge potential, not a per-agent
+  operator. The paper draws its own boundary against the learning literature exactly where this
+  pass would: sheaf-Laplacian graph-learning work consists of *"works that learn the sheaf operator
+  for a downstream task, in contrast to our inverse problem of recovering a fixed edge potential
+  from trajectory data."* It carries a warning for Patchworks all the same — see §7.5.
+- **Hanks, Nino, Bou Barcelo, Copeland, Dixon & Fairbanks**, *"Heterogeneous multi-agent multi-target
+  tracking using cellular sheaves"*, arXiv:2512.24886. **[ABS]** Harmonic extension on a sheaf with a
+  decentralised control law and Lyapunov stability analysis. Dynamics given, sheaf given.
+- Also surfaced, **[UNREACHED]** beyond a search hit and not pursued: *"A Sheaf Framework for
+  Strategic Multi-Agent Systems: From Consensus to Nash Equilibria"*, arXiv:2606.01663. Framing
+  suggests game-theoretic equilibria — another global solution concept — but neither abstract nor
+  body was read and nothing here rests on it.
+
+Stopping here, per #173's one-hop bound. The line is consistent enough that a second hop is unlikely
+to pay: every member solves a stated global problem by local means.
+
+## 7.5 What this threatens
+
+Flags only. No closed design is revised here, and nothing in `docs/adr/`, `CONTEXT.md` or `src/` is
+touched by this pass.
+
+- **The vocabulary is no longer unoccupied, and the collision is exact.** Sheaf-ADMM uses *edge
+  stalk* in Patchworks' sense (*"Each edge `e ∈ E` is assigned its own edge stalk `R^{d_e}` — the
+  space in which neighboring agents compare their states"*), *restriction map* in Patchworks' sense,
+  *vertex stalk dimension* for what CONTEXT.md calls the node stalk, and *disagreement* for what
+  CONTEXT.md calls disagreement — with the sheaf Laplacian quadratic form written out as the sum of
+  squared edge disagreements, the same object CONTEXT.md names. It also calls its cells **agents**,
+  a word CONTEXT.md's *Cell* entry explicitly avoids. This is a **naming-collision flag for
+  CONTEXT.md's owners**, not a design problem: the terms are used compatibly, but a reader arriving
+  from this paper will import *consensus* (full agreement, iterated to convergence) where
+  Patchworks means *reconciliation* (one penalised step per tick). Worth an explicit disambiguation
+  the way the *Sheaf cohomology* entry already disambiguates Baudot & Bennequin.
+- **Globally-shared learned restriction maps were empirically not enough on two of three tasks.**
+  Sheaf-ADMM's ablation, verbatim: *"Fixed identity maps recover partial performance on MNIST but
+  fail on Maze and Sudoku. Learned shared maps suffice on Sudoku (92.5%) but not on Maze (8.9%);
+  LoRA modulation closes the Maze gap (99.8%)."* The gap that input-conditioning closed is
+  8.9% → 99.8%. ST-Sheaf GNN reaches the same conclusion independently: *"we find that dynamic
+  signal-conditioned maps are essential for spatio-temporal forecasting tasks."* Patchworks'
+  restriction maps are per-edge and learned but **not input-conditioned** — they are parameters, not
+  functions of the node stalk. Two independent 2026 papers now report that this distinction mattered
+  on their tasks. Neither task resembles a Patchworks dome and neither result transfers directly,
+  but this is the first evidence in the record bearing on a capacity question the design has never
+  been asked. **Flagged for whichever ticket owns restriction-map parameterisation.**
+- **Dense restriction maps as a named failure mode.** Sheaf-ADMM's Limitations, verbatim: a failure
+  occurs when *"the learned restriction maps become effectively dense/high-dimensional potentially
+  removing any benefit of sparse communication."* That is the same hazard the **effective rank**
+  diagnostic exists to watch, seen from the other side — Patchworks watches for rank *collapse*,
+  this names rank *saturation*. Both readings come off the same instrument. Noted as a second thing
+  the existing diagnostic may already be able to see.
+- **Identifiability, and `H¹` doing work the design has never assigned it.** §3.3 noted that the
+  local-module-identification literature carries identifiability conditions Patchworks' rule has
+  never been checked against, and left it. Anwer, Riess & Hale now state the condition **in sheaf
+  cohomology**: *"recovery is determined by the sheaf cohomology of the system: when `H¹(G;F) = 0`,
+  the local law is uniquely recoverable from trajectory data; when `H¹(G;F) ≠ 0`, recovery requires
+  both a restricted parametric class and sufficiently diverse data."* And the sting: *"accurate node
+  rollout does not certify recovery of the underlying local law — prediction and system
+  identification are distinct objectives, and a learned model is interpretable only when the
+  identifiability conditions are met."* CONTEXT.md gives `H⁰` a load-bearing role (private features)
+  and says nothing about `H¹`. Patchworks does not claim to recover a true local law, so this is not
+  a defect — but any future claim that a cell's learned `K` *means* something, as opposed to
+  predicting well, now has a named precondition on the sheaf's first cohomology. **Flag only;
+  pursuing it is a separate ticket.**
+- **Nothing here threatens ADR-0014, §1's finding, or #166.** This pass touched none of those
+  arguments.
+
+## 7.6 The residue, restated
+
+**It changed. It did not close.**
+
+The move is that three of the four properties are now claimed **in a single source** for the first
+time, where §3.5 had them claimed only across separate ones. Sheaf-ADMM holds a learned per-agent
+linear operator, learned restriction maps into edge stalks, and updates that are local by
+construction, all at once. What it cannot supply — and what the whole surrounding literature is
+built *not* to supply, because a proved global guarantee is the point of that literature — is the
+absence of a global objective and the presence of a state that persists in world-time.
+
+So §3.5's instruction to read ADR-0014's sentence as *"resting entirely on the local rule"* needs
+tightening: the weight rests on **local rule read strictly as *no global objective anywhere above
+it***, together with **world-time**. "Local rule" alone is now ambiguous, because Sheaf-ADMM's rule
+is local in every mechanical sense and still descends on a stated global functional.
+
+**New residue, in one sentence, in §3.5's form:**
+
+> A per-cell **learned** linear operator, glued by **learned** restriction maps into edge stalks,
+> advanced by a rule that is local **with no global objective anywhere above it** — neither an inner
+> problem it provably solves nor an outer loss backpropagated through it — carrying a state that
+> **persists in world-time** rather than relaxing to a fixed point within one input: **not found in
+> any single source**.
+
+**Updated last row of §3.5's table**, with one row inserted above it to record what Sheaf-ADMM now
+claims:
+
+| Property | Status |
+|---|---|
+| Per-node **learned** operator **and** learned restriction maps into edge stalks **and** updates local by construction — all three in one source | **Claimed** — Sheaf-ADMM (§7.2), but only ever as an unrolled solver for a stated global objective, trained by backpropagation, with state re-initialised to zero on every input |
+| Per-node **learned** operator, glued by learned restriction maps, under a local rule with **no global objective above it**, with a **persisting state in world-time** | **Not found in any single source** — Sheaf-ADMM has two global objectives and no world-time; ST-Sheaf GNN has neither world-time state nor a local rule; the sheaf-ADMM neighbourhood (§7.4) is uniformly locality *in service of* a global functional |
+
+The conjunction stands, one property narrower and considerably more precisely stated. Per #173, a
+pass returning *"this is known"* would have been a good outcome; it is not the outcome, and the
+reason it is not is specific and quotable rather than a failure to reach the right paper.
+
+## 7.7 Reading-depth ledger for this pass
+
+- **Seely, Cupiał & Jones, *Learning Multi-Agent Coordination via Sheaf-ADMM*, arXiv:2605.31005v1** —
+  **[FULL]** (arXiv HTML v1). Upgrades §3.2's **[CITE]**.
+- **Mostafa, Younis & Ahmadi, ST-Sheaf GNN, arXiv:2604.11275** — **[FULL]** (arXiv HTML v1).
+  Upgrades §3.2's **[ABS]**.
+- **Anwer, Riess & Hale, arXiv:2605.11204** — **[FULL]** (arXiv HTML v1). New to the record.
+- **Hanks et al., CDC 2025 / arXiv:2504.02049** — **[CITE]**. Bibliographic record confirmed and
+  characterised from Sheaf-ADMM's own description of it; body not reached.
+- **Zhao et al., arXiv:2510.00270** — **[ABS]**. Abstract-level only; body not reached.
+- **Hanks et al., arXiv:2512.24886** — **[ABS]**. Abstract-level only; body not reached.
+- **arXiv:2606.01663** — **[UNREACHED]**. Surfaced in search; neither abstract nor body read. Nothing
+  above depends on it.
+
+**What could not be reached in this pass**, stated plainly rather than papered over: the bodies of
+Hanks et al. (CDC 2025, arXiv:2504.02049), Zhao et al. (arXiv:2510.00270), Hanks et al.
+(arXiv:2512.24886), and anything at all of arXiv:2606.01663. §7.4's characterisation of the first
+rests on Sheaf-ADMM's description of it, not on the original. Since §7.4 is one-hop context rather
+than load-bearing evidence, and since the residue is decided by §7.2 and §7.3 — both **[FULL]** —
+nothing in §7.6 depends on an unread body.
