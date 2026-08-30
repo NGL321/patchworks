@@ -63,10 +63,12 @@ from dataclasses import dataclass
 import torch
 
 __all__ = [
+    "CHART_DIM",
     "DEFAULT_BIAS_VARIANCE",
     "DEFAULT_OPERATOR_SCALE",
     "DEFAULT_RHO_K",
     "DEFAULT_WEIGHT_VARIANCE",
+    "NODE_STALK_DIM",
     "BodyShape",
     "CellBiases",
     "CellBody",
@@ -74,6 +76,52 @@ __all__ = [
     "hidden_width",
 ]
 
+#: @type stipulated
+#: @flexibility fixed and intended to stay fixed: absent from 01-cell-and-sheaf.md's Flex priority ladder, and a per-cell n confounds the private-dimension gradient
+#: @warrant docs/spec/06-graph-topology.md, Dimensions
+#: `n`, the node stalk dimension of a predicting cell.
+#:
+#: A module-level constant here rather than a field on
+#: :class:`patchworks.graph.DomeSpec` (ticket #186). It is not one of the dome's
+#: counts: it sizes the shared frozen body that both domains run, so a graph may
+#: not pick its own — #128 fixed one `n` across both domains, and a field
+#: defaulting to this constant would let a graph silently disagree with the body
+#: it shares. `BodyShape` still takes `n` as an argument, because the body module
+#: is shape-general and the tests exercise it at other widths; what is fixed is
+#: the *dome's* choice.
+#:
+#: 32 is `06-graph-topology.md`'s *Dimensions*. #32's delay-embedding comparison
+#: checked that it clears a bound; nothing swept it, so there is no re-runnable
+#: criterion that would return a different number.
+NODE_STALK_DIM = 32
+
+#: @provisional 132
+#: @flexibility rung 5, the last rung: may become a range or a gradient ACROSS THE GRAPH if uniformity fails (01-cell-and-sheaf.md, Flex priority). #132's axis is across DOMAINS, which the ladder does not license
+#: @warrant docs/research/032-dimensioning-small-predictors.md (#172); docs/spec/06-graph-topology.md, Dimensions
+#: `k`, the chart dimension — the cell's private low-dimensional coordinates,
+#: and the memory depth its operator advances.
+#:
+#: A module-level constant here for the same reason as
+#: :data:`NODE_STALK_DIM`, and off `DomeSpec` with it (ticket #186).
+#:
+#: **What #132 may take away is the global-constant form, not the value.** 12 is
+#: defended — #145 argued it and #172 re-sourced it to reservoir dimensioning —
+#: and this entry is not a warning that the number is shaky. #132 re-specifies
+#: chart width as *per-domain*, so what it threatens is whether one global number
+#: is the right kind of thing at all.
+#:
+#: **Rung 5 and #132 are different axes, and must not blur.**
+#: `01-cell-and-sheaf.md`'s *Flex priority* ladder puts `k` last — it *"may become
+#: a range or a gradient across the graph if uniformity fails"* — which is `k`
+#: varying **across the graph**, per cell. #132 asks whether it varies **across
+#: domains**. Rung 5 is not licence for #132's reversal. The ordering is itself a
+#: reversal: `k` was formerly the first thing the spec would flex and is now the
+#: last, because widening it weakens the low-dimensional claim.
+CHART_DIM = 12
+
+#: @type selected
+#: @flexibility unknown
+#: @warrant #42's rig; docs/spec/05-timescales.md, What this requires elsewhere
 #: `sigma_w^2`, the variance of the weight draw scaled by fan-in. A global,
 #: shared, frozen quantity whose only job is containment — keeping the body's
 #: realised contraction negative with margin — never spread
@@ -82,11 +130,17 @@ __all__ = [
 #: `01-cell-and-sheaf.md` at.
 DEFAULT_WEIGHT_VARIANCE = 1.2
 
+#: @type selected
+#: @flexibility the weak knob of the two: three orders of magnitude barely move the regional spectra
+#: @warrant docs/research/027-regional-jacobian-spectra.md
 #: `sigma_b^2`, the variance of the iid bias draw. The rig's default, and the
 #: weak knob of the two: sweeping it over three orders of magnitude barely
 #: moves the regional spectra (`docs/research/027-regional-jacobian-spectra.md`).
 DEFAULT_BIAS_VARIANCE = 0.5
 
+#: @type stipulated
+#: @flexibility unknown
+#: @warrant docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md
 #: `rho_K`, the operator band's lower edge as a reciprocal:
 #: `sigma_max(K) in [1/rho_K, 1]` (ticket #140,
 #: `docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md`). A single
@@ -104,6 +158,9 @@ DEFAULT_BIAS_VARIANCE = 0.5
 #: `|lambda| < 1`.
 DEFAULT_RHO_K = 2.0
 
+#: @type stipulated
+#: @flexibility superseded per body by a rule, patchworks.bias_selection.operator_scale_rule; this is the band ceiling, the rule's answer where no rig has run
+#: @warrant docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md
 #: `a`, the scalar in `K = a·I` at construction.
 #:
 #: **This is a rule, not a number** (ticket #140), and the rule is

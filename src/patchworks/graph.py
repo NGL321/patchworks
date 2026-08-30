@@ -39,7 +39,7 @@ from enum import Enum
 
 import torch
 
-from .body import BodyShape
+from .body import CHART_DIM, NODE_STALK_DIM, BodyShape
 
 __all__ = [
     "CellIndex",
@@ -158,6 +158,14 @@ class DomeSpec:
     `apex_degree` are targets the lateral fill works to: the apex is lower
     because L7 has no predicting level above it and loses its up-edges by
     construction, which is what the private-dimension gradient depends on.
+
+    **The body's `n` and `k` are not the dome's counts** (ticket #186). They
+    sized the shared frozen body rather than this graph's topology, and #128
+    fixed one of each across both domains, so they are module-level constants —
+    :data:`patchworks.body.NODE_STALK_DIM` and
+    :data:`patchworks.body.CHART_DIM` — and not fields here. A field defaulting
+    to them would be an unused override that lets a graph silently disagree with
+    the body it shares. See `docs/spec/06-graph-topology.md`, *Dimensions*.
     """
 
     patch_grid: int = 16
@@ -174,12 +182,6 @@ class DomeSpec:
 
     joints: int = 3
     """Arm joints, one proprioceptive and one touch boundary cell each."""
-
-    n: int = 32
-    """Node stalk dimension of a predicting cell."""
-
-    k: int = 12
-    """Chart dimension."""
 
     interior_m: int = 4
     boundary_m: int = 8
@@ -244,6 +246,7 @@ class DomeSpec:
             )
 
 
+#: @register none
 DEFAULT_SPEC = DomeSpec()
 
 
@@ -402,7 +405,7 @@ def build_graph(spec: DomeSpec = DEFAULT_SPEC) -> "Dome":
         zip(spec.vision_sides, spec.somatomotor_sizes), start=1
     ):
         ids = {
-            (r, c): b.cell(CellKind.PREDICTING, spec.n, CellIndex(depth, "vision", (r, c)))
+            (r, c): b.cell(CellKind.PREDICTING, NODE_STALK_DIM, CellIndex(depth, "vision", (r, c)))
             for r in range(side)
             for c in range(side)
         }
@@ -410,7 +413,7 @@ def build_graph(spec: DomeSpec = DEFAULT_SPEC) -> "Dome":
         somato_levels.append(
             [
                 b.cell(
-                    CellKind.PREDICTING, spec.n, CellIndex(depth, "somatomotor", (p,))
+                    CellKind.PREDICTING, NODE_STALK_DIM, CellIndex(depth, "somatomotor", (p,))
                 )
                 for p in range(column_size)
             ]
@@ -423,7 +426,7 @@ def build_graph(spec: DomeSpec = DEFAULT_SPEC) -> "Dome":
         depth = first_core + offset
         core_levels.append(
             [
-                b.cell(CellKind.PREDICTING, spec.n, CellIndex(depth, "core", (i,)))
+                b.cell(CellKind.PREDICTING, NODE_STALK_DIM, CellIndex(depth, "core", (i,)))
                 for i in range(size)
             ]
         )
@@ -607,7 +610,7 @@ class Dome:
             c.stalk if c.is_boundary else min(c.stalk, stalk_sums[c.id]) for c in cells
         ]
         predicting = tuple(c.id for c in cells if not c.is_boundary)
-        mask = torch.ones((len(predicting), spec.n), dtype=torch.bool)
+        mask = torch.ones((len(predicting), NODE_STALK_DIM), dtype=torch.bool)
         for row, cell_id in enumerate(predicting):
             mask[row, : permitted[cell_id]] = False
         return cls(
@@ -628,7 +631,7 @@ class Dome:
     @property
     def shape(self) -> BodyShape:
         """The predicting population's `n` and `k`, for the shared frozen body."""
-        return BodyShape(n=self.spec.n, k=self.spec.k)
+        return BodyShape(n=NODE_STALK_DIM, k=CHART_DIM)
 
     def restriction_mask(self, edge_id: int, cell_id: int) -> torch.Tensor:
         """`[stalk]` bool: which node stalk directions this cell may put on this edge.
@@ -694,7 +697,7 @@ class Dome:
         Fixed at construction and invariant under learning: no learned parameter
         appears in it. A diagnostic, not a budget, and nothing branches on it.
         """
-        return len(self.predicting) * self.spec.n - sum(e.m for e in self.edges)
+        return len(self.predicting) * NODE_STALK_DIM - sum(e.m for e in self.edges)
 
     @property
     def cut_capacities(self) -> tuple[tuple[str, int], ...]:
@@ -743,7 +746,7 @@ class Dome:
                     f"{name} ({len(ids)})",
                     span([self.degrees[i] for i in ids]),
                     span([self.stalk_sums[i] for i in ids]),
-                    span([max(0, self.spec.n - self.stalk_sums[i]) for i in ids]),
+                    span([max(0, NODE_STALK_DIM - self.stalk_sums[i]) for i in ids]),
                 )
             )
         return tuple(rows)
@@ -814,7 +817,7 @@ class Dome:
 
         lines.append("dimensions")
         lines.append(
-            f"  n = {spec.n}, k = {spec.k}, interior m = {spec.interior_m}, "
+            f"  n = {NODE_STALK_DIM}, k = {CHART_DIM}, interior m = {spec.interior_m}, "
             f"boundary m = {spec.boundary_m}, drive m = {spec.drive_m}"
         )
         lines.append(

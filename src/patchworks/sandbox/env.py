@@ -38,21 +38,44 @@ from gymnasium import spaces
 
 from patchworks.sandbox.state import STATE_SPEC
 
+#: @register none
 ARENA_XML = os.path.join(os.path.dirname(os.path.abspath(__file__)), "arena.xml")
 
+#: @register none
 ENV_ID = "Patchworks/PlanarPushSandbox-v0"
+#: @register none
 ENTRY_POINT = "patchworks.sandbox.env:PlanarPushSandbox"
 
+#: @type stipulated
+#: @flexibility fixed with the arena: the pucks are geoms in arena.xml, so the count is the world's rather than a parameter
+#: @warrant src/patchworks/sandbox/arena.xml
 N_PUCKS = 3
+#: @type stipulated
+#: @flexibility fixed with the arena, and with ZONE_XY, which names each zone's place
+#: @warrant src/patchworks/sandbox/arena.xml
 N_ZONES = 3
+#: @register none
 ARM_JOINTS = ("j0", "j1", "j2")
 
 # 500 Hz physics, 10 substeps per tick, so control runs at 50 Hz.
+#: @type chosen
+#: @flexibility 500 Hz physics is the arena's; this divides it, and moving it moves CONTROL_HZ with it
+#: @warrant here
 FRAME_SKIP = 10
+#: @type derived
+#: @depends_on FRAME_SKIP
+#: @flexibility not free: #149's contraction reading rests on the tick being 1/50 s of world
+#: @warrant #149
 CONTROL_HZ = 50.0
 
+#: @type stipulated
+#: @flexibility fixed with the sensory tiling: 64 is 16x16 patches of 4x4 px, DomeSpec.patch_grid's default
+#: @warrant docs/spec/06-graph-topology.md, Dimensions
 IMAGE_SIZE = 64
 
+#: @type chosen
+#: @flexibility a give-up bound rather than a physical quantity
+#: @warrant here
 #: How many layouts reset() will draw before giving up on finding one clear of
 #: the arm, whose pose it is not allowed to change.
 PLACEMENT_ATTEMPTS = 64
@@ -61,16 +84,38 @@ PLACEMENT_ATTEMPTS = 64
 # The held-out slice is defined along two axes at once, and the two are kept
 # separate: there is deliberately no split value returning their union, because
 # a number drawn from it would be attributable to neither axis.
+#: @type chosen
+#: @flexibility unknown; the two axes are deliberately kept separate, so widening one is not widening the other
+#: @warrant here
 HELDOUT_PAIRS = frozenset({(0, 2), (2, 0)})
+#: @type chosen
+#: @flexibility unknown
+#: @warrant here
 HELDOUT_SECTOR = (np.deg2rad(30.0), np.deg2rad(75.0))
+#: @type chosen
+#: @flexibility unknown
+#: @warrant here
 HELDOUT_SECTOR_MIN_R = 0.22
+#: @register none
 SPLITS = ("train", "heldout_pair", "heldout_sector", "any")
 
+#: @type derived
+#: @depends_on the arena's pedestal radius 0.08 and ring wall 0.52
+#: @flexibility bounded by the arena: an annulus that clears both
+#: @warrant src/patchworks/sandbox/arena.xml
 SPAWN_R = (0.15, 0.36)  # annulus: pedestal at 0.08, ring wall at 0.52
+#: @type stipulated
+#: @flexibility fixed with the arena's zone geoms
+#: @warrant src/patchworks/sandbox/arena.xml
 ZONE_XY = np.array([[0.0, 0.30], [-0.26, -0.15], [0.26, -0.15]])
+#: @type stipulated
+#: @flexibility fixed with the arena's zone geoms
+#: @warrant src/patchworks/sandbox/arena.xml
 ZONE_RADIUS = 0.075
 
+#: @register none
 ZONE_DIM_RGBA = np.array([0.35, 0.35, 0.35, 0.35])
+#: @register none
 ZONE_LIT_RGBA = np.array([1.00, 0.85, 0.10, 0.85])
 
 # --- the friction field --------------------------------------------------------
@@ -82,8 +127,17 @@ ZONE_LIT_RGBA = np.array([1.00, 0.85, 0.10, 0.85])
 # the model that `mjSTATE_INTEGRATION` does not cover, so restore would diverge
 # silently. A field is a pure function of state, so snapshot and restore stay
 # bit-exact, and where a puck *is* now changes what a push does.
+#: @type chosen
+#: @flexibility unknown; sums to the +/- 25% about nominal the field is specified at
+#: @warrant here
 FRICTION_FIELD_AMP = (0.15, 0.10)  # sums to the +/- 25% about nominal
+#: @type chosen
+#: @flexibility unknown; three incommensurate lengths, so the field does not repeat inside the arena
+#: @warrant here
 FRICTION_FIELD_WAVELENGTH = (0.31, 0.37, 0.53)
+#: @type chosen
+#: @flexibility unknown
+#: @warrant here
 FRICTION_FIELD_PHASE = 0.7
 
 

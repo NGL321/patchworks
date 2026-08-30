@@ -283,6 +283,14 @@ hand-specified wiring for something that should follow from position.
 | actuator cell | node stalk **6** (3 commanded, 3 efference) |
 | drive cell | node stalk **1** |
 
+**`n` and `k` have a definition site, and it is not `DomeSpec`.** They live as module-level constants
+`NODE_STALK_DIM` and `CHART_DIM` in `src/patchworks/body.py`, the module that consumes them
+([#186](https://github.com/NGL321/patchworks/issues/186)). Every other count in this table is a
+construction parameter on `DomeSpec`; these two are not, because they size the *shared frozen body*
+that both domains run rather than this graph's topology, and
+[#128](https://github.com/NGL321/patchworks/issues/128) fixed one of each across both domains. The
+three constant registers under `docs/registers/` carry their provenance.
+
 **Boundary cells are exempt from `n`. Their node stalk is the world's shape.**
 
 The world writes or reads a boundary cell's **node stalk** directly, and there is no compressor

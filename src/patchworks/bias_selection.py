@@ -94,15 +94,24 @@ __all__ = [
     "sweep",
 ]
 
+#: @type chosen
+#: @flexibility unknown, and this register's flagship unknown: #178 found a rig tick count silently deciding a result
+#: @warrant here
 #: Ticks of driven trajectory each candidate is measured over. The rig's
 #: (`selection_sweep.trajectory_lambda`), long enough for the `lambda` estimate
 #: to settle and short enough that 64 of them per candidate stay an afternoon.
 DEFAULT_TICKS = 64
 
+#: @type chosen
+#: @flexibility unknown
+#: @warrant here
 #: Ticks run before measurement starts, so that the chart is measured on the
 #: trajectory the drive puts it on rather than on the way there.
 DEFAULT_BURN_IN = 16
 
+#: @type chosen
+#: @flexibility the arm the dwell measurement is most sensitive to; benchmarks/timescale_selection.py sweeps it rather than trusting it
+#: @warrant docs/spec/05-timescales.md
 #: Correlation time, in ticks, of the node stalk sequence the cell is driven
 #: with. **A stand-in, and the one the dwell arm is most sensitive to**: nothing
 #: is trained, so there is no real message stream to drive a cell with. The rig
@@ -113,16 +122,25 @@ DEFAULT_BURN_IN = 16
 #: the benchmark sweeps this rather than trusting it.
 DEFAULT_DRIVE_CORRELATION = 8.0
 
+#: @type chosen
+#: @flexibility unknown; #42's rig drew 20,000 at a frozen operating point, and each draw here costs a whole trajectory
+#: @warrant here
 #: Candidate bias vectors drawn per sweep. #42's rig drew 20,000 at a frozen
 #: operating point; each draw here costs a whole trajectory instead, so the
 #: default is smaller and the benchmark says what it used.
 DEFAULT_DRAWS = 4096
 
+#: @type stipulated
+#: @flexibility none as a choice of statistic: tau = -1/ln rho diverges as rho -> 1, so no moment is admissible
+#: @warrant docs/spec/05-timescales.md
 #: `tau` is reported as **quantiles, never moments**: `tau = -1/ln rho` diverges
 #: as `rho -> 1`, so a mean is dominated by whichever draw came closest to the
 #: boundary.
 TAU_QUANTILES = (0.05, 0.25, 0.5, 0.75, 0.95)
 
+#: @type chosen
+#: @flexibility unknown
+#: @warrant docs/spec/05-timescales.md, The taper's timescale gradient is a gradient in means
 #: How far adjacent levels' bands overlap, as a fraction of a band's width. The
 #: taper's gradient is continuous and separates levels only as distributions
 #: (`05-timescales.md`, *The taper's timescale gradient is a gradient in
@@ -130,12 +148,19 @@ TAU_QUANTILES = (0.05, 0.25, 0.5, 0.75, 0.95)
 #: module's choice of how much.
 DEFAULT_OVERLAP = 0.5
 
+#: @type measured
+#: @flexibility not a knob: 2.6 is #27's measured one-tick non-normal amplification
+#: @warrant #27
 #: The safety factor the slow cap is stated with. #27 measured a **2.6x**
 #: one-tick non-normal amplification, and the slow-and-stable band is thin, so
 #: the factor is not decorative: a cell whose realised decay is slower than its
 #: regions imply by more than this is one bias update from crossing.
 DEFAULT_SAFETY_FACTOR = 2.6
 
+#: @type derived
+#: @depends_on patchworks.restriction.GAUGE_RHO
+#: @flexibility none independently: it is the spec's rho, and moving it alone makes the two disagree
+#: @warrant docs/adr/0010-restriction-map-scale-is-gauge-fixed.md
 #: `rho` in `lambda_max <= rho^2 deg(v)`: the gauge bound on a restriction map's
 #: Frobenius norm (`docs/adr/0010-restriction-map-scale-is-gauge-fixed.md`),
 #: which is 2 in the spec. Named apart from the spectral radius this module
@@ -665,6 +690,9 @@ def sweep(
     )
 
 
+#: @type chosen
+#: @flexibility unknown
+#: @warrant here
 #: How many values of `a` :func:`operator_scale_rule` tries across the band.
 #: Log-spaced, because `a` multiplies a rate.
 DEFAULT_SCALE_STEPS = 12

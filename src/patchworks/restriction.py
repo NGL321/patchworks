@@ -42,12 +42,18 @@ from .graph import Dome
 
 __all__ = ["GAUGE_RHO", "INITIAL_NORM", "RestrictionMaps", "pair_index"]
 
+#: @type stipulated
+#: @flexibility measured: 2 -> 16 buys 1.008x on the apex floor (#150)
+#: @warrant docs/spec/01-cell-and-sheaf.md, Scale is gauge-fixed
 #: `ρ`, the scale gauge's band edge, fixed at construction
 #: (`docs/spec/01-cell-and-sheaf.md`, *Scale is gauge-fixed*). Interior maps live
 #: in `[1/ρ, ρ]`; it also appears in the reconciliation gain's denominator, where
 #: `ρ² · deg(v)` bounds the local Laplacian block's largest eigenvalue.
 GAUGE_RHO = 2.0
 
+#: @type chosen
+#: @flexibility unknown
+#: @warrant here
 #: The Frobenius norm every map is drawn at. **Chosen here, not recorded.**
 #: ADR-0010 fixes the band and the exact gauge but not where inside the band a
 #: run starts. One is the band's geometric centre and the same value the

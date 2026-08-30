@@ -61,6 +61,9 @@ class _Unset:
 
 _UNSET = _Unset()
 
+#: @type chosen
+#: @flexibility any non-zero constant; zero makes the drive inert, and a schedule is not a drive
+#: @warrant docs/adr/0009-a-drive-is-a-motor-edge-attached-deep.md
 #: What the drive boundary cell asserts, every tick, forever. **Chosen here,
 #: not recorded**: the record fixes the stalk's width and its content — one
 #: dimension carrying *valence, not specification* — but not the number. It has
@@ -71,6 +74,9 @@ _UNSET = _Unset()
 #: is naturally read as true.
 DRIVE_ASSERTION = 1.0
 
+#: @type stipulated
+#: @flexibility none: 255 is uint8's range, and any other value is a unit error
+#: @warrant docs/spec/01-cell-and-sheaf.md
 #: The render arrives as `uint8`. Dividing by 255 is unit conversion at the
 #: environment contract's seam, which `docs/spec/01-cell-and-sheaf.md` puts
 #: outside the sheaf's job — not a compressor, which is what the membership rule
