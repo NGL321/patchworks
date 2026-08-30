@@ -8,9 +8,11 @@ contract in [`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md), the tick in
 [`06-graph-topology.md`](./06-graph-topology.md).
 
 Terms used here are defined in [`CONTEXT.md`](../../CONTEXT.md). The decision this document records is
-[#130](https://github.com/NGL321/patchworks/issues/130); the rim's contents come from
-[#129](https://github.com/NGL321/patchworks/issues/129) and the rim's ban from
-[#128](https://github.com/NGL321/patchworks/issues/128). The depth semantics are
+[#130](https://github.com/NGL321/patchworks/issues/130); the rim's contents are
+[`12-the-interlocutor.md`](./12-the-interlocutor.md)'s, from
+[#129](https://github.com/NGL321/patchworks/issues/129), and the rim's ban is from
+[#128](https://github.com/NGL321/patchworks/issues/128). **This document owns the shape; `12` owns the
+world** — where the two touch, the contents are `12`'s and the counts are this document's. The depth semantics are
 [ADR-0014](../adr/0014-depth-decimates-in-time-and-not-in-space.md).
 
 **This document is not a second topology.** It is the second *instantiation* of a construction rule
@@ -269,6 +271,8 @@ buffer to size them over. Carrying that per-slot gives 196, on the same principl
 actuator stalk of 6: three commanded and three efference, the command and what the world made of it,
 in one cell. The alternative — a readback only at the head — would put a boundary cell's stalk
 dimension in the hands of its index, which nothing else in the architecture does.
+[`12-the-interlocutor.md`](./12-the-interlocutor.md) **ratifies the choice rather than superseding
+it**, having written the contents down: four contents, per slot, 196.
 
 ### Cut capacities and private dimension
 
