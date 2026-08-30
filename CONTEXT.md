@@ -129,8 +129,14 @@ learned linear operator is an honest model of its motion. A claim about **time-e
 independent of local flatness in both directions — a piece may evolve linearly in its chart while the
 overlap it shares with a neighbour stays curved, and an overlap may be flat while the motion across it
 is not. Failure surfaces as prediction error no `K` can remove.
+The claim is made of **every** cell and admits no exception: no cell in this architecture is
+autonomous — a fresh node stalk arrives each tick and `encode` fuses it with the persisting chart — so
+there is no class of *driven* cells to hold a different operator, and no boundary at which one kind of
+cell would give way to another ([#146](https://github.com/NGL321/patchworks/issues/146)).
 _Avoid_: linear (bare), local flatness (that is the geometric claim), Koopman linearity, global
-linearity
+linearity, bilinear, bilinear realisation, control-affine (the last three name an exogenous input
+multiplying the state; this design has none, and borrowing the word re-imports the control literature
+ADR-0014 exited)
 
 **Readout gauge**:
 The claim a frozen linear `decode` rests on: a cell's node stalk is a linear function of its chart, so
