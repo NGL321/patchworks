@@ -86,9 +86,16 @@ rules:
 | after 30k ticks | **0.055** | **0.058** | 0.076 | 0.146 | 0.111 | **0.057** | **0.217** |
 | recoverable | 5.59x | 5.59x | 4.31x | 2.25x | 2.95x | 5.59x | **1.51x** |
 
-Median over all 150 cells falls from **8.96 to 0.062**. The control above predicted
+Median over all 150 cells falls from **8.96 to 0.062**. The control below predicted
 exactly this: the untrained number was model error, and the bias rule is what removes
 it.
+
+**The medians clear; the tail does not.** The trained distribution is badly skewed at
+mid-depth — level 4 reads median 0.146, p95 **2.40**, max **3.85**, and levels 3 and 5
+have the same shape. The tightest cell caps the global `γ` at **0.085** against the
+apex's cap, or ~0.125 against level 4's own, which is the fairer pairing and still
+nowhere near 1. `γ` is one global scalar (`tick.py:71`), so those few cells set it: the
+typical cell clears the bound and a handful of mid-depth cells do not.
 
 Two things the trained read shows that the untrained one could not:
 
