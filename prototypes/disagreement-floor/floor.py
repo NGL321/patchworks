@@ -71,7 +71,14 @@ import torch
 _BENCH = str(Path(__file__).resolve().parents[2] / "benchmarks")
 if _BENCH not in sys.path:
     sys.path.append(_BENCH)
-from untrained_fixed_point import build, hold, taught  # noqa: E402
+from untrained_fixed_point import (  # noqa: E402
+    build,
+    hold,
+    restore,
+    snapshot,
+    taught,
+    teaching,
+)
 
 from patchworks.agent import Agent, run  # noqa: E402
 from patchworks.diagnostics import Condition, Diagnostics  # noqa: E402
@@ -379,6 +386,137 @@ def command_optimum(
     )
 
 
+#: Budgets the trajectory reads at. Dense early, where #158 measured the fall
+#: to be fastest, and out to 100,000 -- #120's own long-run budget, and the
+#: one honest number to price a trade against.
+BUDGETS = (1000, 2000, 5000, 10000, 20000, 30000, 50000, 75000, 100000)
+
+
+# -- trajectory ------------------------------------------------------------
+
+
+def trajectory_row(agent: Agent, observation, applied, hold_ticks: int):
+    """Read the floor where the surface stands, without disturbing it.
+
+    The read costs a quiescent hold, and a hold moves the stalks -- so a
+    trajectory would otherwise be measuring a surface it had itself perturbed
+    at every checkpoint. `snapshot`/`restore` put back everything a tick moves;
+    the rules are off during the hold and the world is never stepped, so the
+    parameters and the sandbox are untouched by construction and the run
+    resumes on exactly the state it paused on.
+    """
+    state = snapshot(agent.sheaf)
+    driven, _, _ = per_cell_floor(agent)
+    hold(agent, observation, applied, None, hold_ticks)
+    held, offsets, levels = per_cell_floor(agent)
+    restore(agent.sheaf, state)
+    return driven, held, offsets, levels
+
+
+def command_trajectory(
+    name: str, split: str, seed: int, hold_ticks: int, budgets
+) -> None:
+    """Where the floor settles: one run, read at many budgets (#178).
+
+    #158 read the floor at 30,000 ticks and recorded that it was *still
+    falling* there. That leaves the apex's 0.217 -- and with it #159's whole
+    trade against `gamma` -- resting on a budget rather than on an asymptote.
+    The break-even for #155's full 5.585x is 0.0587, a further 3.7x down, so
+    which side of it the floor settles on decides whether there is a trade to
+    make at all.
+
+    Read as repeated `hold --learn N` this would cost the *sum* of the budgets,
+    because `taught` restarts from scratch each time. Read here it costs the
+    largest one: the teaching generator is paused at each checkpoint, the floor
+    is read off a snapshot, and the run resumes.
+    """
+    _, agent = build(name, split, seed)
+    budgets = sorted({int(b) for b in budgets if b > 0})
+    total = budgets[-1]
+
+    print(f"dome={name} split={split} seed={seed}")
+    print(
+        f"one trajectory to {total} ticks, both rules on, read at "
+        f"{len(budgets)} budgets"
+    )
+    print(f"hold of {hold_ticks} ticks at each read; #158's 30k point is the control\n")
+
+    apex = None
+    rows = []
+    reached = 0
+    for outcome in teaching(agent, total, seed):
+        reached += 1
+        if reached not in budgets:
+            continue
+        driven, held, offsets, levels = trajectory_row(
+            agent, outcome.observation, outcome.applied, hold_ticks
+        )
+        apex = int(levels.max())
+        rows.append((reached, driven, held, offsets, levels))
+        apex_floor = float(np.median(held[levels == apex]))
+        print(
+            f"  {reached:>7} ticks: apex {apex_floor:8.5f}  "
+            f"recoverable {recoverable(apex_floor):5.2f}x  "
+            f"all-cell median {float(np.median(held)):8.5f}  driven median "
+            f"{float(np.median(driven)):8.5f}",
+            flush=True,
+        )
+
+    if not rows:
+        raise ValueError(f"no budget in {budgets} was reached in {total} ticks")
+
+    print("\n  The floor per level, along the trajectory (median, after the hold):")
+    header = "  ".join(f"{level:>8}" for level in range(1, apex + 1))
+    print(f"    {'ticks':>7}  {header}  {'ALL':>8}")
+    for reached, _, held, _, levels in rows:
+        cells = "  ".join(
+            f"{float(np.median(held[levels == level])):8.5f}"
+            for level in range(1, apex + 1)
+        )
+        print(f"    {reached:>7}  {cells}  {float(np.median(held)):8.5f}")
+
+    print(
+        "\n  The tail, which is what caps the global gain "
+        "(#158: a few mid-depth cells, not the apex):"
+    )
+    # The binding level is read per row rather than fixed at #158's level 4:
+    # what caps a global `gamma` is whichever cell is worst *now*, and whether
+    # that stays at mid-depth as training runs on is part of what is being
+    # asked. On the real dome at 30k it was level 4; nothing guarantees it
+    # still is at 100k, and a hard-coded 4 would hide the move.
+    print(
+        f"    {'ticks':>7}  {'level':>5}  {'med':>8}  {'p95':>8}  {'max':>8}  "
+        f"{'gamma_cap':>9}"
+    )
+    for reached, _, held, _, levels in rows:
+        binding = int(levels[int(np.argmax(held))])
+        here = held[levels == binding]
+        worst = float(held.max())
+        print(
+            f"    {reached:>7}  {binding:>5}  {float(np.median(here)):8.5f}  "
+            f"{float(np.percentile(here, 95)):8.5f}  {worst:8.5f}  "
+            f"{(min(1.0, CAP_POST / worst) if worst > 0 else 1.0):9.4f}"
+        )
+
+    print("\n  Ratio to the previous read -- is it still falling, and how fast:")
+    print(f"    {'ticks':>7}  {'apex x prev':>12}  {'ALL x prev':>11}")
+    for (_, _, prev, _, prev_levels), (after, _, held, _, levels) in zip(
+        rows, rows[1:]
+    ):
+        was = float(np.median(prev[prev_levels == apex]))
+        now = float(np.median(held[levels == apex]))
+        was_all, now_all = float(np.median(prev)), float(np.median(held))
+        print(
+            f"    {after:>7}  {(was / now if now else float('inf')):12.3f}  "
+            f"{(was_all / now_all if now_all else float('inf')):11.3f}"
+        )
+
+    reached, _, held, _, levels = rows[-1]
+    print(f"\n  At the last budget ({reached} ticks):")
+    level_table(held, levels, "un-gained delta (the floor):")
+    verdict(held, levels)
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -407,6 +545,15 @@ def main(argv: list[str] | None = None) -> None:
     sweep.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 42])
     optimum = subparsers.add_parser("optimum", parents=[common])
     optimum.add_argument("--relax", type=int, default=200)
+    trajectory = subparsers.add_parser("trajectory", parents=[common])
+    trajectory.add_argument(
+        "--budgets",
+        nargs="+",
+        type=int,
+        default=list(BUDGETS),
+        help="training budgets to read the floor at, on one trajectory. The "
+        "largest is what the run costs; the rest are free.",
+    )
 
     args = parser.parse_args(argv)
     if args.command == "hold":
@@ -419,6 +566,10 @@ def main(argv: list[str] | None = None) -> None:
         )
     elif args.command == "sweep":
         command_sweep(args.dome, args.splits, args.seeds, args.ticks, args.hold_ticks)
+    elif args.command == "trajectory":
+        command_trajectory(
+            args.dome, args.split, args.seed, args.hold_ticks, args.budgets
+        )
     else:
         command_optimum(
             args.dome, args.split, args.seed, args.ticks, args.hold_ticks, args.relax
