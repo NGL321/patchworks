@@ -140,7 +140,7 @@ class TestTheOneEntryPoint:
         assert cli.main([]) == 0
         printed = capsys.readouterr().out
         assert "usage: patchworks" in printed
-        for subcommand in ("doctor", "check", "dome", "demo"):
+        for subcommand in ("doctor", "check", "run", "dome", "demo"):
             assert subcommand in printed
 
     def test_every_level_of_help_says_what_the_thing_is(self):
@@ -155,6 +155,7 @@ class TestTheOneEntryPoint:
         for description in (
             cli.DOCTOR_DESCRIPTION,
             cli.CHECK_DESCRIPTION,
+            cli.RUN_DESCRIPTION,
             cli.DOME_DESCRIPTION,
             cli.DEMO_DESCRIPTION,
         ):
@@ -1130,6 +1131,145 @@ class TestTheNonFiniteSweepActuallyFinds:
         assert "NON-FINITE" in capsys.readouterr().out
 
 
+class TestRunDispatchesAndRefusesEarly:
+    """`patchworks run`: the flags, the exit codes, and the refusals before the world.
+
+    The loop itself is `tests/test_progress.py`'s subject. What is held here is
+    the dispatch: that every bad argument is refused *before* anything is built,
+    because past that point a typo surfaces hours into a run somebody left alone,
+    and that the exit code says what happened.
+    """
+
+    def _a_summary(self, **overrides):
+        from patchworks.progress import Summary
+
+        fields = dict(
+            ticks=10,
+            asked_for=10,
+            seed=0,
+            split="train",
+            control_hz=50.0,
+            elapsed=1.0,
+            interrupted=False,
+            reporting_seconds=0.01,
+            setup_seconds=0.5,
+            reports=(),
+            non_finite=(),
+        )
+        fields.update(overrides)
+        return Summary(**fields)
+
+    def _driving(self, monkeypatch, seen=None, summary=None, blow_up=None):
+        """Replace the loop where `_run` imports it from, and record what it got."""
+        from patchworks import progress
+
+        def drive(**kwargs):
+            if seen is not None:
+                seen.update(kwargs)
+            if blow_up is not None:
+                raise blow_up
+            return summary if summary is not None else self._a_summary()
+
+        monkeypatch.setattr(progress, "drive", drive)
+
+    def test_the_default_run_is_unbounded_and_the_flags_reach_the_loop(
+        self, monkeypatch
+    ):
+        """`--ticks 0` is *until Ctrl-C*, which is what walking away means.
+
+        It reaches the loop as `None` rather than as a zero, because a zero
+        there is a run of no ticks and the two must not be spelled the same.
+        """
+        seen = {}
+        self._driving(monkeypatch, seen=seen)
+        arguments = cli.build_parser().parse_args(["run"])
+        assert arguments.ticks == 0
+        assert arguments.handler(arguments) == 0
+        assert seen["ticks"] is None
+
+        seen.clear()
+        arguments = cli.build_parser().parse_args(
+            ["run", "--ticks", "9", "--seed", "3", "--split", "heldout_pair",
+             "--report-every", "3", "--whole-graph-every", "9"]
+        )
+        assert arguments.handler(arguments) == 0
+        assert seen == {
+            "ticks": 9,
+            "seed": 3,
+            "split": "heldout_pair",
+            "report_every": 3,
+            "whole_graph_every": 9,
+        }
+
+    def test_the_whole_graph_reading_is_off_unless_asked_for(self):
+        """~9 s a reading on the real dome: the fast path never carries it."""
+        from patchworks.progress import DEFAULT_REPORT_EVERY, WHOLE_GRAPH_OFF
+
+        arguments = cli.build_parser().parse_args(["run"])
+        assert arguments.whole_graph_every == WHOLE_GRAPH_OFF
+        assert arguments.report_every == DEFAULT_REPORT_EVERY
+
+    @pytest.mark.parametrize(
+        "argv, message",
+        [
+            (["run", "--ticks", "-1"], "--ticks must be 0"),
+            (["run", "--report-every", "0"], "--report-every is a cadence"),
+            (["run", "--whole-graph-every", "300"], "multiple of --report-every"),
+            (["run", "--split", "nonsense"], "split must be one of"),
+        ],
+    )
+    def test_a_bad_argument_is_refused_before_anything_is_built(
+        self, monkeypatch, capsys, argv, message
+    ):
+        def never(**_kwargs):
+            raise AssertionError("the world must not be built for a bad argument")
+
+        from patchworks import progress
+
+        monkeypatch.setattr(progress, "drive", never)
+        arguments = cli.build_parser().parse_args(argv)
+        assert arguments.handler(arguments) == 2
+        captured = capsys.readouterr()
+        assert message in captured.err
+        assert captured.out == ""
+
+    def test_a_non_finite_run_exits_one(self, monkeypatch):
+        self._driving(
+            monkeypatch,
+            summary=self._a_summary(non_finite=("command, first at tick 4, seen 6x",)),
+        )
+        arguments = cli.build_parser().parse_args(["run", "--ticks", "10"])
+        assert arguments.handler(arguments) == 1
+
+    def test_an_interrupted_run_is_not_a_failure(self, monkeypatch):
+        """Ctrl-C is how this subcommand is *meant* to end. Exit 0."""
+        self._driving(monkeypatch, summary=self._a_summary(interrupted=True))
+        arguments = cli.build_parser().parse_args(["run"])
+        assert arguments.handler(arguments) == 0
+
+    def test_a_second_ctrl_c_stops_without_a_traceback(self, monkeypatch, capsys):
+        """The escape hatch is a `KeyboardInterrupt`, and 130 is the shell's code for it."""
+        self._driving(monkeypatch, blow_up=KeyboardInterrupt())
+        arguments = cli.build_parser().parse_args(["run"])
+        assert arguments.handler(arguments) == 130
+        assert "stopped" in capsys.readouterr().err
+
+    def test_a_failure_inside_the_run_is_not_reported_as_a_bad_argument(
+        self, monkeypatch
+    ):
+        """The same rule `check` learned: exit 2 means the arguments were wrong.
+
+        A `ValueError` from inside the tick reported as a usage error would lose
+        the traceback of the one failure a long run exists to surface.
+        """
+        self._driving(
+            monkeypatch, blow_up=ValueError("something went wrong 40000 ticks in")
+        )
+        arguments = cli.build_parser().parse_args(["run"])
+        with pytest.raises(ValueError, match="40000 ticks in"):
+            arguments.handler(arguments)
+
+
 class TestDomeIsPreservedNotReimplemented:
     """`patchworks dome` prints what `python -m patchworks` used to."""
 
@@ -1184,6 +1324,30 @@ class TestNothingHereOpensAWindowOrInstallsAnything:
     def test_check_starts_no_process_and_opens_no_window(self, no_way_out):
         cli.measure_liveness(
             ticks=TICKS, seed=0, dome=build_graph(SMALL), image_size=IMAGE_SIZE
+        )
+
+    def test_run_starts_no_process_and_opens_no_window(self, no_way_out):
+        """The subcommand's first constraint: headless, over SSH, no display.
+
+        Run here rather than described: every route to a subprocess, an exec and
+        a viewer is broken above, and this is the real loop on the small dome.
+        """
+        from patchworks.progress import drive
+
+        class Sink:
+            def write(self, text):
+                return len(text)
+
+            def flush(self):
+                pass
+
+        drive(
+            ticks=TICKS,
+            seed=0,
+            report_every=2,
+            dome=build_graph(SMALL),
+            image_size=IMAGE_SIZE,
+            out=Sink(),
         )
 
     def test_dome_starts_no_process(self, no_way_out, capsys):
