@@ -29,15 +29,29 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends libgl1 libosmesa6 \
     && rm -rf /var/lib/apt/lists/*
 
-# The whole tree, before the install, because the install is an editable one:
-# `pip install -e` needs the source present and leaves a path to it rather than
-# a copy. The cost is that any edit invalidates the layer below, so a rebuild
-# after a one-line change reinstalls torch. Accepted rather than worked around
-# with a two-stage requirements copy: the alternative is a second place where
-# the dependency set is written down, and one of the things this image is for
-# is that there is exactly one.
+# **The dependency metadata first, the tree last.** `pip install -e` needs the
+# source present, so the whole tree used to be copied here, above the installs
+# -- and the cost was priced as "a rebuild after a one-line change reinstalls
+# torch". That was accepted to avoid "a second place where the dependency set is
+# written down", which is a real thing to protect and is protected here too:
+# `pyproject.toml` is still the only file that names a dependency. Copying it
+# early is not a second list, it is the same list, earlier.
+#
+# **What the original pricing could not see is the disk.** Docker keeps every
+# invalidated layer as build cache, and on the WSL2 backend that cache lives in
+# a virtual disk that grows and never shrinks on its own. Each rebuild wrote a
+# fresh ~5.6 GB entry (torch ~0.8 GB, the dev extras ~4.8 GB), so a single day
+# of ordinary edits left ~20 GB of cache behind permanently. It is not a slower
+# rebuild; it is a few gigabytes of disk per edit, kept forever.
+#
+# The stub package is what lets the editable install run before its own source
+# exists: hatchling needs `packages = ["src/patchworks"]` to be *there* to build
+# the metadata, not to be complete. `COPY . /app` below replaces it with the
+# real tree, and the `.pth` the editable install wrote already points at
+# `/app/src`, so it resolves the real package from that point on.
 WORKDIR /app
-COPY . /app
+COPY pyproject.toml README.md LICENSE /app/
+RUN mkdir -p src/patchworks && touch src/patchworks/__init__.py
 
 # These two lines and nothing else reach pip, in this stage or the next, and
 # they are `ci.yml`'s two install steps -- `--no-cache-dir` apart, which keeps
@@ -56,6 +70,13 @@ COPY . /app
 # spend the sentence above, which is the one thing ADR-0012 exists to protect.
 RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.2.2
 RUN pip install --no-cache-dir -e ".[dev]"
+
+# The tree itself, after the installs, so that editing a source file
+# invalidates this layer and nothing below it -- which is the whole of the
+# change described above. The image's contents are unaffected: the same two pip
+# commands run against the same `pyproject.toml`, and the same files land in
+# `/app`.
+COPY . /app
 
 # CI's value, and the one backend this repository has actually exercised. The
 # desktop stage's entrypoint unsets it: `demo` runs the viewer and the
