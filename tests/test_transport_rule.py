@@ -1035,21 +1035,39 @@ class TestTheBatchedGradientEqualsThePerEndpointLocalGradient:
     # the precision the rule ships in: a padded `[pairs, m, stalk]` bmm and a
     # single `[m, stalk]` matmul differ in the last bits, which is a fact about
     # accumulation order and not about the claim.
+    #
+    # **The disagreement is read against each endpoint's own scale since #157**,
+    # and the reason is magnitude rather than looseness. This was a flat
+    # elementwise `atol` of 1e-6 with `rtol=0`, and the Koopman conversion broke
+    # it on CI while it passed locally -- an accumulation-order difference
+    # between two BLAS builds, on a bound that was already sitting at 56% of its
+    # own tolerance before the conversion and 95% after.
+    #
+    # Measured on this fixture, worst case over all endpoints, before and after
+    # the conversion: absolute 5.588e-7 -> 9.537e-7, but *relative to the
+    # endpoint's own largest entry* 1.77e-6 -> 6.40e-7 (float64: 1.25e-15 ->
+    # 5.96e-16). So the identity holds **more** exactly after the conversion,
+    # not less. What grew is the gradient itself -- endpoint 56's largest entry
+    # goes 0.568 -> 1.489, because the converted body transmits more content
+    # into the stalks these are computed from -- and an absolute-only bound
+    # reads a proportionally smaller error as a failure once the numbers get
+    # bigger. Stating the claim the way it was measured fixes that; widening the
+    # absolute bound would only move the same cliff further out.
     @pytest.mark.parametrize(
-        "dtype, atol", [(torch.float64, 1e-12), (torch.float32, 1e-6)]
+        "dtype, tolerance", [(torch.float64, 1e-13), (torch.float32, 1e-5)]
     )
-    def test_every_endpoint(self, running, dtype, atol):
+    def test_every_endpoint(self, running, dtype, tolerance):
         rule = TransportRule(running, anneal=SparsityAnneal(horizon=1))
         rule.steps = 1
         parameters, arguments = in_precision(rule, dtype)
         batched = transport_gradient(parameters, *arguments)[MAPS_PARAMETER]
         for pair in range(running.maps.pairs):
-            assert torch.allclose(
-                local_gradient(rule, pair, dtype),
-                batched[pair],
-                atol=atol,
-                rtol=0.0,
-            ), pair
+            reference = batched[pair]
+            slack = float((local_gradient(rule, pair, dtype) - reference).abs().max())
+            scale = float(reference.abs().max())
+            assert slack <= tolerance * scale, (
+                f"endpoint {pair}: {slack:.3e} against a scale of {scale:.3e}"
+            )
 
     def test_the_shipped_rule_is_that_batched_gradient(self, running):
         rule = TransportRule(running)
