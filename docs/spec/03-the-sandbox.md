@@ -264,6 +264,49 @@ objects. A rubber-faced paddle is not steel, so 0.6 is not indefensible, but it 
 toward sticking rather than sliding — and sticking is the regime that produced the clean pushes
 every number above was measured in. Recorded as a calibration choice, not a measurement.
 
+### Contact is compliant, not impulsive
+
+Read off for [#149](https://github.com/NGL321/patchworks/issues/149), which asked the question
+because a Koopman operator **is not guaranteed to exist** on a system whose contacts reset momenta
+impulsively. The sandbox is on the safe side of that line, and this section records why so nobody
+has to re-derive it.
+
+Every geom inherits one contact default:
+
+```xml
+<geom friction="0.6 0.005 0.0001" solref="0.008 1" density="500"/>
+```
+
+`solref="0.008 1"` is a **critically damped spring-damper with an 8 ms time constant** — a finite
+stiffness, not a rigid constraint. `solimp` is MuJoCo's default `0.9 0.95 0.001 0.5 2`. Physics runs
+at 500 Hz (`timestep="0.002"`), so the contact time constant spans four physics steps, and the
+solver never needs to resolve a collision inside one.
+
+Measured, driving a puck into the arena wall (`mujoco 3.10.0`):
+
+| approach speed | contact duration | peak force | max penetration |
+|---|---|---|---|
+| 1.0 m/s | 16 steps = 32 ms | 2.35 N | 1.80 mm |
+| 2.0 m/s | 15 steps = 30 ms | 5.27 N | 3.73 mm |
+
+Momentum reverses over ~4 physics steps carrying more than 5% of the change each, with the largest
+single step carrying ~51%. Force and penetration are finite and scale with speed — the signature of
+compliance. **There is no impulsive contact anywhere in the model.**
+
+**The agent's tick is coarser than the contact, and that is fine.** Control runs at 50 Hz, so a
+30 ms contact spans about 1.5 ticks and a cell never sees the transient — only its endpoints. That
+bears on how well a per-cell linear operator fits, not on whether one exists, and the measurement
+came out favourably: the Jacobian of the 20 ms tick map with respect to the puck's incoming speed is
+**0.99 in free flight and 0.25–0.50 across a contact**, falling to 0.03–0.07 over four ticks. The
+sampled dynamics near contact are strongly **contracting**, not ill-conditioned. Contact cells will
+read as fast and heavily damped in the spectrum of `K`, which is a fact
+[#143](https://github.com/NGL321/patchworks/issues/143) should expect rather than a hazard.
+
+**Two exogenous discontinuities, which are inputs and not the world's flow.** `disturb_arm` applies a
+true impulsive velocity reset (`qvel += M⁻¹ · impulse`) and `perturb` teleports a puck. Both are the
+experimenter moving the world, never the world evolving; they enter the operator picture as a
+control input, and neither makes the autonomous dynamics hybrid.
+
 ### A timescale ladder in the body: rotor inertia, not gearing
 
 Joint damping is `0.8 / 0.5 / 0.3` and torque limits `3 / 2 / 1 N·m`, so the arm is heterogeneous in
