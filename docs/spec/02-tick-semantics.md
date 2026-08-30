@@ -13,8 +13,8 @@ nothing in the graph computes during it.
 
 1. **Inference phase.** Every cell, simultaneously and independently, runs its forward path —
    `encode` fuses its persisted chart with the node stalk the previous message-passing phase
-   left behind, `step` advances that fused chart one tick, `decode` reads off the predicted
-   node stalk. No cell reads another cell's state here.
+   left behind, the cell's own operator `K` advances that fused chart one tick, `decode` reads
+   off the predicted node stalk. No cell reads another cell's state here.
 2. **Message-passing phase.** Every cell, simultaneously, restricts its own predicted node
    stalk onto each incident edge and runs one local reconciliation step against the belief its
    neighbour restricted onto that same edge — see *Delay*, below, for which belief that is. The
@@ -49,6 +49,19 @@ Two things fall out, neither of which needed machinery:
   command reaches the arm at all. A blanket "boundary stalks are not reconciled" rule would have severed
   this; the ordering rule needs no such exemption, and no per-component bookkeeping.
 
+**Every sensory boundary cell is written every tick, and silence is a value rather than an absence.**
+[#128](https://github.com/NGL321/patchworks/issues/128) found that this ordering quietly assumed a
+world that speaks on every tick — the sandbox advances whether or not the agent acts, so something
+always lands. A world that can be *quiet* breaks that assumption, and the contract makes the
+requirement explicit instead: **a rim whose world can fall silent owes an idle symbol in its
+encoding**, and that symbol is written like any other value.
+
+The two alternatives were rejected because both cut into the ordering above, which is load-bearing well
+beyond the rim. Skipping the external write on a quiet tick leaves a stalk holding whatever
+reconciliation last did to it, so silence would read as the graph's own most recent guess. An
+event-driven tick is worse: it lets the agent's own emissions set the clock, which is the same failure
+arriving from the other direction.
+
 ## Delay
 
 An edge costs exactly one tick (`01-cell-and-sheaf.md`). Concretely: at tick `t`, a cell's
@@ -64,8 +77,10 @@ same prior round's incoming values and update at once (synchronous / Jacobi-styl
 visiting order to define. See [ADR-0002](../adr/0002-message-passing-is-one-step-not-a-solve.md)
 for why this is fixed rather than a hyperparameter.
 
-Per-tick cost is therefore bounded by construction: one `encode`/`step`/`decode` per cell, plus
-one restriction-and-reconcile per edge. No convergence check, no early-stopping logic.
+Per-tick cost is therefore bounded by construction: one `encode`/`K`/`decode` per cell, plus one
+restriction-and-reconcile per edge. No convergence check, no early-stopping logic. The Koopman
+conversion made this **cheaper** rather than dearer: two of the body's three maps lost their hidden
+layer, and `K` is one batched matrix multiply over the population.
 
 ## Reconciliation gain
 
@@ -96,29 +111,50 @@ unstable at the other. A per-edge gain derived from that edge's recent scale is 
 reason a tracking baseline is — it needs its own time constant
 ([ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md)).
 
-**The bound on `γ`.** A disagreement floor produces a bounded standing offset on the reconciled
-component of a node stalk. That offset is a shift in the cell's operating point, and the operating
-point selects the cell's activation region and therefore its effective timescale (ADR-0005). So:
+**What constrains `γ`, stated without embellishment.** Exactly two things:
+
+1. it is capped at **1.0** globally, and
+2. ADR-0010's provable `λ_max(Σ_e F_evᵀF_ev) ≤ ρ² · deg(v)`, which is the denominator above.
+
+**Not, in practice, the fold margin** — and that is a change, made by
+[#140](https://github.com/NGL321/patchworks/issues/140). This section used to carry a third:
 
 > `γ × floor` must stay below the cell's **fold margin** — its distance to the nearest activation
 > boundary.
 
-**This bound is not only a stability side-condition.** The fold margin is also what makes "the cell's
-region" a well-defined object, and therefore what makes the cell's timescale one — a cell with a
-small margin re-draws its regional spectrum every tick
-([`05-timescales.md`](./05-timescales.md), *The precondition: region dwell against `τ`*). Relaxing
-`γ` past this bound because reconciliation feels slow does not merely risk drifting the operating
-point; it costs the mechanism ADR-0005 rests on.
+That bound is **demoted, not deleted**, and it failed on three counts at once. It was **never
+binding**: `γ` is already at 1.0, the global ceiling this section permits, so no fold margin was ever
+what held it down. Its stated *reason* — that a shifted operating point changes the cell's effective
+timescale — is the premise the Koopman conversion retired, since timescale now lives in `K`'s spectrum
+rather than in which activation region a cell occupies
+([`05-timescales.md`](./05-timescales.md)). And the margin itself is now read from `encode` alone,
+because `encode` is the body's only nonlinearity and so the only map with folds at all.
+
+What survives is the **check**, as a construction-time diagnostic rather than a bound on `γ`: it is
+still run per cell across the taper, still on the same sweep, and it still carries ADR-0005's
+falsification duty, so it can kill the timescale mechanism cheaply before anything is trained. See
+[ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md), amended.
 
 Because `Σ_e m_e` **falls with depth** (`06-graph-topology.md`, *Private dimension is a gradient*),
-`gain_v` is largest at the apex, and this bound binds hardest exactly where timescale matters most.
+`gain_v` is largest at the apex, and the diagnostic binds hardest exactly where timescale matters most.
 It is a construction-time check, run per cell across the taper and folded into
 [#27](https://github.com/NGL321/patchworks/issues/27)'s bias-sampling rig — same sweep, same
 afternoon. The drive edges into the apex (`06-graph-topology.md`, *Where the drive attaches*) make
 this **slacker** rather than tighter — an extra incident edge lowers `gain_v` — but by about 6%, which
-is not enough to lean on. If the apex fails it, `γ` is capped globally by the tightest cell; paying that price
-everywhere costs only some reconciliation speed at the rim, which is the cheapest thing in the system
-to give up.
+is not enough to lean on.
+
+**The conversion loosened it, measurably, and moved where it binds.** Linearising `step` took its
+folds off the round trip, so the margin is `encode`'s alone rather than the minimum over two maps, and
+the cap on `γ × floor` rose from **0.2600 to 0.3502** — a 35% loosening. Measured on the construction
+sweep, 8192 draws, seed 42, at the `a = 1.0` the selection rig returns.
+
+Two riders, because the number is easy to misread. It is **larger than the 0.3278 first reported**,
+which was the figure for linearising `step` alone; the full conversion linearises `decode` too, and
+losing that map's hidden layer moves the operating point the margin is read at. And **the apex no
+longer binds**: the tightest cell now sits at level 3, where before it was the apex. That is a draw
+artifact rather than a change of shape — a cell's fold margin is uncorrelated with everything else
+about it — and the *systematic* claim below is unaffected, since the level medians still fall with
+depth, 1.25 at level 1 to 0.52 at the apex.
 
 **The check is construction-time, and stays there.** [#33](https://github.com/NGL321/patchworks/issues/33)
 found that it could not: the transport rule ([`07-local-learning-rule.md`](./07-local-learning-rule.md))

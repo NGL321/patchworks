@@ -49,7 +49,7 @@ from __future__ import annotations
 
 import torch
 
-from .body import CellBiases, CellBody
+from .body import CellBiases, CellBody, CellOperators
 from .graph import Dome
 from .restriction import GAUGE_RHO, RestrictionMaps, pair_index
 
@@ -351,13 +351,14 @@ class Sheaf:
         *,
         body: CellBody | None = None,
         biases: CellBiases | None = None,
+        operators: CellOperators | None = None,
         maps: RestrictionMaps | None = None,
         gamma: float = DEFAULT_GAMMA,
         generator: torch.Generator | None = None,
     ) -> None:
         # Checked here, before the draws, rather than left to the gain at the
-        # bottom of this constructor: the body, the biases and the maps are the
-        # expensive part of building a sheaf, and a `γ` that is going to be
+        # bottom of this constructor: the body, the per-cell surface and the
+        # maps are the expensive part of building a sheaf, and a `γ` that is going to be
         # refused anyway is not worth drawing them for (#107). The rule is not
         # restated here — the gain reads it from the same one place.
         self.gamma = _checked_gamma(gamma)
@@ -368,6 +369,15 @@ class Sheaf:
             if biases is not None
             else CellBiases(dome.shape, len(dome.predicting), generator=generator)
         )
+        #: The cell operators `K`, the other half of the per-cell surface
+        #: (#138). Drawn here rather than by `CellBiases`, because they are a
+        #: sibling module: `a·I` at construction takes no generator, so unlike
+        #: every other piece this one is deterministic given the shape.
+        self.operators = (
+            operators
+            if operators is not None
+            else CellOperators(dome.shape, len(dome.predicting))
+        )
         self.maps = maps if maps is not None else RestrictionMaps(dome, generator=generator)
         # Refused here rather than at the first tick: the layout below indexes
         # one flat buffer by cell and by edge endpoint, so a surface built for
@@ -377,6 +387,11 @@ class Sheaf:
         if self.biases.cells != len(dome.predicting):
             raise ValueError(
                 f"biases for {self.biases.cells} cells against this dome's "
+                f"{len(dome.predicting)} predicting cells"
+            )
+        if self.operators.cells != len(dome.predicting):
+            raise ValueError(
+                f"operators for {self.operators.cells} cells against this dome's "
                 f"{len(dome.predicting)} predicting cells"
             )
         # `generator` seeds whatever this constructor was not handed. Hand it
@@ -412,6 +427,9 @@ class Sheaf:
         #
         # `gamma` needs no companion check: it is consumed on every path, since
         # the gain below is computed from it whatever else was handed in.
+        # The operators are not in this conjunction, and deliberately: they are
+        # `a·I` and take no generator, so supplying them leaves the generator
+        # exactly as much to do as it had before.
         nothing_left_to_draw = body is not None and biases is not None and maps is not None
         if generator is not None and nothing_left_to_draw:
             raise ValueError(
@@ -441,15 +459,15 @@ class Sheaf:
         #: on it, and it is a tick's own record of what it was told.
         self.incoming = torch.zeros_like(self.broadcast)
         #: `[predicting cells, n]`: what `decode` predicted this tick, before
-        #: reconciliation edited it. What the bias rule's prediction error is
+        #: reconciliation edited it. What the prediction rule's prediction error is
         #: measured against next tick — though the rule never descends on *this*
         #: tensor, which is dead and has no gradient in anything.
         self.prediction = torch.zeros(len(dome.predicting), dome.spec.n)
         #: `[predicting cells, k]` and `[predicting cells, n]`: what the last
         #: inference phase **read** — the persisted chart it advanced from and
         #: the node stalk it took as evidence. Kept for the same reason
-        #: :attr:`incoming` is: the bias rule (#88) re-runs exactly that forward
-        #: path, live in the biases, against the node stalk reconciliation has
+        #: :attr:`incoming` is: the prediction rule (#88) re-runs exactly that forward
+        #: path, live in the biases and `K`, against the node stalk reconciliation has
         #: since left behind (`docs/spec/09-the-build-stack.md`, *Learning is a
         #: separate phase over detached inputs*).
         self.prior_charts = torch.zeros(len(dome.predicting), dome.spec.k)
@@ -480,13 +498,15 @@ class Sheaf:
         """
         with torch.no_grad():
             evidence = self.evidence()
-            # The pair the bias rule re-runs. Both are already private copies:
+            # The pair the prediction rule re-runs. Both are already private copies:
             # the advanced chart is *rebound* below rather than written into,
             # and an advanced-index gather returns a fresh tensor rather than a
             # view -- so neither record can be moved out from under the rule by
             # the message-passing phase's in-place edits to the stalk buffer.
             self.prior_charts, self.prior_evidence = self.charts, evidence
-            self.charts, self.prediction = self.body(self.charts, evidence, self.biases)
+            self.charts, self.prediction = self.body(
+                self.charts, evidence, self.biases, self.operators
+            )
             self.stalks[self.layout.predicting_positions] = self.prediction
         self.assert_no_tape()
 
@@ -586,11 +606,11 @@ class Sheaf:
         flat buffer — reconciliation's next in-place edit cannot reach back
         into one of these.
 
-        The inference phase reads it, and the bias rule takes it as the
+        The inference phase reads it, and the prediction rule takes it as the
         detached target: between the two it is the node stalk reconciliation
         left behind, which is how prediction error carries the neighbours'
         disagreement without the rule reading a neighbour
-        (`docs/spec/07-local-learning-rule.md`, *The bias rule*).
+        (`docs/spec/07-local-learning-rule.md`, *The prediction rule*).
         """
         return self.stalks[self.layout.predicting_positions]
 

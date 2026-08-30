@@ -64,14 +64,14 @@ The difference, measured in an edge stalk, between the two adjacent cells' restr
 their node stalks. Patchworks' only edge-level error signal: derived, never carried, and never
 fully cleared. Collected across every edge it is the sheaf's coboundary, and its squared sum is
 the Dirichlet energy of the sheaf Laplacian. Trains the transport rule; kept distinct from
-prediction error, the cell-owned counterpart that trains the bias rule.
+prediction error, the cell-owned counterpart that trains the prediction rule.
 _Avoid_: error, residual, loss, surprise
 
 **Prediction error**:
 The difference between what a cell's `decode` predicted last tick and the node stalk it reads
 in as evidence this tick — a quantity already shaped by whatever reconciliation did to that
 stalk in between. Cell-owned and temporal, where disagreement is edge-owned and spatial. Trains
-the bias rule.
+the prediction rule.
 _Avoid_: error (bare), residual, disagreement, loss
 
 **Disagreement floor**:
@@ -95,7 +95,7 @@ rather than failing.
 _Avoid_: staleness (reserve for unit delay), timescale error, phase error
 
 **Settling floor**:
-Disagreement floor that is a function of *parameter drift* — a predicting cell whose bias rule
+Disagreement floor that is a function of *parameter drift* — a predicting cell whose prediction rule
 receives ambiguous, sign-flipping prediction error oscillates between activation regions rather than
 converging, so its outgoing prediction never stabilises. Bounded by the same construction that bounds
 reconciliation (`γ`); `decode` still emits every tick, so it degrades a neighbour's evidence but never
@@ -106,8 +106,47 @@ _Avoid_: instability, confidence, null predictor (describes the cell's state, no
 **Compression**:
 The lossy, nonlinear, cell-private map from node stalk into chart, performed inside `encode`.
 The counterpart to restriction, which is lossy, linear and shared. Naming both by what they
-are is why "projection" is not vocabulary here.
-_Avoid_: projection, encoding (bare), bottleneck, dimensionality reduction
+are is why "projection" is not vocabulary here. **"Dictionary" is on the avoid list for a reason
+worth keeping:** every published Koopman lift is *larger* than its state, where `encode` compresses,
+`k` under `n` — so calling it the EDMD dictionary reproduces exactly the conflation between the
+chart's dimension and a lift's that the vocabulary is being kept clean of.
+_Avoid_: projection, encoding (bare), bottleneck, dimensionality reduction, dictionary
+
+**Local flatness**:
+The claim a linear restriction map rests on: the latent structure two adjacent cells model in common
+is locally Euclidean at the scale of their overlap, so transport between their stalks loses nothing a
+first-order map could have kept. A claim about the **geometry of the overlap**, and the oldest of the
+three linearity claims (ADR-0004). Says nothing whatever about how anything moves in time. Failure
+surfaces as a static floor on that edge.
+_Avoid_: linear (bare), linearity (unqualified), local linearity, flat (bare)
+
+**Chart linearity**:
+The claim `K` rests on: a cell's piece evolves linearly in the coordinates its chart provides, so one
+learned linear operator is an honest model of its motion. A claim about **time-evolution**, and
+independent of local flatness in both directions — a piece may evolve linearly in its chart while the
+overlap it shares with a neighbour stays curved, and an overlap may be flat while the motion across it
+is not. Failure surfaces as prediction error no `K` can remove.
+_Avoid_: linear (bare), local flatness (that is the geometric claim), Koopman linearity, global
+linearity
+
+**Readout gauge**:
+The claim a frozen linear `decode` rests on: a cell's node stalk is a linear function of its chart, so
+a fixed `D` is an honest readout. A claim about **observability**, distinct from the other two in both
+directions — a piece may evolve linearly in its chart while its stalk depends nonlinearly on that
+chart, and the reverse. The sharpest falsification of the three, because the subspace is **shared**:
+failure surfaces as prediction error confined to `colspan(D)`, the same fixed subspace of every cell's
+node stalk, rather than as anything per-edge.
+_Avoid_: linear (bare), local flatness, linear decoder, gauge (bare — reserve for the scale gauge)
+
+**Operator band**:
+The construction-time bound on a cell operator's **spectral** norm: `σ_max(K) ∈ [1/ρ_K, 1]`, restored
+by projection after each prediction step. One global band, not one per level. The upper face is
+exactly 1 because what it forbids is *amplification*, and a cell sitting at 1 is non-expansive rather
+than divergent — so it permits `ρ(K) = 1` and is **not** the claim `|λ| < 1`. Spectral rather than
+Frobenius, and deliberately unlike the scale gauge: rank-deficiency is wanted on a restriction map and
+is the failure mode on the body.
+_Avoid_: spectral radius bound, stability constraint, scale gauge (that is the sheaf's), spectral
+normalisation (bare)
 
 **Sheaf cohomology**:
 The cohomology of the cellular sheaf on the graph — coefficients are stalks, the differential
@@ -134,11 +173,12 @@ cell to read even in principle.
 _Avoid_: clock rate, update rate, level, tier, frequency
 
 **Activation region**:
-One of the finitely many convex regions of chart values on which the shared cell body is exactly
-affine. The body's activation is piecewise-linear, which is what makes these regions exist at all; a
-**fold** is a boundary between two of them, and a cell crosses one when its chart moves far enough.
-Everything the timescale mechanism is built from is a property of the region a cell occupies, not of
-the cell — see *Regional spectrum*, *Region dwell*, *Fold margin*.
+One of the finitely many convex regions of chart values on which `encode` is exactly affine. Its
+activation is piecewise-linear, which is what makes these regions exist at all; a **fold** is a
+boundary between two of them, and a cell crosses one when its chart moves far enough. **Retained as a
+description of `encode` and retired as a mechanism** (#138): `encode` is the body's only nonlinearity,
+so this is the one map the vocabulary still has a referent in, and nothing new is built on it — the
+folds no longer bound `γ` and no longer carry timescale, which lives in `K`'s spectrum.
 _Avoid_: linear region, cell, piece (reserve that for the sub-problem), basin
 
 **Timescale band**:
@@ -174,13 +214,13 @@ measured at runtime on a driven trajectory.
 _Avoid_: region residence, switching rate, region stability
 
 **Fold margin**:
-How far a cell sits from the nearest boundary of the activation region it occupies in the shared
-body. Three jobs: it bounds how much the cell's operating point may be shifted before it lands in a
-region with a different decay rate; it is the construction-time proxy for region dwell — a cell
-with a small margin has no well-defined effective timescale at all — and, third, it is what makes an
-expansive region dangerous rather than a harmless transient. Falls as the body gets wider, and is
-read from the narrowest map on the chart's round trip; that trade is global, paid once in the body's
-widths, and inside a fixed body a cell's margin is uncorrelated with its decay rate.
+How far a cell sits from the nearest boundary of the activation region it occupies in `encode`. It
+had three jobs and keeps one and a half. **Dead:** bounding `γ`, which it never did in practice.
+**Falsified premise:** carrying timescale, which now lives in `K`'s spectrum. **Surviving:** it is
+still the construction-time proxy for region dwell, and still what makes an expansive region
+dangerous rather than a harmless transient. Falls as the body gets wider; read from `encode` alone
+since it is the only map with folds, which is why the measured cap rose when `step` was linearised.
+Inside a fixed body a cell's margin is uncorrelated with its decay rate.
 _Avoid_: slack, headroom, distance to boundary
 
 **Inference phase**:
@@ -346,15 +386,18 @@ surface continual learning governs, and the only thing in a cell that ever chang
 _Avoid_: trainable parameters, the readout, fine-tuning surface
 
 **Local learning rule**:
-The cell-local mechanism that updates a cell's adapting surface each tick. Splits into the bias
+The cell-local mechanism that updates a cell's adapting surface each tick. Splits into the prediction
 rule and the transport rule, sharing no objective — see ADR-0008.
 _Avoid_: learning rule (bare), the rule
 
-**Bias rule**:
-The half of the local learning rule that updates a cell's biases: a local gradient step through
-the cell's own frozen forward path, on its prediction error. The predictive-coding element;
-trains inference, the body's operating point, never transport.
-_Avoid_: predictive rule, inference rule
+**Prediction rule**:
+The half of the local learning rule that updates a cell's own inference parameters — its biases
+**and** its operator `K`: a local gradient step through the cell's own forward path, on its
+prediction error, followed by projection back into the operator band. The predictive-coding element;
+trains inference — the cell's operating point and its chart's dynamics — never transport. Named for
+its signal, which is what ADR-0008 splits on; it was the **bias rule** until the Koopman conversion
+widened what it trains.
+_Avoid_: bias rule (superseded), predictive rule, inference rule
 
 **Transport rule**:
 The half of the local learning rule that updates a cell's restriction maps: a local gradient
@@ -374,7 +417,7 @@ from recurrent-state gating (inside the body, not on the edge).
 _Avoid_: gate (unqualified), confidence gate, attention
 
 **Recurrent-state gating**:
-The tier, not a mechanism: anything controlling what the chart carries across `step`. Two members,
+The tier, not a mechanism: anything controlling what the chart carries across `K`. Two members,
 neither built. The **protected channel** is an ungated subspace the chart passes with unit gain — a
 construction choice about the shared body, costing no parameters and breaking no freeze, and the one
 to reach for first. Behind it sits a **learned gate** on `encode`'s fusion, reached for only if

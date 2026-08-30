@@ -5,13 +5,25 @@
 written. The rule is **two rules**, split by parameter group (ADR-0008), and
 this module holds both.
 
-**The bias rule** trains biases on **prediction error**: the difference between
+**The prediction rule** trains the cell's own inference parameters — its
+biases *and* its operator `K` — on **prediction error**: the difference between
 what `decode` predicted last tick and the node stalk the cell reads in as
 evidence this tick. Reconciliation edits that node stalk in between, so the
 signal already carries whatever the neighbours' disagreement did to the cell's
 belief — without the rule ever reading a neighbour, a disagreement, or an edge.
-It is a closed backprop through the cell's own frozen forward path, `encode` /
-`step` / `decode`, stopped at the per-cell biases the shared body doesn't own.
+It is a closed backprop through the cell's own forward path, `encode` / `K` /
+`decode`, stopped at the per-cell surface the shared body doesn't own.
+
+**It was the bias rule until #139 widened it**, and the rename is wholesale
+rather than an alias: ADR-0008 splits on *which already-local signal a
+parameter group trains on*, and `K` sits on the same forward path, owned by the
+same cell, trained on the same signal toward the same objective, in the same
+backward pass, on the same cadence. The architecture's cleanest sentence
+survives — prediction error trains how a cell thinks; disagreement trains how it
+talks — and `K` is squarely on the thinking side. The name "bias rule" was never
+wrong so much as narrow: what it trained happened to be all biases, and that
+coincidence ended here. **`prediction_error` keeps its name**: it is the signal,
+and it is unchanged.
 
 Four commitments are structural here rather than configurable.
 
@@ -44,7 +56,9 @@ Four commitments are structural here rather than configurable.
 The one permitted global signal is :data:`DEFAULT_LEARNING_RATE`, a single
 scalar mirroring reconciliation's `γ`. Nothing else broadcasts, and the rule
 holds no per-cell or per-edge state of its own — the step is
-`bias ← bias − η · ∇bias`, with nothing to carry between ticks.
+`θ ← θ − η · ∇θ`, with nothing to carry between ticks. `K`'s step is scaled by
+the construction constant :data:`DEFAULT_OPERATOR_RATE_RATIO`, which is not a
+second global signal; see there.
 """
 
 from __future__ import annotations
@@ -54,22 +68,23 @@ import math
 import torch
 from torch.func import functional_call, grad
 
-from .body import CellBiases, CellBody
+from .body import CellBiases, CellBody, CellOperators
 from .restriction import RestrictionMaps
 from .tick import Sheaf
 
 __all__ = [
     "DEFAULT_ANNEAL_HORIZON",
+    "DEFAULT_OPERATOR_RATE_RATIO",
     "DEFAULT_LEARNING_RATE",
     "DEFAULT_SPARSITY_PRESSURE",
     "MAPS_PARAMETER",
     "NORM_FLOOR",
-    "BiasRule",
+    "PredictionRule",
     "ForwardPath",
     "SparsityAnneal",
     "TransportPath",
     "TransportRule",
-    "bias_gradient",
+    "prediction_gradient",
     "checked_learning_rate",
     "normalised_l1",
     "prediction_error",
@@ -95,6 +110,30 @@ __all__ = [
 #: measure what a run actually does.
 DEFAULT_LEARNING_RATE = 1e-2
 
+#: `c`, the ratio `eta_K = c * eta` at which `K` descends (ticket #139).
+#:
+#: **A construction-time constant, not a second global signal.** ADR-0008
+#: permits exactly two global signals — one learning-rate scalar and the
+#: sparsity anneal — and a second `eta` would be a third. What that clause
+#: guards is stated in the ADR itself: the permitted signals are *schedule-
+#: shaped rather than information-shaped, so neither smuggles in a global error
+#: channel*. A fixed ratio carries no cell's error anywhere. It is visible,
+#: auditable, and sits beside `a` and `rho_K` as one more number the build
+#: fixes — where a hidden per-group rate buried in an optimiser would be
+#: exactly the thing worth objecting to.
+#:
+#: **The rates should differ for a mechanical reason rather than a
+#: philosophical one:** `K`'s gradient is scaled by the frozen `‖D‖·‖J_encode‖`
+#: where a bias gradient is not, so equal step sizes do not mean equal steps.
+#:
+#: **It is a default with a stated retune duty, not a rule.** Unlike `a`, which
+#: #140 made a rule the selection rig produces because a construction-time
+#: go/no-go depends on it, nothing gates `c`; it inherits `eta`'s own status as
+#: the thing to retune first once #90 and #91 can measure what a run actually
+#: does. Deriving a rig rule for it would be choosing a number and calling it a
+#: derivation.
+DEFAULT_OPERATOR_RATE_RATIO = 1.0
+
 
 def checked_learning_rate(learning_rate: float) -> float:
     """`η` back, or a refusal. Both rules run off the same one scalar.
@@ -114,40 +153,55 @@ def checked_learning_rate(learning_rate: float) -> float:
 
 
 class ForwardPath(torch.nn.Module):
-    """The cell's own frozen forward path, as one callable module.
+    """The cell's own forward path, as one callable module.
 
     `functional_call` replaces a *module's* ambient parameters, so the thing it
     is called on has to **be** the forward path. The body deliberately takes
-    its biases as an argument rather than owning them — that is what makes one
-    shared body many different cells — so this holds the two together for the
-    length of a gradient step and owns nothing itself.
+    the per-cell surface as an argument rather than owning it — that is what
+    makes one shared body many different cells — so this holds the three
+    together for the length of a gradient step and owns nothing itself.
 
     It is not state: build one per rule, or one per call, and it makes no
     difference to anything.
     """
 
-    def __init__(self, body: CellBody, biases: CellBiases) -> None:
+    def __init__(
+        self, body: CellBody, biases: CellBiases, operators: CellOperators
+    ) -> None:
         super().__init__()
         self.body = body
         self.biases = biases
+        self.operators = operators
 
     def forward(self, chart: torch.Tensor, evidence: torch.Tensor) -> torch.Tensor:
         """`[cells, n]`: what `decode` predicts from that chart and that evidence.
 
-        The advanced chart the body also returns is dropped. The bias rule's
-        objective is about the prediction alone; the chart's own round trip is
-        the fold margin's quantity, not this one.
+        The advanced chart the body also returns is dropped. The prediction
+        rule's objective is about the prediction alone; the chart's own round
+        trip is the selection rig's quantity, not this one.
         """
-        _advanced, prediction = self.body(chart, evidence, self.biases)
+        _advanced, prediction = self.body(
+            chart, evidence, self.biases, self.operators
+        )
         return prediction
 
-    def bias_parameters(self) -> dict[str, torch.Tensor]:
-        """The bias tensors, keyed as `functional_call` names them.
+    def trained_parameters(self) -> dict[str, torch.Tensor]:
+        """The adapting surface's tensors, keyed as `functional_call` names them.
 
-        Exactly the six bias vectors and nothing else, without a filter: the
-        body's weights are registered as **buffers**, so the shared frozen half
-        of the path cannot appear in a parameter dict at all. That is the same
-        construction that makes the batched gradient equal the per-cell one.
+        **The invariant, rather than a count: buffers are the frozen body and
+        parameters are the adapting surface.** There is no allowlist here and
+        deliberately none — this returns `named_parameters()` whole, so the
+        body's weights cannot appear because they are registered as **buffers**,
+        and registering `K` as a per-cell parameter *is* the whole of #139's
+        widening. The same construction makes the batched gradient equal the
+        per-cell one.
+
+        An explicit list of trained names was rejected on its failure direction.
+        Implicit fails loudly: a parameter added for another reason is silently
+        *trained*, and behaviour changes immediately. Explicit fails quietly: a
+        parameter added and forgotten is silently never trained, sitting at its
+        initial value forever — on a system whose standing diagnosis is *the arm
+        does not move*, indistinguishable from the bug already being hunted.
 
         Detached, so what the transform hands back is a plain array rather than
         a node on the ambient tape. Nothing is lost by it: `grad` differentiates
@@ -167,7 +221,7 @@ class ForwardPath(torch.nn.Module):
 
 
 def prediction_error(
-    bias_parameters: dict[str, torch.Tensor],
+    parameters: dict[str, torch.Tensor],
     path: ForwardPath,
     chart: torch.Tensor,
     evidence: torch.Tensor,
@@ -175,55 +229,83 @@ def prediction_error(
 ) -> torch.Tensor:
     """Half the squared prediction error of a whole population, as one scalar.
 
-    A pure function. The biases arrive as ``bias_parameters`` — an explicit
-    argument, not the module's ambient state — and everything else is a
-    detached array the tick left behind: the chart the inference phase advanced
+    A pure function. The cell's own inference parameters — its biases and its
+    `K` — arrive as ``parameters``, an explicit argument rather than the
+    module's ambient state, and everything else is a detached array the tick
+    left behind: the chart the inference phase advanced
     from, the node stalk it read as evidence, and the node stalk reconciliation
     has since left in its place.
 
     The prediction is **recomputed** here rather than read off the tick, which
-    is the whole point: it is what makes prediction error live in the biases.
+    is the whole point: it is what makes prediction error live in the parameters
+    being descended on.
+
+    **One backward pass yields both gradients.** The prediction is `D K z + b`
+    with `D` linear and frozen, so `K` and the surviving biases lie on the same
+    path and there is no second pass to arrange.
 
     The objective is a plain **sum** over cells, and the sum is what batches.
     Each cell's term is a function of its own row of every argument, so the
-    graph has no cross-cell edge in it and `∂/∂bias_c` of the sum is cell `c`'s
+    graph has no cross-cell edge in it and `∂/∂θ_c` of the sum is cell `c`'s
     own local gradient — exactly, not approximately.
     """
-    prediction = functional_call(path, bias_parameters, (chart, evidence))
+    prediction = functional_call(path, parameters, (chart, evidence))
     return 0.5 * (prediction - target).pow(2).sum()
 
 
-#: `∂ prediction_error / ∂ biases`, and nothing else.
+#: `∂ prediction_error / ∂ (biases, K)`, and nothing else.
 #:
-#: `argnums=0` names the bias dict alone. The path, the chart, the evidence and
+#: `argnums=0` names the parameter dict alone. The path, the chart, the evidence and
 #: the target are ordinary arguments of the function and are not differentiated
 #: — not because they were severed, but because differentiation only ever
 #: traverses what was named. Naming the wrong argument here produces a
 #: **missing** gradient rather than an extra one, which is the failure
 #: direction the transform was chosen for.
-bias_gradient = grad(prediction_error, argnums=0)
+prediction_gradient = grad(prediction_error, argnums=0)
 
 
-class BiasRule:
-    """The bias rule as a phase: one local gradient step per predicting cell.
+class PredictionRule:
+    """The prediction rule as a phase: one local gradient step per predicting cell.
 
     Built against a :class:`~patchworks.tick.Sheaf` and run after its tick.
-    Holds a learning rate, a forward path, and no state whatsoever — no
+    Holds a learning rate, a ratio, a forward path, and no state whatsoever — no
     momentum, no running average, nothing per-cell and nothing per-edge. Two
     calls with the same sheaf state produce the same step.
+
+    **The cadence is every tick, for `K` as for the biases**, and deliberately:
+    giving a parameter group its own *schedule* is a far stronger claim to
+    separateness than a rate is, and it would stand up a second timescale
+    mechanism beside the one #138 reopened by lifting ADR-0005's foreclosure.
+    Timescale is #143's and is not smuggled in here as an update schedule.
     """
 
     def __init__(
-        self, sheaf: Sheaf, *, learning_rate: float = DEFAULT_LEARNING_RATE
+        self,
+        sheaf: Sheaf,
+        *,
+        learning_rate: float = DEFAULT_LEARNING_RATE,
+        operator_rate_ratio: float = DEFAULT_OPERATOR_RATE_RATIO,
     ) -> None:
         self.sheaf = sheaf
         self.learning_rate = checked_learning_rate(learning_rate)
-        self.path = ForwardPath(sheaf.body, sheaf.biases)
+        if not 0.0 < operator_rate_ratio < math.inf:
+            raise ValueError(
+                "c is the construction constant in eta_K = c * eta and is "
+                "positive and finite (docs/spec/07-local-learning-rule.md, "
+                f"Permitted global signals); got {operator_rate_ratio}"
+            )
+        self.operator_rate_ratio = operator_rate_ratio
+        self.path = ForwardPath(sheaf.body, sheaf.biases, sheaf.operators)
+
+    @property
+    def operator_rate(self) -> float:
+        """`eta_K = c * eta`, the rate `K` descends at."""
+        return self.operator_rate_ratio * self.learning_rate
 
     def gradient(self) -> dict[str, torch.Tensor]:
-        """The batched gradient of prediction error, keyed by bias name.
+        """The batched gradient of prediction error, keyed by parameter name.
 
-        Each value keeps the biases' own `[cells, ·]` leading dimension, and
+        Each value keeps the surface's own `[cells, ·]` leading dimension, and
         row `c` is cell `c`'s local gradient — which is why no `vmap` is
         needed. Taken without applying it, because #90's perturbation test
         wants to compare updates rather than trajectories.
@@ -242,15 +324,15 @@ class BiasRule:
         sheaf = self.sheaf
         if sheaf.ticks == 0:
             raise ValueError(
-                "the bias rule needs a tick to learn from: `prior_charts` and "
+                "the prediction rule needs a tick to learn from: `prior_charts` and "
                 "`prior_evidence` are still the zero placeholders a fresh Sheaf "
                 "is built with, so descending on them would train against a "
                 "record that never happened. Run a tick first -- note the order "
                 "is `agent.tick(); rule.step()`, not the reverse"
             )
         sheaf.assert_no_tape()
-        return bias_gradient(
-            self.path.bias_parameters(),
+        return prediction_gradient(
+            self.path.trained_parameters(),
             self.path,
             sheaf.prior_charts,
             sheaf.prior_evidence,
@@ -258,11 +340,30 @@ class BiasRule:
         )
 
     def step(self) -> dict[str, torch.Tensor]:
-        """Take the gradient and descend it. Returns the gradient it applied.
+        """Take the gradient, descend it, then project. Returns the gradient.
 
-        `bias ← bias − η · ∇bias`, under one global `η`. There is no optimiser
-        here and nothing to give up by receiving gradients as a pytree instead
-        of on `.grad`.
+        `b ← b − η · ∇b` and `K ← Π(K − η_K · ∇K)`, under one global `η` and the
+        construction constant `c`. There is no optimiser here and nothing to
+        give up by receiving gradients as a pytree instead of on `.grad`.
+
+        **The prefixes are `functional_call`'s**, so they follow the module's
+        attribute name on :class:`ForwardPath` — `biases.` and `operators.` —
+        which is why the descent iterates the two modules rather than one.
+
+        `Π` is #140's band restored by
+        :meth:`~patchworks.body.CellOperators.project`, and it takes ADR-0010's
+        placement unchanged: **after** the step and **outside** the transform.
+        It carries no signal whatever — it is not in the objective, it has no
+        gradient, and it reads nothing the cell did not already own — which is
+        exactly why #139 found it no ground for a third rule. A projection is
+        not an objective.
+
+        **It is expected to fight the gradient**, since the band forbids
+        non-normal transient amplification and transient growth is *how* linear
+        systems move content. That fight is not damped by an additive term: the
+        prediction rule's objective is prediction error and nothing else, and a
+        projection that binds every step is instead the observable that calls
+        #138's named fallback from a dense `K` to a structured one.
 
         The `no_grad` is a context manager rather than a decorator, for the
         reason :mod:`patchworks.tick` gives: a guard a test cannot remove is a
@@ -272,8 +373,12 @@ class BiasRule:
         with torch.no_grad():
             for name, parameter in self.sheaf.biases.named_parameters():
                 parameter.sub_(self.learning_rate * gradients[f"biases.{name}"])
-        # The rule reads the tick's state and writes only the biases, so this
-        # should be untouched -- which is exactly why it is cheap to say so.
+            for name, parameter in self.sheaf.operators.named_parameters():
+                parameter.sub_(self.operator_rate * gradients[f"operators.{name}"])
+        self.sheaf.operators.project()
+        # The rule reads the tick's state and writes only the cell's own
+        # inference parameters, so this should be untouched -- which is exactly
+        # why it is cheap to say so.
         self.sheaf.assert_no_tape()
         return gradients
 
@@ -466,7 +571,7 @@ class TransportPath(torch.nn.Module):
         """The padded map tensor, keyed as `functional_call` names it.
 
         Detached and **cloned**, for the reason
-        :meth:`ForwardPath.bias_parameters` gives: `Tensor.detach` shares
+        :meth:`ForwardPath.trained_parameters` gives: `Tensor.detach` shares
         storage, so without the clone an in-place write through this dict would
         reach the running adapting surface while leaving a perfectly clean tape.
         """
@@ -716,18 +821,18 @@ class TransportRule:
         test wants to compare updates rather than trajectories.
 
         The tick's own guard is re-run on the way **in** for the reason
-        :meth:`BiasRule.gradient` gives, and a sheaf without a neighbour belief
+        :meth:`PredictionRule.gradient` gives, and a sheaf without a neighbour belief
         to learn from is refused for the same reason: `incoming` would be zeros,
         which are a perfectly well-formed record of nothing, so the step would
         descend on an edge that was never told anything and report a gradient
         rather than a mistake.
 
-        **That takes two ticks, not one**, and the asymmetry with the bias rule
+        **That takes two ticks, not one**, and the asymmetry with the prediction rule
         is the unit delay rather than an off-by-one. The message-passing phase
         reads the broadcast buffer as it stood *before* the phase, so the first
         tick reconciles against the constructor's zeros and leaves `incoming`
         zero; the first tick a neighbour has actually spoken on is the second.
-        The bias rule needs one tick because prediction error is a cell's own
+        The prediction rule needs one tick because prediction error is a cell's own
         quantity and crosses no edge.
         """
         sheaf = self.sheaf

@@ -565,7 +565,7 @@ class Recorder:
         disagreement and the actuator's two rows are quantities of the tick they
         are read on, so they wait until there is a record to put them in.
 
-        Prediction error is **read**, not recomputed. The bias rule's
+        Prediction error is **read**, not recomputed. The prediction rule's
         :func:`~patchworks.learning.prediction_error` re-runs the cell's
         forward path so the quantity is live in the biases and can be descended
         on; what a display wants is the opposite -- the dead number the tick

@@ -4,8 +4,9 @@ See docs/spec/ for the architecture and CONTEXT.md for the vocabulary.
 
 Built so far:
 
-* :mod:`patchworks.body` — the shared frozen cell body, `encode` / `step` /
-  `decode`, and the per-cell biases that are its whole adapting surface.
+* :mod:`patchworks.body` — the cell body, `encode` / `K` / `decode`, and the
+  per-cell surface that adapts on it: the biases, and the operators `K`.
+  `encode` is the body's only nonlinearity.
 * :mod:`patchworks.graph` — the dome: :func:`~patchworks.graph.build_graph`,
   the structural masks, and the construction diagnostics.
 * :mod:`patchworks.restriction` — the adapting surface's other half: one
@@ -15,7 +16,7 @@ Built so far:
 * :mod:`patchworks.agent` — the graph wired to the world, and the ordering
   between them: external writes are a tick's last word.
 * :mod:`patchworks.learning` — the learning phase: both halves of the local
-  learning rule, the bias rule and the transport rule, run over the tick's
+  learning rule, the prediction rule and the transport rule, run over the tick's
   detached state through `torch.func` rather than ambient autograd.
 * :mod:`patchworks.diagnostics` — the diagnostics that run on a cadence: the
   paired per-edge instrument (Dirichlet energy and effective rank, never one

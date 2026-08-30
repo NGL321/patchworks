@@ -47,7 +47,7 @@ three kinds:
 - **Lag floor** — a function of *motion*. The two endpoints' contents live at different timescales,
   so the slow end is behind. Drains at rest.
 - **Settling floor** — a function of *parameter drift*, added by
-  [#33](https://github.com/NGL321/patchworks/issues/33). A mid-depth predicting cell whose bias rule
+  [#33](https://github.com/NGL321/patchworks/issues/33). A mid-depth predicting cell whose prediction rule
   ([#5](https://github.com/NGL321/patchworks/issues/5)) receives ambiguous, sign-flipping prediction
   error oscillates between activation regions instead of converging, so its outgoing prediction never
   stabilises and its incident edges never fully clear. Bounded, not cumulative, by the same
@@ -87,6 +87,30 @@ The bound is unchanged and the check is the same check — but it is now a preco
 timescale claim as well as a stability condition, and `02-tick-semantics.md` says so at the point
 where a build would be tempted to relax `γ`.
 
+*Amended by [#140](https://github.com/NGL321/patchworks/issues/140): the bound on `γ` is **demoted**,
+and the check survives it.* Three findings collide, and together they retire the consequence without
+touching this ADR's argument.
+
+- **It was never binding.** `γ` is at 1.0, the global ceiling `02-tick-semantics.md` permits, so no
+  fold margin was ever what held it down.
+- **Its stated reason is a retired premise.** The bound exists because a shifted operating point
+  changes the cell's effective timescale — and after the Koopman conversion timescale lives in `K`'s
+  spectrum rather than in which activation region a cell occupies
+  ([ADR-0005](./0005-timescale-is-persistence-not-a-schedule.md), amended).
+- **The margin keeps its referent**, because `encode` stays ReLU. It is now read from `encode`
+  **alone**, that being the body's only nonlinearity and so the only map with folds at all.
+
+**So: demoted, not deleted.** The fold-margin check survives as a **construction-time diagnostic on
+`encode`**, keeping its go/no-go and its ADR-0005 falsification duty intact — it can still kill the
+timescale mechanism cheaply, before anything is trained. What it stops being is a **bound on `γ`**,
+whose constraint is now exactly two things: capped at 1.0 globally, and
+[ADR-0010](./0010-restriction-map-scale-is-gauge-fixed.md)'s provable
+`λ_max(Σ_e Fᵀ F) ≤ ρ² · deg(v)`.
+
+The second job #41 gave the margin — construction-time proxy for region dwell — is **untouched**, and
+is now the whole of what the margin is for. Measured consequence of reading it from one map instead of
+two: the cap on `γ × floor` rose from 0.2600 to 0.3502.
+
 ### The learning rule tolerates the floor; it does not subtract it
 
 The rule may never take zero residual as its target. It learns on *change* in residual, or on
@@ -111,7 +135,7 @@ remainder is lag.
 ### Simultaneous learning does not need its own bound
 
 [#33](https://github.com/NGL321/patchworks/issues/33) asked whether the local learning rule
-([#5](https://github.com/NGL321/patchworks/issues/5)) — every cell running both the bias rule and the
+([#5](https://github.com/NGL321/patchworks/issues/5)) — every cell running both the prediction rule and the
 transport rule every tick, off signals that shift as neighbours update simultaneously — needs a bound
 of its own, the way reconciliation needed `γ × floor < fold margin`, or whether it inherits stability
 from what is already decided. The answer splits along tick-locality.
@@ -124,7 +148,7 @@ problem, because no cell's update this tick depends on another cell's update thi
 **Across ticks, the risk splits by parameter group, and neither half needs new mechanism — one needed
 naming, the other needed this bound extended.**
 
-- **The bias rule can produce the settling floor** above: a mid-depth cell with ambiguous evidence
+- **The prediction rule can produce the settling floor** above: a mid-depth cell with ambiguous evidence
   oscillates between activation regions rather than settling. This is not the "standing offset dragging
   the operating point" failure this ADR already guards against — that failure is a *cell being pushed*
   by something external; this is a cell's own gradient step being genuinely undecided. It cannot diverge

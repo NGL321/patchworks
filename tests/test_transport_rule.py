@@ -630,11 +630,25 @@ class TestTheSparsityPressureComposesInTheSameStep:
         # Without it the term's gradient norm carried a `+0.985` correlation
         # with the open-weight count, so one global `λ` pruned a wide map
         # roughly eightfold harder than a narrow one. With it `p` is gone from
-        # the gradient identically, and what correlation survives is noise.
+        # the gradient identically, which is checked exactly rather than
+        # empirically by `test_the_pressures_gradient_is_free_of_the_mask_size`
+        # below. This is that identity's companion reading on a real graph.
+        #
+        # **The bound is 0.4, and the old 0.2 was a lucky seed.** #157
+        # measured the residual over 16 sheaf seeds, before and after the
+        # Koopman conversion, and it is not noise: it is a small *systematic*
+        # positive correlation, +0.19 to +0.31 (median +0.28) before the
+        # conversion and +0.21 to +0.31 (median +0.26) after. The two are
+        # indistinguishable -- the conversion does not touch this rule -- but
+        # the fixture's own seed sat at 0.1922 before, the minimum of the
+        # sixteen, so a 0.2 bound was passing on where one draw happened to
+        # land. What remains is what a shared graph leaves behind after `p`
+        # itself is gone, and it is 3x below the `+0.985` the un-normalised
+        # term carried, which is the thing this test exists to exclude.
         _, penalty = self._term_norms(running)
         permitted = _permitted(running).float()[free_pairs]
         stacked = torch.stack([permitted, penalty[free_pairs]])
-        assert abs(torch.corrcoef(stacked)[0, 1].item()) < 0.2
+        assert abs(torch.corrcoef(stacked)[0, 1].item()) < 0.4
 
     @pytest.mark.parametrize("scale", [1e-12, 1e-8, 1e-4, 1.0, 1e4])
     def test_the_pressures_gradient_is_free_of_the_mask_size(self, scale):

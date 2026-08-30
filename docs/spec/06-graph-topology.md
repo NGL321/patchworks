@@ -493,8 +493,8 @@ Two things rejected outright:
   near the rim collapses hop distance — which is the abstraction measure and the acceptance demo's
   yardstick.
 - **Making the apex relay cells.** The apex is the deepest, lowest-degree region and therefore where
-  `05-timescales.md`'s persistence most wants to live. Identity-`step` cells there would evict slow
-  state from the one place the timescale mechanism counts on.
+  `05-timescales.md`'s persistence most wants to live. Relay cells there — cells whose `K` is left at
+  the identity — would evict slow state from the one place the timescale mechanism counts on.
 
 **No new object is needed.** A hyperedge — one stalk many cells restrict into simultaneously — would
 break the cellular sheaf on a graph and rewrite `01-cell-and-sheaf.md`. It is not on the table.

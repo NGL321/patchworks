@@ -56,6 +56,19 @@ ordinary edges with ordinary restriction maps, and boundary cells enter and leav
 message-passing phase as anything else — as [`02-tick-semantics.md`](./02-tick-semantics.md)
 already required of any external edge.
 
+**A boundary cell is written by the outside or read by it, never both.** This is a contract-level
+ban, not a graph-design preference, and it belongs here rather than being deferred to whoever draws a
+graph ([#128](https://github.com/NGL321/patchworks/issues/128)). The tick's ordering has no defined
+meaning otherwise: the external write is a tick's **last word**
+([`02-tick-semantics.md`](./02-tick-semantics.md)), so a cell that is also *read* by the world would
+be read *before* the word it was going to say.
+
+The ban was invisible while the world was a sandbox, because a dome's sensory and motor rims are
+different organs and could not have shared a cell. A domain that carries both on one alphabet — say
+characters heard and characters spoken — invites the collapse, and separate boundary cells for the two
+directions make the loop **longer** than the sandbox's rather than degenerate, which keeps the
+sensorimotor loop budget below exactly what it says it is.
+
 Two consequences, both accepted:
 
 - **The world is one tick away, like any neighbour.** There is a fixed sensorimotor latency: one
@@ -79,16 +92,36 @@ adjacent cells.
 
 The actuator boundary is one cell whose stalk the arm reads three components of.
 
-### Efference copy
+### Readback
 
-The actuator boundary cell writes back **what was actually applied** — post-clip, post-saturation —
-so a motor edge carries ordinary disagreement between commanded and applied.
+**A motor boundary cell has a readback — what the world made of the command — and a domain that
+cannot supply one must say why.** That is the contract requirement, and it is mandatory.
 
-Without this, the motor edge would be the only edge in the architecture with no disagreement on it,
-and the cell nearest the body would be the one cell getting no local signal from its most important
-edge. With it, every edge in the graph is the same kind of object. The arm's torque limits
+In the sandbox the readback is an **efference copy**: the actuator boundary cell writes back what was
+actually applied — post-clip, post-saturation — so a motor edge carries ordinary disagreement between
+commanded and applied.
+
+Without a readback, the motor edge would be the only edge in the architecture with no disagreement on
+it, and the cell nearest the body would be the one cell getting no local signal from its most
+important edge. With it, every edge in the graph is the same kind of object. The arm's torque limits
 (3 / 2 / 1 N·m) make that disagreement real information rather than an echo: what the world does not
 clear is the body's refusal, and that is exactly the quantity a cell should learn its own limits from.
+
+> **Why the word widened** ([#128](https://github.com/NGL321/patchworks/issues/128)). "Efference copy"
+> names a mechanism that works *because the arm clips*. A character emitted to an interlocutor is not
+> clipped, so the requirement had to be stated in terms of what it is for rather than how the sandbox
+> supplies it.
+
+**A deterministic readback is permitted, and forfeits exactly one thing.** Where the world always
+complies, the readback carries no refusal and the **limit-learning** function is gone — an actuator
+with no limits has none to learn. Nothing structural breaks: several cells attach to an actuator
+boundary cell and reconciliation on those edges *is* the arbitration, so disagreement still exists on
+a motor edge, and both learning rules keep their signal. Recorded so that a future compliant actuator
+is a documented case rather than a surprise.
+
+**Language is probably not that case.** Once silence is a value and the agent emits every tick,
+whether a character was actually taken up — dropped, interleaved, or landing mid-turn — is a real
+readback. **Turn-taking is the body's refusal on a language rim.**
 
 ### The membership rule
 
@@ -338,7 +371,7 @@ anywhere; that is the bet, and it is made deliberately rather than conceded.
 The world breaking ties every tick would be dithering, not commitment. Two things already in the
 spec stop that, and neither is built for this.
 
-**The folds.** `step` is piecewise linear and a cell occupies **one activation region at a time**
+**The folds.** `encode` is piecewise linear and a cell occupies **one activation region at a time**
 ([`05-timescales.md`](./05-timescales.md), *the regional Jacobian*). Region membership is genuinely
 discrete: there is no interpolating between two regions, only being in one. A tie broken is a region
 entered. This is not a clean latch — a cell's operating point moves it as much as its biases do
@@ -349,7 +382,7 @@ is not re-litigated from scratch every tick, not as a mechanism that guarantees 
 are `ker δ = (im δᵀ)^⊥`, so the private component of a node stalk is **exactly invariant** under
 reconciliation ([`05-timescales.md`](./05-timescales.md)). A commitment held in a cell's private
 features is therefore unreachable by a neighbour's contrary belief: **the losing route cannot
-re-assert through message passing at all.** Only the cell's own bias rule, driven by prediction
+re-assert through message passing at all.** Only the cell's own prediction rule, driven by prediction
 error, can move it.
 
 Two consequences, both wanted:

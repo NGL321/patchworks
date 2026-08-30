@@ -25,6 +25,21 @@ requirement removed, which is why it is the right formalism here and an atlas is
 `k < n` follows from this rather than being asserted alongside it: **`k` is the dimension of the
 piece; `n` is the room needed to talk about it with neighbours.**
 
+## What this ADR does not claim
+
+*Added by [#141](https://github.com/NGL321/patchworks/issues/141).*
+
+Three distinct claims in this design are reachable by the word *linear*, and this ADR makes exactly
+one of them. They are separated in [`CONTEXT.md`](../../CONTEXT.md) as **local flatness** (this ADR —
+the geometry of an overlap), **chart linearity** (`K` — time-evolution), and **readout gauge** (`D` —
+observability). They are independent in every direction: a piece may evolve linearly in a chart whose
+overlap with a neighbour is curved, or sit on a flat overlap while its stalk depends nonlinearly on
+its chart.
+
+**The Koopman conversion addresses chart linearity and does nothing for local flatness.** A curved
+overlap stays curved, and no property of `K` bears on it. This is recorded here because this is
+precisely where a future reader will come looking for permission to assume otherwise.
+
 ## Consequences
 
 - **The commitment is falsifiable, and the test is free.** Persistent, structured, irreducible
@@ -60,6 +75,35 @@ piece; `n` is the room needed to talk about it with neighbours.**
   disambiguate the remaining two by quiescent hold, and a build that does not satisfy it — which
   `06-graph-topology.md` flags as possible at `m = 4` — knows *which edges* to suspect in advance.
 
+  **Further amended by [#138](https://github.com/NGL321/patchworks/issues/138): a fourth cause, which
+  arrives with the gauge.** Freezing `decode` ([ADR-0014](./0014-the-linear-readout-is-gauge-fixed.md))
+  confines every cell's predictions to `im(D)` — one fixed `k`-dimensional affine subspace of an
+  `n`-dimensional stalk, and the *same* subspace in every cell. Wherever a stalk's real content lies
+  outside it, the residue is persistent, structured, and arrives at the edge indistinguishable from
+  curvature.
+
+  **It has a distinguishing signature the other three lack, and it is cheap.** This cause is *shared
+  across cells and fixed at construction*, so it shows as a **common direction in the residual across
+  unrelated edges** — where curvature and self-intersection are per-edge and the lag floor is
+  per-level. Nothing needs building: the direction is `colspan(D)`, known before the graph runs.
+  **Read this one first.** Ruling it out costs one projection and restores the three-cause procedure
+  above; failing to rule it out means the gauge is wrong, which is ADR-0014's own pre-registered
+  falsification and not a fact about any edge.
+
+- **Linearity is load-bearing a fourth time: it is the whole of the coupling between pieces.**
+  *Added by [#141](https://github.com/NGL321/patchworks/issues/141).* Decomposition creates boundary
+  conditions — a cell's piece is not closed, and evolves depending on things outside it. The coupling
+  that carries that dependence is restrict, average, correct, and it is **linear by construction and
+  always was**; it cannot absorb nonlinearity, and nothing removed from inside a piece can hide there.
+  After the Koopman conversion the entire cell → edge → cell loop is linear with exactly one
+  exception, `encode` — **which is frozen**. So if the coupling between adjacent pieces is genuinely
+  nonlinear in the world, the only element of the architecture that could model it is the one element
+  nobody trains. The failure appears at the edge rather than inside any cell, and its signature is the
+  same static floor this ADR already knows how to read.
+
+  This is the same fact read from the transmission side rather than the injectivity side: `encode`
+  being the sole nonlinearity is not only a risk to whether a chart can separate distinct situations,
+  it is a risk to whether cross-piece coupling can be modelled at all.
 - **Linearity is what keeps this test readable.** A linear map has no constant term, so it cannot
   absorb a persistent offset in an edge stalk — and a curvature residual's constant part is exactly
   such an offset. Affine restriction maps would launder the signature away into a learned offset while

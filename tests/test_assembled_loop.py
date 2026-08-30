@@ -6,7 +6,7 @@ two phases of `docs/spec/02-tick-semantics.md`, and then both halves of the
 local learning rule as the separate phase `docs/spec/09-the-build-stack.md` §2
 makes them. The order that file fixes is the one between the tick and the
 rules, which #88 named and which this loop is written to stand on. It fixes no
-order *between* the two rules, and this file does not need one: the bias rule
+order *between* the two rules, and this file does not need one: the prediction rule
 writes only the biases and the transport rule only the maps, off arrays the
 tick already left behind.
 
@@ -27,7 +27,7 @@ establishes about the architecture, it has overreached and should be cut back.
 
 The seams it covers are real rather than hypothetical. #88 had to change
 `tick.py` to retain `prior_charts` and `prior_evidence`, state the tick was not
-keeping, because the bias rule needs the inference phase's *inputs*; #89 reaches
+keeping, because the prediction rule needs the inference phase's *inputs*; #89 reaches
 the same way into the message-passing phase's disagreement. Two rules, two
 phases, one tick — and until this file nothing ran all of it at once.
 
@@ -43,7 +43,7 @@ import torch
 
 from patchworks.agent import Agent, run
 from patchworks.graph import build_graph
-from patchworks.learning import BiasRule, SparsityAnneal, TransportRule
+from patchworks.learning import PredictionRule, SparsityAnneal, TransportRule
 from patchworks.sandbox import PlanarPushSandbox
 
 # The small dome, shared (tests/conftest.py). The full dome is not the point
@@ -120,7 +120,7 @@ def test_the_assembled_loop_runs_with_both_rules_on(agent):
     constructor's zeros and leaves `incoming` zero. The bias rule needs one tick
     because prediction error is a cell's own quantity and crosses no edge.
     """
-    bias = BiasRule(agent.sheaf)
+    prediction = PredictionRule(agent.sheaf)
     # **Not the default anneal**, and the reason is coverage rather than taste.
     # `DEFAULT_ANNEAL_HORIZON` is 1000 steps and this run takes 299, so at the
     # default the sparsity pressure would never once reach its ceiling and the
@@ -141,13 +141,13 @@ def test_the_assembled_loop_runs_with_both_rules_on(agent):
 
     ticking = run(agent, TICKS, seed=0)
     next(ticking)
-    bias.step()
+    prediction.step()
     # `transport.pressure` is the `λ` the step about to run will compose into
     # its objective, so recording it here witnesses a step that **took** the
     # ceiling rather than a schedule that merely reached it after the last one.
     pressures = []
     for _ in ticking:
-        bias.step()
+        prediction.step()
         pressures.append(transport.pressure)
         transport.step()
 
@@ -157,7 +157,7 @@ def test_the_assembled_loop_runs_with_both_rules_on(agent):
     assert max(pressures) == pytest.approx(transport.anneal.pressure)
 
     # Both rules actually moved something. `transport.steps` counts calls, not
-    # work, and the bias rule counts nothing at all, so without this a rule
+    # work, and the prediction rule counts nothing at all, so without this a rule
     # that had become a silent no-op -- `argnums` mis-scoped to something that
     # is not the adapting surface, the **missing** gradient the `torch.func`
     # idiom was chosen to fail towards -- would leave this test green while the
@@ -222,17 +222,17 @@ def test_the_wrong_order_stops_the_run_rather_than_training_on_placeholders(agen
     """
     observation, _info = agent.env.reset(seed=0)
     agent.observe(observation)
-    bias = BiasRule(agent.sheaf)
+    prediction = PredictionRule(agent.sheaf)
     transport = TransportRule(agent.sheaf)
 
     with pytest.raises(ValueError, match="needs a tick to learn from"):
-        bias.step()
+        prediction.step()
     with pytest.raises(ValueError, match="needs two ticks to learn from"):
         transport.step()
 
     # And after one tick the transport rule still refuses, which is what the
     # run's prologue is for rather than an off-by-one in it.
     agent.tick()
-    bias.step()
+    prediction.step()
     with pytest.raises(ValueError, match="needs two ticks to learn from"):
         transport.step()

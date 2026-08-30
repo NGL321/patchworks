@@ -103,7 +103,7 @@ import torch
 from patchworks.agent import DRIVE_ASSERTION, Agent, run
 from patchworks.diagnostics import Condition, Diagnostics
 from patchworks.graph import DEFAULT_SPEC, Dome, DomeSpec, build_graph
-from patchworks.learning import BiasRule, SparsityAnneal, TransportRule
+from patchworks.learning import PredictionRule, SparsityAnneal, TransportRule
 from patchworks.restriction import pair_index
 from patchworks.sandbox import PlanarPushSandbox
 from patchworks.sandbox.env import ARM_JOINTS
@@ -332,15 +332,15 @@ def teaching(agent: Agent, ticks: int, seed: int):
     -- `agent.tick()`, then the rules, never the reverse.
 
     **The two rules join on different ticks, and the rules themselves say so.**
-    The bias rule joins on the first: prediction error is a cell's own quantity
-    and crosses no edge, and `BiasRule.gradient` refuses only at `ticks == 0`.
+    The prediction rule joins on the first: prediction error is a cell's own quantity
+    and crosses no edge, and `PredictionRule.gradient` refuses only at `ticks == 0`.
     The transport rule joins on the second, because the first tick reconciles
     against the constructor's zeros and leaves `incoming` zero -- the unit
     delay -- and `TransportRule.gradient` refuses below `ticks < 2` in those
     words. Holding both back to the second tick would drop a legitimate bias
     step for a reason that belongs to the other rule.
     """
-    bias = BiasRule(agent.sheaf)
+    bias = PredictionRule(agent.sheaf)
     transport = TransportRule(agent.sheaf, anneal=SparsityAnneal())
     for outcome in run(agent, ticks, seed=seed):
         bias.step()
