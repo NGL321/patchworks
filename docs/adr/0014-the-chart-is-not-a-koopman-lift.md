@@ -49,10 +49,49 @@ and each independently puts the cell outside EDMD's hypotheses:
 - **The cell is driven, not autonomous.** A new `stalk_t` arrives every tick from reconciliation.
   Koopman theory is about the evolution of observables under an autonomous flow.
 
-So `K` is a **linear recurrence driven by a nonlinear input map**, and the comparison class is deep
-state-space models and linear RNNs — not EDMD. In that class 12 dimensions of persisting state per
-unit is unremarkable, and `docs/research/027-regional-jacobian-spectra.md` already cites S4D at
-source for exactly this kind of object.
+So `K` is a **linear recurrence driven by a nonlinear input map**, and the comparison class is
+**nonlinear RNNs and reservoir computing** — not EDMD, and not deep state-space models either.
+
+> **Corrected by [#172](https://github.com/NGL321/patchworks/issues/172) on
+> [#167](https://github.com/NGL321/patchworks/issues/167)'s citation pass.** This sentence originally
+> named *"deep state-space models and linear RNNs"*, and sourced `k = 12` from stacking practice in
+> that class. It was wrong, and the Consequences section below already said so. The correction is a
+> repair to **what the design is compared to**, not to what it is: the Decision itself is untouched.
+
+The SSM class is **defined by** placing the nonlinearity *between stacked layers*. `K · encode`
+re-applies it **inside the loop, at every recurrent update**, which is the thing that class excludes.
+Merrill, Petty & Sabharwal, *"The Illusion of State in State-Space Models"* (ICML 2024,
+arXiv:2404.08819) **[FULL — body read]** draw the line in as many words — *"adding a nonlinearity to the output
+of an SSM layer (as in Mamba) is not the same thing as an RNN-SSM. Rather, an RNN-SSM applies the
+nonlinearity at each recurrent update"* — and their Theorem 5.1 makes it a strict expressivity gain
+rather than a matter of taste: a **one-layer** RNN-SSM recognises any regular language, including the
+`S_5` word problem that SSMs provably cannot express. **The design sits on the more expressive side
+of that line**, and a one-layer construction is exactly the shape a shallow per-cell recurrence has.
+
+`docs/research/167-linear-recurrence-citations.md` §1.4 places the cell on the matched shelf by a
+change of variables rather than by analogy — its own derivation, marked as such. Substituting the
+pre-activation `u_t = E_hid[chart_t; stalk_t] + b` into the tick gives
+
+```
+u_t = ( E_hid^chart · K · E_out ) · ReLU(u_{t-1}) + E_hid^stalk · stalk_t + b
+```
+
+an ordinary 45-unit recurrent network with random input weights, a random bias and a linear readout,
+whose recurrent matrix `W_rec = E_hid^chart K E_out` has **rank at most 12** and whose only learned
+degrees of freedom sit in the 12x12 factor `K`. That is an **echo state network with a low-rank,
+partially-learned reservoir**, and `rank(W_rec) <= k` is the reason the chart — not the 45-wide
+hidden layer — is the state that carries memory across ticks.
+
+So the licence for `k = 12` comes from **reservoir dimensioning**, where a 12-dimensional recurrent
+state is unremarkable and Dambre's capacity bound is stated on exactly `rank(W_rec)`. It does not
+come from SSM stacking practice, which is a shelf this design is not on. The licence arrives with a
+counterweight the SSM reading concealed, and it is carried here rather than left in the research
+doc: §2.3's normal-matrix result (Ganguli, Huh & Sompolinsky, *PNAS* 2008 **[FULL — body read]**) gives memory
+capacity **exactly 1** for a normal connectivity matrix, and `K = a·I` at construction is normal;
+§6.2's recall-throughput frontier records that **width is the lever the field reaches for when
+memory is short**, which is the move [#14](https://github.com/NGL321/patchworks/issues/14)'s
+constraint ladder puts last. Both bear on the chart's double duty and neither reaches this Decision;
+they are [#166](https://github.com/NGL321/patchworks/issues/166)'s to price.
 
 **What the cell learns is the dynamics of its own belief under evidence, not the dynamics of the
 world's state.** That sentence is the decision, stated in the vocabulary of the thing rather than of
@@ -137,12 +176,40 @@ systems**. `K . encode` is not one. Any future move to treat a cell as a linear 
 both in full. That is one trade arriving from two directions, and it is the standing cost of this
 ADR.
 
-### The transfer is of mechanism, not of results.
+*Footnote, from [#167](https://github.com/NGL321/patchworks/issues/167) §1.4, recorded and not
+taken.* The classical control name for a linear block closed around a static nonlinearity is a
+**Lur'e system**, `x_{k+1} = A x_k + B φ(C x_k)`, of which a cell is the degenerate `A = 0` case.
+Absolute stability theory — Popov, the circle criterion, Zames–Falb multipliers — is stated for
+exactly this structure, and so offers a certificate family for `K · encode` **as a whole**, where
+[ADR-0015](./0015-the-cell-operator-band-is-on-the-spectral-norm.md)'s band certifies only `K`. It
+is a route this design does not currently use, and nothing here takes it.
+
+### The transfer is of mechanism, not of results — with one exception, and it is the unfavourable one.
 
 The state-space-model literature is about deep stacks trained by backprop on sequence benchmarks.
 Patchworks is a shallow-per-cell sheaf trained by local rules. Linear recurrence, timescale as an
-eigenvalue, and stability by norm bound transfer. **No result does.** Nobody has shown a spatially
-glued set of locally-trained linear recurrences works, and that novelty is this project's either way.
+eigenvalue, and stability by norm bound transfer.
+
+**No *expressivity* result does**, and
+[#167](https://github.com/NGL321/patchworks/issues/167) §4 confirms that half at source: LRU's
+evidence is six layers on one benchmark by its authors' own framing, the universality theorem needs
+MLPs interleaved between recurrent layers, and Merrill et al.'s `TC^0` result is about layer counts
+and precision. None of them says anything about one shallow cell trained by a local prediction rule.
+
+> **Amended by [#172](https://github.com/NGL321/patchworks/issues/172): the original *"No result
+> does"* was too strong, and the exception is the expensive one.** The **capacity** results transfer
+> **completely**. Jaeger, Dambre et al., Ganguli et al. and Gonon et al. are not statements about
+> training procedures; they are statements about how much history a state of a given dimension can
+> hold, given a readout class and an input process. Dambre states his for *arbitrary dynamical
+> systems*; reservoir computing is the shallow, non-backprop case these results were born in, and by
+> §1.4's change of variables a cell is closer to Jaeger's object than to Orvieto's; and
+> `rank(W_rec) <= 12` is a construction constant that no choice of local or global training moves.
+> The boundary this section draws is in the right place. Its label needed the exception, and the
+> results that survive into this setting are the ones that **bound** the design, while the ones that
+> would have licensed it are the ones that need the stack.
+
+Nobody has shown a spatially glued set of locally-trained linear recurrences works, and that novelty
+is this project's either way.
 
 ## Falsification, pre-registered
 
@@ -167,6 +234,15 @@ cell's linearly recoverable memory at `n = 32` delay taps. #32's headroom argume
 job alone and says nothing about two jobs sharing one budget. That is a separate ticket, blocked on
 transmission.
 
+*Note added by [#172](https://github.com/NGL321/patchworks/issues/172).* Tier 1's rank read has a
+companion the pre-registration did not know about:
+[#167](https://github.com/NGL321/patchworks/issues/167) §2.3 gives memory capacity **1** for a normal
+`K`, so **non-normality** — `‖K†K − KK†‖_F`, or departure from normality of the Schur form — is
+readable at the same cost and answers the other half. Rank saturation says the width is spent;
+non-normality says whether the width is *usable* as memory at all. This note records the instrument;
+registering it belongs to the double-duty ticket
+([#166](https://github.com/NGL321/patchworks/issues/166)), not to this pre-registration.
+
 ## What the literature does and does not give
 
 Support here is **structural, and the conclusion is this project's own.**
@@ -176,10 +252,28 @@ Support here is **structural, and the conclusion is this project's own.**
   is the observation the pass could not make from outside the code: it priced `k` against EDMD
   because it was reading the design's own framing, and that framing was wrong.
 - **S4D's geometrically-uniform timescale initialisation** is verified at source in
-  `docs/research/027-regional-jacobian-spectra.md` and is the nearest published object to a
-  per-unit-timescale linear recurrence.
-- **Do not lean on "state-space models show this works."** The nearest supports — linear recurrence
-  with the nonlinearity moved outside it, memory-capacity bounds for linear recurrences, and whether
-  anyone has glued such recurrences spatially under a local rule — are **named from recall and not
-  read at source at the time of writing**. A citation pass owes this ADR its reading-depth tags, and
-  is filed as a research ticket rather than assumed.
+  `docs/research/027-regional-jacobian-spectra.md`, and
+  [#167](https://github.com/NGL321/patchworks/issues/167) §5.1 confirms at source that S4D, LRU and
+  Mamba all treat `λ` and `Δ` as **designed retention constants** rather than estimates of anything.
+  It is cited for that *practice*, which is the design's own and transfers as mechanism — **not** as
+  the comparison class, which is the error the Decision above corrects.
+- **Do not lean on "state-space models show this works."** This was filed as a research ticket
+  rather than assumed, and **the ticket has run**:
+  [#167](https://github.com/NGL321/patchworks/issues/167), with reading-depth tags, in
+  `docs/research/167-linear-recurrence-citations.md`. It returned the two corrections applied above —
+  the comparison class, and the transfer exception — and answered the three named supports:
+
+  - *Linear recurrence with the nonlinearity moved outside it* is a real class with a universality
+    theorem (Orvieto et al., HLD 2023 **[ABS — abstract only]**) and an existence result (LRU, ICML 2023 **[FULL — body read]**),
+    **and this design is not in it** — the reason the Decision moved.
+  - *Memory-capacity bounds* exist, were read at source, and are **stronger and less comfortable**
+    than the record assumed. They belong to
+    [#166](https://github.com/NGL321/patchworks/issues/166), which the pass unblocks with four
+    conditions on citing them.
+  - *Has anyone glued such recurrences spatially?* Closer than assumed. Per-node linear recurrence
+    with the nonlinearity outside, glued over edges, is in print and current (Message-Passing
+    State-Space Models); so is sheaf learning with restriction maps under a backprop-free local rule
+    (Bosca & Ghrist). What is **not** in any single source is the conjunction of all three — a
+    learned per-cell operator, glued by learned restriction maps, trained by a local rule with no
+    global objective. Every *pair* is claimed. The residue is one property wide, and the record
+    should say so rather than claim more.
