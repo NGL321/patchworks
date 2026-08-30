@@ -526,7 +526,7 @@ def attenuation(
         quiet = sheaf.stalks.clone()
         quiet_broadcast = sheaf.broadcast.clone()
         norms = sheaf.maps.norms()
-        transfers, ceilings, sent, sent_ceilings = [], [], [], []
+        transfers, ceilings, sent, sent_ceilings, chained = [], [], [], [], []
         for e in agent.dome.edges:
             for side in (0, 1):
                 receiver = (e.v, e.u)[side]
@@ -559,6 +559,43 @@ def attenuation(
                 where = sheaf.layout.slice(receiver)
                 moved = float((sheaf.stalks[where] - quiet[where]).norm() / epsilon)
                 transfers.append(moved)
+
+                # The whole hop's two maps at once, along the sender's own best
+                # direction rather than a random one. Reporting `sigma_max` per
+                # map says each map has a direction that survives; it does not
+                # say the sender's *output* direction is the one the receiver's
+                # map is sensitive to. Only a chained channel transmits, and
+                # nothing measured so far distinguishes a chain from a row of
+                # good maps pointing at each other's null spaces. So: perturb
+                # the sender along the top right-singular vector of its own
+                # map, and read what arrives in the receiver's node stalk.
+                # Against `restrict * edge` from the random nudges, the ratio
+                # is exactly what alignment across the edge is worth.
+                # Two phases, because the hop is two-step by construction: a
+                # stalk moves the broadcast in one phase, and the broadcast
+                # moves the far stalk in the *next* one, through the `t - 1`
+                # delay `02-tick-semantics.md` fixes. Perturbing a stalk and
+                # reading the far stalk after a single phase measures exactly
+                # zero, and says nothing.
+                sender_width = agent.dome.cells[sender].stalk
+                sender_block = sheaf.maps.maps[pair, : e.m, :sender_width]
+                top = torch.linalg.svd(sender_block, full_matrices=False)[2][0]
+                restore(sheaf, base)
+                with torch.no_grad():
+                    sheaf.stalks[sheaf.layout.slice(sender)] += top * epsilon
+                sheaf.message_passing_phase()
+                left = sheaf.broadcast[pair] - quiet_broadcast[pair]
+                scale = float(left.norm()) / epsilon
+                # ...and now the direction the sender *actually emits*, rather
+                # than a random one, injected where the random nudge went.
+                restore(sheaf, base)
+                with torch.no_grad():
+                    sheaf.broadcast[pair, : e.m] += (
+                        left[: e.m] / left.norm().clamp_min(1e-12) * epsilon
+                    )
+                sheaf.message_passing_phase()
+                arrived = float((sheaf.stalks[where] - quiet[where]).norm() / epsilon)
+                chained.append(scale * arrived)
                 # What ADR-0010's gauge leaves the transport rule room to grow
                 # *this* transfer to. The step is linear in the receiver's own
                 # map -- `gain_r · F_{p^1}ᵀ δ` -- so the ceiling is this
@@ -628,6 +665,93 @@ def attenuation(
             f"body's\n  present gain, which the gauge does not bound and nothing here "
             f"predicts."
         )
+        # -- what the isotropic nudge cannot see -------------------------
+        #
+        # Every gain above is read off a `randn` direction, so each is
+        # `E‖Mx‖` over isotropic unit `x`, which for any linear `M` on `w`
+        # inputs is `‖M‖_F / sqrt(w)` whatever the map's rank. The maps are
+        # near rank-1 (#150 reads effective rank 1.04), so a random nudge
+        # spends nearly all of itself on directions the map structurally
+        # discards, and the number above is the *average* direction's fate
+        # rather than the channel's. `sigma_max` is the same map's best
+        # direction, and it is exact rather than probed: these are matrices.
+        rows = []
+        for e in agent.dome.edges:
+            for side in (0, 1):
+                i = pair_index(e.id, side)
+                if sheaf.maps.pinned[i]:
+                    continue
+                cell = (e.u, e.v)[side]
+                block = sheaf.maps.maps[i, : e.m, : agent.dome.cells[cell].stalk]
+                rows.append(
+                    (
+                        float(torch.linalg.matrix_norm(block, ord=2)),
+                        float(block.norm()),
+                        float(block.shape[1]),
+                    )
+                )
+        aligned = np.array([r[0] for r in rows])
+        frobenius = np.array([r[1] for r in rows])
+        isotropic = frobenius / np.sqrt(np.array([r[2] for r in rows]))
+        print(
+            f"\n  interior maps, {len(rows)} of them: sigma_max mean "
+            f"{aligned.mean():.4f} against an isotropic\n  mean of "
+            f"{isotropic.mean():.4f} -- a factor of "
+            f"{aligned.mean() / max(isotropic.mean(), 1e-12):.3f} the nudge above "
+            f"discards.\n  Grown to rho = {sheaf.maps.rho:g}, sigma_max would reach "
+            f"{aligned.mean() * sheaf.maps.rho / max(frobenius.mean(), 1e-12):.4f}."
+        )
+
+        # Does the channel chain? `restrict * edge` is the same two maps read
+        # off random directions, so the ratio isolates alignment across the
+        # edge from alignment within either map.
+        chain = np.array(chained)
+        diffuse = restrict.mean() * edge.mean()
+        print(
+            f"  the hop's two maps, sender nudged along its own top singular\n"
+            f"  direction:      mean {chain.mean():8.4f}  median "
+            f"{np.median(chain):8.4f}  max {chain.max():8.4f}\n"
+            f"  against {diffuse:.4g} from random nudges -- alignment across the "
+            f"edge is worth {chain.mean() / max(diffuse, 1e-12):.2f}x."
+        )
+
+        # The gain's denominator is a *bound*: `02-tick-semantics.md` derives
+        # `rho^2 deg(v)` from `lambda_max(sum_e F^T F) <= sum_e ‖F‖_F^2`, and
+        # that inequality is tight only if every incident map loads the same
+        # input direction. If instead the maps are near rank-1 on *distinct*
+        # directions -- which is what a directional channel means -- the sum
+        # has `deg` roughly-orthogonal eigendirections and its true
+        # `lambda_max` is near one map's, not `deg` of them. The ratio below
+        # is exactly the factor `gain_v` gives away, per cell.
+        owner = sheaf.maps.owner
+        slack, degrees = [], []
+        for cell in agent.dome.cells:
+            if cell.is_boundary:
+                continue
+            mine = (owner == cell.id).nonzero().flatten().tolist()
+            if not mine:
+                continue
+            width = cell.stalk
+            block = torch.zeros((width, width), dtype=sheaf.maps.maps.dtype)
+            widths = 0
+            for i in mine:
+                e = agent.dome.edges[i // 2]
+                live = sheaf.maps.maps[i, : e.m, :width]
+                block = block + live.T @ live
+                widths += e.m
+            true_max = float(torch.linalg.eigvalsh(block)[-1])
+            bound = max(float(widths), sheaf.maps.rho**2 * len(mine))
+            slack.append(bound / max(true_max, 1e-12))
+            degrees.append(len(mine))
+        slack = np.array(slack)
+        print(
+            f"  the gain's denominator, over {len(slack)} cells of mean degree "
+            f"{np.mean(degrees):.2f}:\n  bound / true lambda_max  mean "
+            f"{slack.mean():8.3f}  median {np.median(slack):8.3f}  min "
+            f"{slack.min():8.3f}\n  -- the factor `gain_v` gives away by bounding the "
+            f"block instead of reading it."
+        )
+
         restore(sheaf, base)
     finally:
         env.close()
