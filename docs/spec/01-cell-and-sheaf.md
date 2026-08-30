@@ -406,6 +406,28 @@ would make the sheaf a moving target and would edge toward structural growth, wh
 Whether pruning and re-opening could later alternate in developmental phases is held in the map's
 fog, not exercised here.
 
+### A one-way edge is not a sheaf edge
+
+A consequence of *Independent at the two ends of an edge*, written down because the proposal it
+forecloses is **reachable** — it came up in
+[#130](https://github.com/NGL321/patchworks/issues/130) as the natural way to shorten a path — and
+because it is a consequence of the formalism rather than a decision anyone gets to make.
+
+The two restriction maps on an edge are independent, and **disagreement is their mismatch**. So an
+edge only one end restricts into has nothing to disagree about: there is no second map to be mismatched
+against, the coboundary term is not defined on it, and reconciliation has nothing to descend. What it
+transmits is one cell's belief, delivered. That is a **wire**, and it puts a directed channel into a
+formalism whose whole claim is that error is **derived, never transported** — the property this
+document asserts of the edge stalk a few paragraphs above.
+
+The tempting cases are exactly the ones where a short path is wanted and a symmetric edge is too
+expensive: a reflex, an echo, a copy of one region's output made available cheaply somewhere far away.
+The architecture's answer in every such case is **topology** — where the columns merge, how deep the
+attachment sits — and not a one-way edge. Where a genuinely asymmetric coupling is wanted between two
+cells that *do* share an edge, the legal instrument is the **mask**, which is independent at the two
+ends by construction; that is a restriction on content, not a removal of one direction, and both maps
+still exist for disagreement to be a mismatch of.
+
 ### Scale is gauge-fixed
 
 A restriction map's overall magnitude is **not identified by the transport rule's objective**. The rule

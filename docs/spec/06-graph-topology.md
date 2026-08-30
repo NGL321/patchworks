@@ -49,6 +49,18 @@ per-level degree constraints, with connectivity sampled to satisfy them. Everyth
 document — the dimensions, the boundary exemption, the sparsity treatment, the absence of relays — is
 independent of the dome and survives its abandonment.
 
+**That rule has since been exercised, and the sentence above is under-specified.**
+[#130](https://github.com/NGL321/patchworks/issues/130) produced a second topology — the **wedge**,
+for a rim that is a character stream — and
+[`11-the-language-graph.md`](./11-the-language-graph.md) expresses both it and the dome in one
+construction rule rather than writing a second graph by hand. Doing that found the fallback missing
+two ingredients: a **covering rule** and a **lateral rule**. *Sampled* connectivity cannot express
+this document's own load-bearing properties — a degree-constrained sample reproduces the dome's degree
+table exactly and its retinotopy with probability zero, and no degree constraint can say "no cell
+sees a whole puck", which is a statement about the covering. The claim in the paragraph above holds
+otherwise, and holds in the stronger form that a second domain has now instantiated it: what is
+listed here as surviving the dome's abandonment did survive it.
+
 ### The construction layout is an index, not an embedding
 
 Cells are indexed by **level** and **lattice position**. There is no metric embedding: no cell has a
