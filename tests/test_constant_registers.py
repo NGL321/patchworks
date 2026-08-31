@@ -113,6 +113,119 @@ class TestAProvisionalIsWellFormed:
         assert [e.provisional for e in gamma] == ["85"]
 
 
+class TestTheRegisterReachesIntoAMarkedClass:
+    """`DomeSpec`'s fifteen, which a module-level scan could not see (#187).
+
+    A construction parameter is a number the architecture rests on that happens
+    to be a dataclass field. The register's stated question is *is this a knob I
+    may turn*, so a register that cannot show the knob #14's constraint ladder
+    starts on -- `interior_m` -- is not answering it.
+    """
+
+    def _fields(self, surveys):
+        return {
+            entry.name: entry
+            for entry in surveys["graph.py"].entries
+            if entry.name.startswith("DomeSpec.")
+        }
+
+    def test_all_fifteen_are_registered(self, surveys):
+        """The count is pinned because the gap was one of *reach*, not of writing.
+
+        Fifteen is every field of `DomeSpec`; if a sixteenth arrives, this test
+        and the completeness check below both speak, and they say different
+        things -- this one that the count moved, that one that the new field has
+        no provenance.
+        """
+        fields = self._fields(surveys)
+        assert len(fields) == 15
+        assert set(fields) == {
+            f"DomeSpec.{name}"
+            for name in (
+                "patch_grid", "vision_sides", "somatomotor_sizes", "core_sizes",
+                "joints", "interior_m", "boundary_m", "drive_m", "patch_stalk",
+                "proprioceptive_stalk", "touch_stalk", "actuator_stalk",
+                "drive_stalk", "core_degree", "apex_degree",
+            )
+        }
+
+    def test_the_class_marker_sets_the_register_and_a_field_may_override_it(
+        self, surveys
+    ):
+        """Thirteen architecture, two the world's.
+
+        Change the render and `patch_grid` and `patch_stalk` must follow, which
+        is *what breaks downstream if the world changes* exactly, while the
+        thirteen counts around them are knobs the architecture may turn. Module
+        granularity cannot express that split: `graph.py` is one file.
+        """
+        lands = {
+            name: registers.lands_in(entry)
+            for name, entry in self._fields(surveys).items()
+        }
+        world = {n for n, slug in lands.items() if slug == "world-and-build"}
+        assert world == {"DomeSpec.patch_grid", "DomeSpec.patch_stalk"}
+        assert set(lands.values()) == {"architecture", "world-and-build"}
+
+    def test_interior_m_is_stipulated_rather_than_provisional(self, surveys):
+        """A ladder you may climb is not a precondition you failed to meet.
+
+        `06`'s argument for `m = 4` stands and the value is defensible;
+        `@provisional` means *resting on an unmet precondition*, and typing this
+        provisional would make every value with a known upgrade path provisional
+        and drain the marker. The thinness is real and lives in `flexibility`,
+        citing #14 -- which is where a reader asking *may I turn this* looks.
+        """
+        entry = self._fields(surveys)["DomeSpec.interior_m"]
+        assert entry.type == "stipulated"
+        assert entry.provisional == ""
+        assert "#14" in entry.flexibility
+
+    def test_the_dome_is_not_left_looking_unwarranted(self, surveys):
+        """`DEFAULT_SPEC`'s opt-out is about the name, not about the dome."""
+        assert ("graph.py", "DEFAULT_SPEC") in surveys["graph.py"].opted_out
+
+
+class TestTheRenderAndTheTilingAreOneNumber:
+    """`IMAGE_SIZE` is `patch_grid` patches of `PATCH_PX` a side, and held to it.
+
+    Nothing used to stop `patch_grid = 8` leaving `IMAGE_SIZE` at 64 with the
+    tiling no longer covering the render; the flexibility field named
+    `DomeSpec.patch_grid` in prose and the register could not link it, because
+    the field was not registered. Registering it makes `@depends_on` expressible
+    for the first time, so the guarantee is a test's rather than a comment's --
+    the idiom `cli.py`'s `MINIMUM_PYTHON` already uses.
+    """
+
+    def test_the_render_is_exactly_the_tiling(self):
+        from patchworks.graph import DEFAULT_SPEC
+        from patchworks.sandbox.env import IMAGE_SIZE, PATCH_PX
+
+        assert IMAGE_SIZE == DEFAULT_SPEC.patch_grid * PATCH_PX
+
+    def test_a_patch_cell_stalk_is_one_patch_raw(self):
+        """The world writes the stalk with no compressor in between (ADR-0006)."""
+        from patchworks.graph import DEFAULT_SPEC
+        from patchworks.sandbox.env import PATCH_PX, RENDER_CHANNELS
+
+        assert DEFAULT_SPEC.patch_stalk == PATCH_PX * PATCH_PX * RENDER_CHANNELS
+
+    def test_both_are_typed_derived_and_say_derived_from_what(self, surveys):
+        """Leaving either `stipulated` would be knowingly filing a wrong row."""
+        rows = {
+            entry.name: entry
+            for survey in surveys.values()
+            for entry in survey.entries
+            if entry.name in ("IMAGE_SIZE", "DomeSpec.patch_stalk")
+        }
+        assert {name: rows[name].type for name in rows} == {
+            "IMAGE_SIZE": "derived",
+            "DomeSpec.patch_stalk": "derived",
+        }
+        assert "patch_grid" in rows["IMAGE_SIZE"].depends_on
+        assert "PATCH_PX" in rows["DomeSpec.patch_stalk"].depends_on
+
+
 class TestTheRegistersAreAProjectionOfTheCode:
     """The register cannot disagree with the code, because it is generated."""
 
@@ -125,6 +238,29 @@ class TestTheRegistersAreAProjectionOfTheCode:
         all. A checked-in file that nothing regenerates is a stale file, so the
         suite regenerates and compares.
         """
+        assert registers.main(["--check"]) == 0
+
+    def test_check_still_catches_a_stale_file(self, tmp_path, monkeypatch, capsys):
+        """The half of `--check` the test above cannot see.
+
+        A check that passes on a fresh tree proves the generator agrees with
+        itself; this is the one that says the checked-in file is *read*. Written
+        against a copy under `tmp_path`, so the real registers are untouched --
+        and pinned now that class fields are in them, because a field's row is
+        the sort of change most easily left ungenerated.
+        """
+        monkeypatch.setattr(registers, "ROOT", tmp_path)
+        monkeypatch.setattr(registers, "OUTPUT", tmp_path / "registers")
+        assert registers.main([]) == 0
+        stale = tmp_path / "registers" / "architecture.md"
+        stale.write_text(
+            stale.read_text(encoding="utf-8").replace("`DomeSpec.interior_m`", "`m`"),
+            encoding="utf-8",
+        )
+        capsys.readouterr()
+        assert registers.main(["--check"]) == 1
+        assert "architecture.md" in capsys.readouterr().err
+        assert registers.main([]) == 0
         assert registers.main(["--check"]) == 0
 
     def test_every_entry_lands_in_exactly_one_register(self, surveys):
@@ -350,3 +486,147 @@ class TestTheReaderIsRejectingWhatItShould:
         """Reported, so the failure message can name every one of them at once."""
         survey = self._read(tmp_path, monkeypatch, "X = 1\n")
         assert survey.unmarked == [("sample.py", "X")]
+
+    def test_a_marked_class_is_descended_into_and_its_fields_qualified(
+        self, tmp_path, monkeypatch
+    ):
+        """The marker is the opt-in, and the row is named `Class.field`.
+
+        Qualified because a field and a module-level constant may share a name,
+        and because `IMAGE_SIZE`'s `@depends_on` has to be able to point at one.
+        """
+        survey = self._read(
+            tmp_path,
+            monkeypatch,
+            "#: @register architecture\n"
+            "@dataclass\n"
+            "class Spec:\n"
+            "    #: @type chosen\n"
+            "    #: @flexibility unknown\n"
+            "    #: @warrant here\n"
+            "    width: int = 4\n"
+            '    """Prose, below the field, exactly where it was."""\n',
+        )
+        assert [e.name for e in survey.entries] == ["Spec.width"]
+        assert survey.entries[0].register == "architecture"
+        assert survey.entries[0].value == "4"
+
+    def test_the_marker_is_read_from_above_the_decorators(self, tmp_path, monkeypatch):
+        """`class` is not the top line of a decorated class.
+
+        Every class this reaches is a dataclass, so reading the run above
+        `class` alone would find the decorator and never the marker.
+        """
+        survey = self._read(
+            tmp_path,
+            monkeypatch,
+            "#: @register rig\n"
+            "@dataclass\n"
+            "@final\n"
+            "class Spec:\n"
+            "    #: @type chosen\n"
+            "    #: @flexibility unknown\n"
+            "    #: @warrant here\n"
+            "    width: int = 4\n",
+        )
+        assert [e.register for e in survey.entries] == ["rig"]
+
+    def test_a_field_may_name_its_own_register(self, tmp_path, monkeypatch):
+        """Per-field placement, which is what splits `DomeSpec` in two."""
+        survey = self._read(
+            tmp_path,
+            monkeypatch,
+            "#: @register architecture\n"
+            "@dataclass\n"
+            "class Spec:\n"
+            "    #: @register world-and-build\n"
+            "    #: @type stipulated\n"
+            "    #: @flexibility the world's\n"
+            "    #: @warrant here\n"
+            "    grid: int = 16\n"
+            "    #: @type chosen\n"
+            "    #: @flexibility unknown\n"
+            "    #: @warrant here\n"
+            "    depth: int = 5\n",
+        )
+        assert {e.name: e.register for e in survey.entries} == {
+            "Spec.grid": "world-and-build",
+            "Spec.depth": "architecture",
+        }
+
+    def test_a_field_of_a_marked_class_may_opt_out_but_not_be_silent(
+        self, tmp_path, monkeypatch
+    ):
+        """Completeness inside the class, for the reason it holds at module level.
+
+        Otherwise a sixteenth field arrives with no provenance and the register
+        is quietly incomplete again -- the original disease with a register
+        standing next to it.
+        """
+        survey = self._read(
+            tmp_path,
+            monkeypatch,
+            "#: @register architecture\n"
+            "@dataclass\n"
+            "class Spec:\n"
+            "    #: @register none\n"
+            "    label: str = 'x'\n"
+            "    later: int = 6\n",
+        )
+        assert survey.opted_out == [("sample.py", "Spec.label")]
+        assert survey.unmarked == [("sample.py", "Spec.later")]
+
+    def test_an_unmarked_class_is_not_scanned_and_not_flagged(
+        self, tmp_path, monkeypatch
+    ):
+        """The opt-in's whole point, and the hole the architecture register names.
+
+        Blanket descent would force `@register none` onto dozens of record
+        fields, and noise in a completeness check is how a completeness check
+        stops being read. The cost is that an unmarked class holding warranted
+        numbers is invisible, which is stated rather than solved (#187).
+        """
+        survey = self._read(
+            tmp_path,
+            monkeypatch,
+            "@dataclass\nclass Finding:\n    remedy: str = ''\n    width: int = 4\n",
+        )
+        assert survey.entries == []
+        assert survey.opted_out == []
+        assert survey.unmarked == []
+
+    def test_a_class_marked_none_is_not_scanned(self, tmp_path, monkeypatch):
+        """One key, one question everywhere it appears: which register, or none."""
+        survey = self._read(
+            tmp_path,
+            monkeypatch,
+            "#: @register none\n@dataclass\nclass Spec:\n    width: int = 4\n",
+        )
+        assert survey.entries == []
+        assert survey.unmarked == []
+
+    def test_a_class_marker_naming_no_register_is_refused(self, tmp_path, monkeypatch):
+        """Otherwise its fields land in no register: checked, then never printed."""
+        with pytest.raises(registers.MalformedProvenance, match="is not one of"):
+            self._read(
+                tmp_path,
+                monkeypatch,
+                "#: @register topology\n@dataclass\nclass Spec:\n    width: int = 4\n",
+            )
+
+    def test_a_field_override_naming_no_register_is_refused(
+        self, tmp_path, monkeypatch
+    ):
+        with pytest.raises(registers.MalformedProvenance, match="is not one of"):
+            self._read(
+                tmp_path,
+                monkeypatch,
+                "#: @register architecture\n"
+                "@dataclass\n"
+                "class Spec:\n"
+                "    #: @register topology\n"
+                "    #: @type chosen\n"
+                "    #: @flexibility unknown\n"
+                "    #: @warrant here\n"
+                "    width: int = 4\n",
+            )

@@ -6,7 +6,7 @@ regenerate. -->
 
 # The architecture register
 
-Constants from `agent.py`, `body.py`, `learning.py`, `restriction.py`, `tick.py`, where *flexibility* means *is this a knob I may turn*.
+Constants from `agent.py`, `body.py`, `learning.py`, `restriction.py`, `tick.py`, plus fields written in `graph.py` that name this register for themselves, where *flexibility* means *is this a knob I may turn*.
 
 
 Every constant in these modules either appears here or is marked `#: @register
@@ -22,6 +22,15 @@ carrying no information.
 **Rows carry no argument.** The reason is at the definition site, which the
 `source` column links; a warrant of *here* means it is argued there and nowhere
 else. Rows are ordered by type, least flexible first.
+
+**A construction parameter is not a constant, and both are registered.** A row
+named `Class.field` is a field of a class marked `#: @register <name>`, which
+opts it in and is the only way the scan reaches inside a class. `DomeSpec`'s
+docstring puts the distinction exactly — *"Every count in the dome is a
+construction parameter, not a constant"* — and it is a distinction in what the
+number is free to be, not in whether it needs a warrant: the question this
+register asks is *why this value rather than another*, and a value passed at
+construction has to answer it as much as one bound at import.
 
 
 | type | what it means |
@@ -39,22 +48,35 @@ else. Rows are ordered by type, least flexible first.
 
 | name | value | type | flexibility | warrant | depends_on | source |
 |---|---|---|---|---|---|---|
-| `DEFAULT_BIAS_VARIANCE` | `0.5` | selected | the weak knob of the two: three orders of magnitude barely move the regional spectra | docs/research/027-regional-jacobian-spectra.md | — | `src/patchworks/body.py` |
-| `DEFAULT_SPARSITY_PRESSURE` | `0.4` | selected | measured: at 0.4 the pressure gradient is a median 0.12 of the transport term's (0.114-0.127, three seeds) on the default dome | docs/spec/07-local-learning-rule.md, Permitted global signals; tests/test_transport_rule.py | — | `src/patchworks/learning.py` |
-| `DEFAULT_WEIGHT_VARIANCE` | `1.2` | selected | unknown | #42's rig; docs/spec/05-timescales.md, What this requires elsewhere | — | `src/patchworks/body.py` |
-| `DEFAULT_OPERATOR_SCALE` | `1.0` | stipulated | superseded per body by a rule, patchworks.bias_selection.operator_scale_rule; this is the band ceiling, the rule's answer where no rig has run | docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md | — | `src/patchworks/body.py` |
-| `DEFAULT_RHO_K` | `2.0` | stipulated | unknown | docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md | — | `src/patchworks/body.py` |
-| `GAUGE_RHO` | `2.0` | stipulated | measured: 2 -> 16 buys 1.008x on the apex floor (#150) | docs/spec/01-cell-and-sheaf.md, Scale is gauge-fixed | — | `src/patchworks/restriction.py` |
-| `NODE_STALK_DIM` | `32` | stipulated | fixed and intended to stay fixed: absent from 01-cell-and-sheaf.md's Flex priority ladder, and a per-cell n confounds the private-dimension gradient | docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/body.py` |
-| `PIXEL_SCALE` | `1.0 / 255.0` | stipulated | none: 255 is uint8's range, and any other value is a unit error | docs/spec/01-cell-and-sheaf.md | — | `src/patchworks/agent.py` |
-| `DEFAULT_ANNEAL_HORIZON` | `1000` | chosen | unknown; set an order of magnitude above the slowest cell's tau >= 100 ticks | docs/spec/05-timescales.md | — | `src/patchworks/learning.py` |
-| `DEFAULT_LEARNING_RATE` | `0.01` | chosen | unknown; the first thing to retune once #90 and #91 can measure a run | here | — | `src/patchworks/learning.py` |
-| `DEFAULT_OPERATOR_RATE_RATIO` | `1.0` | chosen | unknown; inherits eta's retune duty | docs/adr/0008-the-local-rule-splits-by-parameter-not-by-cell.md | — | `src/patchworks/learning.py` |
-| `DRIVE_ASSERTION` | `1.0` | chosen | any non-zero constant; zero makes the drive inert, and a schedule is not a drive | docs/adr/0009-a-drive-is-a-motor-edge-attached-deep.md | — | `src/patchworks/agent.py` |
-| `INITIAL_NORM` | `1.0` | chosen | unknown | here | — | `src/patchworks/restriction.py` |
-| `NORM_FLOOR` | `1e-24` | chosen | unknown; 1e-12 in the norm itself, far below anything the maps or stalks carry | here | — | `src/patchworks/learning.py` |
-| `CHART_DIM` | `12` | provisional #132 | rung 5, the last rung: may become a range or a gradient ACROSS THE GRAPH if uniformity fails (01-cell-and-sheaf.md, Flex priority). #132's axis is across DOMAINS, which the ladder does not license | docs/research/032-dimensioning-small-predictors.md (#172); docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/body.py` |
-| `DEFAULT_GAMMA` | `1.0` | provisional #85 | unknown | docs/spec/02-tick-semantics.md, Reconciliation gain | — | `src/patchworks/tick.py` |
+| `DEFAULT_BIAS_VARIANCE` | `0.5` | selected | the weak knob of the two: three orders of magnitude barely move the regional spectra | docs/research/027-regional-jacobian-spectra.md | — | `src/patchworks/body.py:139` |
+| `DEFAULT_SPARSITY_PRESSURE` | `0.4` | selected | measured: at 0.4 the pressure gradient is a median 0.12 of the transport term's (0.114-0.127, three seeds) on the default dome | docs/spec/07-local-learning-rule.md, Permitted global signals; tests/test_transport_rule.py | — | `src/patchworks/learning.py:491` |
+| `DEFAULT_WEIGHT_VARIANCE` | `1.2` | selected | unknown | #42's rig; docs/spec/05-timescales.md, What this requires elsewhere | — | `src/patchworks/body.py:131` |
+| `DEFAULT_OPERATOR_SCALE` | `1.0` | stipulated | superseded per body by a rule, patchworks.bias_selection.operator_scale_rule; this is the band ceiling, the rule's answer where no rig has run | docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md | — | `src/patchworks/body.py:184` |
+| `DEFAULT_RHO_K` | `2.0` | stipulated | unknown | docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md | — | `src/patchworks/body.py:159` |
+| `DomeSpec.actuator_stalk` | `6` | stipulated | not free: three commanded and three efference, so it is twice joints and moves only when the arm does. The efference half is mandatory rather than sized -- #128 made readback a requirement of the cell contract in both domains. Never varied | docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/graph.py:248` |
+| `DomeSpec.apex_degree` | `4` | stipulated | free, but not independently: it must stay below core_degree, which __post_init__ enforces. It is lower because L7 loses its up-edges by construction, and that gap is the whole private-dimension gradient -- at a uniform 6 the apex would be flat with the rest of the core and the slack the drive attaches into would not exist. Never varied in any run | docs/spec/06-graph-topology.md, Connectivity | — | `src/patchworks/graph.py:265` |
+| `DomeSpec.boundary_m` | `8` | stipulated | free, and twice the interior's deliberately: a boundary cell's edges are the only route its information ever takes, unlike an interior cell, which is reachable many ways. Never varied in any run | docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/graph.py:211` |
+| `DomeSpec.core_degree` | `6` | stipulated | free, and the private-dimension table reads straight off it: raising it lowers guaranteed private dimension at every core cell, since that is n minus the sum of m_e. Never varied in any run; the suite builds small domes at 4, which changes no reading | docs/spec/06-graph-topology.md, Connectivity | — | `src/patchworks/graph.py:260` |
+| `DomeSpec.core_sizes` | `(16, 14, 12, 10, 8)` | stipulated | free in length and in each level's size, and the level count is what sets rim-to-apex depth. Never varied in any run; #150 measured the cost of the depth this one gives (7 hops, 1.82 unit-resistance edges) and found rewiring worth under 2x, which is the nearest thing to a reading | docs/spec/06-graph-topology.md, The levels | — | `src/patchworks/graph.py:194` |
+| `DomeSpec.drive_m` | `1` | stipulated | free, and pinned to drive_stalk from above: the drive asserts one number, and an edge stalk wider than the stalk it carries carries nothing extra. Never varied in any run | docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/graph.py:216` |
+| `DomeSpec.drive_stalk` | `1` | stipulated | free, and one is what the drive means: it asserts a valence rather than specifying anything, so a wider stalk would be a channel the drive has nothing to put in. Never varied in any run | docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/graph.py:254` |
+| `DomeSpec.interior_m` | `4` | stipulated | free, and the thinnest number in the design: #32 found n, k and m = 8 comfortable and m = 4 thin, with no source either way on whether it is enough. It is the first rung on #14's constraint ladder and the one to pull first if a piece turns out not to fit through it. Never varied in any run; widening it trades directly against private dimension, since every interior stalk widened raises the sum of m_e at every cell | docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/graph.py:206` |
+| `DomeSpec.joints` | `3` | stipulated | free, and the arm is the world's: the arena has three joints and a dome built for a different count would not run against it. Never varied | src/patchworks/sandbox/arena.xml | — | `src/patchworks/graph.py:200` |
+| `DomeSpec.proprioceptive_stalk` | `2` | stipulated | not free: the world writes it, and MuJoCo gives a hinge joint an angle and a velocity. Never varied | docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/graph.py:229` |
+| `DomeSpec.somatomotor_sizes` | `(6, 4)` | stipulated | free in each level's size but not in its length, which runs parallel to vision_sides and is checked against it. Never varied in any run; the column's internal wiring, not its size, is the rule the spec leaves open and this module chooses | docs/spec/06-graph-topology.md, The somatomotor column | — | `src/patchworks/graph.py:188` |
+| `DomeSpec.vision_sides` | `(8, 4)` | stipulated | free in length and in each side, but not independently: the taper is checked, each lattice covering a 2x2 block of the one below. Never varied in any run; the suite's small domes use a single lattice | docs/spec/06-graph-topology.md, The levels | — | `src/patchworks/graph.py:182` |
+| `GAUGE_RHO` | `2.0` | stipulated | measured: 2 -> 16 buys 1.008x on the apex floor (#150) | docs/spec/01-cell-and-sheaf.md, Scale is gauge-fixed | — | `src/patchworks/restriction.py:52` |
+| `NODE_STALK_DIM` | `32` | stipulated | fixed and intended to stay fixed: absent from 01-cell-and-sheaf.md's Flex priority ladder, and a per-cell n confounds the private-dimension gradient | docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/body.py:96` |
+| `PIXEL_SCALE` | `1.0 / 255.0` | stipulated | none: 255 is uint8's range, and any other value is a unit error | docs/spec/01-cell-and-sheaf.md | — | `src/patchworks/agent.py:84` |
+| `DEFAULT_ANNEAL_HORIZON` | `1000` | chosen | unknown; set an order of magnitude above the slowest cell's tau >= 100 ticks | docs/spec/05-timescales.md | — | `src/patchworks/learning.py:510` |
+| `DEFAULT_LEARNING_RATE` | `0.01` | chosen | unknown; the first thing to retune once #90 and #91 can measure a run | here | — | `src/patchworks/learning.py:114` |
+| `DEFAULT_OPERATOR_RATE_RATIO` | `1.0` | chosen | unknown; inherits eta's retune duty | docs/adr/0008-the-local-rule-splits-by-parameter-not-by-cell.md | — | `src/patchworks/learning.py:141` |
+| `DRIVE_ASSERTION` | `1.0` | chosen | any non-zero constant; zero makes the drive inert, and a schedule is not a drive | docs/adr/0009-a-drive-is-a-motor-edge-attached-deep.md | — | `src/patchworks/agent.py:75` |
+| `DomeSpec.touch_stalk` | `1` | chosen | free, and the one stalk the spec does not size: ADR-0006 settles the rule (a boundary cell's stalk is whatever the thing writing it gives it) rather than the number, and the sandbox's touch observation is one scalar per joint. Never varied in any run | here | — | `src/patchworks/graph.py:235` |
+| `INITIAL_NORM` | `1.0` | chosen | unknown | here | — | `src/patchworks/restriction.py:63` |
+| `NORM_FLOOR` | `1e-24` | chosen | unknown; 1e-12 in the norm itself, far below anything the maps or stalks carry | here | — | `src/patchworks/learning.py:465` |
+| `CHART_DIM` | `12` | provisional #132 | rung 5, the last rung: may become a range or a gradient ACROSS THE GRAPH if uniformity fails (01-cell-and-sheaf.md, Flex priority). #132's axis is across DOMAINS, which the ladder does not license | docs/research/032-dimensioning-small-predictors.md (#172); docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/body.py:120` |
+| `DEFAULT_GAMMA` | `1.0` | provisional #85 | unknown | docs/spec/02-tick-semantics.md, Reconciliation gain | — | `src/patchworks/tick.py:74` |
 
 ## Marked `@register none`
 
@@ -68,13 +90,15 @@ Two populations this register cannot reach, named rather than silently omitted �
 being absent from a register of what the architecture rests on is worse than the
 status quo, because the register would be quietly incomplete.
 
-* **`DomeSpec`'s fifteen construction parameters** — `interior_m`,
-  `touch_stalk`, `patch_grid` and the rest. Equally warranted (`touch_stalk`'s
-  docstring reads *"Chosen here, not recorded"*, which is the `chosen` type
-  stated verbatim before the type existed) and equally invisible to a
-  module-level scan. They stay on `DomeSpec` because, unlike `n` and `k`, they
-  genuinely are the dome's counts. This is a **scanner-reach** question and is
-  [#187](https://github.com/NGL321/patchworks/issues/187).
+* **An unmarked class is invisible to the scan.** `DomeSpec`'s fifteen
+  construction parameters are here because that class carries a `#: @register`
+  marker; a class without one is not scanned **and not flagged**, so a
+  `LanguageSpec` for the second domain would arrive unseen and this register
+  would be quietly incomplete again. Closing it means flagging every dataclass,
+  which [#187](https://github.com/NGL321/patchworks/issues/187) rejected: it
+  would force an opt-out onto dozens of record fields — `Finding.remedy`,
+  `Reading.whole_graph`, `WindowPlan.refusal` — and noise is how a completeness
+  check stops being read. The opt-in is deliberate and this is its cost, named.
 * **`patchworks.body.hidden_width`** — `max{d_x + 1, d_y}`, Park et al.'s floor,
   which is a **rule rather than a number** and so has no value column to carry.
   Its warrant is in its own docstring.

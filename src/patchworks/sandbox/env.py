@@ -80,8 +80,29 @@ FRAME_SKIP = 10
 CONTROL_HZ = PHYSICS_HZ / FRAME_SKIP
 
 #: @type stipulated
-#: @flexibility fixed with the sensory tiling: 64 is 16x16 patches of 4x4 px, DomeSpec.patch_grid's default
+#: @flexibility free, and the number the tiling is actually about: 4x4 px puts a puck across two to four patch cells, which is the patchwork thesis exercised at the seam; 8x8 was rejected because a puck would fit inside one patch. Never varied in any run
+#: @warrant docs/spec/06-graph-topology.md, Tiling granularity
+#: The side, in pixels, of the render one patch cell sees. The independent one of
+#: the three: `IMAGE_SIZE`, `DomeSpec.patch_grid` and this fix each other, and
+#: `agent.py` recovers this one by division at construction.
+PATCH_PX = 4
+
+#: @type stipulated
+#: @flexibility not free: MuJoCo renders RGB, so the world sets it
 #: @warrant docs/spec/06-graph-topology.md, Dimensions
+RENDER_CHANNELS = 3
+
+#: @type derived
+#: @depends_on DomeSpec.patch_grid, PATCH_PX
+#: @flexibility not free once those two are set: it is their product. Never varied in a run; the suite renders small worlds against small domes, and the pair moves together there too
+#: @warrant docs/spec/06-graph-topology.md, Dimensions
+#: The render is exactly the tiling: `patch_grid` patches of `PATCH_PX` a side.
+#: Held to that product by `tests/test_constant_registers.py` rather than
+#: computed from :data:`patchworks.graph.DEFAULT_SPEC`, because the world does
+#: not import the dome — nothing here knows what graph will read it. Left to a
+#: comment, `patch_grid = 8` would silently leave this at 64 with the tiling no
+#: longer covering the render; the guarantee is a test's, as `cli.py`'s
+#: `MINIMUM_PYTHON` already has it.
 IMAGE_SIZE = 64
 
 #: @type chosen
@@ -330,7 +351,9 @@ class PlanarPushSandbox(gym.Env):
                 "qpos": spaces.Box(-np.inf, np.inf, (len(ARM_JOINTS),), np.float32),
                 "qvel": spaces.Box(-np.inf, np.inf, (len(ARM_JOINTS),), np.float32),
                 "touch": spaces.Box(0.0, np.inf, (len(ARM_JOINTS),), np.float32),
-                "image": spaces.Box(0, 255, (image_size, image_size, 3), np.uint8),
+                "image": spaces.Box(
+                    0, 255, (image_size, image_size, RENDER_CHANNELS), np.uint8
+                ),
             }
         )
         self.action_space = spaces.Box(-1.0, 1.0, (self.model.nu,), np.float32)
@@ -382,7 +405,7 @@ class PlanarPushSandbox(gym.Env):
         image = (
             self._camera_image()
             if self.render_obs
-            else np.zeros((self.image_size, self.image_size, 3), np.uint8)
+            else np.zeros((self.image_size, self.image_size, RENDER_CHANNELS), np.uint8)
         )
         return {
             "qpos": self.data.qpos[self._arm_qadr].astype(np.float32),

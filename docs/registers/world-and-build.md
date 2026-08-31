@@ -23,6 +23,15 @@ carrying no information.
 `source` column links; a warrant of *here* means it is argued there and nowhere
 else. Rows are ordered by type, least flexible first.
 
+**A construction parameter is not a constant, and both are registered.** A row
+named `Class.field` is a field of a class marked `#: @register <name>`, which
+opts it in and is the only way the scan reaches inside a class. `DomeSpec`'s
+docstring puts the distinction exactly — *"Every count in the dome is a
+construction parameter, not a constant"* — and it is a distinction in what the
+number is free to be, not in whether it needs a warrant: the question this
+register asks is *why this value rather than another*, and a value passed at
+construction has to answer it as much as one bound at import.
+
 
 | type | what it means |
 |---|---|
@@ -60,6 +69,11 @@ else. Rows are ordered by type, least flexible first.
 | `HELDOUT_SECTOR` | `(np.deg2rad(30.0), np.deg2rad(75.0))` | chosen | unknown | here | — | `src/patchworks/sandbox/env.py` |
 | `HELDOUT_SECTOR_MIN_R` | `0.22` | chosen | unknown | here | — | `src/patchworks/sandbox/env.py` |
 | `PLACEMENT_ATTEMPTS` | `64` | chosen | a give-up bound rather than a physical quantity | here | — | `src/patchworks/sandbox/env.py` |
+| `DomeSpec.patch_stalk` | `48` | derived | not free: it is the raw size of one patch of the render, so the world sets it. Varied only in the suite's construction tests, in lockstep with a patch side that was never rendered | docs/spec/06-graph-topology.md, Dimensions | PATCH_PX, RENDER_CHANNELS | `src/patchworks/graph.py:223` |
+| `DomeSpec.patch_grid` | `16` | stipulated | free by construction, and the only field with a downstream number held to it: IMAGE_SIZE is patch_grid x PATCH_PX. 8x8 patches were rejected on the argument (a puck would fit inside one patch) rather than by a run, and no run has been made at any value but 16 -- the suite builds domes at 4 and 8 to exercise construction, which learns nothing | docs/spec/06-graph-topology.md, Tiling granularity | — | `src/patchworks/graph.py:176` |
+| `PATCH_PX` | `4` | stipulated | free, and the number the tiling is actually about: 4x4 px puts a puck across two to four patch cells, which is the patchwork thesis exercised at the seam; 8x8 was rejected because a puck would fit inside one patch. Never varied in any run | docs/spec/06-graph-topology.md, Tiling granularity | — | `src/patchworks/sandbox/env.py:77` |
+| `RENDER_CHANNELS` | `3` | stipulated | not free: MuJoCo renders RGB, so the world sets it | docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/sandbox/env.py:82` |
+| `PLACEMENT_ATTEMPTS` | `64` | chosen | a give-up bound rather than a physical quantity | here | — | `src/patchworks/sandbox/env.py:102` |
 
 ## Marked `@register none`
 
