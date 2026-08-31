@@ -97,13 +97,14 @@ RENDER_CHANNELS = 3
 #: @flexibility not free once those two are set: it is their product. Never varied in a run; the suite renders small worlds against small domes, and the pair moves together there too
 #: @warrant docs/spec/06-graph-topology.md, Dimensions
 #: The render is exactly the tiling: `patch_grid` patches of `PATCH_PX` a side.
-#: Held to that product by `tests/test_constant_registers.py` rather than
-#: computed from :data:`patchworks.graph.DEFAULT_SPEC`, because the world does
-#: not import the dome — nothing here knows what graph will read it. Left to a
-#: comment, `patch_grid = 8` would silently leave this at 64 with the tiling no
-#: longer covering the render; the guarantee is a test's, as `cli.py`'s
-#: `MINIMUM_PYTHON` already has it.
-IMAGE_SIZE = 64
+#: **One dependency on each of ADR-0018's arms.** `PATCH_PX` is importable here,
+#: so the definition *evaluates* it rather than restating 4, and the two cannot
+#: disagree. `DomeSpec.patch_grid` is not — the world does not import the dome,
+#: nothing here knows what graph will read it — so that half stays the literal
+#: `16`, held to the product by `tests/test_constant_registers.py`, as `cli.py`'s
+#: `MINIMUM_PYTHON` already has it. Left wholly to a comment, `patch_grid = 8`
+#: would silently leave this at 64 with the tiling no longer covering the render.
+IMAGE_SIZE = 16 * PATCH_PX
 
 #: @type chosen
 #: @flexibility a give-up bound rather than a physical quantity
