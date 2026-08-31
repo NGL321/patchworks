@@ -1,0 +1,13 @@
+construction sweep: seed=42 draws=8192
+  isotropic space correction: sqrt(44/32) = 1.1726x
+
+  horizons=onset (3.0, 14.0)  on_draws=True
+    published cap on gamma x floor: 0.3502 (02 records 0.3502)
+    defect 1 only (corrected space): 0.4107
+    defect 2 only (new denominator): 0.1167
+    BOTH:                            0.1369
+  horizons=duration (3.0, 750.0)  on_draws=True
+    published cap on gamma x floor: 0.3502 (02 records 0.3502)
+    defect 1 only (corrected space): 0.4107
+    defect 2 only (new denominator): 0.1167
+    BOTH:                            0.1369
