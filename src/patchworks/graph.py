@@ -150,6 +150,7 @@ class Edge:
         raise ValueError(f"cell {cell_id} is not an endpoint of edge {self.id}")
 
 
+#: @register architecture
 @dataclass(frozen=True)
 class DomeSpec:
     """Every count in the dome is a construction parameter, not a constant.
@@ -168,31 +169,69 @@ class DomeSpec:
     the body it shares. See `docs/spec/06-graph-topology.md`, *Dimensions*.
     """
 
+    #: @register world-and-build
+    #: @type stipulated
+    #: @flexibility free by construction, and the only field with a downstream number held to it: IMAGE_SIZE is patch_grid x PATCH_PX. 8x8 patches were rejected on the argument (a puck would fit inside one patch) rather than by a run, and no run has been made at any value but 16 -- the suite builds domes at 4 and 8 to exercise construction, which learns nothing
+    #: @warrant docs/spec/06-graph-topology.md, Tiling granularity
     patch_grid: int = 16
     """Side of the sensory tiling. 16x16 4x4-px patches over a 64x64 render."""
 
+    #: @type stipulated
+    #: @flexibility free in length and in each side, but not independently: the taper is checked, each lattice covering a 2x2 block of the one below. Never varied in any run; the suite's small domes use a single lattice
+    #: @warrant docs/spec/06-graph-topology.md, The levels
     vision_sides: tuple[int, ...] = (8, 4)
     """Sides of the L1 and L2 vision lattices, each over a 2x2 block below."""
 
+    #: @type stipulated
+    #: @flexibility free in each level's size but not in its length, which runs parallel to vision_sides and is checked against it. Never varied in any run; the column's internal wiring, not its size, is the rule the spec leaves open and this module chooses
+    #: @warrant docs/spec/06-graph-topology.md, The somatomotor column
     somatomotor_sizes: tuple[int, ...] = (6, 4)
     """Cells in the somatomotor column at L1 and L2."""
 
+    #: @type stipulated
+    #: @flexibility free in length and in each level's size, and the level count is what sets rim-to-apex depth. Never varied in any run; #150 measured the cost of the depth this one gives (7 hops, 1.82 unit-resistance edges) and found rewiring worth under 2x, which is the nearest thing to a reading
+    #: @warrant docs/spec/06-graph-topology.md, The levels
     core_sizes: tuple[int, ...] = (16, 14, 12, 10, 8)
     """Cells at L3-L7. The last entry is the apex, and the internal rim."""
 
+    #: @type stipulated
+    #: @flexibility free, and the arm is the world's: the arena has three joints and a dome built for a different count would not run against it. Never varied
+    #: @warrant src/patchworks/sandbox/arena.xml
     joints: int = 3
     """Arm joints, one proprioceptive and one touch boundary cell each."""
 
+    #: @type stipulated
+    #: @flexibility free, and the thinnest number in the design: #32 found n, k and m = 8 comfortable and m = 4 thin, with no source either way on whether it is enough. It is the first rung on #14's constraint ladder and the one to pull first if a piece turns out not to fit through it. Never varied in any run; widening it trades directly against private dimension, since every interior stalk widened raises the sum of m_e at every cell
+    #: @warrant docs/spec/06-graph-topology.md, Dimensions
     interior_m: int = 4
+
+    #: @type stipulated
+    #: @flexibility free, and twice the interior's deliberately: a boundary cell's edges are the only route its information ever takes, unlike an interior cell, which is reachable many ways. Never varied in any run
+    #: @warrant docs/spec/06-graph-topology.md, Dimensions
     boundary_m: int = 8
+
+    #: @type stipulated
+    #: @flexibility free, and pinned to drive_stalk from above: the drive asserts one number, and an edge stalk wider than the stalk it carries carries nothing extra. Never varied in any run
+    #: @warrant docs/spec/06-graph-topology.md, Dimensions
     drive_m: int = 1
 
+    #: @register world-and-build
+    #: @type derived
+    #: @depends_on PATCH_PX, RENDER_CHANNELS
+    #: @flexibility not free: it is the raw size of one patch of the render, so the world sets it. Varied only in the suite's construction tests, in lockstep with a patch side that was never rendered
+    #: @warrant docs/spec/06-graph-topology.md, Dimensions
     patch_stalk: int = 48
     """4x4 px RGB, raw. The world writes it with no compressor in between."""
 
+    #: @type stipulated
+    #: @flexibility not free: the world writes it, and MuJoCo gives a hinge joint an angle and a velocity. Never varied
+    #: @warrant docs/spec/06-graph-topology.md, Dimensions
     proprioceptive_stalk: int = 2
     """Angle and velocity."""
 
+    #: @type chosen
+    #: @flexibility free, and the one stalk the spec does not size: ADR-0006 settles the rule (a boundary cell's stalk is whatever the thing writing it gives it) rather than the number, and the sandbox's touch observation is one scalar per joint. Never varied in any run
+    #: @warrant here
     touch_stalk: int = 1
     """One contact scalar per joint.
 
@@ -203,13 +242,26 @@ class DomeSpec:
     is `(3,)`, one scalar per joint, over three touch cells.
     """
 
+    #: @type stipulated
+    #: @flexibility not free: three commanded and three efference, so it is twice joints and moves only when the arm does. The efference half is mandatory rather than sized -- #128 made readback a requirement of the cell contract in both domains. Never varied
+    #: @warrant docs/spec/06-graph-topology.md, Dimensions
     actuator_stalk: int = 6
     """Three commanded, three efference."""
 
+    #: @type stipulated
+    #: @flexibility free, and one is what the drive means: it asserts a valence rather than specifying anything, so a wider stalk would be a channel the drive has nothing to put in. Never varied in any run
+    #: @warrant docs/spec/06-graph-topology.md, Dimensions
     drive_stalk: int = 1
     """Valence, not specification."""
 
+    #: @type stipulated
+    #: @flexibility free, and the private-dimension table reads straight off it: raising it lowers guaranteed private dimension at every core cell, since that is n minus the sum of m_e. Never varied in any run; the suite builds small domes at 4, which changes no reading
+    #: @warrant docs/spec/06-graph-topology.md, Connectivity
     core_degree: int = 6
+
+    #: @type stipulated
+    #: @flexibility free, but not independently: it must stay below core_degree, which __post_init__ enforces. It is lower because L7 loses its up-edges by construction, and that gap is the whole private-dimension gradient -- at a uniform 6 the apex would be flat with the rest of the core and the slack the drive attaches into would not exist. Never varied in any run
+    #: @warrant docs/spec/06-graph-topology.md, Connectivity
     apex_degree: int = 4
 
     def __post_init__(self) -> None:
@@ -247,6 +299,9 @@ class DomeSpec:
 
 
 #: @register none
+#: Not the dome having no provenance: every field of :class:`DomeSpec` carries
+#: its own, and the class is marked so the register reaches them. This name binds
+#: one instance of it and has no value of its own to warrant.
 DEFAULT_SPEC = DomeSpec()
 
 

@@ -23,6 +23,15 @@ carrying no information.
 `source` column links; a warrant of *here* means it is argued there and nowhere
 else. Rows are ordered by type, least flexible first.
 
+**A construction parameter is not a constant, and both are registered.** A row
+named `Class.field` is a field of a class marked `#: @register <name>`, which
+opts it in and is the only way the scan reaches inside a class. `DomeSpec`'s
+docstring puts the distinction exactly — *"Every count in the dome is a
+construction parameter, not a constant"* — and it is a distinction in what the
+number is free to be, not in whether it needs a warrant: the question this
+register asks is *why this value rather than another*, and a value passed at
+construction has to answer it as much as one bound at import.
+
 
 | type | what it means |
 |---|---|
