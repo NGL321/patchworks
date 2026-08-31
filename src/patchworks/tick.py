@@ -72,7 +72,7 @@ __all__ = [
 ]
 
 #: @type stipulated
-#: @flexibility free in (0, 1] and held at the ceiling because nothing derives a lower value: #206 declined a ramp permanently and withdrew the decline on a permanently lower value, which is #205's to weigh
+#: @flexibility free in (0, 1] and held at the ceiling because nothing derives a lower value: #206 declined a ramp permanently and #205 declined a permanently lower value, so both alternatives are now closed
 #: @warrant docs/adr/0019-construction-nominates-the-run-decides.md
 #: The single global `γ` of the reconciliation gain, `γ ≤ 1`
 #: (`docs/spec/02-tick-semantics.md`, *Reconciliation gain*). One scalar for the
@@ -90,8 +90,10 @@ __all__ = [
 #: the clause and replaced it with nothing. The margin-against-offset comparison
 #: is an **attribution**, not a verdict, and carries no threshold; the verdict is
 #: measured region dwell. A ramp stays declined, aimed at a transient the run
-#: does not have; a permanently lower `γ` is no longer declined but is not
-#: adopted here either — it is #205's
+#: does not have; a permanently lower `γ` was handed to #205 and **declined
+#: there, permanently**, on arithmetic — it scales the numerator where the
+#: quantity that fails is the divisor's tail, which reaches zero, so no positive
+#: `γ` buys a clean run and `γ/33` still leaves half the ticks breaching
 #: (`docs/adr/0019-construction-nominates-the-run-decides.md`, decision 5).
 DEFAULT_GAMMA = 1.0
 
