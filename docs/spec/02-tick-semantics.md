@@ -124,24 +124,31 @@ reason a tracking baseline is — it needs its own time constant
 
 That bound is **demoted, not deleted**, and it failed on three counts at once. It was **never
 binding**: `γ` is already at 1.0, the global ceiling this section permits, so no fold margin was ever
-what held it down. Its stated *reason* — that a shifted operating point changes the cell's effective
+what held it down. *And its divisor was misnamed:* what the margin is weighed against is the
+**standing offset** — the displacement reconciliation leaves, whatever caused it — of which the
+disagreement floor is one contributor and, at construction, not the dominant one
+([#160](https://github.com/NGL321/patchworks/issues/160),
+[ADR-0019](../adr/0019-construction-nominates-the-run-decides.md)). The bound is written
+`gain_v × offset < margin_v` from here on. Its stated *reason* — that a shifted operating point changes the cell's effective
 timescale — is the premise the Koopman conversion retired, since timescale now lives in `K`'s spectrum
 rather than in which activation region a cell occupies
 ([`05-timescales.md`](./05-timescales.md)). And the margin itself is now read from `encode` alone,
 because `encode` is the body's only nonlinearity and so the only map with folds at all.
 
-What survives is the **check**, as a construction-time diagnostic rather than a bound on `γ`: it is
-still run per cell across the taper, still on the same sweep, and it still carries ADR-0005's
-falsification duty, so it can kill the timescale mechanism cheaply before anything is trained. See
-[ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md), amended.
+What survives is the **check** — and #160 moved it off construction as well. It is run per cell
+across the taper on the same sweep, and what it produces is a **nomination**: the cap this body's draw
+permits, before anything runs. See
+[ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md), amended, and
+[ADR-0019](../adr/0019-construction-nominates-the-run-decides.md).
 
-Because `Σ_e m_e` **falls with depth** (`06-graph-topology.md`, *Private dimension is a gradient*),
-`gain_v` is largest at the apex, and the diagnostic binds hardest exactly where timescale matters most.
-It is a construction-time check, run per cell across the taper and folded into
-[#27](https://github.com/NGL321/patchworks/issues/27)'s bias-sampling rig — same sweep, same
-afternoon. The drive edges into the apex (`06-graph-topology.md`, *Where the drive attaches*) make
-this **slacker** rather than tighter — an extra incident edge lowers `gain_v` — but by about 6%, which
-is not enough to lean on.
+**No claim is made about where the bound binds hardest.** This section used to argue that because
+`Σ_e m_e` falls with depth, `gain_v` is largest at the apex and the check binds hardest exactly where
+timescale matters most. [#190](https://github.com/NGL321/patchworks/issues/190) made `gain_v` uniform
+across the interior, so it binds on each cell's own margin draw and nowhere in particular, and #160
+**struck the claim without replacing it**: #158's offset profile down levels 1–7 is not monotone, and
+[#178](https://github.com/NGL321/patchworks/issues/178) found the 30k reading was a local high of a
+quantity that wanders 3.8x with no trend. Boundary cells were never in it — they run no body, so they
+have no fold margin at all.
 
 **The conversion loosened it, measurably, and moved where it binds.** Linearising `step` took its
 folds off the round trip, so the margin is `encode`'s alone rather than the minimum over two maps, and
@@ -156,15 +163,64 @@ artifact rather than a change of shape — a cell's fold margin is uncorrelated 
 about it — and the *systematic* claim below is unaffected, since the level medians still fall with
 depth, 1.25 at level 1 to 0.52 at the apex.
 
-**The check is construction-time, and stays there.** [#33](https://github.com/NGL321/patchworks/issues/33)
-found that it could not: the transport rule ([`07-local-learning-rule.md`](./07-local-learning-rule.md))
-trains the restriction-map magnitudes `Σ_e m_e` stood in for, so the proxy drifted away from the block's
-true spectral radius as training proceeded, and each cell had to re-derive its own estimate on the
-anneal schedule. [ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md) **removed that drift at
-its source** by fixing the magnitudes the rule no longer identifies, so the denominator above is a bound
-that holds for as long as the run does. The periodic re-derivation is struck rather than kept
-just-in-case — a maintenance step retained "in case the bound slips" invites the build to trust a check
-that is no longer being made. See ADR-0007, *Simultaneous learning does not need its own bound*.
+**The denominator is settled at construction; the rest of the bound is not.**
+[#33](https://github.com/NGL321/patchworks/issues/33) found the denominator could not stay fixed: the
+transport rule ([`07-local-learning-rule.md`](./07-local-learning-rule.md)) trains the restriction-map
+magnitudes `Σ_e m_e` stood in for, so the proxy drifted away from the block's true spectral radius as
+training proceeded, and each cell had to re-derive its own estimate on the anneal schedule.
+[ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md) **removed that drift at its source** by
+fixing the magnitudes the rule no longer identifies, so the denominator above is a bound that holds for
+as long as the run does. The periodic re-derivation is struck rather than kept just-in-case — a
+maintenance step retained "in case the bound slips" invites the build to trust a check that is no
+longer being made. See ADR-0007, *Simultaneous learning does not need its own bound*.
+
+**Both remaining sides of the bound move, so the check is read live** (#160,
+[ADR-0019](../adr/0019-construction-nominates-the-run-decides.md)). The standing offset is dominated at
+construction by model error and falls 144x through a run (#158); and the **folds themselves move**,
+because their positions are the per-cell biases the prediction rule trains — one frozen set of
+orientations, rigidly translated per cell, sliding under the operating point for the length of the run.
+Neither is what #37 struck: that exchange is about the denominator, and this is about the arrangement.
+ADR-0019 exists so the two do not read as the same decision reversed.
+
+The live read is **free of new state and of any new time constant**, which is what sank every earlier
+proposal: the margin's numerator is the pre-activation `encode`'s forward pass already computes, its
+denominator is the shared frozen weight rows — one graph-wide constant — and the offset is the norm of
+the displacement the message-passing phase already forms.
+`patchworks.tick.FoldRead` is the instrument.
+
+**Construction nominates, the run decides.** What the run decides on is **region dwell**
+([`05-timescales.md`](./05-timescales.md)); the live margin-against-offset comparison is the
+**attribution**, because dwell alone cannot say whether it was *reconciliation* that moved the cell,
+which is the thing ADR-0007 forbids.
+
+**`γ` stays at 1.0, the breach is standing, and the comparison carries no threshold.** #178 measured
+only 0.90x permitted at 2,000 ticks, so the build starts outside its own bound — and
+[#202](https://github.com/NGL321/patchworks/issues/202) measured that it never gets back inside, on a
+read [#206](https://github.com/NGL321/patchworks/issues/206) then re-ran against the corrected
+fold-margin denominator. Over 100,000 ticks **not one tick was free of a breaching cell**; all 150
+cells breached at least once, 103 were still breaching after tick 90,000, and the density falls
+28 → 15 cells and then **plateaus** (p05 9, median 15, p95 22 over the second half).
+This section briefly stated the bound as holding *after a burn-in*; there is no such count, and
+[#206](https://github.com/NGL321/patchworks/issues/206) struck the clause without replacing it.
+
+**Nothing replaces it, and that is the point.** Under *Construction nominates, the run decides* above,
+the verdict is measured region dwell and this comparison is the **attribution** — it says *why* a cell
+lost its region, not whether the build is healthy, and an attribution has nothing to pass. A tolerance
+(*no more than `k` cells breach*) was declined for wanting a constant read off one run's plateau.
+`reconciliation_reaches` is **reported, never asserted**: expect it true, at any tick, on cells that
+are perfectly healthy.
+
+**The two readings are not in conflict.** The run found no clean tick *and* 131 of 150 cells clearing
+[`05-timescales.md`](./05-timescales.md)'s dwell precondition at the horizon. Both hold because they
+are readings of different quantities. The precondition is where the early breaches are accounted for:
+dwell/`τ` is 0.96 at tick 100 and 86.2 at 100,000, so it **fails early and is earned over the run** —
+which is what a cell whose region flips at tick 2,000 having no slow content to protect actually
+buys.
+
+**On `γ` itself:** ramping it is declined, because the density plateaus and a ramp targets a transient
+the run does not have. A permanently lower `γ` is **no longer declined** — its ground was safety in a
+window where nothing was at stake, and there is no such window — but nothing here adopts it either;
+see [ADR-0019](../adr/0019-construction-nominates-the-run-decides.md), decision 5.
 
 ## Known exposure
 

@@ -317,6 +317,12 @@ Wider bodies pay margin for nothing, exactly as Hanin & Rolnick's `1/#neurons` s
 Dropping `encode` *below* its floor buys nothing back either (44 measures 0.018, inside the noise), so
 the floor is free in both directions.
 
+> **These margins were read with the pre-#206 denominator**, which divided by the whole `R^(k+n)`
+> hidden row rather than by its node stalk block, and so reported every margin **1.183x tighter** than
+> the current definition does. They are kept as measured rather than rescaled, because a rescale would
+> publish a number nobody ran. The comparisons above are between figures read the same way and are
+> unaffected; a margin read off today's code is not comparable to them.
+
 **The margin is read from `encode` alone.** It used to be read from `encode` and `step`, the two maps
 on the chart's own round trip, with `decode` excluded because it is not on that loop. The conversion
 settled the question by removing the other two folds entirely: `K` and `decode` are linear, so

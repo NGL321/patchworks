@@ -139,6 +139,12 @@ _TICK_STATE = (
     "prior_evidence",
 )
 
+#: The live fold read's half of that state (#197), which lives on
+#: `Sheaf.fold_read` rather than on the sheaf itself. Keyed by the name
+#: `Sheaf.assert_no_tape` gives each tensor, so `tests/test_untrained_fixed_point.py`
+#: can hold this list against the guard's the way it holds `_TICK_STATE`.
+_READ_STATE = ("fold_margin", "standing_offset")
+
 #: How far the arm has to be from a joint's stop to count as off it, in radians.
 #: A hundredth of a radian, 0.57 degrees. Loose enough for MuJoCo's limits to be
 #: the soft constraints they are -- a joint held against its stop by sustained
@@ -197,6 +203,7 @@ def snapshot(sheaf: Sheaf) -> dict:
     """Everything a tick moves, cloned, so a run can be re-run from here."""
     state = {name: getattr(sheaf, name).clone() for name in _TICK_STATE}
     state["ticks"] = sheaf.ticks
+    state["fold_read"] = sheaf.fold_read.state()
     return state
 
 
@@ -204,6 +211,7 @@ def restore(sheaf: Sheaf, state: dict) -> None:
     for name in _TICK_STATE:
         setattr(sheaf, name, state[name].clone())
     sheaf.ticks = state["ticks"]
+    sheaf.fold_read.load(state["fold_read"])
 
 
 def levels(dome: Dome) -> list[tuple[int, str]]:

@@ -81,7 +81,8 @@ _Avoid_: error (bare), residual, disagreement, loss
 The part of an edge's disagreement that learning cannot remove. Umbrella over three kinds, static,
 lag, and settling. Nothing in the architecture represents it; the learning rule is constrained never
 to target zero residual. What is left over is model error, which is reducible and needs no name of
-its own — its role is to be what the floors are distinguished from.
+its own — its role is to be what the floors are distinguished from. It is **not** the quantity
+`02-tick-semantics.md`'s bound divides by — see *Standing offset*.
 _Avoid_: irreducible error, noise floor, bias, residual (bare)
 
 **Static floor**:
@@ -105,6 +106,16 @@ reconciliation (`γ`); `decode` still emits every tick, so it degrades a neighbo
 blocks it. Confined to mid-depth predicting cells — boundary cells run no body and are exempt by
 construction, deep cells are insulated by `H⁰`.
 _Avoid_: instability, confidence, null predictor (describes the cell's state, not the floor itself)
+
+**Standing offset**:
+The displacement reconciliation leaves on the reconciled component of a node stalk each tick — the
+gain multiplied by the disagreement the cell carries. What `02-tick-semantics.md`'s bound weighs
+against a cell's fold margin, because a displacement larger than the margin carries the cell into an
+activation region with a different regional spectrum. The disagreement floor is one contributor and,
+at construction, not the dominant one: model error dominates it, and learning removes model error —
+so the offset falls through a run rather than standing at a level. Named for what it is, a shift in
+the operating point, rather than for its cause.
+_Avoid_: floor, disagreement floor, the floor (as in `γ × floor <` fold margin), reconciliation error
 
 **Compression**:
 The lossy, nonlinear, cell-private map from node stalk into chart, performed inside `encode`.
@@ -218,19 +229,24 @@ _Avoid_: the cell's spectrum, its Jacobian, decay rate (unqualified)
 How long a cell stays in one activation region of the shared body before its chart carries it across
 a fold. The timescale mechanism holds only where dwell is long against the `τ` that region implies;
 where dwell is short, a cell still decays at some average rate, but by averaging over unrelated
-regions rather than by the mechanism the spec claims. Bounded at construction by the fold margin,
-measured at runtime on a driven trajectory.
+regions rather than by the mechanism the spec claims. Nominated at construction by the fold margin,
+measured at runtime on a driven trajectory — and since #160 the runtime measurement is **the
+verdict**, the construction reading a nomination (`patchworks.tick.FoldRead`, ADR-0019).
 _Avoid_: region residence, switching rate, region stability
 
 **Fold margin**:
 How far a cell sits from the nearest boundary of the activation region it occupies in `encode`. It
 had three jobs and keeps one and a half. **Dead:** bounding `γ`, which it never did in practice.
 **Falsified premise:** carrying timescale, which now lives in `K`'s spectrum. **Surviving:** it is
-still the construction-time proxy for region dwell, and still what makes an expansive region
-dangerous rather than a harmless transient. Falls as the body gets wider; read from `encode` alone
-since it is the only map with folds, which is why the measured cap rose when `step` was linearised.
-Inside a fixed body a cell's margin is uncorrelated with its decay rate.
-_Avoid_: slack, headroom, distance to boundary
+still the proxy for region dwell, and still what makes an expansive region dangerous rather than a
+harmless transient. Falls as the body gets wider; read from `encode` alone since it is the only map
+with folds, which is why the measured cap rose when `step` was linearised. Inside a fixed body a
+cell's margin is uncorrelated with its decay rate. **Read live since #160**, because it moves: the
+per-cell biases the prediction rule trains are the *positions* of `encode`'s folds. Weighed against
+the standing offset, never against a floor — and since #206 that weighing is an **attribution**
+carrying no threshold: it says why a cell lost its region, while region dwell says whether the
+mechanism holds. Breaching it is a standing condition of a run, not a fault.
+_Avoid_: slack, headroom, distance to boundary, construction-time check
 
 **Inference phase**:
 The half of a tick in which every cell locally advances its own chart and decodes a
