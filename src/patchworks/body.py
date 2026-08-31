@@ -364,7 +364,16 @@ class CellBody(torch.nn.Module):
         return pre_activation, output
 
     def _gradient_norms(self) -> torch.Tensor:
-        return torch.linalg.vector_norm(self.encode_hidden_weight, dim=-1).clamp(min=1e-12)
+        #: The **node stalk block alone**, not the full `R^(k+n)` row. Corrected
+        #: by #206 on #195's finding. Reconciliation displaces the stalk and
+        #: leaves the chart where it was, so the distance that matters is the one
+        #: measured in the coordinates the displacement actually moves along; a
+        #: denominator carrying the chart columns divides by a gradient partly
+        #: perpendicular to any reachable motion and reports the margin tighter
+        #: than it is. Measured 1.183x looser on the default dome — conservative
+        #: in the direction it was wrong, so nothing read before this was unsafe.
+        stalk_block = self.encode_hidden_weight[:, self.shape.k :]
+        return torch.linalg.vector_norm(stalk_block, dim=-1).clamp(min=1e-12)
 
     @staticmethod
     def _refresh_gradient_norms(module: "CellBody", incompatible_keys: object) -> None:
@@ -374,11 +383,21 @@ class CellBody(torch.nn.Module):
         """`min_i |z_i| / ‖∇z_i‖` over `encode`'s folds, `[cells]`.
 
         Hanin & Rolnick's distance from the operating point to the nearest
-        boundary of the activation region it sits in, measured in `encode`'s own
-        input space `R^k x R^n`. With one hidden layer the gradient of the `i`th
-        pre-activation is that row of the hidden weight, so the row norms are the
-        whole of the denominator — and they are frozen and shared, hence
-        :attr:`fold_gradient_norms`.
+        boundary of the activation region it sits in — measured **along the node
+        stalk's `R^n`**, the coordinates reconciliation displaces, rather than
+        across the whole of `encode`'s input space `R^k x R^n`. With one hidden
+        layer the gradient of the `i`th pre-activation is that row of the hidden
+        weight, so the denominator is that row's **stalk block**, frozen and
+        shared, hence :attr:`fold_gradient_norms`.
+
+        **Why the stalk block and not the row** (#206, on #195's finding). The
+        margin is only ever compared against a reconciliation displacement, and
+        that displacement moves the stalk while leaving the chart alone. A
+        denominator built from the full row divides by a gradient partly
+        perpendicular to any motion the comparison can see, which reports every
+        margin tighter than it is — 1.183x on the default dome. Reading it in the
+        subspace the displacement lives in is what makes the two sides of
+        ADR-0007's inequality lengths in the same space.
 
         **One definition, two readers.** The construction sweep
         (:mod:`patchworks.bias_selection`) and the live read

@@ -925,7 +925,12 @@ class TestTheLiveFoldRead:
             pre, _ = sheaf.body.encode_parts(
                 sheaf.prior_charts, sheaf.prior_evidence, sheaf.biases
             )
-        rows = torch.linalg.vector_norm(sheaf.body.encode_hidden_weight, dim=-1)
+        # The denominator is the hidden row's **node stalk block**, not the whole
+        # row (#206): the margin is only ever weighed against a reconciliation
+        # displacement, and that displacement moves the stalk and leaves the
+        # chart alone.
+        stalk_block = sheaf.body.encode_hidden_weight[:, sheaf.body.shape.k :]
+        rows = torch.linalg.vector_norm(stalk_block, dim=-1)
         by_hand = (pre.abs() / rows).min(dim=-1).values
         assert torch.allclose(sheaf.fold_read.margin, by_hand)
 

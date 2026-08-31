@@ -640,8 +640,12 @@ class TestTheMeasuredBody:
         assert -1.0 < float(drawn.measurement.contraction.median()) < -0.6
 
     def test_the_median_fold_margin_is_the_recorded_one(self, drawn):
-        # `01-cell-and-sheaf.md` records 0.019 for [45]/[13] at sigma_w^2 = 1.2.
-        assert 0.015 < float(drawn.measurement.margin.median()) < 0.025
+        # `01-cell-and-sheaf.md` records 0.019 for [45]/[13] at sigma_w^2 = 1.2,
+        # read with the pre-#206 denominator. Since #206 the margin divides by
+        # the hidden row's node stalk block alone, which is 1.183x looser, so
+        # the band moves with the definition and the recorded figure does not:
+        # rescaling it would publish a number nobody ran.
+        assert 0.022 < float(drawn.measurement.margin.median()) < 0.034
 
     def test_region_dwell_is_one_tick_under_a_plausible_drive(self, drawn):
         assert float(drawn.measurement.dwell.median()) < 1.5

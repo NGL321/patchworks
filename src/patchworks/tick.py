@@ -86,7 +86,7 @@ __all__ = [
 #: sides of it move through a run, so there is no construction-time number to
 #: read a cap off. #160 ruled that the bound holds **after a burn-in**; #202
 #: measured 100,000 ticks and found no such count — not one tick free of a
-#: breaching cell, and the density plateaus at ~16 cells in 150 — so #206 struck
+#: breaching cell, and the density plateaus at ~15 cells in 150 — so #206 struck
 #: the clause and replaced it with nothing. The margin-against-offset comparison
 #: is an **attribution**, not a verdict, and carries no threshold; the verdict is
 #: measured region dwell. A ramp stays declined, aimed at a transient the run

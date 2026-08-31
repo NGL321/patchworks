@@ -47,9 +47,14 @@ displacement; the arrangement sets how much displacement is affordable. Two obje
 and both are lengths in the same space, so [#181](https://github.com/NGL321/patchworks/issues/181)'s
 ill-formed comparison does not recur here and no amplitude convention is owed.
 
-Reconciliation displaces the point in the **32 stalk coordinates only**. Distance along a coordinate
-subspace is never less than the perpendicular distance, so the comparison is **conservative** in that
-respect rather than optimistic.
+Reconciliation displaces the point in the **32 stalk coordinates only**, and since
+[#206](https://github.com/NGL321/patchworks/issues/206) the margin is read in those coordinates too —
+`‖∇z_i‖` is the hidden row's **stalk block**, not the whole `R^44` row. Both sides of the inequality
+are therefore lengths along the same subspace, which is what makes the comparison well-formed rather
+than merely conservative. Dividing by the full row, as this ADR's instrument first did, reports every
+margin **1.183x tighter** than it is — an error in the safe direction, so nothing read before the
+correction was unsafe, but a real one: it divides by a gradient partly perpendicular to any motion the
+comparison can see.
 
 ### Three motions, and the record argues about one
 
@@ -74,9 +79,10 @@ against [#178](https://github.com/NGL321/patchworks/issues/178)'s 0.90x permitte
 **And it never stops spending it there.** This ADR first stated the bound as holding after a burn-in
 and called that count its only new quantity. [#202](https://github.com/NGL321/patchworks/issues/202)
 ran the instrument decision 4 builds and found the count does not exist: over 100,000 ticks, not one
-tick was free of a breaching cell, and the breach density plateaus at ~16 cells in 150 rather than
+tick was free of a breaching cell, and the breach density plateaus at ~15 cells in 150 rather than
 decaying. Decision 5 is written below in the light of that read rather than ahead of it — see
-[#206](https://github.com/NGL321/patchworks/issues/206).
+[#206](https://github.com/NGL321/patchworks/issues/206), which re-ran it against the corrected
+denominator and carries the reproduction command.
 
 ## Decision
 
@@ -153,11 +159,16 @@ bounds dwell, only the moment of reading moves.
 measurement decision 4 asked for. What stood here — **the bound holds after a burn-in** — was false,
 and the route from it to this is [#202](https://github.com/NGL321/patchworks/issues/202)'s read.*
 
-**There is no burn-in.** #202 ran `FoldRead` for 100,000 ticks on the real dome, 150 predicting cells.
-Every one of those ticks carried at least one breaching cell; all 150 cells breached at least once;
-109 were still breaching after tick 90,000. The density falls 33 → 16 cells and then **plateaus** —
-p05 11, median 16, p95 22 across the run's second half. The transient is not a transient, and the
-count this decision introduced as its only new quantity has no value to take.
+**There is no burn-in.** #202 ran `FoldRead` for 100,000 ticks on the real dome, 150 predicting cells,
+and #206 re-ran it after correcting the margin's denominator (above). **The numbers below are the
+re-run's**, because #202's were read through the 1.183x-tight denominator and this decision should
+cite the code that ships; #202's stand as reported and the two agree on every finding.
+
+Every one of the 100,000 ticks carried at least one breaching cell; all 150 cells breached at least
+once; 103 were still breaching after tick 90,000, and the median cell's last breach was tick 96,452.
+The density falls 28 → 15 cells and then **plateaus** — p05 9, median 15, p95 22 across the run's
+second half, and **not one clean tick in 100,000**. The transient is not a transient, and the count
+this decision introduced as its only new quantity has no value to take.
 
 **The clause was verdict language for a reading decision 4 had already demoted.** Decision 4 puts the
 verdict on measured region dwell and makes the live margin-against-offset comparison the
@@ -171,13 +182,13 @@ with no derivation behind it — the ground on which decision 2 already declined
 `reconciliation_reaches` is **reported, never asserted**.
 
 **The two readings do not disagree, and the record must stop implying they can.** *The bound is
-breached* and *the mechanism the bound protects is working* were both true in #202's run: not one
-clean tick in 100,000, and 130 of 150 cells clearing ADR-0005's dwell precondition at the horizon.
-They are readings of **two different quantities**, separated one decision earlier — and where the pass
+breached* and *the mechanism the bound protects is working* were both true in that run: not one clean
+tick in 100,000, and 131 of 150 cells clearing ADR-0005's dwell precondition at the horizon. They are
+readings of **two different quantities**, separated one decision earlier — and where the pass
 condition lives is decision 4's answer, measured dwell against `τ`.
 
 **That quantity has the shape this decision reached for a burn-in to describe.** dwell/`τ` is 0.96 at
-tick 100, passes 2 somewhere past 2,000 ticks, and reaches 82.7 by 100,000: it **fails early and is
+tick 100, passes 2 somewhere past 2,000 ticks, and reaches 86.2 by 100,000: it **fails early and is
 earned over the run**. The original argument was sound — during the transient the offset is
 model-error dominated, and **a cell whose region flips at tick 2,000 has no slow content to protect**,
 its `H⁰` holding nothing worth keeping — and it was attached to the wrong reading. It is kept here as
@@ -230,7 +241,7 @@ kills on is the one the run actually has.
 
 **The breach is now a documented standing state of the build rather than an unnoticed one.** Anyone
 reading a run — at any tick, not only in its first thousands — should expect `reconciliation_reaches`
-to be true on cells that are perfectly healthy. #202's run had no clean tick in 100,000 and 130 of 150
+to be true on cells that are perfectly healthy. The run had no clean tick in 100,000 and 131 of 150
 cells clearing ADR-0005's precondition at the horizon, and both of those are the normal picture.
 
 **The per-cell bias is left unpinned, deliberately.** It is the one trainable quantity in the chart's

@@ -108,7 +108,7 @@ class TestWidths:
         body.load_state_dict(other.state_dict())
         assert torch.equal(
             body.fold_gradient_norms,
-            torch.linalg.vector_norm(other.encode_hidden_weight, dim=-1),
+            torch.linalg.vector_norm(other.encode_hidden_weight[:, shape.k :], dim=-1),
         )
 
 
