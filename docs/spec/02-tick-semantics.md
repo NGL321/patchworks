@@ -135,6 +135,14 @@ rather than in which activation region a cell occupies
 ([`05-timescales.md`](./05-timescales.md)). And the margin itself is now read from `encode` alone,
 because `encode` is the body's only nonlinearity and so the only map with folds at all.
 
+**A third quantity is compared against ADR-0007's floor, and it is not this one.**
+[ADR-0021](../adr/0021-rim-to-core-detectability-is-a-bottleneck-ratio.md) states the transmission
+predicate — whether a perturbation at the rim stays distinguishable from the floor on every edge of a
+path to the apex, and back. It has nothing to do with this bound: that is a **bottleneck ratio**
+against the quiescent-hold floor, this is a standing offset against a fold margin, and the only thing
+they share is a word the two have now been separated on. The predicate lives there rather than here
+because this file owns the reconciliation step, not transmission.
+
 What survives is the **check** — and #160 moved it off construction as well. It is run per cell
 across the taper on the same sweep, and what it produces is a **nomination**: the cap this body's draw
 permits, before anything runs. See
