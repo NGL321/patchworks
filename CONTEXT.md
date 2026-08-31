@@ -227,12 +227,18 @@ _Avoid_: the cell's spectrum, its Jacobian, decay rate (unqualified)
 
 **Region dwell**:
 How long a cell stays in one activation region of the shared body before its chart carries it across
-a fold. The timescale mechanism holds only where dwell is long against the `τ` that region implies;
-where dwell is short, a cell still decays at some average rate, but by averaging over unrelated
-regions rather than by the mechanism the spec claims. Nominated at construction by the fold margin,
-measured at runtime on a driven trajectory — and since #160 the runtime measurement is **the
-verdict**, the construction reading a nomination (`patchworks.tick.FoldRead`, ADR-0019).
-_Avoid_: region residence, switching rate, region stability
+a fold. The timescale mechanism holds only where the residency expresses **at least one e-fold of the
+region's own decay** — `dwell > τ`; where dwell is short, a cell still decays at some average rate,
+but by averaging over unrelated regions rather than by the mechanism the spec claims. Nominated at
+construction by the fold margin, measured at runtime on a driven trajectory — and since #160 the
+runtime measurement is **the verdict**, the construction reading a nomination
+(`patchworks.tick.FoldRead`, ADR-0019). Since #208 the verdict is the **median cell's** `dwell/τ > 1`,
+the quantity is the **cumulative mean residency to the horizon** (never the windowed one, and the
+estimator is named wherever dwell is published), the per-cell count below the floor is **reported,
+never asserted**, and `dwell ≥ 2.6 τ` is **reported headroom rather than the bar** — `2.6` is
+`DEFAULT_SAFETY_FACTOR`, licensed for a realised-against-regional timescale ratio and never derived
+for a residency duration.
+_Avoid_: region residence, switching rate, region stability, "clears 2.6 τ" as passing
 
 **Fold margin**:
 How far a cell sits from the nearest boundary of the activation region it occupies in `encode`. It

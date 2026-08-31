@@ -116,6 +116,26 @@ capability depends on timescale at all — and thereby becomes an already-valida
   operating point varying, with dwell reported alongside and decay reported as realised `λ` rather
   than an eigenvalue. Per #42 the first arm is *reachability*, not spread — spread is constructed
   now, so it can no longer falsify anything; a body that cannot reach the slow band still can.
+
+  *Amended by [#208](https://github.com/NGL321/patchworks/issues/208), which gave the dwell
+  precondition a bar and named what failing it kills.* The bar is **one e-fold of the region's own
+  decay expressed within the residency** — `dwell > τ`, read on the **median cell**, with dwell stated
+  as the **cumulative mean residency to the horizon** and the per-cell count below the floor reported
+  rather than asserted. `dwell ≥ 2.6 τ` is demoted to reported headroom; it was
+  `DEFAULT_SAFETY_FACTOR` transplanted onto a duration it was never derived for. `05-timescales.md`
+  carries the derivation.
+
+  **A collapse of median `dwell/τ` below 1 falsifies the claim that placing biases is *sufficient* to
+  buy a timescale.** Not the placement — the biases would have done exactly what they were asked. Not
+  the `K` band. Not persistence-by-regional-spectrum as a concept. It falsifies **sufficiency**,
+  because `τ` is placed by the biases while dwell is set by how fast the graph's chatter walks the
+  operating point across creases, and nothing couples the two: `corr(log τ, log dwell) = −0.110` in
+  the live run, against #42's construction-time `corr(log ρ, log margin) = −0.006`. The mechanism has
+  an **unenforced precondition**. `05-timescales.md` books that decoupling as a win — selecting a cell
+  slow costs it no region definition, so the body's width trade is paid once — and only ever wrote the
+  favourable direction; the other direction is that **selecting a cell slow buys it no residency to be
+  slow in**. Individual cells below the floor falsify neither claim and are a placement finding owned
+  by [#205](https://github.com/NGL321/patchworks/issues/205).
 - **The biases become over-subscribed** — three geometrically distinct jobs on one per-cell vector,
   the third being to preserve private directions through a frozen `encode`. First concrete argument
   for pulling per-cell adapters off the flex ladder early.
