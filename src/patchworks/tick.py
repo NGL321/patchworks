@@ -72,7 +72,7 @@ __all__ = [
 ]
 
 #: @type stipulated
-#: @flexibility free in (0, 1] and held at the ceiling: #160 declined both a ramp and a permanently lower value, so moving it is a decision against that ruling rather than a knob
+#: @flexibility free in (0, 1] and held at the ceiling because nothing derives a lower value: #206 declined a ramp permanently and withdrew the decline on a permanently lower value, which is #205's to weigh
 #: @warrant docs/adr/0019-construction-nominates-the-run-decides.md
 #: The single global `γ` of the reconciliation gain, `γ ≤ 1`
 #: (`docs/spec/02-tick-semantics.md`, *Reconciliation gain*). One scalar for the
@@ -84,11 +84,15 @@ __all__ = [
 #: here — and #140 demoted that bound, #160 moved the check itself off
 #: construction. The margin bounds the *standing offset*, not `γ`, and both
 #: sides of it move through a run, so there is no construction-time number to
-#: read a cap off. What #160 ruled instead: the bound holds **after a burn-in**,
-#: the transient breach is documented rather than engineered away — a cell whose
-#: region flips at tick 2,000 has no slow content to protect — and a ramp is
-#: declined as a schedule with an invented shape
-#: (`docs/adr/0019-construction-nominates-the-run-decides.md`).
+#: read a cap off. #160 ruled that the bound holds **after a burn-in**; #202
+#: measured 100,000 ticks and found no such count — not one tick free of a
+#: breaching cell, and the density plateaus at ~16 cells in 150 — so #206 struck
+#: the clause and replaced it with nothing. The margin-against-offset comparison
+#: is an **attribution**, not a verdict, and carries no threshold; the verdict is
+#: measured region dwell. A ramp stays declined, aimed at a transient the run
+#: does not have; a permanently lower `γ` is no longer declined but is not
+#: adopted here either — it is #205's
+#: (`docs/adr/0019-construction-nominates-the-run-decides.md`, decision 5).
 DEFAULT_GAMMA = 1.0
 
 
@@ -340,9 +344,10 @@ class FoldRead:
         #: `[predicting cells]`: how many times this cell's activation pattern
         #: has changed since the read began.
         self.crossings = torch.zeros(cells)
-        #: Ticks observed. `02`'s bound holds after a burn-in and a burn-in is
-        #: a count (#156), so this is the count anything applying one reads —
-        #: the read itself imposes none, having no reason to withhold numbers.
+        #: Ticks observed. Kept as the denominator for rates read off this
+        #: instrument, not as a burn-in: #202 measured that no burn-in exists
+        #: and #206 struck the clause, leaving the margin-against-offset
+        #: comparison an attribution with no threshold to reach.
         self.ticks = 0
         self._region: torch.Tensor | None = None
 

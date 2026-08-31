@@ -243,7 +243,9 @@ harmless transient. Falls as the body gets wider; read from `encode` alone since
 with folds, which is why the measured cap rose when `step` was linearised. Inside a fixed body a
 cell's margin is uncorrelated with its decay rate. **Read live since #160**, because it moves: the
 per-cell biases the prediction rule trains are the *positions* of `encode`'s folds. Weighed against
-the standing offset, never against a floor.
+the standing offset, never against a floor — and since #206 that weighing is an **attribution**
+carrying no threshold: it says why a cell lost its region, while region dwell says whether the
+mechanism holds. Breaching it is a standing condition of a run, not a fault.
 _Avoid_: slack, headroom, distance to boundary, construction-time check
 
 **Inference phase**:

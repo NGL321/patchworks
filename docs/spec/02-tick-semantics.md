@@ -193,13 +193,32 @@ the displacement the message-passing phase already forms.
 **attribution**, because dwell alone cannot say whether it was *reconciliation* that moved the cell,
 which is the thing ADR-0007 forbids.
 
-**`γ` stays at 1.0, and the bound holds after a burn-in.** #178 measured only 0.90x permitted at 2,000
-ticks, so the build spends its early life outside its own bound; the breach is **documented rather than
-engineered away**. During the transient the offset is model-error dominated, and a cell whose region
-flips at tick 2,000 has no slow content to protect — its `H⁰` holds nothing worth keeping. A burn-in is
-a count, which [#156](https://github.com/NGL321/patchworks/issues/156) established as legal. Ramping
-`γ` would invent a schedule and a shape for it; a permanently lower `γ` would pay reconciliation speed
-forever for safety in the one window where nothing is at stake.
+**`γ` stays at 1.0, the breach is standing, and the comparison carries no threshold.** #178 measured
+only 0.90x permitted at 2,000 ticks, so the build starts outside its own bound — and
+[#202](https://github.com/NGL321/patchworks/issues/202) measured that it never gets back inside. Over
+100,000 ticks **not one tick was free of a breaching cell**; all 150 cells breached at least once, 109
+were still breaching after tick 90,000, and the density falls 33 → 16 cells and then **plateaus**.
+This section briefly stated the bound as holding *after a burn-in*; there is no such count, and
+[#206](https://github.com/NGL321/patchworks/issues/206) struck the clause without replacing it.
+
+**Nothing replaces it, and that is the point.** Under *Construction nominates, the run decides* above,
+the verdict is measured region dwell and this comparison is the **attribution** — it says *why* a cell
+lost its region, not whether the build is healthy, and an attribution has nothing to pass. A tolerance
+(*no more than `k` cells breach*) was declined for wanting a constant read off one run's plateau.
+`reconciliation_reaches` is **reported, never asserted**: expect it true, at any tick, on cells that
+are perfectly healthy.
+
+**The two readings are not in conflict.** #202 found no clean tick *and* 130 of 150 cells clearing
+[`05-timescales.md`](./05-timescales.md)'s dwell precondition at the horizon. Both hold because they
+are readings of different quantities. The precondition is where the early breaches are accounted for:
+dwell/`τ` is 0.96 at tick 100 and 82.7 at 100,000, so it **fails early and is earned over the run** —
+which is what a cell whose region flips at tick 2,000 having no slow content to protect actually
+buys.
+
+**On `γ` itself:** ramping it is declined, because the density plateaus and a ramp targets a transient
+the run does not have. A permanently lower `γ` is **no longer declined** — its ground was safety in a
+window where nothing was at stake, and there is no such window — but nothing here adopts it either;
+see [ADR-0019](../adr/0019-construction-nominates-the-run-decides.md), decision 5.
 
 ## Known exposure
 
