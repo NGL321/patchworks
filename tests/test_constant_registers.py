@@ -302,6 +302,94 @@ class TestTheRegistersAreAProjectionOfTheCode:
         for entry in derived:
             assert entry.depends_on, entry.source
 
+    def test_a_derived_entry_is_actually_derived_from_it(self, surveys):
+        """`depends_on` is honoured, not merely stated — on the arm where it can be.
+
+        The test above asserts a `derived` entry *names* a dependency. Nothing
+        asserted it is **kept**, and that gap is what produced
+        [#191](https://github.com/NGL321/patchworks/issues/191):
+        `MAP_NORM_BOUND` said it depended on `GAUGE_RHO` and restated the
+        number, so moving the gauge would have left the slow cap bounding
+        against a band the maps no longer live in — silently, in the module that
+        decides every cell's timescale at construction.
+
+        ADR-0018 splits on where the dependency lives, and so does this. Where
+        it is an importable Python object the definition must **evaluate** it,
+        which is what makes disagreement impossible; where it is a file or the
+        world — `pyproject.toml`, the arena's ring wall — nothing in-process can
+        evaluate it and a test holds the two equal instead, which is the arm
+        `cli.DEPENDENCIES` and `PHYSICS_HZ` already run.
+
+        Deliberately not a `MalformedProvenance` raise at parse time. That
+        exception is for provenance that cannot be *read*; this is provenance
+        that reads cleanly and is false. A parse-time raise also takes down the
+        `surveys` fixture, so the failure would name no constant (#191 §4).
+        """
+        unheld = []
+        for survey in surveys.values():
+            for entry in survey.entries:
+                if entry.type != "derived":
+                    continue
+                for name in registers.internal_dependencies(entry):
+                    if name.rpartition(".")[2] not in entry.references:
+                        unheld.append(f"{entry.source}: {entry.name} -> {name}")
+        assert unheld == [], (
+            "these `derived` constants name an importable dependency and then "
+            "restate its value rather than evaluating it:\n  " + "\n  ".join(unheld)
+        )
+
+    def test_the_two_arms_are_both_populated(self, surveys):
+        """Neither arm of ADR-0018 is a category with nothing in it.
+
+        A rule with an empty arm is a rule nobody has tested, and #180 §2 kept
+        `derived` on exactly that reasoning — *that it is empty* — which the
+        first generated register disproved. `MAP_NORM_BOUND` and `CONTROL_HZ`
+        hold the internal arm; `DEPENDENCIES` and `SPAWN_R` hold the external
+        one. If a change empties either, the split is no longer earning the ADR
+        and this says so rather than leaving it standing unused.
+        """
+        derived = [
+            entry
+            for survey in surveys.values()
+            for entry in survey.entries
+            if entry.type == "derived"
+        ]
+        internal = [e.name for e in derived if registers.internal_dependencies(e)]
+        external = [
+            e.name for e in derived if not registers.internal_dependencies(e)
+        ]
+        assert "MAP_NORM_BOUND" in internal
+        assert "DEPENDENCIES" in external
+
+    def test_a_derived_value_column_carries_the_number_not_the_name(self, surveys):
+        """`MAP_NORM_BOUND`'s row moves when the gauge moves.
+
+        Unparsing the definition would render the alias's value as the string
+        `GAUGE_RHO`, so the register would go silent on the one change it is
+        checked into git to make visible. The column is called `value` and a
+        derived constant has one.
+        """
+        entry = next(
+            e
+            for e in surveys["bias_selection.py"].entries
+            if e.name == "MAP_NORM_BOUND"
+        )
+        assert entry.value == "GAUGE_RHO"
+        assert registers.rendered_value(entry) == "2.0"
+
+    def test_source_is_the_file_and_not_the_line(self, surveys):
+        """A column that churns under unrelated edits, in the file whose diff is the feature.
+
+        `--check` runs as a test, so an insert near the top of a scanned module
+        reddens the suite until the registers are regenerated — and the
+        regeneration then rewrites every row below the insert, which is a merge
+        conflict on rows with no semantic difference (#191 §5).
+        """
+        for survey in surveys.values():
+            for entry in survey.entries:
+                assert entry.source == f"src/patchworks/{entry.module}"
+                assert ":" not in entry.source
+
     def test_no_entry_hides_its_flexibility(self, surveys):
         """`unknown` is a real value and the expected one.
 

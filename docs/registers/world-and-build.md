@@ -36,7 +36,7 @@ construction has to answer it as much as one bound at import.
 | type | what it means |
 |---|---|
 | **measured** | read off a run. Not a knob at all. |
-| **derived** | a consequence of other constants. Not settable independently. |
+| **derived** | a consequence of other constants. Not settable independently. Held by an import where the dependency is Python and by a named test where it is not ([ADR-0018](../adr/0018-a-derived-constant-is-derived-where-its-dependency-lives.md)). |
 | **selected** | a rig chose it, against a criterion that is re-runnable. |
 | **literature** | a published result. A knob you would have to beat it to turn. |
 | **stipulated** | the spec or the world says so. A knob with a record attached. |
@@ -48,30 +48,31 @@ construction has to answer it as much as one bound at import.
 
 | name | value | type | flexibility | warrant | depends_on | source |
 |---|---|---|---|---|---|---|
-| `CONTROL_HZ` | `50.0` | derived | not free: #149's contraction reading rests on the tick being 1/50 s of world | #149 | FRAME_SKIP | `src/patchworks/sandbox/env.py:69` |
-| `DEPENDENCIES` | `(('torch', 'torch==2.2.2'), ('mujoco', 'mujoco==3.10.0'), ('gymnasium', 'gymnasium>=1.0,<2'), ('numpy', 'numpy<2'))` | derived | none independently: tests/test_cli.py holds this table against the pins, so it reddens rather than drifts | pyproject.toml, dependencies | pyproject.toml, project.dependencies | `src/patchworks/cli.py:241` |
-| `DomeSpec.patch_stalk` | `48` | derived | not free: it is the raw size of one patch of the render, so the world sets it. Varied only in the suite's construction tests, in lockstep with a patch side that was never rendered | docs/spec/06-graph-topology.md, Dimensions | PATCH_PX, RENDER_CHANNELS | `src/patchworks/graph.py:223` |
-| `IMAGE_SIZE` | `64` | derived | not free once those two are set: it is their product. Never varied in a run; the suite renders small worlds against small domes, and the pair moves together there too | docs/spec/06-graph-topology.md, Dimensions | DomeSpec.patch_grid, PATCH_PX | `src/patchworks/sandbox/env.py:95` |
-| `SPAWN_R` | `(0.15, 0.36)` | derived | bounded by the arena: an annulus that clears both | src/patchworks/sandbox/arena.xml | the arena's pedestal radius 0.08 and ring wall 0.52 | `src/patchworks/sandbox/env.py:127` |
-| `BELOW_PYTHON` | `(3, 13)` | stipulated | fixed by pyproject.toml's requires-python; tests/test_cli.py asserts both bounds against the specifier | pyproject.toml, requires-python | — | `src/patchworks/cli.py:73` |
-| `CONTAINER_MARKERS` | `(Path('/.dockerenv'), Path('/run/.containerenv'))` | stipulated | none: the paths are Docker's and podman's, not this project's | docs/adr/0012-a-container-is-the-supported-execution-target.md | — | `src/patchworks/cli.py:320` |
-| `DomeSpec.patch_grid` | `16` | stipulated | free by construction, and the only field with a downstream number held to it: IMAGE_SIZE is patch_grid x PATCH_PX. 8x8 patches were rejected on the argument (a puck would fit inside one patch) rather than by a run, and no run has been made at any value but 16 -- the suite builds domes at 4 and 8 to exercise construction, which learns nothing | docs/spec/06-graph-topology.md, Tiling granularity | — | `src/patchworks/graph.py:176` |
-| `MINIMUM_PYTHON` | `(3, 11)` | stipulated | fixed by pyproject.toml's requires-python; tests/test_cli.py asserts both bounds against the specifier | pyproject.toml, requires-python | — | `src/patchworks/cli.py:69` |
-| `N_PUCKS` | `3` | stipulated | fixed with the arena: the pucks are geoms in arena.xml, so the count is the world's rather than a parameter | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py:52` |
-| `N_ZONES` | `3` | stipulated | fixed with the arena, and with ZONE_XY, which names each zone's place | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py:56` |
-| `PATCH_PX` | `4` | stipulated | free, and the number the tiling is actually about: 4x4 px puts a puck across two to four patch cells, which is the patchwork thesis exercised at the seam; 8x8 was rejected because a puck would fit inside one patch. Never varied in any run | docs/spec/06-graph-topology.md, Tiling granularity | — | `src/patchworks/sandbox/env.py:77` |
-| `RENDER_CHANNELS` | `3` | stipulated | not free: MuJoCo renders RGB, so the world sets it | docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/sandbox/env.py:82` |
-| `ZONE_RADIUS` | `0.075` | stipulated | fixed with the arena's zone geoms | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py:135` |
-| `ZONE_XY` | `np.array([[0.0, 0.3], [-0.26, -0.15], [0.26, -0.15]])` | stipulated | fixed with the arena's zone geoms | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py:131` |
-| `CHECK_TICKS` | `300` | chosen | bounded by a human's patience: 300 at 50 Hz is six seconds of world and about four of wall clock end to end | here | — | `src/patchworks/cli.py:104` |
-| `FRAME_SKIP` | `10` | chosen | 500 Hz physics is the arena's; this divides it, and moving it moves CONTROL_HZ with it | here | — | `src/patchworks/sandbox/env.py:64` |
-| `FRICTION_FIELD_AMP` | `(0.15, 0.1)` | chosen | unknown; sums to the +/- 25% about nominal the field is specified at | here | — | `src/patchworks/sandbox/env.py:154` |
-| `FRICTION_FIELD_PHASE` | `0.7` | chosen | unknown | here | — | `src/patchworks/sandbox/env.py:162` |
-| `FRICTION_FIELD_WAVELENGTH` | `(0.31, 0.37, 0.53)` | chosen | unknown; three incommensurate lengths, so the field does not repeat inside the arena | here | — | `src/patchworks/sandbox/env.py:158` |
-| `HELDOUT_PAIRS` | `frozenset({(0, 2), (2, 0)})` | chosen | unknown; the two axes are deliberately kept separate, so widening one is not widening the other | here | — | `src/patchworks/sandbox/env.py:111` |
-| `HELDOUT_SECTOR` | `(np.deg2rad(30.0), np.deg2rad(75.0))` | chosen | unknown | here | — | `src/patchworks/sandbox/env.py:115` |
-| `HELDOUT_SECTOR_MIN_R` | `0.22` | chosen | unknown | here | — | `src/patchworks/sandbox/env.py:119` |
-| `PLACEMENT_ATTEMPTS` | `64` | chosen | a give-up bound rather than a physical quantity | here | — | `src/patchworks/sandbox/env.py:102` |
+| `CONTROL_HZ` | `50.0` | derived | not free: #149's contraction reading rests on the tick being 1/50 s of world | #149 | PHYSICS_HZ, FRAME_SKIP | `src/patchworks/sandbox/env.py` |
+| `DEPENDENCIES` | `(('torch', 'torch==2.2.2'), ('mujoco', 'mujoco==3.10.0'), ('gymnasium', 'gymnasium>=1.0,<2'), ('numpy', 'numpy<2'))` | derived | none independently: tests/test_cli.py holds this table against the pins, so it reddens rather than drifts | pyproject.toml, dependencies | pyproject.toml, project.dependencies | `src/patchworks/cli.py` |
+| `DomeSpec.patch_stalk` | `48` | derived | not free: it is the raw size of one patch of the render, so the world sets it. Varied only in the suite's construction tests, in lockstep with a patch side that was never rendered | docs/spec/06-graph-topology.md, Dimensions | PATCH_PX, RENDER_CHANNELS | `src/patchworks/graph.py` |
+| `IMAGE_SIZE` | `64` | derived | not free once those two are set: it is their product. Never varied in a run; the suite renders small worlds against small domes, and the pair moves together there too | docs/spec/06-graph-topology.md, Dimensions | DomeSpec.patch_grid, PATCH_PX | `src/patchworks/sandbox/env.py` |
+| `SPAWN_R` | `(0.15, 0.36)` | derived | bounded by the arena: an annulus that clears both | src/patchworks/sandbox/arena.xml | the arena's pedestal radius 0.08 and ring wall 0.52 | `src/patchworks/sandbox/env.py` |
+| `BELOW_PYTHON` | `(3, 13)` | stipulated | fixed by pyproject.toml's requires-python; tests/test_cli.py asserts both bounds against the specifier | pyproject.toml, requires-python | — | `src/patchworks/cli.py` |
+| `CONTAINER_MARKERS` | `(Path('/.dockerenv'), Path('/run/.containerenv'))` | stipulated | none: the paths are Docker's and podman's, not this project's | docs/adr/0012-a-container-is-the-supported-execution-target.md | — | `src/patchworks/cli.py` |
+| `DomeSpec.patch_grid` | `16` | stipulated | free by construction, and the only field with a downstream number held to it: IMAGE_SIZE is patch_grid x PATCH_PX. 8x8 patches were rejected on the argument (a puck would fit inside one patch) rather than by a run, and no run has been made at any value but 16 -- the suite builds domes at 4 and 8 to exercise construction, which learns nothing | docs/spec/06-graph-topology.md, Tiling granularity | — | `src/patchworks/graph.py` |
+| `MINIMUM_PYTHON` | `(3, 11)` | stipulated | fixed by pyproject.toml's requires-python; tests/test_cli.py asserts both bounds against the specifier | pyproject.toml, requires-python | — | `src/patchworks/cli.py` |
+| `N_PUCKS` | `3` | stipulated | fixed with the arena: the pucks are geoms in arena.xml, so the count is the world's rather than a parameter | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py` |
+| `N_ZONES` | `3` | stipulated | fixed with the arena, and with ZONE_XY, which names each zone's place | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py` |
+| `PATCH_PX` | `4` | stipulated | free, and the number the tiling is actually about: 4x4 px puts a puck across two to four patch cells, which is the patchwork thesis exercised at the seam; 8x8 was rejected because a puck would fit inside one patch. Never varied in any run | docs/spec/06-graph-topology.md, Tiling granularity | — | `src/patchworks/sandbox/env.py` |
+| `PHYSICS_HZ` | `500.0` | stipulated | fixed by the arena: `<option timestep="0.002">`, which is 1/500 s | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py` |
+| `RENDER_CHANNELS` | `3` | stipulated | not free: MuJoCo renders RGB, so the world sets it | docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/sandbox/env.py` |
+| `ZONE_RADIUS` | `0.075` | stipulated | fixed with the arena's zone geoms | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py` |
+| `ZONE_XY` | `np.array([[0.0, 0.3], [-0.26, -0.15], [0.26, -0.15]])` | stipulated | fixed with the arena's zone geoms | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py` |
+| `CHECK_TICKS` | `300` | chosen | bounded by a human's patience: 300 at 50 Hz is six seconds of world and about four of wall clock end to end | here | — | `src/patchworks/cli.py` |
+| `FRAME_SKIP` | `10` | chosen | the arena's 500 Hz divided; moving it moves CONTROL_HZ with it | here | — | `src/patchworks/sandbox/env.py` |
+| `FRICTION_FIELD_AMP` | `(0.15, 0.1)` | chosen | unknown; sums to the +/- 25% about nominal the field is specified at | here | — | `src/patchworks/sandbox/env.py` |
+| `FRICTION_FIELD_PHASE` | `0.7` | chosen | unknown | here | — | `src/patchworks/sandbox/env.py` |
+| `FRICTION_FIELD_WAVELENGTH` | `(0.31, 0.37, 0.53)` | chosen | unknown; three incommensurate lengths, so the field does not repeat inside the arena | here | — | `src/patchworks/sandbox/env.py` |
+| `HELDOUT_PAIRS` | `frozenset({(0, 2), (2, 0)})` | chosen | unknown; the two axes are deliberately kept separate, so widening one is not widening the other | here | — | `src/patchworks/sandbox/env.py` |
+| `HELDOUT_SECTOR` | `(np.deg2rad(30.0), np.deg2rad(75.0))` | chosen | unknown | here | — | `src/patchworks/sandbox/env.py` |
+| `HELDOUT_SECTOR_MIN_R` | `0.22` | chosen | unknown | here | — | `src/patchworks/sandbox/env.py` |
+| `PLACEMENT_ATTEMPTS` | `64` | chosen | a give-up bound rather than a physical quantity | here | — | `src/patchworks/sandbox/env.py` |
 
 ## Marked `@register none`
 
