@@ -121,6 +121,41 @@ structural rather than an oversight.
 Conservatism — banding at some safe multiple and never looking — was declined on #178's evidence:
 these quantities wander with no trend, so there is no worst case to be conservative against.
 
+*Amended by [#205](https://github.com/NGL321/patchworks/issues/205), which was handed the question
+this decision left open and closed it: **the bias stays unpinned permanently, and no mechanism is
+owed.*** Three things carry that, and the third is the only new object.
+
+**The breach cannot be failed.** Decision 5 makes `reconciliation_reaches` an attribution carrying no
+threshold. A quantity with nothing to pass is not evidence that something must be built; the verdict
+is measured dwell, and what counts as failing it belongs to
+[#208](https://github.com/NGL321/patchworks/issues/208). #205's answer is the same under either bar
+that ticket is weighing — 3 of 150 cells fail `dwell > τ` on #202's arrays, 21 fail `dwell ≥ 2.6 τ` —
+so #208 rules without reopening this.
+
+**There is no population to aim a mechanism at.** #202 reported the 15 cells at `dwell ≤ 2` as
+"largely" the cells still breaching at 90,000 ticks. #205 read the arrays: 11 of those 15 are, which
+is **73.3% against a base rate of 72.7%** — the overlap is what independence predicts and the sentence
+carries no information. Rank correlation between breach fraction and dwell is −0.25. With #195's four
+runs at one seed giving four different binding cells, the low-dwell set is a per-run draw rather than
+a standing population.
+
+**A third candidate exists, and it is a bound on the fold's *velocity* rather than its position.**
+`‖Δb‖` per tick — how far the arrangement slides — *is* a pure parameter-space quantity a projection
+reaches, needs no new state and no new time constant, and is dimensionally the right shape for a
+**dwell** guarantee (`dwell ≳ margin / fold speed`) where a margin floor is not. It escapes this
+decision's shape argument because it never touches the (bias, operating point) pair.
+`DEFAULT_LEARNING_RATE`'s docstring already asserts the property it would enforce, unmeasured — *"1e-2
+is small enough that a step is a drift in the body's operating point rather than a jump between
+activation regions"*.
+
+**It is named and not adopted.** Nothing yet decomposes a region crossing into the arrangement sliding
+under the operating point and the operating point moving under its own dynamics, and if crossings are
+point-driven no bias mechanism can help at all. Adopting a velocity bound before that decomposition
+would pick a constant against no measurement, which is the ground decision 5 declined a tolerance on.
+The decomposition sits in [#127](https://github.com/NGL321/patchworks/issues/127)'s *Not yet
+specified* rather than in a ticket, and when it is run its result updates that entry rather than
+adopting a mechanism.
+
 ### 3 — The depth claim is struck, and not replaced
 
 `02`, ADR-0007's restatement of it, and `FoldMarginCheck`'s docstring all assert the bound binds
@@ -202,10 +237,20 @@ premise: a cell breaching at tick 95,000 has had 95,000 ticks to accumulate slow
   [`08-the-acceptance-demo.md`](../spec/08-the-acceptance-demo.md)'s pre-registration discipline: the
   density plateaus, so a ramp is aimed at a transient the run says does not exist, and would end with
   the breach still standing.
-- **A permanently lower `γ`** loses its decline. It is no longer paying reconciliation speed forever
-  for safety in a stakeless window; it is a candidate mechanism against a standing failure, which is
-  [#205](https://github.com/NGL321/patchworks/issues/205)'s question rather than this ADR's.
+- **A permanently lower `γ`** loses its decline here. It is no longer paying reconciliation speed
+  forever for safety in a stakeless window; it is a candidate mechanism against a standing failure,
+  which is [#205](https://github.com/NGL321/patchworks/issues/205)'s question rather than this ADR's.
   **Withdrawn as a decline, not renewed** — nothing here rules it out, and nothing here adopts it.
+
+  *Amended by [#205](https://github.com/NGL321/patchworks/issues/205): **declined permanently**, and
+  on arithmetic rather than on a premise about stakes.* A lower `γ` scales the **numerator**, and the
+  quantity that fails is the **divisor's tail**, which reaches zero: on #202's per-tick arrays 8 ticks
+  carry a cell whose margin is exactly 0, and the finite worst-cell overshoot reaches 811,600x. **No
+  positive `γ` makes a clean run**, because scaling the displacement cannot clear a divisor that
+  visits zero. Nor is there a useful partial buy: the median tick's worst cell is **35x** over, so
+  `γ/33` still leaves **51%** of ticks breaching and `γ/1000` leaves 3% — reconciliation at that gain
+  is not reconciliation, and ADR-0002's one step is already not a solve. The decline no longer rests
+  on the stakeless window #202 killed, so it is closed rather than handed on again.
 
 `DEFAULT_GAMMA` accordingly leaves the constant registers' `provisional #85` — the debt was waiting on
 a construction-time cap that this decision says cannot exist — and is `stipulated` on this ADR. Its
@@ -244,11 +289,16 @@ reading a run — at any tick, not only in its first thousands — should expect
 to be true on cells that are perfectly healthy. The run had no clean tick in 100,000 and 131 of 150
 cells clearing ADR-0005's precondition at the horizon, and both of those are the normal picture.
 
-**The per-cell bias is left unpinned, deliberately.** It is the one trainable quantity in the chart's
-round trip with nothing bounding it, and decision 2 rules the obvious mechanism unavailable. There is
-no second candidate, and nothing to choose between until the live read reports whether the
-arrangement's drift ever actually costs a cell its region. Recorded in
-[#127](https://github.com/NGL321/patchworks/issues/127)'s *Not yet specified*, not here.
+**The per-cell bias is left unpinned, and since
+[#205](https://github.com/NGL321/patchworks/issues/205) that is permanent rather than pending.** It is
+the one trainable quantity in the chart's round trip with nothing bounding it, and decision 2 rules
+the obvious mechanism unavailable. This ADR first left the question open until the live read reported
+whether the arrangement's drift ever actually costs a cell its region. It does — 3.93x — and #205
+ruled that this settles the mechanism question in the negative rather than opening it: the reading is
+an attribution with nothing to fail, the low-dwell cells are not a population, and every candidate
+aimed at the margin needs a constant no measurement supplies. **Anyone arriving with a new proposal
+to bound the bias should read decision 2's amendment first** — the position is closed and the
+velocity is fog.
 
 ## Alternatives considered
 
@@ -264,9 +314,22 @@ arrangement's drift ever actually costs a cell its region. Recorded in
 - **Ramping `γ` through the transient.** Declined under decision 5, on the ground that #202 measured
   no transient to ramp through.
 
-- **A permanently lower `γ`.** Not declined here. Decision 5 withdrew the decline this ADR first
-  entered, because the premise behind it — a stakeless window — did not survive #202. It is
-  [#205](https://github.com/NGL321/patchworks/issues/205)'s to weigh as a mechanism.
+- **A permanently lower `γ`.** Declined, on the second pass rather than the first. Decision 5
+  withdrew the decline this ADR first entered, because the premise behind it — a stakeless window —
+  did not survive #202, and handed the candidate to
+  [#205](https://github.com/NGL321/patchworks/issues/205). #205 weighed it and closed it on the
+  arithmetic: the failing quantity is the margin's tail, which reaches zero, so no positive `γ`
+  buys a clean run and the partial buys cost reconciliation speed forever. See decision 5.
+
+- **A bound on the fold's velocity — `‖Δb‖` per tick — rather than on its position.** The only
+  candidate that survives decision 2's shape argument, since it constrains a parameter's *motion*
+  and never touches the (bias, operating point) pair. **Named, not adopted**, by
+  [#205](https://github.com/NGL321/patchworks/issues/205): nothing yet says whether a region crossing
+  is the arrangement sliding under the operating point or the operating point moving under its own
+  dynamics, and a velocity bound chosen ahead of that decomposition is a constant picked against no
+  measurement. The decomposition is fog on
+  [#127](https://github.com/NGL321/patchworks/issues/127), and its result updates that entry rather
+  than adopting a mechanism.
 
 - **A tolerance in place of the burn-in** — *no more than `k` cells breach after tick `T`*. Declined
   under decision 5: `k` would be read off one run's plateau, and the plateau's height is one draw.
