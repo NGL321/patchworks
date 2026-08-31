@@ -81,7 +81,8 @@ _Avoid_: error (bare), residual, disagreement, loss
 The part of an edge's disagreement that learning cannot remove. Umbrella over three kinds, static,
 lag, and settling. Nothing in the architecture represents it; the learning rule is constrained never
 to target zero residual. What is left over is model error, which is reducible and needs no name of
-its own — its role is to be what the floors are distinguished from.
+its own — its role is to be what the floors are distinguished from. It is **not** the quantity
+`02-tick-semantics.md`'s bound divides by — see *Standing offset*.
 _Avoid_: irreducible error, noise floor, bias, residual (bare)
 
 **Static floor**:
@@ -105,6 +106,16 @@ reconciliation (`γ`); `decode` still emits every tick, so it degrades a neighbo
 blocks it. Confined to mid-depth predicting cells — boundary cells run no body and are exempt by
 construction, deep cells are insulated by `H⁰`.
 _Avoid_: instability, confidence, null predictor (describes the cell's state, not the floor itself)
+
+**Standing offset**:
+The displacement reconciliation leaves on the reconciled component of a node stalk each tick — the
+gain multiplied by the disagreement the cell carries. What `02-tick-semantics.md`'s bound weighs
+against a cell's fold margin, because a displacement larger than the margin carries the cell into an
+activation region with a different regional spectrum. The disagreement floor is one contributor and,
+at construction, not the dominant one: model error dominates it, and learning removes model error —
+so the offset falls through a run rather than standing at a level. Named for what it is, a shift in
+the operating point, rather than for its cause.
+_Avoid_: floor, disagreement floor, the floor (as in `γ × floor <` fold margin), reconciliation error
 
 **Compression**:
 The lossy, nonlinear, cell-private map from node stalk into chart, performed inside `encode`.
