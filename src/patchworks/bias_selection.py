@@ -133,6 +133,22 @@ DEFAULT_BURN_IN = 16
 #: the benchmark sweeps this rather than trusting it.
 DEFAULT_DRIVE_CORRELATION = 8.0
 
+#: @type stipulated
+#: @flexibility free as a convention, but nothing the rig reads is comparable across two values of it, which is what fixing it buys
+#: @warrant here
+#: Standard deviation of the draws the driven trajectory's Ornstein-Uhlenbeck
+#: walk is built from. The innovation scaling is `sqrt(1 - retention^2)`, so the
+#: **stationary** std of the walk *is* this number -- and `driven_trajectory`'s
+#: docstring already claims "unit stationary variance", which `1.0` is precisely
+#: what makes true. Stipulated rather than chosen: it is the selection rig's
+#: amplitude convention, not a number argued locally.
+#: **Not `agent.DRIVE_ASSERTION`**, which wears the same 1.0. That is the
+#: drive's asserted scalar, fixed by #137 on ADR-0009's warrant; this is the
+#: amplitude of a synthetic node stalk in the selection rig, about which
+#: ADR-0009 says nothing. The shared number is the trap, so the two are named
+#: apart and the collision is written down here.
+DEFAULT_DRIVE_SCALE = 1.0
+
 #: @type chosen
 #: @flexibility unknown; #42's rig drew 20,000 at a frozen operating point, and each draw here costs a whole trajectory
 #: @warrant here
@@ -438,7 +454,7 @@ def driven_trajectory(
     ticks: int = DEFAULT_TICKS,
     burn_in: int = DEFAULT_BURN_IN,
     drive_correlation: float = DEFAULT_DRIVE_CORRELATION,
-    drive_scale: float = 1.0,
+    drive_scale: float = DEFAULT_DRIVE_SCALE,
     generator: torch.Generator | None = None,
 ) -> torch.Tensor:
     """A plausible node stalk sequence, `[burn_in + ticks, candidates, n]`.
@@ -496,7 +512,7 @@ def measure(
     ticks: int = DEFAULT_TICKS,
     burn_in: int = DEFAULT_BURN_IN,
     drive_correlation: float = DEFAULT_DRIVE_CORRELATION,
-    drive_scale: float = 1.0,
+    drive_scale: float = DEFAULT_DRIVE_SCALE,
     operator_scale: float = DEFAULT_OPERATOR_SCALE,
     generator: torch.Generator | None = None,
 ) -> Measurement:
