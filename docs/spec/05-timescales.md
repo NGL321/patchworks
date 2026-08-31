@@ -61,7 +61,7 @@ strength** ([#29](https://github.com/NGL321/patchworks/issues/29)).
 
 The route is closed here anyway, on ground already in the record: **the coupling gain is `γ`, and `γ`
 is spoken for.** [`02-tick-semantics.md`](./02-tick-semantics.md) fixes it as `gain_v = γ / Σ_e m_e`
-under the bound `γ × floor <` fold margin,
+under the bound `gain_v × offset <` fold margin,
 [ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md) records that it is
 explicitly *not* a timescale knob, and *The precondition* below makes that same margin what gives
 this section's own mechanism a well-defined region to run in. Buying depth-slowness by raising `γ`
@@ -157,17 +157,29 @@ cell still decays at some average rate, but it does so by *averaging over unrela
 is a different mechanism from the one specified here and is not what the biases were supposed to
 buy.
 
-**The fold margin is the construction-time proxy for dwell.** `02-tick-semantics.md` already checks
-`γ × floor <` fold margin per cell, derived there from the disagreement floor shifting the operating
-point. That check is doing a second job, and this section is the one that needs it: **the fold margin
-is what makes "the cell's region" a well-defined object at all.** The relationship is the same one
-`Σ_e m_e` has to the local Laplacian block's spectral radius in `02` — a cheap static quantity
-standing in for a dynamic one, checkable before anything runs. Dwell itself is measured, on a driven
-trajectory (*What this requires elsewhere*, below).
+**The fold margin is the proxy for dwell.** `02-tick-semantics.md` checks
+`gain_v × offset <` fold margin per cell, derived there from the standing offset shifting the
+operating point. That check is doing a second job, and this section is the one that needs it: **the
+fold margin is what makes "the cell's region" a well-defined object at all.** The relationship is the
+same one `Σ_e m_e` has to the local Laplacian block's spectral radius in `02` — a cheap static
+quantity standing in for a dynamic one.
 
-The bound binds hardest at the apex, since `gain_v = γ / Σ_e m_e` and `Σ_e m_e` falls with depth
-(`06-graph-topology.md`) — exactly where the slow cells are meant to live. Failing it there is not
-only a reconciliation-stability problem; it is the timescale claim itself failing.
+**Since [#160](https://github.com/NGL321/patchworks/issues/160) the proxy nominates and the
+measurement decides** ([ADR-0019](../adr/0019-construction-nominates-the-run-decides.md)). Dwell was
+always specified as measured on a driven trajectory (*What this requires elsewhere*, below); what
+changed is that it is measured **on the run** rather than only on the construction sweep, and that
+this section's precondition is sourced onto that measurement rather than onto the proxy. The proxy
+moved for a reason the record had not noticed: the per-cell biases the prediction rule trains *are*
+the positions of `encode`'s folds, so the arrangement slides under the operating point for the length
+of the run. The live margin-against-offset comparison rides alongside as the **attribution** — dwell
+says a cell left its region, and only the comparison says whether reconciliation is what moved it.
+
+**Where the bound binds hardest is not claimed.** This section used to say the apex, since
+`gain_v = γ / Σ_e m_e` and `Σ_e m_e` falls with depth — exactly where the slow cells are meant to
+live. [#190](https://github.com/NGL321/patchworks/issues/190) made `gain_v` uniform across the
+interior and #160 struck the claim without replacing it. What survives is the consequence, which
+never depended on *where*: failing the bound is not only a reconciliation-stability problem; it is the
+timescale claim itself failing.
 
 **Body width sets the fold margin, and that trade is global rather than per-cell.** Hanin & Rolnick
 give mean distance to the nearest region boundary as scaling like `1/#neurons`, so a **wider body has

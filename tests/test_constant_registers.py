@@ -100,17 +100,33 @@ class TestAProvisionalIsWellFormed:
             assert entry.type == "", entry.source
 
     def test_gamma_is_the_one_this_mechanism_was_built_for(self, surveys):
-        """`DEFAULT_GAMMA` is provisional on #85, and #85 is closed.
+        """`DEFAULT_GAMMA`'s debt is settled, and settled is not dropped.
 
         Pinned by name rather than left to the general rules, because the
         mechanism's whole warrant is that this exact entry existed for months
-        with a comment saying the opposite. If a later change makes `γ` a
-        genuine `derived` entry -- `min(spec bound, fold-margin cap)`, which is
-        #159's successors' work and explicitly not this ticket's -- this test is
-        what says the debt was actually settled rather than quietly dropped.
+        with a comment saying the opposite. It was `provisional #85`, waiting on
+        a fold-margin cap; #160 closed that debt and **not** in the shape this
+        test was written expecting. There is no `derived` entry to be made:
+        `min(spec bound, fold-margin cap)` needs a cap, and #160 ruled the
+        margin bounds the *standing offset* rather than `γ`, with both sides of
+        it moving through a run. So `γ` sits at the ceiling `02` permits,
+        `stipulated` on the ADR that says why nothing below it is derivable
+        (`docs/adr/0019-construction-nominates-the-run-decides.md`).
+
+        What this test now holds is the settlement: no provisional, a type, and
+        a warrant that is the ADR rather than the section that used to promise
+        the cap.
         """
-        gamma = [e for e in registers.provisionals(surveys) if e.name == "DEFAULT_GAMMA"]
-        assert [e.provisional for e in gamma] == ["85"]
+        assert not [e for e in registers.provisionals(surveys) if e.name == "DEFAULT_GAMMA"]
+        gamma = [
+            e
+            for survey in surveys.values()
+            for e in survey.entries
+            if e.name == "DEFAULT_GAMMA"
+        ]
+        assert len(gamma) == 1
+        assert gamma[0].type == "stipulated"
+        assert "0019" in gamma[0].warrant
 
 
 class TestTheRegistersAreAProjectionOfTheCode:

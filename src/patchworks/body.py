@@ -297,6 +297,19 @@ class CellBody(torch.nn.Module):
             "decode_weight",
             self._draw((shape.n, shape.k), weight_variance, generator, device, dtype),
         )
+        # The denominators of :meth:`fold_margin`, computed once and never
+        # again: `encode`'s hyperplane normals are the rows of a **frozen**
+        # weight shared by every cell in the graph, so the whole per-cell part
+        # of the margin is the pre-activation numerator. This is what makes the
+        # live read affordable (ADR-0019) — a per-cell quantity whose expensive
+        # half is one graph-wide constant.
+        self.register_buffer("fold_gradient_norms", self._gradient_norms(), persistent=False)
+        # A pretrained body is a documented swap-in, and a cached constant is
+        # exactly the thing a swap-in leaves stale. Non-persistent so it is
+        # never *loaded*, and recomputed after every load so it is never wrong:
+        # the trap this would otherwise set is a margin read off weights the
+        # body no longer has, which reports a perfectly plausible number.
+        self.register_load_state_dict_post_hook(CellBody._refresh_gradient_norms)
 
     @staticmethod
     def _draw(
@@ -349,6 +362,37 @@ class CellBody(torch.nn.Module):
             + biases.encode_output_bias
         )
         return pre_activation, output
+
+    def _gradient_norms(self) -> torch.Tensor:
+        return torch.linalg.vector_norm(self.encode_hidden_weight, dim=-1).clamp(min=1e-12)
+
+    @staticmethod
+    def _refresh_gradient_norms(module: "CellBody", incompatible_keys: object) -> None:
+        module.fold_gradient_norms = module._gradient_norms()
+
+    def fold_margin(self, pre_activation: torch.Tensor) -> torch.Tensor:
+        """`min_i |z_i| / ‖∇z_i‖` over `encode`'s folds, `[cells]`.
+
+        Hanin & Rolnick's distance from the operating point to the nearest
+        boundary of the activation region it sits in, measured in `encode`'s own
+        input space `R^k x R^n`. With one hidden layer the gradient of the `i`th
+        pre-activation is that row of the hidden weight, so the row norms are the
+        whole of the denominator — and they are frozen and shared, hence
+        :attr:`fold_gradient_norms`.
+
+        **One definition, two readers.** The construction sweep
+        (:mod:`patchworks.bias_selection`) and the live read
+        (:class:`patchworks.tick.FoldRead`) are the same measurement at two
+        moments, which is the whole of ADR-0019's *construction nominates, the
+        run decides*: a second implementation would let the two drift and the
+        comparison between them is the point.
+
+        Takes the pre-activation :meth:`encode_parts` already returned rather
+        than recomputing it, so a caller inside the forward path pays for an
+        `abs`, a divide and a `min` and nothing else.
+        """
+        self._check(pre_activation, self.shape.encode_width, "pre_activation")
+        return (pre_activation.abs() / self.fold_gradient_norms).min(dim=-1).values
 
     def encode(
         self,

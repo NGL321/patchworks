@@ -882,3 +882,105 @@ class TestTheGammaASheafIsBuiltWith:
         with pytest.raises(ValueError) as at_the_gain:
             reconciliation_gain(dome, gamma=None)
         assert str(before_the_draws.value) == str(at_the_gain.value)
+
+
+class TestTheLiveFoldRead:
+    """ADR-0019: construction nominates, the run decides (#160, #197).
+
+    What these hold down is that the read is *the same measurement* the
+    construction sweep makes, taken off the forward path that actually runs,
+    and that taking it changed nothing about the tick.
+    """
+
+    def test_the_split_forward_path_is_the_same_arithmetic(self, dome):
+        # The inference phase calls `encode_parts` and `advance` separately, to
+        # get at the pre-activation between them. `body.forward` is those two
+        # calls, so the trajectory must be bit-identical to the one before the
+        # read existed -- a diagnostic that moved the run would be measuring
+        # itself.
+        sheaf = Sheaf(dome, generator=torch.Generator().manual_seed(0))
+        stir(sheaf)
+        charts, evidence = sheaf.charts.clone(), sheaf.evidence()
+        with torch.no_grad():
+            expected = sheaf.body(charts, evidence, sheaf.biases, sheaf.operators)
+        sheaf.inference_phase()
+        assert torch.equal(sheaf.charts, expected[0])
+        assert torch.equal(sheaf.prediction, expected[1])
+
+    def test_the_margin_is_read_off_the_path_that_ran(self, sheaf):
+        stir(sheaf)
+        charts, evidence = sheaf.charts.clone(), sheaf.evidence()
+        sheaf.inference_phase()
+        with torch.no_grad():
+            pre, _ = sheaf.body.encode_parts(charts, evidence, sheaf.biases)
+        assert torch.equal(sheaf.fold_read.margin, sheaf.body.fold_margin(pre))
+
+    def test_the_margin_is_the_construction_sweep_s_measurement(self, sheaf):
+        # One definition, two readers: `bias_selection` reads the margin through
+        # this same method, which is what makes the nomination and the verdict
+        # comparable numbers rather than two quantities that resemble each other.
+        stir(sheaf)
+        sheaf.tick()
+        with torch.no_grad():
+            pre, _ = sheaf.body.encode_parts(
+                sheaf.prior_charts, sheaf.prior_evidence, sheaf.biases
+            )
+        rows = torch.linalg.vector_norm(sheaf.body.encode_hidden_weight, dim=-1)
+        by_hand = (pre.abs() / rows).min(dim=-1).values
+        assert torch.allclose(sheaf.fold_read.margin, by_hand)
+
+    def test_the_offset_is_the_norm_over_the_node_stalk_alone(self, sheaf):
+        stir(sheaf)
+        sheaf.inference_phase()
+        left = sheaf.stalks.clone()
+        sheaf.message_passing_phase()
+        displacement = (left - sheaf.stalks)[sheaf.layout.predicting_positions]
+        assert torch.allclose(
+            sheaf.fold_read.offset, torch.linalg.vector_norm(displacement, dim=-1)
+        )
+        # `n` coordinates, not `encode`'s whole `k + n` input: reconciliation
+        # reaches the node stalk and never the chart. The comparison against a
+        # perpendicular distance is conservative in that respect.
+        assert displacement.shape[-1] == sheaf.dome.shape.n
+
+    def test_boundary_cells_are_absent_because_they_have_no_body(self, sheaf):
+        stir(sheaf)
+        sheaf.tick()
+        predicting = len(sheaf.dome.predicting)
+        assert sheaf.fold_read.margin.shape == (predicting,)
+        assert sheaf.fold_read.offset.shape == (predicting,)
+        assert predicting < len(sheaf.dome.cells)
+
+    def test_dwell_counts_regions_and_not_ticks(self, sheaf):
+        stir(sheaf)
+        for _ in range(6):
+            sheaf.tick()
+        read = sheaf.fold_read
+        assert read.ticks == 6
+        assert torch.equal(read.dwell, read.ticks / (1.0 + read.crossings))
+        # A cell that never crossed has dwelt the whole run.
+        never = read.crossings == 0
+        assert torch.all(read.dwell[never] == float(read.ticks))
+
+    def test_the_attribution_is_the_offset_against_the_margin(self, sheaf):
+        stir(sheaf)
+        sheaf.tick()
+        read = sheaf.fold_read
+        assert torch.equal(read.reconciliation_reaches, read.offset >= read.margin)
+
+    def test_the_read_carries_no_tape(self, sheaf):
+        stir(sheaf)
+        sheaf.tick()
+        assert sheaf.fold_read.margin.grad_fn is None
+        assert sheaf.fold_read.offset.grad_fn is None
+
+    def test_the_state_round_trips(self, sheaf):
+        stir(sheaf)
+        for _ in range(4):
+            sheaf.tick()
+        saved = sheaf.fold_read.state()
+        sheaf.tick()
+        sheaf.fold_read.load(saved)
+        assert sheaf.fold_read.ticks == 4
+        for name in ("margin", "offset", "crossings", "region"):
+            assert torch.equal(sheaf.fold_read.state()[name], saved[name]), name

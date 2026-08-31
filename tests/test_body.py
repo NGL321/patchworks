@@ -39,6 +39,16 @@ def body(shape):
     return CellBody(shape, generator=torch.Generator().manual_seed(0))
 
 
+# The body's buffers are not all weights: `fold_gradient_norms` is a derived
+# constant (#197), non-persistent and recomputed after any load. The three
+# construction tests below are about the *weights*, so they iterate these.
+WEIGHTS = ("encode_hidden_weight", "encode_output_weight", "decode_weight")
+
+
+def weights(body):
+    return [(name, getattr(body, name)) for name in WEIGHTS]
+
+
 @pytest.fixture
 def biases(shape):
     return CellBiases(shape, CELLS, generator=torch.Generator().manual_seed(1))
@@ -78,12 +88,28 @@ class TestWidths:
         assert body.decode_weight.shape == (N, K)
 
     def test_the_frozen_half_is_encode_and_decode_and_nothing_else(self, body):
-        weights = [name for name, _ in body.named_buffers()]
-        assert sorted(weights) == [
+        held = [name for name, _ in body.named_buffers()]
+        assert sorted(held) == [
             "decode_weight",
             "encode_hidden_weight",
             "encode_output_weight",
+            # Not a fourth weight: the row norms of the first, cached because
+            # they are the denominator of every fold-margin read and the
+            # numerator is the only per-cell half (#197, ADR-0019).
+            "fold_gradient_norms",
         ]
+
+    def test_the_derived_constant_is_not_a_second_declaration(self, body, shape):
+        # The failure #185 exists to kill: two places holding one quantity with
+        # nothing between them. Non-persistent, so it is never loaded, and the
+        # load hook recomputes it, so a swapped-in body cannot leave it stale.
+        assert "fold_gradient_norms" not in body.state_dict()
+        other = CellBody(shape, generator=torch.Generator().manual_seed(11))
+        body.load_state_dict(other.state_dict())
+        assert torch.equal(
+            body.fold_gradient_norms,
+            torch.linalg.vector_norm(other.encode_hidden_weight, dim=-1),
+        )
 
 
 class TestShapeInvariant:
@@ -100,7 +126,7 @@ class TestShapeInvariant:
 
 class TestTheFreeze:
     def test_body_weights_require_no_gradient(self, body):
-        for name, weight in body.named_buffers():
+        for name, weight in weights(body):
             assert weight.requires_grad is False, name
 
     def test_the_body_exposes_no_parameters_at_all(self, body):
@@ -161,14 +187,14 @@ class TestTheFreeze:
     def test_the_body_is_shared_across_cells(self, body):
         # One set of weights for the whole population: nothing about the body
         # carries a cell index.
-        for _, weight in body.named_buffers():
+        for _, weight in weights(body):
             assert weight.ndim == 2
             assert CELLS not in weight.shape
 
 
 class TestInitialisation:
     def test_the_draw_is_non_degenerate(self, body):
-        for name, weight in body.named_buffers():
+        for name, weight in weights(body):
             rank = torch.linalg.matrix_rank(weight)
             assert rank == min(weight.shape), name
 

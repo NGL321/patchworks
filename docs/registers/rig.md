@@ -39,15 +39,15 @@ else. Rows are ordered by type, least flexible first.
 
 | name | value | type | flexibility | warrant | depends_on | source |
 |---|---|---|---|---|---|---|
-| `DEFAULT_SAFETY_FACTOR` | `2.6` | measured | not a knob: 2.6 is #27's measured one-tick non-normal amplification | #27 | — | `src/patchworks/bias_selection.py:158` |
-| `MAP_NORM_BOUND` | `2.0` | derived | none independently: it is the spec's rho, and moving it alone makes the two disagree | docs/adr/0010-restriction-map-scale-is-gauge-fixed.md | patchworks.restriction.GAUGE_RHO | `src/patchworks/bias_selection.py:168` |
-| `TAU_QUANTILES` | `(0.05, 0.25, 0.5, 0.75, 0.95)` | stipulated | none as a choice of statistic: tau = -1/ln rho diverges as rho -> 1, so no moment is admissible | docs/spec/05-timescales.md | — | `src/patchworks/bias_selection.py:139` |
+| `DEFAULT_SAFETY_FACTOR` | `2.6` | measured | not a knob: 2.6 is #27's measured one-tick non-normal amplification | #27 | — | `src/patchworks/bias_selection.py:168` |
+| `MAP_NORM_BOUND` | `2.0` | derived | none independently: it is the spec's rho, and moving it alone makes the two disagree | docs/adr/0010-restriction-map-scale-is-gauge-fixed.md | patchworks.restriction.GAUGE_RHO | `src/patchworks/bias_selection.py:178` |
+| `TAU_QUANTILES` | `(0.05, 0.25, 0.5, 0.75, 0.95)` | stipulated | none as a choice of statistic: tau = -1/ln rho diverges as rho -> 1, so no moment is admissible | docs/spec/05-timescales.md | — | `src/patchworks/bias_selection.py:149` |
 | `BASELINE_SEED` | `0` | chosen | none that matters: the baseline is a generic rank, and tests/test_diagnostics.py holds two unrelated seeds to one number | here | — | `src/patchworks/diagnostics.py:176` |
-| `DEFAULT_BURN_IN` | `16` | chosen | unknown | here | — | `src/patchworks/bias_selection.py:110` |
-| `DEFAULT_DRAWS` | `4096` | chosen | unknown; #42's rig drew 20,000 at a frozen operating point, and each draw here costs a whole trajectory | here | — | `src/patchworks/bias_selection.py:131` |
-| `DEFAULT_DRIVE_CORRELATION` | `8.0` | chosen | the arm the dwell measurement is most sensitive to; benchmarks/timescale_selection.py sweeps it rather than trusting it | docs/spec/05-timescales.md | — | `src/patchworks/bias_selection.py:123` |
+| `DEFAULT_BURN_IN` | `16` | chosen | unknown | here | — | `src/patchworks/bias_selection.py:120` |
+| `DEFAULT_DRAWS` | `4096` | chosen | unknown; #42's rig drew 20,000 at a frozen operating point, and each draw here costs a whole trajectory | here | — | `src/patchworks/bias_selection.py:141` |
+| `DEFAULT_DRIVE_CORRELATION` | `8.0` | chosen | the arm the dwell measurement is most sensitive to; benchmarks/timescale_selection.py sweeps it rather than trusting it | docs/spec/05-timescales.md | — | `src/patchworks/bias_selection.py:133` |
 | `DEFAULT_EVERY` | `10` | chosen | free: the pair reading is ~3 ms on the real dome, so the number is set by how finely the fall is worth resolving rather than by cost | docs/adr/0010-restriction-map-scale-is-gauge-fixed.md | — | `src/patchworks/diagnostics.py:150` |
-| `DEFAULT_OVERLAP` | `0.5` | chosen | unknown | docs/spec/05-timescales.md, The taper's timescale gradient is a gradient in means | — | `src/patchworks/bias_selection.py:149` |
-| `DEFAULT_SCALE_STEPS` | `12` | chosen | unknown | here | — | `src/patchworks/bias_selection.py:698` |
-| `DEFAULT_TICKS` | `64` | chosen | unknown, and this register's flagship unknown: #178 found a rig tick count silently deciding a result | here | — | `src/patchworks/bias_selection.py:103` |
+| `DEFAULT_OVERLAP` | `0.5` | chosen | unknown | docs/spec/05-timescales.md, The taper's timescale gradient is a gradient in means | — | `src/patchworks/bias_selection.py:159` |
+| `DEFAULT_SCALE_STEPS` | `12` | chosen | unknown | here | — | `src/patchworks/bias_selection.py:701` |
+| `DEFAULT_TICKS` | `64` | chosen | unknown, and this register's flagship unknown: #178 found a rig tick count silently deciding a result | here | — | `src/patchworks/bias_selection.py:113` |
 | `DEFAULT_WHOLE_GRAPH_EVERY` | `100` | chosen | bounded by cost: one reading is a 3764x3764 eigendecomposition, ~16 s on the real dome | here | — | `src/patchworks/diagnostics.py:165` |

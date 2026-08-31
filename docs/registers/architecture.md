@@ -42,6 +42,7 @@ else. Rows are ordered by type, least flexible first.
 | `DEFAULT_BIAS_VARIANCE` | `0.5` | selected | the weak knob of the two: three orders of magnitude barely move the regional spectra | docs/research/027-regional-jacobian-spectra.md | — | `src/patchworks/body.py:139` |
 | `DEFAULT_SPARSITY_PRESSURE` | `0.4` | selected | measured: at 0.4 the pressure gradient is a median 0.12 of the transport term's (0.114-0.127, three seeds) on the default dome | docs/spec/07-local-learning-rule.md, Permitted global signals; tests/test_transport_rule.py | — | `src/patchworks/learning.py:491` |
 | `DEFAULT_WEIGHT_VARIANCE` | `1.2` | selected | unknown | #42's rig; docs/spec/05-timescales.md, What this requires elsewhere | — | `src/patchworks/body.py:131` |
+| `DEFAULT_GAMMA` | `1.0` | stipulated | free in (0, 1] and held at the ceiling: #160 declined both a ramp and a permanently lower value, so moving it is a decision against that ruling rather than a knob | docs/adr/0019-construction-nominates-the-run-decides.md | — | `src/patchworks/tick.py:90` |
 | `DEFAULT_OPERATOR_SCALE` | `1.0` | stipulated | superseded per body by a rule, patchworks.bias_selection.operator_scale_rule; this is the band ceiling, the rule's answer where no rig has run | docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md | — | `src/patchworks/body.py:184` |
 | `DEFAULT_RHO_K` | `2.0` | stipulated | unknown | docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md | — | `src/patchworks/body.py:159` |
 | `GAUGE_RHO` | `2.0` | stipulated | measured: 2 -> 16 buys 1.008x on the apex floor (#150) | docs/spec/01-cell-and-sheaf.md, Scale is gauge-fixed | — | `src/patchworks/restriction.py:52` |
@@ -54,7 +55,6 @@ else. Rows are ordered by type, least flexible first.
 | `INITIAL_NORM` | `1.0` | chosen | unknown | here | — | `src/patchworks/restriction.py:63` |
 | `NORM_FLOOR` | `1e-24` | chosen | unknown; 1e-12 in the norm itself, far below anything the maps or stalks carry | here | — | `src/patchworks/learning.py:465` |
 | `CHART_DIM` | `12` | provisional #132 | rung 5, the last rung: may become a range or a gradient ACROSS THE GRAPH if uniformity fails (01-cell-and-sheaf.md, Flex priority). #132's axis is across DOMAINS, which the ladder does not license | docs/research/032-dimensioning-small-predictors.md (#172); docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/body.py:120` |
-| `DEFAULT_GAMMA` | `1.0` | provisional #85 | unknown | docs/spec/02-tick-semantics.md, Reconciliation gain | — | `src/patchworks/tick.py:74` |
 
 ## Marked `@register none`
 

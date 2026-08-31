@@ -59,7 +59,10 @@ each already committed to for other reasons:
   that distribution's central tendency — a **mean rate, not a fixed rate**. The mechanism is
   unaffected: a mean rate is still a rate, and the across-cell spread is real. It holds under one
   condition, now stated in `05-timescales.md`: a cell's **region dwell** must be long against the
-  `τ` its region implies, for which the **fold margin** is the construction-time proxy.
+  `τ` its region implies. The **fold margin** was the construction-time proxy for it; since
+  [#160](https://github.com/NGL321/patchworks/issues/160) dwell is **measured on the run**
+  ([ADR-0019](./0019-construction-nominates-the-run-decides.md)), and the margin is the proxy that
+  nominates rather than the quantity that decides.
 
   *Its premise, recorded by [#49](https://github.com/NGL321/patchworks/issues/49):* all of this
   presupposes a **piecewise-linear** body. Activation regions, folds, the regional spectrum and dwell
@@ -99,9 +102,15 @@ capability depends on timescale at all — and thereby becomes an already-valida
   with `max ρ < 1` demoted to a cheap sufficient check available before training. The cost recorded
   with it: the depth↔timescale correspondence is now built rather than found, so only the
   *behavioural* claim remains falsifiable.
-- **`02-tick-semantics.md`'s `γ × floor <` fold margin bound is now a precondition of this decision,**
-  not only a reconciliation-stability check: the margin is what makes a cell's region — and therefore
-  its timescale — a well-defined object. It binds hardest at the apex, where the slow cells live.
+- **`02-tick-semantics.md`'s `gain_v × offset <` fold margin bound is now a precondition of this
+  decision,** not only a reconciliation-stability check: the margin is what makes a cell's region —
+  and therefore its timescale — a well-defined object. *Amended by
+  [#160](https://github.com/NGL321/patchworks/issues/160)* on both halves of what stood here. The
+  precondition **re-sources onto measured dwell**: the margin bounds dwell and the bound is checked on
+  the run, so the well-definedness this decision needs is read rather than nominated
+  ([ADR-0019](./0019-construction-nominates-the-run-decides.md)). And *it binds hardest at the apex,
+  where the slow cells live* is **struck** — [#190](https://github.com/NGL321/patchworks/issues/190)
+  made `gain_v` uniform across the interior, and nothing replaces the claim.
 - **The go/no-go run's passing criterion is specified rather than left to the rig** (`05-timescales.md`):
   reachability of the target band as an acceptance rate, measured over a driven trajectory with the
   operating point varying, with dwell reported alongside and decay reported as realised `λ` rather
@@ -122,8 +131,10 @@ capability depends on timescale at all — and thereby becomes an already-valida
   dismissal that stood here — its slow modes are unsteerable `~2L` artifacts, an order of magnitude
   short — was wrong, and is corrected in `05-timescales.md`: delay-coupled loops reach second-scale
   rhythms, in relative phase, steerable by coupling gain. The route is closed here because that gain
-  is `γ`, which ADR-0007 fixed for stability and recorded as explicitly not a timescale knob, and
-  which the fold margin binds.
+  is `γ`, which ADR-0007 fixed for stability and recorded as explicitly not a timescale knob. *The
+  clause that stood here — and which the fold margin binds — is struck by #160:* the margin bounds
+  the standing offset, not `γ`, and `γ` is held at 1.0 by ADR-0019 rather than by any margin. The
+  route stays closed on the first ground, which never depended on the second.
 - **An explicit per-cell clock divisor as the answer.** Retained as an instrument and fallback, not
   as the mechanism: `k` is arbitrary, it aliases, and it hard-codes hierarchy at construction time in
   a spec that has worked to make hierarchy emergent.

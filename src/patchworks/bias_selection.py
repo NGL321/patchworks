@@ -44,10 +44,20 @@ The module also carries the **fold margin** check (:func:`fold_margin_check`) �
 same sweep, same afternoon. Since #138 the margin is read from **`encode`
 alone**, because `encode` is the body's only nonlinearity and so the only map
 that has folds at all. The check is **demoted rather than deleted** (#140): it
-survives as a construction-time diagnostic and keeps its ADR-0005 falsification
-duty, but it is no longer a bound on `gamma`, whose constraint is exactly two
-things — capped at 1.0 globally, and ADR-0010's provable
+is no longer a bound on `gamma`, whose constraint is exactly two things —
+capped at 1.0 globally, and ADR-0010's provable
 `lambda_max(sum_e F^T F) <= rho^2 deg(v)`.
+
+**Demoted again by #160, and this time out of construction** (ADR-0019).
+Neither side of the bound holds still: the standing offset falls 144x through a
+run (#158), and the folds themselves slide, because their positions are the
+per-cell biases the prediction rule trains. So what this module produces is a
+**nomination** — the cap a body's draw permits, before anything runs — and
+:class:`patchworks.tick.FoldRead` is what decides, live, on the run that
+actually happens. ADR-0005's falsification duty travels with the verdict: it is
+measured dwell that can kill the timescale mechanism, and the live
+margin-against-offset comparison that attributes a killed cell to
+reconciliation rather than to its own dynamics.
 
 The rig also produces **`a`**, the scalar in `K = a.I` at construction
 (:func:`operator_scale_rule`) — a fifth part of the construction, and a number
@@ -474,17 +484,6 @@ def _map_jacobian(
     return output_weight @ (active.unsqueeze(-1) * hidden_weight)
 
 
-def _fold_margin(pre_activation: torch.Tensor, hidden_weight: torch.Tensor) -> torch.Tensor:
-    """`min_i |z_i| / ||grad z_i||` for one map, `[candidates]`.
-
-    Hanin & Rolnick's distance to the nearest region boundary, in the map's own
-    input space. With one hidden layer the gradient of the `i`th pre-activation
-    is that row of the hidden weight, so the row norms are the whole of it.
-    """
-    rows = torch.linalg.vector_norm(hidden_weight, dim=-1).clamp(min=1e-12)
-    return (pre_activation.abs() / rows).min(dim=-1).values
-
-
 def measure(
     body: CellBody,
     biases: CellBiases,
@@ -568,8 +567,12 @@ def measure(
             jacobian = operator_scale * through_encode
             rho.append(torch.linalg.eigvals(jacobian).abs().amax(dim=-1))
             # Read from `encode` alone: after #138 it is the body's only
-            # nonlinearity, so it is the only map that has folds at all.
-            margins.append(_fold_margin(fused_pre, body.encode_hidden_weight))
+            # nonlinearity, so it is the only map that has folds at all. Read
+            # through the body's own `fold_margin` for the same reason the
+            # forward path above is the body's own: the live read (ADR-0019)
+            # calls that method too, and construction nominating what the run
+            # then decides means one measurement, not two that resemble it.
+            margins.append(body.fold_margin(fused_pre))
 
             # A cell's activation region is which units of the round trip are on.
             # The chart crossing a fold is that pattern changing.
@@ -917,28 +920,39 @@ def _restrict(measurement: Measurement, index: torch.Tensor) -> Measurement:
 
 @dataclass(frozen=True)
 class FoldMarginCheck:
-    """`02-tick-semantics.md`'s `gamma x floor <` fold margin, per cell across the taper.
+    """`02-tick-semantics.md`'s `gain_v x offset <` fold margin, per cell across the taper.
 
-    A disagreement floor leaves a bounded standing offset on the reconciled
-    component of a node stalk, and that offset shifts the cell's operating point
-    — which is where its timescale comes from. The check is therefore a
-    precondition of the timescale claim as well as a stability side-condition
-    (`ADR-0007`, amended).
+    Reconciliation leaves a **standing offset** on the reconciled component of a
+    node stalk, and that offset shifts the cell's operating point — which is
+    where its timescale comes from. The divisor is the offset, whatever caused
+    it, and not the disagreement floor: the floor is one contributor and, at
+    construction, not the dominant one (#160, ADR-0007 as amended).
 
-    The bound is read with the **per-cell gain** in it, `gain_v x floor <
-    margin_v` where `gain_v = gamma / max(sum_e m_e, rho^2 deg(v))`. That is what
-    makes the spec's own consequence true — the bound binds hardest at the apex,
-    because `sum_e m_e` falls with depth and `gain_v` is therefore largest there,
-    exactly where the slow cells live. Read without the gain the bound would be
-    the same number at every cell and could not bind anywhere in particular.
+    The bound is read with the **per-cell gain** in it, `gain_v x offset <
+    margin_v`, because read without it the bound would be the same number at
+    every cell. `gain_v = gamma / (g_v^2 . c_v)` since
+    [#190](https://github.com/NGL321/patchworks/issues/190) — one formula against
+    each cell's own gauge, uniform across the interior. **What this function
+    still forms is the superseded `max(sum_e m_e, rho^2 deg(v))`**, and swapping
+    it is [#195](https://github.com/NGL321/patchworks/issues/195)'s, which owns
+    the re-run and reports what the new denominator permits. Nothing here reads
+    the result as a gate, so the stale denominator mis-states a nomination
+    rather than passing a bad build.
 
-    The floor is not known before anything runs, so what this produces is the
-    **product** `gamma x floor` each cell can carry. Divide by a floor to get a
-    cap on `gamma`, which `gamma <= 1` then caps again.
+    **A nomination, not a verdict** (ADR-0019). What the run decides is measured
+    dwell, with :class:`patchworks.tick.FoldRead`'s live margin-against-offset
+    as the attribution. The depth claim this docstring used to carry — that the
+    bound binds hardest at the apex because `sum_e m_e` falls with depth — is
+    **struck** and not replaced: #190 made `gain_v` uniform across the interior,
+    so it binds on each cell's own margin draw, which is partly a draw.
+
+    The offset is not known before anything runs, so what this produces is the
+    **product** `gamma x offset` each cell can carry. Divide by an offset to get
+    a cap on `gamma`, which `gamma <= 1` then caps again.
     """
 
     product_cap: torch.Tensor
-    """`[predicting cells]`: the largest `gamma x floor` this cell can carry."""
+    """`[predicting cells]`: the largest `gamma x offset` this cell can carry."""
 
     cells: tuple[int, ...]
     """Cell ids, in :attr:`product_cap`'s row order."""
@@ -955,12 +969,17 @@ class FoldMarginCheck:
 
     @property
     def apex_binds(self) -> bool:
-        """Whether the tightest cell is at the apex, where the spec expects it."""
+        """Whether the tightest cell is at the apex.
+
+        Reported, not expected. `02` used to claim the apex binds hardest; #160
+        struck the claim with #190's uniform interior gain under it, so this is
+        now a fact about one body's draw and about nothing systematic.
+        """
         return self.levels[self.binding] == self.apex_level
 
     @property
     def cap(self) -> float:
-        """The global cap on `gamma x floor`, set by the tightest cell.
+        """The global cap on `gamma x offset`, set by the tightest cell.
 
         If the apex fails the bound, `gamma` is capped globally by the tightest
         cell; paying that everywhere costs only reconciliation speed at the rim,
@@ -968,19 +987,27 @@ class FoldMarginCheck:
         """
         return float(self.product_cap.min())
 
-    def gamma_cap(self, floor: float) -> float:
-        """The cap on the global `gamma` at a stated disagreement floor, `gamma <= 1`."""
-        if floor <= 0:
-            raise ValueError(f"a disagreement floor is positive, got {floor}")
-        return min(1.0, self.cap / floor)
+    def gamma_cap(self, offset: float) -> float:
+        """The cap on the global `gamma` at a stated standing offset, `gamma <= 1`.
+
+        The argument was named `floor` while the record took the disagreement
+        floor to be what the bound divides by. It is the **standing offset**
+        (#160): the displacement itself, whose dominant contributor at
+        construction is model error rather than any floor.
+        """
+        if offset <= 0:
+            raise ValueError(f"a standing offset is positive, got {offset}")
+        return min(1.0, self.cap / offset)
 
     def by_level(self) -> tuple[tuple[int, int, float, float], ...]:
         """`(level, cells, median cap, tightest cap)` down the taper.
 
         The tightest *cell* is partly a draw — a cell's fold margin is
-        uncorrelated with everything else about it — so the level medians are
-        what show the systematic part of the bound, which is the one the spec
-        makes a claim about: it tightens with depth because `sum_e m_e` falls.
+        uncorrelated with everything else about it. There is **no systematic
+        part left for the level medians to show**: #190's `gain_v` is uniform
+        across the interior, and #160 struck the depth claim without replacing
+        it, on #178's finding that the quantity wanders 3.8x with no trend. The
+        levels are kept as a reporting axis, not as a shape the record predicts.
         """
         rows = []
         for level in sorted(set(self.levels)):
@@ -1000,7 +1027,7 @@ def fold_margin_check(
     *,
     map_norm_bound: float = MAP_NORM_BOUND,
 ) -> FoldMarginCheck:
-    """Run the `gamma x floor <` fold margin check per cell across the taper.
+    """Run the `gain_v x offset <` fold margin check per cell across the taper.
 
     `margins` is one measured fold margin per entry of `cells`, which are dome
     cell ids — the selected cells', so the check runs on the body the graph will
@@ -1011,8 +1038,9 @@ def fold_margin_check(
     never binding — `DEFAULT_GAMMA` is 1.0, the global ceiling `02` permits —
     and `02`'s stated reason for it, that a shifted operating point changes the
     cell's effective timescale, is the premise #138 retired when timescale moved
-    into `K`. What survives is a construction-time **diagnostic**, and the
-    number it produces is what #155's fold-margin precondition consumes.
+    into `K`. What survives is a **nomination** made before the run (#160,
+    ADR-0019), and the number it produces is what #155's fold-margin
+    precondition consumes.
     """
     if margins.shape != (len(cells),):
         raise ValueError(
