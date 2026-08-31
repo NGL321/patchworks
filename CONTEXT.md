@@ -117,6 +117,24 @@ so the offset falls through a run rather than standing at a level. Named for wha
 the operating point, rather than for its cause.
 _Avoid_: floor, disagreement floor, the floor (as in `γ × floor <` fold margin), reconciliation error
 
+**Bottleneck ratio**:
+At one edge, the arriving perturbation over what is already standing there: `[A₀ · Π hop] / floor_e`,
+where the numerator is a unit-norm rim deviation carried by the cumulative gain of the edges it has
+crossed and the denominator is that edge's quiescent-hold floor — static plus settling, lag excluded.
+Dimensionless, and the object that made a dimensionless gain and a magnitude comparable at all
+(ADR-0021). Indexed on the **edge**, never on the level: per-edge is a property of the graph, per-level
+a property of the shape imposed on it.
+_Avoid_: floor (bare), transmission floor, margin, signal-to-noise ratio, headroom
+
+**Rim-to-core detectability**:
+The architecture's transmission predicate: over rim-to-apex paths, the max of the min bottleneck ratio
+along a path is at least 1 — *there exists a channel that carries the perturbation*, and what fails is
+an edge rather than a level. Read per trial, each trial reduced to its peak ratio, reported as a
+distribution over trials with the bar at the median. Stated twice, rim→apex and apex→rim, because the
+two directions do not share a gain. Detectability rather than magnitude because the floor never
+settles: the perturbation must be distinguishable from what stands on the edge, not clear a wall.
+_Avoid_: transmission target, reachability, the ~0.37 per hop (retired), sufficiency (bare)
+
 **Compression**:
 The lossy, nonlinear, cell-private map from node stalk into chart, performed inside `encode`.
 The counterpart to restriction, which is lossy, linear and shared. Naming both by what they
