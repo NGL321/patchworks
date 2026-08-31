@@ -182,6 +182,13 @@ DEFAULT_OVERLAP = 0.5
 #: one-tick non-normal amplification, and the slow-and-stable band is thin, so
 #: the factor is not decorative: a cell whose realised decay is slower than its
 #: regions imply by more than this is one bias update from crossing.
+#:
+#: Licensed for `contained()`'s realised-against-regional timescale ratio and
+#: nowhere else (#208). It bounds one time against another time; it was never
+#: derived for a *duration*, so its transplant onto region dwell carried no
+#: warrant -- `05-timescales.md`'s dwell bar is one e-fold, `dwell > tau`, and
+#: `dwell >= 2.6 tau` is reported headroom rather than a pass condition. This
+#: line exists so the next transplant is visibly a transplant.
 DEFAULT_SAFETY_FACTOR = 2.6
 
 #: @type derived

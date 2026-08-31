@@ -224,8 +224,12 @@ condition lives is decision 4's answer, measured dwell against `τ`.
 
 **That quantity has the shape this decision reached for a burn-in to describe.** dwell/`τ` is 0.96 at
 tick 100, passes 2 somewhere past 2,000 ticks, and reaches 86.2 by 100,000: it **fails early and is
-earned over the run**. The original argument was sound — during the transient the offset is
-model-error dominated, and **a cell whose region flips at tick 2,000 has no slow content to protect**,
+earned over the run**. *(Those are the **windowed** estimator, over a trailing window that grew 100 →
+25,000 across the checkpoint table. [#208](https://github.com/NGL321/patchworks/issues/208) states
+dwell as the **cumulative** mean residency to the horizon, on which the same run reads 0.96 at tick
+100 and a median of 9.49 at the horizon — the same shape, and the shape is all this paragraph rests
+on. The 131 of 150 above is likewise windowed; cumulative gives 125.)* The original argument was
+sound — during the transient the offset is model-error dominated, and **a cell whose region flips at tick 2,000 has no slow content to protect**,
 its `H⁰` holding nothing worth keeping — and it was attached to the wrong reading. It is kept here as
 the reason the early breaches cost nothing, with no count resting on it.
 

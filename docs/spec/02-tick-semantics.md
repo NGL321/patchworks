@@ -217,6 +217,14 @@ dwell/`τ` is 0.96 at tick 100 and 86.2 at 100,000, so it **fails early and is e
 which is what a cell whose region flips at tick 2,000 having no slow content to protect actually
 buys.
 
+**Both of those figures are the windowed estimator, and the pass condition is not.** Since
+[#208](https://github.com/NGL321/patchworks/issues/208) dwell is published as the **cumulative** mean
+residency to the horizon, on which the same run gives a median `dwell/τ` of **9.49** and **125 of
+150** cells clearing `2.6 τ` — against 86.2 and 131 windowed over the last 25,000 ticks. The reading
+above is unchanged in shape, and the pass condition it clears is `dwell > τ` on the **median** cell,
+not the `2.6 τ` count. The estimator is named because leaving it unstated let one measurement
+circulate as three different numbers.
+
 **On `γ` itself:** ramping it is declined, because the density plateaus and a ramp targets a transient
 the run does not have. A permanently lower `γ` is **no longer declined** — its ground was safety in a
 window where nothing was at stake, and there is no such window — but nothing here adopts it either;

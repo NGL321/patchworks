@@ -151,11 +151,43 @@ decay rate.** Neither is new mechanism. Both were already committed to, for othe
 
 A mean rate is still a rate, and the mechanism survives — but it is only *the mechanism* under a
 condition the earlier draft never stated. A cell's **region dwell** — how long it stays in one
-activation region before its chart carries it across a fold — must be long against the `τ` that
-region implies. Where it is, the cell has a timescale. Where dwell collapses to a tick or two, the
-cell still decays at some average rate, but it does so by *averaging over unrelated regions*, which
-is a different mechanism from the one specified here and is not what the biases were supposed to
-buy.
+activation region before its chart carries it across a fold — must express **at least one e-fold of
+the region's own decay within the residency**: `dwell > τ`. Where it does, the cell has a timescale.
+Where dwell collapses to a tick or two, the cell still decays at some average rate, but it does so by
+*averaging over unrelated regions*, which is a different mechanism from the one specified here and is
+not what the biases were supposed to buy.
+
+**One e-fold is a derivation rather than a constant**
+([#208](https://github.com/NGL321/patchworks/issues/208)). Over a residency `D` at rate `1/τ` the
+in-region residual is `exp(−D/τ)`, so at `D = τ` it is `1/e`: **63% of the cell's content decays
+inside the region it is claimed to decay in.** Below one e-fold the regional spectrum describes a
+decay that never happened — which is this section's own named failure, *dwell collapses to a tick or
+two*. Above it, every further multiple is a **choice** of how many e-folds to demand, not a
+derivation, which is why no larger factor is written here.
+
+**The verdict is the median cell's `dwell/τ > 1`.** Not a per-cell extremum:
+[#195](https://github.com/NGL321/patchworks/issues/195) ran four times at one seed and got four
+different binding cells, so a bar on the worst cell is a bar on noise. Not a population fraction
+either — a fraction needs a level, and a level read off one run's plateau is exactly the constant
+[#206](https://github.com/NGL321/patchworks/issues/206) declined a tolerance for. The median needs no
+chosen level: the derived `1` is the whole bar. **The per-cell count below the floor is reported,
+never asserted**, which keeps the low-dwell cells visible without constituting them as a population
+— [#205](https://github.com/NGL321/patchworks/issues/205) read those arrays and found the set is the
+base rate.
+
+**Dwell is the cumulative mean residency to the horizon, and the estimator is part of the published
+quantity.** #206's *"131 of 150 clear `2.6 τ`"* is a **windowed** dwell over the last 25,000 ticks;
+the **cumulative** dwell on the same run, same gate, gives **125 of 150**. Six cells of difference
+from a choice nobody had written down — and the window length was itself an unstated constant that
+grew 100 → 25,000 across the checkpoint table. A verdict may not rest on a knob the reporting code
+picked, so wherever dwell is published the estimator is named with it.
+
+**`dwell ≥ 2.6 τ` is reported headroom, and is not what passing means.** `2.6` is
+`bias_selection.py`'s `DEFAULT_SAFETY_FACTOR` — [#27](https://github.com/NGL321/patchworks/issues/27)'s
+one-tick non-normal amplification — and it was never derived for a residency duration. Its home use
+is sound: `contained()` bounds a *realised* timescale against the *regional* one, a ratio of two
+times. The transplant onto a **duration** carried no warrant with it. The count keeps being published,
+because it is informative and comparable across runs. It stopped being the bar.
 
 **The fold margin is the proxy for dwell.** `02-tick-semantics.md` checks
 `gain_v × offset <` fold margin per cell, derived there from the standing offset shifting the
@@ -204,6 +236,37 @@ from 0.2600 to 0.3502.
 margin) = −0.006` over 20,000 bias draws, with the slowest 1% of cells holding the same median margin
 as the fastest 50%. Selecting a cell slow therefore does not cost that cell its region definition:
 the trade above is paid **once, in the body's widths**, and never again per cell.
+
+**The other direction of that decoupling is a cost, and this section only ever wrote the favourable
+one.** If `τ` and dwell are uncorrelated then selecting a cell slow also buys it no **residency to be
+slow in**: `τ` is placed by the biases, dwell is set by how fast the graph's chatter walks the
+operating point across creases, and the precondition above is a ratio of the two. The live run agrees
+with the construction sweep — `corr(log τ, log dwell) = −0.110` against #42's construction-time
+`−0.006` — so **nothing in the architecture makes the precondition hold.** The mechanism has an
+**unenforced precondition**, and what a collapse of it falsifies is
+[ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md)'s falsification clause.
+
+**What the live read says today, and why the gate is not slack** (#208, on
+`prototypes/live-fold-read-206/206-per-tick.npz`). At the horizon the median cell sits at
+`dwell/τ = 9.49` and 147 of 150 cells clear `dwell > τ`; at tick 100 the median sat at 0.96. The graph
+**fails the condition at the start and earns it over the run.** It clears comfortably because `τ` is
+**flat at about one tick graph-wide** — 0.91 at the apex against 0.99 at the rim, no depth→timescale
+gradient in `τ` at all — not because the placement is healthy. Against this section's own target of
+`τ ≥ 100` ticks the apex's dwell of 33 gives `dwell/τ ≈ 0.33`: **at the target band the gate fails
+outright**, and it fails at the level where the slow cells are meant to live. That is a reading of
+these two measured numbers, not a revival of the margin claim #190 struck — it is the *dwell* gate at
+a `τ` the run has not reached, not `gain_v` falling with depth. The gate is not slack; it is a
+guillotine that has not dropped because the thing it cuts has not arrived. Whether `τ ≈ 1 tick` is
+what construction meant to place is
+[#143](https://github.com/NGL321/patchworks/issues/143)'s question and is not ruled on here.
+
+**Those counts were read on the pre-conversion body.**
+[#155](https://github.com/NGL321/patchworks/issues/155) is open, so `step` is still ReLU on `action`
+and a "region" in the #202 and #206 reads is a facet of the composed `step ∘ encode`. The pass
+condition survives the conversion because it is definitional — one e-fold is one e-fold whatever the
+facets are. **The counts do not**, and they are marked as read on the body that ran rather than
+rescaled, per #206's precedent for `01`'s recorded margins: rescaling would publish a number nobody
+ran.
 
 ### What "stable" means here
 
