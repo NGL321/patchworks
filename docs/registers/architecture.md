@@ -27,7 +27,7 @@ else. Rows are ordered by type, least flexible first.
 | type | what it means |
 |---|---|
 | **measured** | read off a run. Not a knob at all. |
-| **derived** | a consequence of other constants. Not settable independently. |
+| **derived** | a consequence of other constants. Not settable independently. Held by an import where the dependency is Python and by a named test where it is not ([ADR-0018](../adr/0018-a-derived-constant-is-derived-where-its-dependency-lives.md)). |
 | **selected** | a rig chose it, against a criterion that is re-runnable. |
 | **literature** | a published result. A knob you would have to beat it to turn. |
 | **stipulated** | the spec or the world says so. A knob with a record attached. |
@@ -39,22 +39,22 @@ else. Rows are ordered by type, least flexible first.
 
 | name | value | type | flexibility | warrant | depends_on | source |
 |---|---|---|---|---|---|---|
-| `DEFAULT_BIAS_VARIANCE` | `0.5` | selected | the weak knob of the two: three orders of magnitude barely move the regional spectra | docs/research/027-regional-jacobian-spectra.md | — | `src/patchworks/body.py:139` |
-| `DEFAULT_SPARSITY_PRESSURE` | `0.4` | selected | measured: at 0.4 the pressure gradient is a median 0.12 of the transport term's (0.114-0.127, three seeds) on the default dome | docs/spec/07-local-learning-rule.md, Permitted global signals; tests/test_transport_rule.py | — | `src/patchworks/learning.py:491` |
-| `DEFAULT_WEIGHT_VARIANCE` | `1.2` | selected | unknown | #42's rig; docs/spec/05-timescales.md, What this requires elsewhere | — | `src/patchworks/body.py:131` |
-| `DEFAULT_OPERATOR_SCALE` | `1.0` | stipulated | superseded per body by a rule, patchworks.bias_selection.operator_scale_rule; this is the band ceiling, the rule's answer where no rig has run | docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md | — | `src/patchworks/body.py:184` |
-| `DEFAULT_RHO_K` | `2.0` | stipulated | unknown | docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md | — | `src/patchworks/body.py:159` |
-| `GAUGE_RHO` | `2.0` | stipulated | measured: 2 -> 16 buys 1.008x on the apex floor (#150) | docs/spec/01-cell-and-sheaf.md, Scale is gauge-fixed | — | `src/patchworks/restriction.py:52` |
-| `NODE_STALK_DIM` | `32` | stipulated | fixed and intended to stay fixed: absent from 01-cell-and-sheaf.md's Flex priority ladder, and a per-cell n confounds the private-dimension gradient | docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/body.py:96` |
-| `PIXEL_SCALE` | `1.0 / 255.0` | stipulated | none: 255 is uint8's range, and any other value is a unit error | docs/spec/01-cell-and-sheaf.md | — | `src/patchworks/agent.py:84` |
-| `DEFAULT_ANNEAL_HORIZON` | `1000` | chosen | unknown; set an order of magnitude above the slowest cell's tau >= 100 ticks | docs/spec/05-timescales.md | — | `src/patchworks/learning.py:510` |
-| `DEFAULT_LEARNING_RATE` | `0.01` | chosen | unknown; the first thing to retune once #90 and #91 can measure a run | here | — | `src/patchworks/learning.py:114` |
-| `DEFAULT_OPERATOR_RATE_RATIO` | `1.0` | chosen | unknown; inherits eta's retune duty | docs/adr/0008-the-local-rule-splits-by-parameter-not-by-cell.md | — | `src/patchworks/learning.py:141` |
-| `DRIVE_ASSERTION` | `1.0` | chosen | any non-zero constant; zero makes the drive inert, and a schedule is not a drive | docs/adr/0009-a-drive-is-a-motor-edge-attached-deep.md | — | `src/patchworks/agent.py:75` |
-| `INITIAL_NORM` | `1.0` | chosen | unknown | here | — | `src/patchworks/restriction.py:63` |
-| `NORM_FLOOR` | `1e-24` | chosen | unknown; 1e-12 in the norm itself, far below anything the maps or stalks carry | here | — | `src/patchworks/learning.py:465` |
-| `CHART_DIM` | `12` | provisional #132 | rung 5, the last rung: may become a range or a gradient ACROSS THE GRAPH if uniformity fails (01-cell-and-sheaf.md, Flex priority). #132's axis is across DOMAINS, which the ladder does not license | docs/research/032-dimensioning-small-predictors.md (#172); docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/body.py:120` |
-| `DEFAULT_GAMMA` | `1.0` | provisional #85 | unknown | docs/spec/02-tick-semantics.md, Reconciliation gain | — | `src/patchworks/tick.py:74` |
+| `DEFAULT_BIAS_VARIANCE` | `0.5` | selected | the weak knob of the two: three orders of magnitude barely move the regional spectra | docs/research/027-regional-jacobian-spectra.md | — | `src/patchworks/body.py` |
+| `DEFAULT_SPARSITY_PRESSURE` | `0.4` | selected | measured: at 0.4 the pressure gradient is a median 0.12 of the transport term's (0.114-0.127, three seeds) on the default dome | docs/spec/07-local-learning-rule.md, Permitted global signals; tests/test_transport_rule.py | — | `src/patchworks/learning.py` |
+| `DEFAULT_WEIGHT_VARIANCE` | `1.2` | selected | unknown | #42's rig; docs/spec/05-timescales.md, What this requires elsewhere | — | `src/patchworks/body.py` |
+| `DEFAULT_OPERATOR_SCALE` | `1.0` | stipulated | superseded per body by a rule, patchworks.bias_selection.operator_scale_rule; this is the band ceiling, the rule's answer where no rig has run | docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md | — | `src/patchworks/body.py` |
+| `DEFAULT_RHO_K` | `2.0` | stipulated | unknown | docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md | — | `src/patchworks/body.py` |
+| `GAUGE_RHO` | `2.0` | stipulated | measured: 2 -> 16 buys 1.008x on the apex floor (#150) | docs/spec/01-cell-and-sheaf.md, Scale is gauge-fixed | — | `src/patchworks/restriction.py` |
+| `NODE_STALK_DIM` | `32` | stipulated | fixed and intended to stay fixed: absent from 01-cell-and-sheaf.md's Flex priority ladder, and a per-cell n confounds the private-dimension gradient | docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/body.py` |
+| `PIXEL_SCALE` | `1.0 / 255.0` | stipulated | none: 255 is uint8's range, and any other value is a unit error | docs/spec/01-cell-and-sheaf.md | — | `src/patchworks/agent.py` |
+| `DEFAULT_ANNEAL_HORIZON` | `1000` | chosen | unknown; set an order of magnitude above the slowest cell's tau >= 100 ticks | docs/spec/05-timescales.md | — | `src/patchworks/learning.py` |
+| `DEFAULT_LEARNING_RATE` | `0.01` | chosen | unknown; the first thing to retune once #90 and #91 can measure a run | here | — | `src/patchworks/learning.py` |
+| `DEFAULT_OPERATOR_RATE_RATIO` | `1.0` | chosen | unknown; inherits eta's retune duty | docs/adr/0008-the-local-rule-splits-by-parameter-not-by-cell.md | — | `src/patchworks/learning.py` |
+| `DRIVE_ASSERTION` | `1.0` | chosen | any non-zero constant; zero makes the drive inert, and a schedule is not a drive | docs/adr/0009-a-drive-is-a-motor-edge-attached-deep.md | — | `src/patchworks/agent.py` |
+| `INITIAL_NORM` | `1.0` | chosen | unknown | here | — | `src/patchworks/restriction.py` |
+| `NORM_FLOOR` | `1e-24` | chosen | unknown; 1e-12 in the norm itself, far below anything the maps or stalks carry | here | — | `src/patchworks/learning.py` |
+| `CHART_DIM` | `12` | provisional #132 | rung 5, the last rung: may become a range or a gradient ACROSS THE GRAPH if uniformity fails (01-cell-and-sheaf.md, Flex priority). #132's axis is across DOMAINS, which the ladder does not license | docs/research/032-dimensioning-small-predictors.md (#172); docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/body.py` |
+| `DEFAULT_GAMMA` | `1.0` | provisional #85 | unknown | docs/spec/02-tick-semantics.md, Reconciliation gain | — | `src/patchworks/tick.py` |
 
 ## Marked `@register none`
 

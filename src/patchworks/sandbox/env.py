@@ -58,15 +58,26 @@ N_ZONES = 3
 ARM_JOINTS = ("j0", "j1", "j2")
 
 # 500 Hz physics, 10 substeps per tick, so control runs at 50 Hz.
+#: @type stipulated
+#: @flexibility fixed by the arena: `<option timestep="0.002">`, which is 1/500 s
+#: @warrant src/patchworks/sandbox/arena.xml
+#: The physics rate the arena's `timestep` states, in Hz. An **external**
+#: dependency in ADR-0018's sense -- an XML attribute, which nothing here can
+#: evaluate -- so `tests/test_sandbox_env.py` holds them equal instead:
+#: `env.model.opt.timestep * FRAME_SKIP == 1 / CONTROL_HZ`.
+PHYSICS_HZ = 500.0
 #: @type chosen
-#: @flexibility 500 Hz physics is the arena's; this divides it, and moving it moves CONTROL_HZ with it
+#: @flexibility the arena's 500 Hz divided; moving it moves CONTROL_HZ with it
 #: @warrant here
 FRAME_SKIP = 10
 #: @type derived
-#: @depends_on FRAME_SKIP
+#: @depends_on PHYSICS_HZ, FRAME_SKIP
 #: @flexibility not free: #149's contraction reading rests on the tick being 1/50 s of world
 #: @warrant #149
-CONTROL_HZ = 50.0
+#: Both dependencies are **internal**, so this divides them rather than
+#: restating the quotient
+#: (`docs/adr/0018-a-derived-constant-is-derived-where-its-dependency-lives.md`).
+CONTROL_HZ = PHYSICS_HZ / FRAME_SKIP
 
 #: @type stipulated
 #: @flexibility fixed with the sensory tiling: 64 is 16x16 patches of 4x4 px, DomeSpec.patch_grid's default

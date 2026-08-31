@@ -23,7 +23,11 @@ above the prose or inside it; the parser takes the whole `#:` run):
   else*, which is exactly what ``chosen`` claims; ``source`` is then the link.
 * ``@depends_on`` — required on ``derived`` and meaningless elsewhere. Knowing a
   constant is derived is useless if the register will not say derived *from
-  what*.
+  what*. It is also **executable**, on the arm where it can be: where a
+  dependency is an importable Python object, `tests/test_constant_registers.py`
+  asserts the definition evaluates it rather than restating its value
+  (ADR-0018). Where it is a file or the world, a test holds the two equal and
+  the definition site names that test.
 * ``@provisional <issue>`` — in place of ``@type``, for a constant resting on an
   unmet precondition. The networked half of the check watches these.
 * ``@register none`` — the opt-out, at the definition site rather than in an
@@ -39,6 +43,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import importlib
 import pathlib
 import re
 import sys
@@ -113,10 +118,24 @@ class Entry:
     flexibility: str = ""
     warrant: str = ""
     depends_on: str = ""
+    #: Every name the definition's right-hand side mentions, so the
+    #: `depends_on` of a `derived` entry can be checked against what the
+    #: definition actually evaluates (ADR-0018).
+    references: frozenset[str] = frozenset()
 
     @property
     def source(self) -> str:
-        return f"src/patchworks/{self.module}:{self.line}"
+        """The file, and not the line.
+
+        A line number would be exact and would churn: `--check` runs as a test,
+        so inserting a paragraph near the top of a scanned module reddens the
+        suite until the registers are regenerated, and the regeneration then
+        rewrites every row below the insert. The register is checked into git
+        because *the diff on a value is the point*, and a column that moves
+        under unrelated edits is what takes that away (#191 §5). A name unique
+        in its file by construction is greppable.
+        """
+        return f"src/patchworks/{self.module}"
 
     @property
     def sort_key(self) -> tuple[int, str]:
@@ -230,7 +249,106 @@ def _entry(relative: str, name: str, node: ast.stmt, declared: dict[str, str]) -
         flexibility=flexibility,
         warrant=declared["warrant"],
         depends_on=depends_on,
+        references=_names_in(node.value),
     )
+
+
+def _names_in(node: ast.expr | None) -> frozenset[str]:
+    """Every name a definition's right-hand side mentions.
+
+    Bare names and the trailing component of an attribute access both count, so
+    `GAUGE_RHO` and `restriction.GAUGE_RHO` are the same dependency named two
+    ways -- which is what the `depends_on` field records either way.
+    """
+    if node is None:
+        return frozenset()
+    found = set()
+    for child in ast.walk(node):
+        if isinstance(child, ast.Name):
+            found.add(child.id)
+        elif isinstance(child, ast.Attribute):
+            found.add(child.attr)
+    return frozenset(found)
+
+
+# ---------------------------------------------------------------------------
+# the two arms of `derived` (ADR-0018)
+# ---------------------------------------------------------------------------
+
+#: A `@depends_on` part that could name a Python object. Whether it *does* is
+#: settled by trying to import it, not by its shape: `pyproject.toml` matches
+#: this and is a file.
+_DOTTED = re.compile(r"^[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*$")
+
+#: Distinct from `None`, which is a resolvable value.
+_UNRESOLVED = object()
+
+
+def module_name(relative: str) -> str:
+    """`sandbox/env.py` -> `patchworks.sandbox.env`."""
+    return "patchworks." + relative.removesuffix(".py").replace("/", ".")
+
+
+def _import(name: str):
+    """The module, with `src/` reachable whether or not the package is installed."""
+    source = str(SOURCE.parent)
+    if source not in sys.path:
+        sys.path.insert(0, source)
+    return importlib.import_module(name)
+
+
+def resolve(relative: str, dotted: str):
+    """What *dotted* names, read from the running code, or :data:`_UNRESOLVED`.
+
+    A bare name is looked up in the constant's own module; a dotted one is a
+    module path with an attribute on the end.
+    """
+    if not _DOTTED.match(dotted):
+        return _UNRESOLVED
+    if "." in dotted:
+        where, _, attribute = dotted.rpartition(".")
+    else:
+        where, attribute = module_name(relative), dotted
+    try:
+        return getattr(_import(where), attribute)
+    except (ImportError, AttributeError, ValueError):
+        return _UNRESOLVED
+
+
+def dependencies(entry: Entry) -> list[str]:
+    """The `@depends_on` field, split into the things it claims to depend on."""
+    return [part.strip() for part in entry.depends_on.split(",") if part.strip()]
+
+
+def internal_dependencies(entry: Entry) -> list[str]:
+    """Those dependencies that are importable Python objects (ADR-0018, arm 1).
+
+    The split is on where the dependency lives, not on the constant.
+    `pyproject.toml` and *the arena's ring wall* are external because nothing
+    in-process can evaluate them; `GAUGE_RHO` and `FRAME_SKIP` are internal
+    because something can, which is what makes disagreement impossible rather
+    than merely loud.
+    """
+    return [
+        name
+        for name in dependencies(entry)
+        if resolve(entry.module, name) is not _UNRESOLVED
+    ]
+
+
+def rendered_value(entry: Entry) -> str:
+    """The `value` column: a `derived` entry **resolves**, the rest read as written.
+
+    `MAP_NORM_BOUND = GAUGE_RHO` unparses to the string `GAUGE_RHO`, which would
+    cost this register the one property it exists for: move the gauge 2.0 -> 3.0
+    and the derived row would read `GAUGE_RHO` before and after, silent on
+    exactly the change the diff is kept for. Resolving moves both rows together,
+    with `depends_on` carrying the fact that one follows the other (#191 §3).
+    """
+    if entry.type != "derived":
+        return entry.value
+    value = resolve(entry.module, entry.name)
+    return entry.value if value is _UNRESOLVED else repr(value)
 
 
 def survey_all() -> dict[str, Survey]:
@@ -276,7 +394,7 @@ _TYPE_TABLE = """
 | type | what it means |
 |---|---|
 | **measured** | read off a run. Not a knob at all. |
-| **derived** | a consequence of other constants. Not settable independently. |
+| **derived** | a consequence of other constants. Not settable independently. Held by an import where the dependency is Python and by a named test where it is not ([ADR-0018](../adr/0018-a-derived-constant-is-derived-where-its-dependency-lives.md)). |
 | **selected** | a rig chose it, against a criterion that is re-runnable. |
 | **literature** | a published result. A knob you would have to beat it to turn. |
 | **stipulated** | the spec or the world says so. A knob with a record attached. |
@@ -320,7 +438,7 @@ def render(slug: str, title: str, meaning: str, modules: tuple[str, ...],
     for e in entries:
         kind = f"provisional #{e.provisional}" if e.provisional else e.type
         out.append(
-            f"| `{e.name}` | `{_cell(e.value)}` | {kind} | {_cell(e.flexibility)} "
+            f"| `{e.name}` | `{_cell(rendered_value(e))}` | {kind} | {_cell(e.flexibility)} "
             f"| {_cell(e.warrant)} | {_cell(e.depends_on) or '—'} | `{e.source}` |"
         )
     opted = sorted(n for m in modules for _, n in surveys[m].opted_out)

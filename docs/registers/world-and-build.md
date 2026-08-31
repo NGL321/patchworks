@@ -27,7 +27,7 @@ else. Rows are ordered by type, least flexible first.
 | type | what it means |
 |---|---|
 | **measured** | read off a run. Not a knob at all. |
-| **derived** | a consequence of other constants. Not settable independently. |
+| **derived** | a consequence of other constants. Not settable independently. Held by an import where the dependency is Python and by a named test where it is not ([ADR-0018](../adr/0018-a-derived-constant-is-derived-where-its-dependency-lives.md)). |
 | **selected** | a rig chose it, against a criterion that is re-runnable. |
 | **literature** | a published result. A knob you would have to beat it to turn. |
 | **stipulated** | the spec or the world says so. A knob with a record attached. |
@@ -39,26 +39,27 @@ else. Rows are ordered by type, least flexible first.
 
 | name | value | type | flexibility | warrant | depends_on | source |
 |---|---|---|---|---|---|---|
-| `CONTROL_HZ` | `50.0` | derived | not free: #149's contraction reading rests on the tick being 1/50 s of world | #149 | FRAME_SKIP | `src/patchworks/sandbox/env.py:69` |
-| `DEPENDENCIES` | `(('torch', 'torch==2.2.2'), ('mujoco', 'mujoco==3.10.0'), ('gymnasium', 'gymnasium>=1.0,<2'), ('numpy', 'numpy<2'))` | derived | none independently: tests/test_cli.py holds this table against the pins, so it reddens rather than drifts | pyproject.toml, dependencies | pyproject.toml, project.dependencies | `src/patchworks/cli.py:241` |
-| `SPAWN_R` | `(0.15, 0.36)` | derived | bounded by the arena: an annulus that clears both | src/patchworks/sandbox/arena.xml | the arena's pedestal radius 0.08 and ring wall 0.52 | `src/patchworks/sandbox/env.py:106` |
-| `BELOW_PYTHON` | `(3, 13)` | stipulated | fixed by pyproject.toml's requires-python; tests/test_cli.py asserts both bounds against the specifier | pyproject.toml, requires-python | — | `src/patchworks/cli.py:73` |
-| `CONTAINER_MARKERS` | `(Path('/.dockerenv'), Path('/run/.containerenv'))` | stipulated | none: the paths are Docker's and podman's, not this project's | docs/adr/0012-a-container-is-the-supported-execution-target.md | — | `src/patchworks/cli.py:320` |
-| `IMAGE_SIZE` | `64` | stipulated | fixed with the sensory tiling: 64 is 16x16 patches of 4x4 px, DomeSpec.patch_grid's default | docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/sandbox/env.py:74` |
-| `MINIMUM_PYTHON` | `(3, 11)` | stipulated | fixed by pyproject.toml's requires-python; tests/test_cli.py asserts both bounds against the specifier | pyproject.toml, requires-python | — | `src/patchworks/cli.py:69` |
-| `N_PUCKS` | `3` | stipulated | fixed with the arena: the pucks are geoms in arena.xml, so the count is the world's rather than a parameter | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py:52` |
-| `N_ZONES` | `3` | stipulated | fixed with the arena, and with ZONE_XY, which names each zone's place | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py:56` |
-| `ZONE_RADIUS` | `0.075` | stipulated | fixed with the arena's zone geoms | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py:114` |
-| `ZONE_XY` | `np.array([[0.0, 0.3], [-0.26, -0.15], [0.26, -0.15]])` | stipulated | fixed with the arena's zone geoms | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py:110` |
-| `CHECK_TICKS` | `300` | chosen | bounded by a human's patience: 300 at 50 Hz is six seconds of world and about four of wall clock end to end | here | — | `src/patchworks/cli.py:104` |
-| `FRAME_SKIP` | `10` | chosen | 500 Hz physics is the arena's; this divides it, and moving it moves CONTROL_HZ with it | here | — | `src/patchworks/sandbox/env.py:64` |
-| `FRICTION_FIELD_AMP` | `(0.15, 0.1)` | chosen | unknown; sums to the +/- 25% about nominal the field is specified at | here | — | `src/patchworks/sandbox/env.py:133` |
-| `FRICTION_FIELD_PHASE` | `0.7` | chosen | unknown | here | — | `src/patchworks/sandbox/env.py:141` |
-| `FRICTION_FIELD_WAVELENGTH` | `(0.31, 0.37, 0.53)` | chosen | unknown; three incommensurate lengths, so the field does not repeat inside the arena | here | — | `src/patchworks/sandbox/env.py:137` |
-| `HELDOUT_PAIRS` | `frozenset({(0, 2), (2, 0)})` | chosen | unknown; the two axes are deliberately kept separate, so widening one is not widening the other | here | — | `src/patchworks/sandbox/env.py:90` |
-| `HELDOUT_SECTOR` | `(np.deg2rad(30.0), np.deg2rad(75.0))` | chosen | unknown | here | — | `src/patchworks/sandbox/env.py:94` |
-| `HELDOUT_SECTOR_MIN_R` | `0.22` | chosen | unknown | here | — | `src/patchworks/sandbox/env.py:98` |
-| `PLACEMENT_ATTEMPTS` | `64` | chosen | a give-up bound rather than a physical quantity | here | — | `src/patchworks/sandbox/env.py:81` |
+| `CONTROL_HZ` | `50.0` | derived | not free: #149's contraction reading rests on the tick being 1/50 s of world | #149 | PHYSICS_HZ, FRAME_SKIP | `src/patchworks/sandbox/env.py` |
+| `DEPENDENCIES` | `(('torch', 'torch==2.2.2'), ('mujoco', 'mujoco==3.10.0'), ('gymnasium', 'gymnasium>=1.0,<2'), ('numpy', 'numpy<2'))` | derived | none independently: tests/test_cli.py holds this table against the pins, so it reddens rather than drifts | pyproject.toml, dependencies | pyproject.toml, project.dependencies | `src/patchworks/cli.py` |
+| `SPAWN_R` | `(0.15, 0.36)` | derived | bounded by the arena: an annulus that clears both | src/patchworks/sandbox/arena.xml | the arena's pedestal radius 0.08 and ring wall 0.52 | `src/patchworks/sandbox/env.py` |
+| `BELOW_PYTHON` | `(3, 13)` | stipulated | fixed by pyproject.toml's requires-python; tests/test_cli.py asserts both bounds against the specifier | pyproject.toml, requires-python | — | `src/patchworks/cli.py` |
+| `CONTAINER_MARKERS` | `(Path('/.dockerenv'), Path('/run/.containerenv'))` | stipulated | none: the paths are Docker's and podman's, not this project's | docs/adr/0012-a-container-is-the-supported-execution-target.md | — | `src/patchworks/cli.py` |
+| `IMAGE_SIZE` | `64` | stipulated | fixed with the sensory tiling: 64 is 16x16 patches of 4x4 px, DomeSpec.patch_grid's default | docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/sandbox/env.py` |
+| `MINIMUM_PYTHON` | `(3, 11)` | stipulated | fixed by pyproject.toml's requires-python; tests/test_cli.py asserts both bounds against the specifier | pyproject.toml, requires-python | — | `src/patchworks/cli.py` |
+| `N_PUCKS` | `3` | stipulated | fixed with the arena: the pucks are geoms in arena.xml, so the count is the world's rather than a parameter | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py` |
+| `N_ZONES` | `3` | stipulated | fixed with the arena, and with ZONE_XY, which names each zone's place | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py` |
+| `PHYSICS_HZ` | `500.0` | stipulated | fixed by the arena: `<option timestep="0.002">`, which is 1/500 s | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py` |
+| `ZONE_RADIUS` | `0.075` | stipulated | fixed with the arena's zone geoms | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py` |
+| `ZONE_XY` | `np.array([[0.0, 0.3], [-0.26, -0.15], [0.26, -0.15]])` | stipulated | fixed with the arena's zone geoms | src/patchworks/sandbox/arena.xml | — | `src/patchworks/sandbox/env.py` |
+| `CHECK_TICKS` | `300` | chosen | bounded by a human's patience: 300 at 50 Hz is six seconds of world and about four of wall clock end to end | here | — | `src/patchworks/cli.py` |
+| `FRAME_SKIP` | `10` | chosen | the arena's 500 Hz divided; moving it moves CONTROL_HZ with it | here | — | `src/patchworks/sandbox/env.py` |
+| `FRICTION_FIELD_AMP` | `(0.15, 0.1)` | chosen | unknown; sums to the +/- 25% about nominal the field is specified at | here | — | `src/patchworks/sandbox/env.py` |
+| `FRICTION_FIELD_PHASE` | `0.7` | chosen | unknown | here | — | `src/patchworks/sandbox/env.py` |
+| `FRICTION_FIELD_WAVELENGTH` | `(0.31, 0.37, 0.53)` | chosen | unknown; three incommensurate lengths, so the field does not repeat inside the arena | here | — | `src/patchworks/sandbox/env.py` |
+| `HELDOUT_PAIRS` | `frozenset({(0, 2), (2, 0)})` | chosen | unknown; the two axes are deliberately kept separate, so widening one is not widening the other | here | — | `src/patchworks/sandbox/env.py` |
+| `HELDOUT_SECTOR` | `(np.deg2rad(30.0), np.deg2rad(75.0))` | chosen | unknown | here | — | `src/patchworks/sandbox/env.py` |
+| `HELDOUT_SECTOR_MIN_R` | `0.22` | chosen | unknown | here | — | `src/patchworks/sandbox/env.py` |
+| `PLACEMENT_ATTEMPTS` | `64` | chosen | a give-up bound rather than a physical quantity | here | — | `src/patchworks/sandbox/env.py` |
 
 ## Marked `@register none`
 

@@ -68,6 +68,7 @@ import torch
 
 from .body import DEFAULT_OPERATOR_SCALE, DEFAULT_RHO_K, CellBiases, CellBody
 from .graph import Dome
+from .restriction import GAUGE_RHO
 
 __all__ = [
     "DEFAULT_BURN_IN",
@@ -159,13 +160,17 @@ DEFAULT_SAFETY_FACTOR = 2.6
 
 #: @type derived
 #: @depends_on patchworks.restriction.GAUGE_RHO
-#: @flexibility none independently: it is the spec's rho, and moving it alone makes the two disagree
+#: @flexibility none independently: it is the spec's rho, and the import is what makes disagreeing with it impossible
 #: @warrant docs/adr/0010-restriction-map-scale-is-gauge-fixed.md
 #: `rho` in `lambda_max <= rho^2 deg(v)`: the gauge bound on a restriction map's
 #: Frobenius norm (`docs/adr/0010-restriction-map-scale-is-gauge-fixed.md`),
-#: which is 2 in the spec. Named apart from the spectral radius this module
-#: otherwise calls `rho`.
-MAP_NORM_BOUND = 2.0
+#: which is the same `rho` as the gauge's band edge rather than a number that
+#: agrees with it -- so it is **imported** rather than restated
+#: (`docs/adr/0018-a-derived-constant-is-derived-where-its-dependency-lives.md`).
+#: Named apart from the spectral radius this module otherwise calls `rho`: the
+#: alias is a rename, not a second declaration, and it keeps a register row
+#: saying the slow cap depends on the gauge.
+MAP_NORM_BOUND = GAUGE_RHO
 
 #: `rho` this close to one is reported as this `tau` rather than as infinity.
 #: An expansive region has no `tau` at all; clamping keeps it at the slow end of
