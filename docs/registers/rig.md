@@ -50,6 +50,7 @@ construction has to answer it as much as one bound at import.
 |---|---|---|---|---|---|---|
 | `DEFAULT_SAFETY_FACTOR` | `2.6` | measured | not a knob: 2.6 is #27's measured one-tick non-normal amplification | #27 | — | `src/patchworks/bias_selection.py` |
 | `MAP_NORM_BOUND` | `2.0` | derived | none independently: it is the spec's rho, and the import is what makes disagreeing with it impossible | docs/adr/0010-restriction-map-scale-is-gauge-fixed.md | patchworks.restriction.GAUGE_RHO | `src/patchworks/bias_selection.py` |
+| `DEFAULT_DRIVE_SCALE` | `1.0` | stipulated | free as a convention, but nothing the rig reads is comparable across two values of it, which is what fixing it buys | here | — | `src/patchworks/bias_selection.py` |
 | `TAU_QUANTILES` | `(0.05, 0.25, 0.5, 0.75, 0.95)` | stipulated | none as a choice of statistic: tau = -1/ln rho diverges as rho -> 1, so no moment is admissible | docs/spec/05-timescales.md | — | `src/patchworks/bias_selection.py` |
 | `BASELINE_SEED` | `0` | chosen | none that matters: the baseline is a generic rank, and tests/test_diagnostics.py holds two unrelated seeds to one number | here | — | `src/patchworks/diagnostics.py` |
 | `DEFAULT_BURN_IN` | `16` | chosen | unknown | here | — | `src/patchworks/bias_selection.py` |

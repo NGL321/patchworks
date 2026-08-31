@@ -19,9 +19,44 @@ which is where #85 was closed from. That half is
 `.github/workflows/constant-provenance.yml`, triggered on `issues: closed`.
 """
 
+import ast
+import collections
+
 import pytest
 
 import constant_registers as registers
+
+
+
+def _literal_defaults(tree: ast.AST) -> list[tuple[str, str]]:
+    """`(function, parameter)` for every default that is a bare numeric literal.
+
+    `None`, `_UNSET` and a constant name are the settled forms and are not
+    literals, so they never appear here. `bool` is excluded with them: a
+    repeated `flag: bool = False` is not a constant, and `True` is an
+    `ast.Constant` of type `bool` before it is one of type `int`.
+    """
+    found = []
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        args = node.args
+        positional = args.posonlyargs + args.args
+        pairs = list(zip(positional[len(positional) - len(args.defaults):],
+                         args.defaults))
+        pairs += [
+            (arg, default)
+            for arg, default in zip(args.kwonlyargs, args.kw_defaults)
+            if default is not None
+        ]
+        for arg, default in pairs:
+            if not isinstance(default, ast.Constant):
+                continue
+            if isinstance(default.value, bool):
+                continue
+            if isinstance(default.value, (int, float, complex)):
+                found.append((node.name, arg.arg))
+    return found
 
 
 @pytest.fixture(scope="module")
@@ -62,6 +97,54 @@ class TestEveryConstantHasProvenanceOrSaysItHasNone:
             "these module-level constants declare neither provenance fields nor "
             "`#: @register none`:\n  " + "\n  ".join(unmarked)
         )
+
+    def test_no_bare_numeric_default_is_repeated_across_signatures(self):
+        """A repeated default is a constant with no definition site (ADR-0020).
+
+        `scan_module` walks the module's top level and the fields of marked
+        classes; a signature default is reachable by neither, so it is invisible
+        in a way the unmarked-constant test above cannot even flag. That is how
+        `drive_scale = 1.0` sat in `driven_trajectory` and `measure` at once,
+        free to diverge, with its reason -- that the walk's stationary std *is*
+        this number -- written one line above the code and nowhere the register
+        could see it (#199).
+
+        The trigger is **repetition**, not defaults in general: a single-site
+        default cannot silently disagree with itself, and most defaults are not
+        constants. So the fix is a hoist rather than a fourth scanner reach,
+        which would admit every rig knob in the scanned modules; ADR-0020 is
+        what a later appetite for exactly that argues against (#178).
+        """
+        seen = collections.defaultdict(list)
+        for relative in registers.SCANNED:
+            text = (registers.SOURCE / relative).read_text(encoding="utf-8")
+            for function, parameter in _literal_defaults(ast.parse(text)):
+                seen[parameter].append(f"src/patchworks/{relative}:{function}")
+        repeated = [
+            f"{name}: " + ", ".join(where)
+            for name, where in sorted(seen.items())
+            if len(where) > 1
+        ]
+        assert repeated == [], (
+            "these parameters default to the same bare numeric literal in two "
+            "or more signatures, so the number has no definition site and no "
+            "register row; hoist it to a module constant (ADR-0020):\n  "
+            + "\n  ".join(repeated)
+        )
+
+    def test_the_check_reddens_on_a_repeat_and_ignores_the_settled_forms(self):
+        """Both arms, or the arm that matters is a category with nothing in it.
+
+        `bias_variance` (`DEFAULT_BIAS_VARIANCE`/`None`), `gamma`
+        (`DEFAULT_GAMMA`/`_UNSET`) and `image_size` (`IMAGE_SIZE`/`None`) all
+        default two ways across signatures already, and all three redden falsely
+        if the check reads anything but a bare numeric literal.
+        """
+        tree = ast.parse(
+            "def a(x=1.0, flag=False, y=None, z=_UNSET, w=DEFAULT_TICKS): ...\n"
+            "def b(x=1.0, flag=False, y=None, z=_UNSET, w=DEFAULT_TICKS): ...\n"
+        )
+        assert _literal_defaults(tree) == [("a", "x"), ("b", "x")]
 
     def test_every_scanned_module_was_actually_read(self, surveys):
         """A typo in `SCANNED` would pass every other test in this file."""
