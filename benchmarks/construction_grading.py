@@ -280,8 +280,13 @@ def paired(agent, state, quiet, observation, applied, source, deviation, probe, 
     exactly rather than approximately. Peaking the numerator instead would be a
     different reduction and would find a different path.
     """
-    moved = det.branch(
-        agent, state, observation, applied, window, (source, deviation * probe)
+    # `det.branch` moved twice under this read, in #232's four-corner work which
+    # landed on `action` after this branch was cut: `nudge` is now a **sequence**
+    # of `(cell, deviation)`, and the return is `(trace, recorded)` rather than
+    # the trace alone. One pair is #214's stimulus and is what this read wants,
+    # and nothing is recorded, so the second half is dropped.
+    moved, _recorded = det.branch(
+        agent, state, observation, applied, window, ((source, deviation * probe),)
     )
     numerator = (moved - quiet).norm(dim=-1).numpy() / probe
     denominator = quiet.norm(dim=-1).numpy()
@@ -320,7 +325,7 @@ def collect(
         applied = np.zeros(env.action_space.shape, dtype=np.float64)
         det.hold_still(agent, observation, applied, hold)
         state = ufp.snapshot(agent.sheaf)
-        quiet = det.branch(agent, state, observation, applied, window, None)
+        quiet, _recorded = det.branch(agent, state, observation, applied, window, None)
         for direction, targets in ends.items():
             source = picks[direction][i]
             deviation = det.unit(dome.cells[source].stalk, generator)
