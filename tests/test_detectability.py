@@ -107,6 +107,21 @@ class TestWidestPath:
         assert value == pytest.approx(0.6)
         assert target == 2
 
+    def test_several_sources_search_from_all_of_them(self):
+        """A collective perturbation has no single source, and the `max` is over
+        rim-to-apex paths rather than over paths from one named cell. Seeding
+        every perturbed cell at `inf` is the same object as a virtual
+        super-source, and the wider seed can only find a wider path."""
+        graph = Line([(0, 1), (2, 1)], 3)
+        alone, _target, _edge, _path = det.widest_path(
+            graph, np.array([0.2, 0.9]), 0, (1,)
+        )
+        together, _target, _edge, _path = det.widest_path(
+            graph, np.array([0.2, 0.9]), (0, 2), (1,)
+        )
+        assert alone == pytest.approx(0.2)
+        assert together == pytest.approx(0.9)
+
     def test_an_unreachable_target_is_zero(self):
         """A disconnected target carries no channel, and says so rather than raising."""
         graph = Line([(0, 1)], 3)
@@ -135,8 +150,8 @@ class TestTheFork:
         """Identically zero, not merely small: the fork carries no state between runs."""
         agent, observation, applied = held
         state = det.ufp.snapshot(agent.sheaf)
-        one = det.branch(agent, state, observation, applied, 8, None)
-        two = det.branch(agent, state, observation, applied, 8, None)
+        one, _ = det.branch(agent, state, observation, applied, 8, None)
+        two, _ = det.branch(agent, state, observation, applied, 8, None)
         assert float((one - two).abs().max()) == 0.0
 
     def test_the_cast_reaches_everything_a_tick_touches(self, held):
@@ -154,20 +169,104 @@ class TestTheFork:
         """
         agent, observation, applied = held
         state = det.ufp.snapshot(agent.sheaf)
-        quiet = det.branch(agent, state, observation, applied, 16, None)
+        quiet, _ = det.branch(agent, state, observation, applied, 16, None)
         source = det.rim(agent.dome)[0]
-        deviation = det.unit(
-            agent.dome.cells[source].stalk, torch.Generator().manual_seed(1)
+        nudge = (
+            (
+                source,
+                det.unit(
+                    agent.dome.cells[source].stalk, torch.Generator().manual_seed(1)
+                ),
+            ),
         )
         reads = [
-            det.ratios(
-                agent, state, quiet, observation, applied, source, deviation, a0, 16
-            )
+            det.ratios(agent, state, quiet, observation, applied, nudge, a0, 16)
             for a0 in (1e-2, 1.0)
         ]
         finite = np.isfinite(reads[0]) & np.isfinite(reads[1]) & (reads[1] > 0)
         assert finite.any()
         assert np.allclose(reads[0][finite], reads[1][finite], rtol=1e-6)
+
+    def test_a_sustained_source_is_held_at_a_constant_offset(self, held):
+        """What *sustained* means, checked on the stalk rather than inferred.
+
+        The rim sources are written boundary cells, so #214's stimulus is erased
+        on the tick after it lands; the sustained branch clamps them to the quiet
+        branch's own value plus the deviation. So the difference between the two
+        branches at the source is exactly the deviation, at **every** tick — and
+        under the impulse it is the deviation at the first tick and zero after.
+        """
+        agent, observation, applied = held
+        state = det.ufp.snapshot(agent.sheaf)
+        source = det.rim(agent.dome)[0]
+        deviation = det.unit(
+            agent.dome.cells[source].stalk, torch.Generator().manual_seed(1)
+        )
+        nudge = ((source, deviation),)
+        _quiet, quiet_stalks = det.branch(
+            agent, state, observation, applied, 8, None, record=(source,)
+        )
+        _moved, sustained = det.branch(
+            agent,
+            state,
+            observation,
+            applied,
+            8,
+            nudge,
+            sustained=quiet_stalks,
+            record=(source,),
+        )
+        _moved, impulse = det.branch(
+            agent, state, observation, applied, 8, nudge, record=(source,)
+        )
+        offset = sustained[source] - quiet_stalks[source]
+        assert torch.allclose(offset, deviation.expand_as(offset), atol=1e-12)
+        erased = impulse[source] - quiet_stalks[source]
+        assert float(erased.abs().max()) == pytest.approx(0.0, abs=1e-12)
+
+
+class TestTheCollective:
+    """#232's injection convention: unit-norm over the stratum, and coherent."""
+
+    def stratum(self):
+        dome = build_graph(SMALL)
+        return dome, tuple(det.rim_strata(dome)[0])
+
+    def test_the_whole_injection_is_unit_norm(self):
+        """`A₀ = 1` over the collective, so the corners compare like with like.
+
+        Without this clause the collective corner would inject `√K` times more
+        than #214 did and beat the baseline by arithmetic rather than by
+        coherence — which is the thing the read is asking about.
+        """
+        dome, cells = self.stratum()
+        assert len(cells) > 1
+        for coherent in (True, False):
+            nudge = det.injection(
+                dome, cells, torch.Generator().manual_seed(0), coherent
+            )
+            assert {c for c, _ in nudge} == set(cells)
+            total = torch.cat([d for _, d in nudge]).norm()
+            assert float(total) == pytest.approx(1.0, rel=1e-12)
+
+    def test_coherent_is_one_direction_and_incoherent_is_many(self):
+        """The contrast row differs from the corner in this and nothing else."""
+        dome, cells = self.stratum()
+        shared = det.injection(dome, cells, torch.Generator().manual_seed(0), True)
+        apart = det.injection(dome, cells, torch.Generator().manual_seed(0), False)
+        first = shared[0][1]
+        assert all(torch.allclose(d, first) for _, d in shared)
+        assert not torch.allclose(apart[0][1], apart[1][1])
+
+    def test_a_ragged_collective_is_refused_rather_than_averaged(self):
+        """Coherence is *the same vector in each cell's own coordinates*, so it
+        has no meaning across stalks of different width, and the strata are what
+        keep the widths equal. A mixed set is a bug, not a reading."""
+        dome = build_graph(SMALL)
+        strata = det.rim_strata(dome)
+        mixed = (strata[0][0], strata[1][0])
+        with pytest.raises(ValueError):
+            det.injection(dome, mixed, torch.Generator().manual_seed(0))
 
 
 class TestBenchmark:
@@ -192,6 +291,27 @@ class TestBenchmark:
         printed = capsys.readouterr().out
         assert "rim-to-apex" in printed
         assert "apex-to-rim" in printed
+
+    def test_corners_runs(self, capsys):
+        det.main(
+            [
+                "corners",
+                "--dome",
+                "small",
+                "--trials",
+                "2",
+                "--learn",
+                "50",
+                "--hold",
+                "20",
+                "--window",
+                "8",
+            ]
+        )
+        printed = capsys.readouterr().out
+        for corner in ("impulse x single-source", "sustained x collective"):
+            assert corner in printed
+        assert "the four corners, inbound" in printed
 
     def test_linearity_runs(self, capsys):
         det.main(

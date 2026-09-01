@@ -44,9 +44,19 @@ sensorimotor loop budget exactly what it says it is, rather than quietly halving
 ban costs nothing today and forbids a specific future mistake.
 
 **It composes with the readback requirement** (`04-action-and-the-boundary.md`, *Readback*): a motor
-boundary cell owes a readback of what the world made of its command, and under this ban that readback
-arrives on a *different* cell rather than being written back onto the same stalk. On a language rim
-those two facts together are what make turn-taking legible as the body's refusal.
+boundary cell owes a readback of what the world made of its command, and the ban does not touch it —
+the readback is written back onto that same cell, as the dome's actuator stalk of 6 carries three
+commanded components and three efference ones. What the ban keeps off that cell is the **sensory**
+stream: on a language rim, the characters the interlocutor *speaks* land on a heard cell of their own,
+never on the cell it reads. Those two facts together are what make turn-taking legible as the body's
+refusal.
+
+> **Wording corrected** while writing [#170](https://github.com/NGL321/patchworks/issues/170). This
+> paragraph previously said the readback "arrives on a *different* cell rather than being written back
+> onto the same stalk", which read literally forbids the dome's own actuator cell and the language
+> domain's spoken rim ([`12-the-interlocutor.md`](../spec/12-the-interlocutor.md), *The spoken cell is
+> read for its command and written for its readback*). The decision above is unchanged; only this
+> consequence was stated too widely.
 
 ## Alternatives considered
 

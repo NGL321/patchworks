@@ -66,14 +66,31 @@ than by accident. That is a defensible thing to want — the channel is where th
 claim about behaviour that nothing else in the record states, and anyone reading a slow off-channel
 component as a defect should read it here first.
 
-### Detectability is stated along the channel, and inherits this
+### Detectability's existential covers the route, not the direction
 
 [ADR-0021](./0021-rim-to-core-detectability-is-a-bottleneck-ratio.md)'s predicate asks whether **there
-exists a channel** that carries a rim perturbation to the apex — the max over paths of the min
-bottleneck ratio along a path. That existential is this ADR's reading in the transmission predicate's
-own words: it asks after a channel because a hop is a channel quantity, and it would be the wrong
-predicate if a hop were an average. The two were settled independently, on different tickets, and they
-agree; recording the agreement is cheaper than rediscovering the disagreement.
+exists a path** that carries a rim perturbation to the apex — the max over paths of the min bottleneck
+ratio along a path.
+
+This ADR previously read that existential as its own reading in the transmission predicate's own words,
+and called the two settled independently and in agreement. **That was false as written**, and
+[#230](https://github.com/NGL321/patchworks/issues/230) corrected it. ADR-0021 maximises over
+**paths**; it does not maximise over **directions**. The two quantify different things, and the
+detectability instrument shows it: `benchmarks/detectability.py`'s `unit()` draws an isotropic
+`torch.randn` deviation — the thing this ADR's own consequence forbids in terms — and does so while
+conforming to ADR-0021 exactly. The existential covers the **route**. The **direction** is the
+injection convention, and that convention is ADR-0021's to own.
+
+**The size of the discrepancy, stated honestly, because it is not the 184x above.** The isotropic
+penalty in the detectability read is paid **once, at injection**: after the first near-rank-1 map, what
+survives is already on-channel, and every hop after it is carrying an aligned deviation whatever the
+probe was. So it is worth roughly `√(stalk width)` — single digits. #142's 184x compounded only because
+**every** hop was probed isotropically, and a chained per-hop error is a different quantity from a
+one-off entry loss.
+
+**[#214](https://github.com/NGL321/patchworks/issues/214) is therefore not invalidated, and is not to
+be re-read for this.** It measured correctly what ADR-0021 specified, and a single-digit entry factor
+does not move a 1.15e9x verdict.
 
 ## Consequences
 
@@ -104,9 +121,10 @@ agree; recording the agreement is cheaper than rediscovering the disagreement.
 ## Alternatives considered
 
 - **Leave it implicit.** The measurement stands on its own and the instrument is committed. Rejected
-  because two decisions rest on it — #190's striking of equalisation and ADR-0021's existential — and
-  an implicit premise under two decisions is the shape this record has repeatedly had to go back and
-  repair. A reading that moves a headline figure by 184x is not a measurement detail.
+  because two decisions rest on it — #190's striking of equalisation, and the standing correction to
+  every transmission instrument — and an implicit premise under two decisions is the shape this record
+  has repeatedly had to go back and repair. (ADR-0021's existential was listed here as a third and is
+  not one: it covers the route, not the direction. See the correction above.) A reading that moves a headline figure by 184x is not a measurement detail.
 - **State it as a property of the contract rather than of a trained surface.** Rejected as false. The
   channel is 3.66x untrained against 14.20x taught: it is largely built by the transport rule, and
   claiming it at construction would promise something the cold-start case does not have. #154 is open
