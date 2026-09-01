@@ -1,0 +1,56 @@
+dome=real split=train seed=42
+one trajectory to 30000 ticks, both rules on, read at 1 budgets
+hold of 400 ticks at each read; #178's protocol, #158's control
+
+old denominator: min 20.0 max 52.0
+new denominator: flat 8.0  -> raise 2.50x to 6.50x
+
+
+=== 30000 ticks ===
+  cells 150   floor: med 0.06382 p95 0.39532 max 1.78006
+  margin, full  R^44: med 0.01887 min 0.00008
+  margin, stalk R^32: med 0.02163 min 0.00009
+  space correction:   mean 1.1744 median 1.1595  (isotropic sqrt(44/32) = 1.1726)
+
+  cap on gamma x floor, and the global gamma each permits:
+    variant                              min cap  binding  lvl  gamma_cap
+    published (full space, old denom)    0.00189       11    1     0.1090
+    defect 1 only (stalk, old denom)     0.00214       11    1     0.1231
+    defect 2 only (full, new denom)      0.00063       11    1     0.0168
+    BOTH (stalk space, new denom)        0.00071       11    1     0.0189
+
+  per-cell gamma_cap under BOTH corrections, by level:
+    level cells    median       min  below 1
+        1    70    1.0000    0.0189       22
+        2    20    1.0000    0.1017        5
+        3    16    1.0000    0.2791        3
+        4    14    1.0000    0.1918        4
+        5    12    1.0000    0.0456        3
+        6    10    1.0000    0.1906        2
+        7     8    1.0000    1.0000        0
+      ALL   150    1.0000    0.0189       39
+
+  the ten tightest cells under BOTH corrections:
+     row  lvl     floor  margin_s  denom       cap  gamma_cap
+      11    1   0.08951   0.00021    8.0   0.00170     0.0189
+       1    1   1.78006   0.00599    8.0   0.04792     0.0269
+     129    5   0.01568   0.00009    8.0   0.00071     0.0456
+      48    1   0.17246   0.00121    8.0   0.00964     0.0559
+      70    2   0.89320   0.01135    8.0   0.09083     0.1017
+      12    1   0.34483   0.00515    8.0   0.04118     0.1194
+      28    1   0.54862   0.00868    8.0   0.06947     0.1266
+       2    1   0.97374   0.01707    8.0   0.13655     0.1402
+      32    1   0.07810   0.00153    8.0   0.01226     0.1570
+      54    1   0.36031   0.00794    8.0   0.06354     0.1763
+
+  the margin estimator, three ways (stalk space, new denominator):
+    reading                       med margin  min margin   min cap  gamma_cap  cells < 1
+    median over the hold (02's)      0.02163     0.00009   0.00071     0.0189         39
+    min over the hold                0.01816     0.00000   0.00001     0.0000         49
+    one instant                      0.02043     0.00008   0.00067     0.0041         41
+
+  level medians of the cap, which is 02's systematic claim:
+    L1 0.1543  L2 0.2305  L3 0.1291  L4 0.1631  L5 0.3186  L6 0.1944  L7 0.3885
+    (02 records the level medians of the *margin* falling with depth, 1.25 -> 0.52)
+    margin: L1 0.0193  L2 0.0288  L3 0.0161  L4 0.0204  L5 0.0398  L6 0.0243  L7 0.0486
+    budget 30000
