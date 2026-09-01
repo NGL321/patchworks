@@ -64,14 +64,23 @@ _UNSET = _Unset()
 #: @type chosen
 #: @flexibility any non-zero constant; zero makes the drive inert, and a schedule is not a drive
 #: @warrant docs/adr/0009-a-drive-is-a-motor-edge-attached-deep.md
-#: What the drive boundary cell asserts, every tick, forever. **Chosen here,
-#: not recorded**: the record fixes the stalk's width and its content — one
-#: dimension carrying *valence, not specification* — but not the number. It has
-#: to be a non-zero constant. Constant because a drive is a standing assertion
-#: and never a schedule; non-zero because a restriction of zero is a belief no
-#: apex cell can ever disagree with, which would make the drive inert and the
-#: dark room problem unanswered. One, for the same reason a satisfied assertion
-#: is naturally read as true.
+#: What the drive boundary cell asserts, every tick, forever. The record fixes
+#: the stalk's width and its content — one dimension carrying *valence, not
+#: specification* — and, since #137, the number's *kind*. It has to be a
+#: non-zero constant. Constant because a drive is a standing assertion and never
+#: a schedule; non-zero because a restriction of zero is a belief no apex cell
+#: can ever disagree with, which would make the drive inert and the dark room
+#: problem unanswered. One, for the same reason a satisfied assertion is
+#: naturally read as true.
+#:
+#: **Chosen, and now recorded.** ADR-0009's *Known exposure* declines the ramp
+#: as a fourth axis: #183 measured this constant's flexibility and it is not
+#: unknown — the apex deposit is **linear** in the assertion (0.100 per hop, a
+#: `1 -> 10` step landing 0.90), so raising it buys apex-local pressure and
+#: nothing else, and reaching the rim would need ~5.2e3. It cannot differentiate
+#: the apex either, because `m_e = 1` leaves no direction to scale. Width is the
+#: axis with leverage (#188). No ceiling bounds this number and none is
+#: derivable today; a constant needs none.
 DRIVE_ASSERTION = 1.0
 
 #: @type stipulated
