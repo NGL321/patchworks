@@ -60,7 +60,7 @@ Secondary, and corrected: delay-coupled loops **do** produce slow rhythms at sec
 strength** ([#29](https://github.com/NGL321/patchworks/issues/29)).
 
 The route is closed here anyway, on ground already in the record: **the coupling gain is `γ`, and `γ`
-is spoken for.** [`02-tick-semantics.md`](./02-tick-semantics.md) fixes it as `gain_v = γ / Σ_e m_e`
+is spoken for.** [`02-tick-semantics.md`](./02-tick-semantics.md) fixes it as `gain_v = γ / (g_v² · c_v)`
 under the bound `gain_v × offset <` fold margin,
 [ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md) records that it is
 explicitly *not* a timescale knob, and *The precondition* below makes that same margin what gives
@@ -192,8 +192,7 @@ because it is informative and comparable across runs. It stopped being the bar.
 **The fold margin is the proxy for dwell.** `02-tick-semantics.md` checks
 `gain_v × offset <` fold margin per cell, derived there from the standing offset shifting the
 operating point. That check is doing a second job, and this section is the one that needs it: **the
-fold margin is what makes "the cell's region" a well-defined object at all.** The relationship is the
-same one `Σ_e m_e` has to the local Laplacian block's spectral radius in `02` — a cheap static
+fold margin is what makes "the cell's region" a well-defined object at all.** It is a cheap static
 quantity standing in for a dynamic one.
 
 **Since [#160](https://github.com/NGL321/patchworks/issues/160) the proxy nominates and the
@@ -498,8 +497,9 @@ to zero.
 **Where it attaches: outbound only.** The gate scales a restriction map's output *before broadcast*.
 The two alternatives are the reconciliation gain wearing a hat — scaling the descent step *is* the
 gain by definition, and scaling what is received before reconciliation is a per-edge gain
-modulation, which reintroduces at the receiver exactly the differentiation that `γ / Σ_e m_e`
-was specified to equalise ([`02-tick-semantics.md`](./02-tick-semantics.md)). Only the outbound form
+modulation, which makes `gain_v` a per-edge quantity varying at runtime where
+[`02-tick-semantics.md`](./02-tick-semantics.md) specifies it per cell as `γ / (g_v² · c_v)`, every
+term of it read off the built graph or declared once. Only the outbound form
 changes what exists on the edge rather than how hard the receiver descends on it, and only the
 outbound form makes transmission rate track content rate.
 
