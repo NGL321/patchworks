@@ -218,6 +218,27 @@ the sheaf's `H⁰`. Reconciliation cannot move them, which is what makes them th
 slowly-varying state as well as of its own sub-problem.
 _Avoid_: hidden features, internal state (reserve that for the chart), latent
 
+**Execution clock**:
+How often a cell runs: **one tick, uniformly across the graph**. Every cell infers one step ahead on
+the same clock, so no cell is frozen while its neighbours run, and ADR-0002's second ground is why. It
+is a property of the architecture, identical at the rim and at the apex, and nothing about a cell's
+depth, placement or content changes it. A cell with a longer timescale is **not** a cell that runs less
+often — that reading was live in the record and is not admissible.
+_Avoid_: timescale (bare, for this sense), latency (`05-timescales.md` uses it for unit delay, which is
+a phase shift and the wrong ratio), clock rate, update rate, tick rate, schedule
+
+**Retention**:
+How much of what a cell held it keeps — the other half of what *timescale* used to name, and the half
+that is **differentiated across the graph by design**. It is ADR-0005's subject: persistence in the
+private features rather than a schedule, and since #138 a per-cell time constant living in `K`'s
+spectrum. **Effective timescale** below is the measurement of it. The graph's retention currently
+measures flat at about one tick (`05-timescales.md`), which is a finding about this build and not a
+property of the architecture.
+
+*One clock, heterogeneous retention.* The two are separate objects and the record needs both words.
+_Avoid_: timescale (bare, for this sense), memory, decay rate, persistence (reserve for ADR-0005's
+mechanism), level, tier
+
 **Effective timescale**:
 How slowly a cell's content changes — set by how much private structure it holds and by the
 *distribution* of regional spectra its biases select, not by any one of them. A mean rate rather
