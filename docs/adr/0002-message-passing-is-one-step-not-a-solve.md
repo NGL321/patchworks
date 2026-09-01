@@ -16,6 +16,41 @@ sibling decisions and the cell-and-sheaf contract already rule out. A fixed roun
 sidesteps that specific problem but replaces it with an unmotivated constant nothing else in the
 architecture needs. One step is the only choice that adds neither.
 
+## The three grounds
+
+Reaffirmed by [#230](https://github.com/NGL321/patchworks/issues/230) against a shortfall this
+decision had never been weighed against: [#214](https://github.com/NGL321/patchworks/issues/214)
+measured rim-to-core transmission failing by **1.15e9x**, and `docs/research/150` had already found
+**52% of the per-hop loss is the reconciliation gain** — the step size this ADR sets. One step per
+tick was the candidate that deficit was going to be spent on, for the second time in this record.
+
+It stands, and it stands on three independent grounds, written here deepest first. The first comes
+from what the architecture is for rather than from what a solve would cost.
+
+### 1. A cognitive system is not a function solver
+
+The architecture's motivating objection to free-energy formulations is that a brain is not an
+optimiser evaluating an objective to convergence, and that no plausible evolutionary route places one
+there. **A tick that ran reconciliation to its fixed point would be exactly that.** One local
+relaxation step per tick is a geometry that relaxes, not an optimiser that solves — and the
+difference is the architecture's own claim about what a cognitive system is, not a property of this
+implementation.
+
+### 2. Uniformity of the clock
+
+Every cell infers one tick ahead on the same clock, so no cell is frozen while its neighbours run.
+Heterogeneous internal rollout would break that, and with it the wave picture the architecture is
+built on: ripples entering at the rim and crossing a graph whose parts all advance together.
+
+**What this ground forbids is precise, and it is narrower than it looks.** It rules out cells having
+**different** rollout lengths. A *uniform* extra sweep count — every cell running `R` steps, the same
+`R` everywhere — would not violate it. That variant is refused on ground 1, which it violates
+squarely, and on ground 3.
+
+### 3. Cost
+
+A solve trades a local rule for a global loop, and the record has priced that repeatedly.
+
 ## Consequences
 
 - Per-tick compute is bounded by construction — one forward pass per cell, one
