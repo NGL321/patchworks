@@ -272,14 +272,14 @@ files in that directory are and what broke while building them; it does not repe
 
 | | |
 |---|---|
-| [`docs/spec/`](docs/spec/) | Ten files, in reading order. The system, completely specified. Start with [the cell and its sheaf](docs/spec/01-cell-and-sheaf.md). |
+| [`docs/spec/`](docs/spec/) | Twelve files, in reading order. The system, completely specified. Start with [the cell and its sheaf](docs/spec/01-cell-and-sheaf.md). |
 | [`docs/adr/`](docs/adr/) | Thirteen decisions that needed a reason on the record. |
 | [`docs/research/`](docs/research/) | The citation passes, including the ones that found defects. |
 | [`docs/registers/`](docs/registers/) | Every constant the architecture rests on, typed by where the number came from, and what turning it would cost. Generated from the definition sites, so it cannot disagree with the code. |
 | [`CONTEXT.md`](CONTEXT.md) | The vocabulary. Narrow senses, deliberately. |
 | [`src/patchworks/sandbox/`](src/patchworks/sandbox/) | The world, as a `gymnasium.Env`. |
 | [`src/patchworks/graph.py`](src/patchworks/graph.py) | The dome: construction, the structural masks, and the diagnostics it records. |
-| [`src/patchworks/timescales.py`](src/patchworks/timescales.py) | Bias selection, and the go/no-go that can kill the timescale mechanism before anything is trained. |
+| [`src/patchworks/timescale.py`](src/patchworks/timescale.py) | Bias selection, and the go/no-go that can kill the timescale mechanism before anything is trained. |
 | [`prototypes/sandbox/`](prototypes/sandbox/) | The throwaway it was promoted from, and the probes that measured it. |
 | [Issue #1](https://github.com/NGL321/patchworks/issues/1) | The map every one of those decisions was made on. |
 
