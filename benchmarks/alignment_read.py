@@ -17,12 +17,19 @@ retention recharter whether per-edge variation is a construction fact or a learn
 
 **Why #233 could not read it, and what changed.** #233's measured quantity is a
 *windowed peak* — `max` over 64 ticks of a paired ratio — sitting ~480x above the
-isotropic single-step prediction. That level shift swamps the sign of a per-hop
-direction effect. The confound is the window, and it was checked rather than assumed:
-the gap is flat in relay degree (`r = -0.121`, 408x-748x across degrees 5-9), so it is
-the window's accumulation and not the graph's parallel routes. A **tick-aligned
-single-step** read has no window to accumulate over, so the arriving direction's
-placement against the hop operator is directly readable.
+isotropic single-step prediction, and a level shift that large swamps the sign of a
+per-hop direction effect. A **tick-aligned single-step** read has no window to
+accumulate over, so the arriving direction's placement against the hop operator is
+directly readable. That is what this script takes, and it is enough for the ticket's
+question whatever the level shift turns out to be, because the alignment statistic is a
+ratio *within* one tick and the shift divides out of it.
+
+**One of #233's attributions does not survive the change, and is corrected here.** #233
+read the 480x as the window's accumulation, on a degree-flatness check run against its
+own windowed quantity. Remove the window and the gap is still there — see
+:func:`single_step_section`, which re-runs that check on the windowless quantity. So the
+level shift is not the window; a one-route operator is simply not what decides what
+lands on a many-route edge.
 
 **What a hop is, exactly** — unchanged from #233, and the ticket names the operator::
 
@@ -100,6 +107,7 @@ if _HERE not in sys.path:
 import construction_grading as cg  # noqa: E402
 import detectability as det  # noqa: E402
 import untrained_fixed_point as ufp  # noqa: E402
+from graph_transmission import BODY_GAIN  # noqa: E402
 
 #: How many isotropic directions the per-hop null is drawn from. The null is a
 #: function of the operator's singular values alone (see :func:`null_sample`), so
@@ -685,12 +693,21 @@ def decomposition_section(rows: list[dict], checks: dict) -> None:
         )
 
 
-def single_step_section(rows: list[dict]) -> None:
+def single_step_section(dome: Dome, rows: list[dict]) -> None:
     """Is `M` the hop? The empirical one-tick transport is the check.
 
     Read here rather than argued, because the primary statistic is only worth
-    what the operator is worth, and #233's 480x window artifact is exactly the
-    thing a tick-aligned read has to be shown to have removed.
+    what the operator is worth.
+
+    **And it carries a correction.** #233 found a ~480x gap between its measured
+    quantity and the isotropic single-step prediction, and attributed it to the
+    *window* — on a degree-flatness check run against its own windowed quantity.
+    A tick-aligned read has no window, so if the attribution were right this gap
+    should collapse. It does not. The same degree check is therefore re-run here
+    on the windowless quantity, because the alternative account #233 ruled out —
+    the graph's parallel routes — is exactly what a one-route operator failing to
+    predict a many-route landing would look like, and ruling it out on the
+    windowed quantity does not rule it out on this one.
     """
     cosine = np.array([r["cosine"] for r in rows])
     magnitude = np.array([r["magnitude"] for r in rows])
@@ -700,10 +717,36 @@ def single_step_section(rows: list[dict]) -> None:
     spread("|cos| predicted against landed", cosine, "")
     spread("||landed|| / ||M d_in||", magnitude, "x")
     print(
-        "\n  the magnitude is not expected to be 1: `M` omits the body's scale, "
-        "and\n  every other route into e_out contributes to what lands there. What "
-        "it is\n  expected NOT to be is #233's 480x, which was the window "
-        "accumulating."
+        "\n  `M` omits the body's scale, so one route through this relay delivers\n"
+        f"  {BODY_GAIN} x ||M d_in||. Everything above that is what the OTHER routes\n"
+        "  into e_out put there in the same tick."
+    )
+
+    # #233's own check, on a quantity with no window in it. If the level shift
+    # were the window's accumulation it would be gone; if it is the graph's
+    # parallel routes it grows with how many routes a relay has. Reported per
+    # degree and never as a graph-wide claim.
+    degree = np.array([float(dome.degrees[r["cell"]]) for r in rows])
+    good = np.isfinite(magnitude) & (magnitude > 0)
+    print("\n  is the level shift the window, or the graph's parallel routes?\n")
+    if good.sum() > 2:
+        r = float(np.corrcoef(degree[good], np.log10(magnitude[good]))[0, 1])
+        print(
+            f"    tick-aligned gap against relay degree: r = {r:+.3f} over "
+            f"{int(good.sum())} hops, degrees {degree.min():.0f} to {degree.max():.0f}"
+        )
+    print(f"    {'relay degree':>14} {'hops':>6} {'median gap':>13}")
+    by_degree = defaultdict(list)
+    for value, deg, ok in zip(magnitude, degree, good):
+        if ok:
+            by_degree[int(deg)].append(value)
+    for deg in sorted(by_degree):
+        series = np.array(by_degree[deg])
+        print(f"    {deg:>14} {len(series):>6} {np.median(series):12.4g}x")
+    print(
+        "\n    #233 read this gap at ~480x and attributed it to the window, on\n"
+        "    this same check run against its own windowed quantity. There is no\n"
+        "    window here, so whatever this reports is not the window."
     )
 
 
@@ -791,7 +834,7 @@ def main(argv: list[str] | None = None) -> None:
     rows, checks = read_hops(dome, samples, agent)
     verdict_section(rows)
     decomposition_section(rows, checks)
-    single_step_section(rows)
+    single_step_section(dome, rows)
     per_hop_section(dome, rows)
 
 
