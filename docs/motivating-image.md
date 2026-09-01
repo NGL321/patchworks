@@ -71,6 +71,14 @@ ripple but the structure it assembles, and it survives because it is topological
 *(The persistence half of that sentence is the thermodynamic idea marked above as thin-provenance
 motivation.)*
 
+**Shape warning, and it is load-bearing.** The shaping is the idea; *this* graph is not it. The dome
+is **explicitly abandonable** on its own merits (`docs/spec/06-graph-topology.md`), its seven-hop
+depth was chosen to make a measurement legible rather than because the architecture needs seven, and
+#163 has since written the shape-free builder — the wedge is the same construction rule producing a
+different shape for a rim that is a character stream. **Levels are not an earned index**: per #181,
+no target, bound or pass condition is indexed by them. Read the levels as one picture of a shaped
+substrate, never as a dynamical role they have been shown to carry.
+
 ## The refinement, and the better image
 
 Not viscosity — **structuredness of a vector field.** Where the field is stable it forms shapes, and
