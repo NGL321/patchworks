@@ -116,6 +116,22 @@ This is what lets the agent's drive carry **valence without specification**
 statements are not in tension — the goal's **content** is perception, and the discomfort at not having
 reached it is the scalar.
 
+**The four channels describe one instant, and that took a `mj_forward` to be true**
+([#266](https://github.com/NGL321/patchworks/issues/266)). `mj_step` integrates `qpos` and `qvel` and
+leaves everything *derived* from them — the body positions the renderer draws from, and `sensordata` —
+describing the world as it was at the **start** of the tick. So `step` returned an observation that
+contradicted itself: `image` and `touch` said where the arm had been, beside a `qpos` and `qvel` saying
+where it was now. The error scaled with arm speed, reaching **64 levels** on ~0.5–1% of pixels and
+**1.8** on `touch` within twenty ticks. The rim reads that observation every tick, so this was a fault
+in what the rim receives, not a cosmetic one. `step` now ends in a forward, which is the same
+reconciliation `reset` and `restore` already did — every method that moves the world now leaves the
+derived quantities agreeing with the state it left behind.
+
+The forward **does not move the world**: `qpos` and `qvel` are bit-identical with and without it over
+2,000 ticks across five seeds, contacts included, because `mj_step` computes forward dynamics itself.
+It costs **9 µs** — 1.2% of a camera-drawn step and 5.9% of a camera-blanked one, below the precision
+the figures in [`09-the-build-stack.md`](./09-the-build-stack.md) are quoted at.
+
 ### Known exposure: what 64×64 does and does not resolve
 
 Each puck carries an orientation marker. **At 64×64 the marker is not resolvable**, so puck

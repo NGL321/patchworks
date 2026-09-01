@@ -77,7 +77,12 @@ wrong:
   stage-3 gate then consists of. Whoever answers #242 rewrites this section; until then it stands.
 
 **The predicate has been read twice, and fired both times.** Recorded as a fact about its use, not as
-a re-derivation of it, and neither read is re-opened here:
+a re-derivation of it, and neither read is re-opened here. **Both reads predate**
+[#266](https://github.com/NGL321/patchworks/issues/266) — they route through
+`untrained_fixed_point.build` and so through `env.step`, whose observation carried an image and a
+touch reading one integration stale — so the digits below are dated rather than reproducible. A ~2.8%
+relative move in the stalks does not reach a shortfall of `1e9x`, so what the reads *say* is untouched;
+a re-read would be a re-derivation, which this section is expressly not.
 
 - [#214](https://github.com/NGL321/patchworks/issues/214), the first direct read: rim→apex arriving at
   `8.7e-10`, short by **1.15e9x**; apex→rim short by **7.6e7x**.

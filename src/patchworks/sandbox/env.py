@@ -584,6 +584,18 @@ class PlanarPushSandbox(gym.Env):
         torque = np.clip(np.asarray(action, dtype=np.float64), -1.0, 1.0) * self._torque_limit
         self.data.ctrl[:] = torque
         mujoco.mj_step(self.model, self.data, nstep=self.frame_skip)
+        # mj_step integrates qpos and qvel and leaves everything *derived* from
+        # them -- the body positions the renderer draws from, and sensordata --
+        # describing the world as it was at the start of the tick. Without this
+        # the observation contradicts itself: the image and the touch reading
+        # say where the arm was, beside a qpos and qvel saying where it is now.
+        # The sensorimotor rim reads that observation every tick, so the
+        # disagreement is a fault in what the rim receives, not a cosmetic one.
+        # A forward is a pure function of the state, so the world does not
+        # move; this is the same reconciliation `_rederive_from_state` does for
+        # the writers, and with it every method that moves the world leaves the
+        # derived quantities agreeing with the state it left behind.
+        mujoco.mj_forward(self.model, self.data)
         # reward 0.0 and both flags False are the contract, not placeholders.
         return self._obs(), 0.0, False, False, self._info()
 
