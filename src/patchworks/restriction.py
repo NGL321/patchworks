@@ -340,8 +340,9 @@ class RestrictionMaps(torch.nn.Module):
         actuator carries `deg = 3` on a stalk of 6, so `c_v` is the global `c`
         of 2 while nothing pushes its three maps apart; the fully-coherent
         arrangement would put `λ_max` at 3. Measured, it is **1.0164 at
-        construction against a target of 2.0**, so the bound holds with 1.97x to
-        spare and nothing here is unsafe today. It is recorded rather than
+        construction and 1.0029 after 5,000 taught ticks, against a target of
+        2.0** — it holds with 1.97x to spare and does not drift toward coherence
+        over a run, so nothing here is unsafe today. It is recorded rather than
         quietly corrected because the correction would be a change to a ruled
         denominator (#190) and this is a build, not a ruling; :meth:`gram_peaks`
         is what reads it. See #228.
