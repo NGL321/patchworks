@@ -4,11 +4,31 @@
 
 ## Context
 
-Settled in [#181](https://github.com/NGL321/patchworks/issues/181).
+Settled in [#181](https://github.com/NGL321/patchworks/issues/181). **Re-scoped by
+[#230](https://github.com/NGL321/patchworks/issues/230) and carried into
+[#127](https://github.com/NGL321/patchworks/issues/127)'s *Done when* by
+[#236](https://github.com/NGL321/patchworks/issues/236): read *What this predicate is for*, at the
+end of this section, before reading a verdict off anything below it.**
 
-The destination this architecture is being built toward is *a perturbation at the rim measurably
-reaches the apex and returns*. Until now nothing said what **measurably reaches** means, and the two
-quantities the record kept comparing do not live in the same units.
+This ADR was derived from a destination the record has since retracted. The sentence it opened with:
+
+> The destination this architecture is being built toward is *a perturbation at the rim measurably
+> reaches the apex and returns*.
+
+*Superseded by #230.* The destination is **mutual influence** — rim cells influencing apex cells
+**collectively**, many-to-few, and apex cells influencing all rim cells **individually**, few-to-many,
+through an apex stable enough to conduct it. **Nothing has to arrive.** #230 ruled that the stable
+structures are not destinations but **channels** that direct the ripples — the object
+[ADR-0022](./0022-a-hop-is-an-operator-norm-along-a-learned-channel.md) already carries under the name
+*learned channel* — and #236 carried the retraction into #127's *Done when*, where *reaches and
+returns* is no longer the claim.
+
+The struck sentence is quoted rather than deleted because everything below is a derivation *from* it:
+the defect of units it exposes is real, the fix is correct, and a reader who cannot see the premise
+cannot check the work. What #230 struck is the **destination**, not the **derivation**.
+
+What was true when this was written and is still true: nothing said what **measurably reaches** means,
+and the two quantities the record kept comparing do not live in the same units.
 
 [#142](https://github.com/NGL321/patchworks/issues/142) pinned the per-hop target to
 "[ADR-0007](./0007-the-disagreement-floor-is-tolerated-not-represented.md)'s existing disagreement
@@ -30,6 +50,44 @@ What was left is not a number waiting to be measured. It is a defect of units:
 stood between the two, and each is a decision about what the architecture claims rather than a
 quantity to read off: **what size the rim perturbation is taken to be**, **which of ADR-0007's three
 floors is meant**, and **whether the comparison is per-hop or cumulative**.
+
+### What this predicate is for
+
+**A per-edge diagnostic — sufficient but not necessary — and the operative bar until something
+falsifiable replaces it.** #230's re-scope in its own terms:
+
+> ADR-0021 is re-scoped, not replaced. It stays an excellent per-edge diagnostic that correctly
+> located where the channel dies, and stops being the destination's *done when* — a sufficient but not
+> necessary condition. Deviation above the floor everywhere certainly means transmission; below it
+> does not certainly mean none, if the core's retained state moved.
+
+Three consequences, and the first is the one a session reading a result here is most likely to get
+wrong:
+
+- **A pass is conclusive; a fail is not.** Clearing the bar on every edge certainly means
+  transmission. Failing it does not certainly mean none, because the core's **retained** state may
+  have moved without a deviation arriving, and nothing in this predicate reads retained state. Every
+  instrument in its family reads arriving magnitude.
+- **It is nonetheless still the bar.** #127's *Done when* keeps it in terms — *the operative bar is
+  unchanged until something falsifiable replaces it* — because a bad predicate that fires beats a good
+  one that cannot be read, and this project's history says soft conditions rot. **Nothing here is
+  softened before that replacement exists**, and this ADR is not the place to try.
+- **[#242](https://github.com/NGL321/patchworks/issues/242) owes the replacement.** It writes the
+  falsifiable form of the influence reading, or rules that this ratio stays the bar and says what a
+  stage-3 gate then consists of. Whoever answers #242 rewrites this section; until then it stands.
+
+**The predicate has been read twice, and fired both times.** Recorded as a fact about its use, not as
+a re-derivation of it, and neither read is re-opened here:
+
+- [#214](https://github.com/NGL321/patchworks/issues/214), the first direct read: rim→apex arriving at
+  `8.7e-10`, short by **1.15e9x**; apex→rim short by **7.6e7x**.
+- [#232](https://github.com/NGL321/patchworks/issues/232), all four corners of the sustained ×
+  collective stimulus space: the best corner `2.3e-9`, short by **1.3e9x**, with only **7.2x** of
+  total spread across the whole space.
+
+So *The pre-registered expectation* below is **discharged, not pending**: it predicted that
+falsification condition 1 would fire, and it fired. It is left standing as written, in the
+anticipatory voice it was pre-registered in, because striking it would destroy the thing it was for.
 
 ## Decision
 
@@ -133,9 +191,12 @@ Rim→apex and apex→rim are stated and evaluated **separately**. The two direc
 gain: #190 priced the denominator swap at 2.50x at the apex against 12.0x at the actuator, so the path
 is **asymmetric by construction**, and a single chain would hide which half failed.
 
-Forward-only was rejected because it cannot express the claim being made — *reaches the apex **and
-returns*** — and would leave [#182](https://github.com/NGL321/patchworks/issues/182)'s return hop,
-the one the acceptance demo's instrument actually reads, covered by no predicate at all.
+Forward-only was rejected because it cannot express the claim being made. That claim was *reaches the
+apex **and returns*** when this was written and is **mutual influence** after #230, and it is
+two-directional under both readings — many-to-few inbound, few-to-many outbound. The retraction moved
+this argument's warrant and left its conclusion standing. Forward-only would also leave
+[#182](https://github.com/NGL321/patchworks/issues/182)'s return hop, the one the acceptance demo's
+instrument actually reads, covered by no predicate at all.
 
 ### The instrument
 
@@ -241,7 +302,8 @@ worth more than an unmarked verdict.
   depend on a free demo parameter, and would re-open the sufficiency verdict every time that parameter
   moved. The question the convention displaces is kept, in `08`.
 - **One fourteen-hop chain, or a forward-only predicate.** Rejected: the two directions do not share a
-  gain, a single chain hides which half failed, and forward-only cannot express *and returns*.
+  gain, a single chain hides which half failed, and forward-only cannot express a two-directional
+  claim — *and returns* when this was written, **mutual influence** after #230.
 - **A distribution over ticks rather than over trials.** Rejected: the deviation is a transient, so a
   per-tick distribution reports mostly the ticks at which the perturbation has not arrived.
 - **A universal bar — every trial clears 1 — behind a burn-in.** Rejected: #202 measured that the

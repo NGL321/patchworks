@@ -225,10 +225,11 @@ docstring says the ruled denominator waits on exactly that projection. It is a *
 term, in that it is a property of the built maps, but it is not predicted by any construction
 parameter and it varies per relay.
 
-**Direction, 480x, is an instrument-scale artifact and was checked rather than assumed.** A one-tick
-operator cannot be the whole of a peak-to-peak ratio taken over a 64-tick window, so the operator
-prediction is a *floor* on the measured quantity. The alternative — that the graph's parallel routes
-carry it — predicts the gap grows with how many routes a relay has. It does not:
+**Direction, 480x, is a level shift rather than a source of grading, and its cause is not settled
+here.** A one-tick operator cannot be the whole of a peak-to-peak ratio taken over a 64-tick window,
+so the operator prediction is a *floor* on the measured quantity — but that says the gap must exist,
+not why it is this large. One account — that the graph's parallel routes carry it — predicts the gap
+grows with how many routes a relay has. It does not:
 
 | relay degree | hops | median gap |
 |---|---|---|
@@ -238,9 +239,27 @@ carry it — predicts the gap grows with how many routes a relay has. It does no
 | 8 | 23 | 636.4x |
 | 9 | 23 | 408.4x |
 
-`r = −0.121` against degree over 296 hops, degrees 5 to 9. **Flat.** The gap is the window's
-accumulation, not the graph's routes, and it is a near-uniform level shift rather than a source of
-grading — which is why it moves the tier-3 bias to +2.24 dex while leaving `R²` at 0.025.
+`r = −0.121` against degree over 296 hops, degrees 5 to 9. **Flat.** So the gap is not the graph's
+parallel routes, and it is a near-uniform level shift rather than a source of grading — which is why
+it moves the tier-3 bias to +2.24 dex while leaving `R²` at 0.025.
+
+> **Corrected by [#244](https://github.com/NGL321/patchworks/issues/244): the level shift is not the
+> window either.** This section originally concluded that the gap *is* the window's accumulation. The
+> degree reading above only rules out the parallel-routes account; it does not establish the window,
+> and #244 read the same relationship **tick-aligned and single-step**, where there is no window to
+> accumulate over. The gap survives: the median of `‖d_out(t+1)‖ / ‖M d_in(t)‖` is **494.6x** over the
+> same 296 hops of the same surface, and one route through the relay delivers only `0.4529 · ‖M d_in‖`.
+> A level shift that survives the removal of the window is not the window's accumulation.
+>
+> The two reductions are not the same number — this one peaks a quotient over 64 ticks, #244's pairs
+> one tick with the next — but the *test* is sound either way, because both compare a many-route
+> landing against a one-route prediction and differ only in the windowing.
+>
+> **What carries it is left open.** #244 re-ran this degree check on its windowless quantity and got
+> `r = +0.114`, driven by two degree cells of 23 hops: too weak to put parallel routes back in the
+> window's place. The honest state is the negative result alone. Nothing else in this section changes
+> — composition, the tier-3 bias and `R²` are untouched, and the *floor* argument above still holds,
+> since a one-tick operator genuinely cannot be the whole of a windowed peak.
 
 ---
 
