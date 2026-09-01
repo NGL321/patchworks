@@ -78,7 +78,7 @@ import torch
 
 from .body import DEFAULT_OPERATOR_SCALE, DEFAULT_RHO_K, CellBiases, CellBody
 from .graph import Dome
-from .restriction import GAUGE_RHO
+from .restriction import GAUGE_RHO, gain_denominators
 
 __all__ = [
     "DEFAULT_BURN_IN",
@@ -960,20 +960,22 @@ class FoldMarginCheck:
     margin_v`, because read without it the bound would be the same number at
     every cell. `gain_v = gamma / (g_v^2 . c_v)` since
     [#190](https://github.com/NGL321/patchworks/issues/190) — one formula against
-    each cell's own gauge, uniform across the interior. **What this function
-    still forms is the superseded `max(sum_e m_e, rho^2 deg(v))`**.
-    [#195](https://github.com/NGL321/patchworks/issues/195) ran the re-measure
-    and reported what the ruled denominator permits -- the nominated cap moves
-    `0.3502 -> 0.1369`, which `02` now publishes -- but it did not swap the
-    code, and the swap is [#220](https://github.com/NGL321/patchworks/issues/220)'s
-    alongside the projection term the ruled denominator depends on. Nothing here
-    reads the result as a gate, so the stale denominator mis-states a nomination
-    rather than passing a bad build.
+    each cell's own gauge, uniform across the interior, and this check now forms
+    it: the denominator is
+    :func:`patchworks.restriction.gain_denominators`, the same call the gain and
+    the projection read. [#195](https://github.com/NGL321/patchworks/issues/195)
+    ran the re-measure against the ruled denominator and reported what it
+    permits — the nominated cap moves `0.3502 -> 0.1369`, which `02` publishes —
+    but it did not swap the code; that was
+    [#220](https://github.com/NGL321/patchworks/issues/220)'s, alongside the
+    projection term the ruled denominator depends on. The cap tightens 2.56x
+    because the denominator it multiplies is 2.56x smaller, and nothing about
+    the measured margins moved.
 
-    **The margin is also still taken in the wrong space**, and #220 owns that
-    too: `_fold_margin` takes row norms over `encode`'s whole `R^k x R^n` input
-    while reconciliation writes the node stalk alone, which is 1.183x tighter
-    than it needs to be. Conservative, never unsafe.
+    The margin itself is read in the **node stalk's `R^n`**, the coordinates
+    reconciliation displaces, rather than across the whole of `encode`'s
+    `R^k x R^n` input — 1.183x looser, and conservative in the direction it was
+    wrong (#206, on #195's finding).
 
     **A nomination, not a verdict** (ADR-0019). What the run decides is measured
     dwell, with :class:`patchworks.tick.FoldRead`'s live margin-against-offset
@@ -1082,13 +1084,9 @@ def fold_margin_check(
         raise ValueError(
             f"one fold margin per cell, got {tuple(margins.shape)} for {len(cells)} cells"
         )
-    denominator = torch.tensor(
-        [
-            max(dome.stalk_sums[cell_id], map_norm_bound**2 * dome.degrees[cell_id])
-            for cell_id in cells
-        ],
-        dtype=margins.dtype,
-    )
+    denominator = gain_denominators(dome, rho=map_norm_bound).to(margins.dtype)[
+        torch.tensor(cells, dtype=torch.long)
+    ]
     return FoldMarginCheck(
         product_cap=margins * denominator,
         cells=tuple(cells),

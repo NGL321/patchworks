@@ -24,6 +24,7 @@ import torch
 from patchworks.body import BodyShape, CellBiases, CellBody, CellOperators
 from patchworks.graph import DomeSpec, build_graph
 from patchworks.sandbox import CONTROL_HZ
+from patchworks.restriction import GAUGE_RHO, gain_denominators
 from patchworks.bias_selection import (
     DEFAULT_DRIVE_CORRELATION,
     DEFAULT_SAFETY_FACTOR,
@@ -469,16 +470,44 @@ class TestSelection:
 
 
 class TestTheFoldMarginCheck:
-    def test_the_bound_tightens_where_total_mask_width_falls(self, dome):
-        # `gain_v = gamma / max(sum_e m_e, rho^2 deg(v))` is largest at the apex
-        # because `sum_e m_e` falls with depth, so the bound binds hardest
-        # exactly where the slow cells are meant to live. Equal margins isolate
-        # that structural half from the per-cell draw.
+    def test_the_bound_has_no_structural_half_left(self, dome):
+        # This asserted the opposite until #190. `gain_v` was
+        # `gamma / max(sum_e m_e, rho^2 deg(v))`, largest at the apex because
+        # `sum_e m_e` fell with depth, so the bound bound hardest exactly where
+        # the slow cells are meant to live -- and #160 struck that claim on
+        # #190's uniform interior gain. Equal margins isolated the structural
+        # half from the per-cell draw; with the struck term gone there is no
+        # structural half left, and equal margins now give an equal cap at every
+        # level. What binds is a draw, which is why `apex_binds` is reported
+        # rather than expected.
         margins = torch.ones(len(dome.predicting))
         check = fold_margin_check(dome, margins, dome.predicting)
         by_level = {level: median for level, _, median, _ in check.by_level()}
-        assert by_level[check.apex_level] < by_level[min(by_level)]
-        assert check.apex_binds
+        assert len(by_level) > 1, "one level only; the test proves nothing"
+        assert len(set(by_level.values())) == 1
+
+    def test_the_denominator_is_the_one_the_gain_divides_by(self, dome):
+        # The check reports what the *ruled* denominator permits, and #220 is
+        # the edit that made the code form it. A separate spelling here would
+        # let the nomination drift away from the gain it nominates against.
+        margins = torch.rand(len(dome.predicting)) + 0.5
+        check = fold_margin_check(dome, margins, dome.predicting)
+        expected = margins * gain_denominators(dome)[torch.tensor(dome.predicting)]
+        assert torch.allclose(check.product_cap, expected)
+
+    def test_the_cap_tightens_against_the_superseded_denominator(self, dome):
+        # #195 measured the move and `02` publishes it: the nomination is
+        # 2.56x tighter at the real sizes, and tighter here too, because the
+        # denominator it multiplies is smaller at every interior cell.
+        margins = torch.ones(len(dome.predicting))
+        check = fold_margin_check(dome, margins, dome.predicting)
+        superseded = torch.tensor(
+            [
+                float(max(dome.stalk_sums[i], GAUGE_RHO**2 * dome.degrees[i]))
+                for i in dome.predicting
+            ]
+        )
+        assert torch.all(check.product_cap < superseded)
 
     def test_the_tightest_cell_caps_gamma_globally(self, dome):
         margins = torch.ones(len(dome.predicting))

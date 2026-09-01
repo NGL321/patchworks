@@ -1275,13 +1275,29 @@ class TestOneGlobalLearningRate:
 
     def test_the_maps_gain_no_buffer_of_their_own(self, running):
         # A per-edge auxiliary variable would have to live somewhere, and the
-        # maps are the only per-edge object in the design.
+        # maps are the only per-edge object in the design. Every buffer here is
+        # a constant of the built graph -- the structural mask, who owns which
+        # endpoint, and what the projection holds each cell to (#220) -- so the
+        # claim is tested twice: by name, and by the stronger property that a
+        # step leaves all of them bit-identical. A rule that started
+        # accumulating into one would fail the second even if it reused a name.
+        before = {
+            name: buffer.clone() for name, buffer in running.maps.named_buffers()
+        }
         TransportRule(running).step()
-        assert {name for name, _ in running.maps.named_buffers()} == {
+        assert set(before) == {
             "support",
             "owner",
             "pinned",
+            "holding",
+            "holding_cells",
+            "hold_rows",
+            "hold_pairs",
+            "column_mask",
+            "overlap_target",
         }
+        for name, buffer in running.maps.named_buffers():
+            assert torch.equal(buffer, before[name]), name
         assert {name for name, _ in running.maps.named_parameters()} == {"maps"}
 
     @pytest.mark.parametrize(
