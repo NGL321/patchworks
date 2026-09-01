@@ -21,7 +21,7 @@ feature. The word is used in its strict sense: coordinates on the cell's own pie
 problem, which is taken to be locally Euclidean and of the chart's dimension. The chart
 **persists** across ticks and the cell's own operator advances it; it is not recomputed from the
 node stalk each tick, and it is not a lift — the design has no lifted space and no second
-dimension besides the piece's (ADR-0014).
+dimension besides the piece's (ADR-0023).
 _Avoid_: latent, internal representation, hidden state, embedding, lift
 
 **Piece**:
@@ -165,7 +165,7 @@ cell would give way to another ([#146](https://github.com/NGL321/patchworks/issu
 _Avoid_: linear (bare), local flatness (that is the geometric claim), Koopman linearity, global
 linearity, bilinear, bilinear realisation, control-affine (the last three name an exogenous input
 multiplying the state; this design has none, and borrowing the word re-imports the control literature
-ADR-0014 exited)
+ADR-0023 exited)
 
 **Readout gauge**:
 The claim a frozen linear `decode` rests on: a cell's node stalk is a linear function of its chart, so
