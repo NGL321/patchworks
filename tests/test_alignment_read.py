@@ -234,6 +234,64 @@ class TestTheDecomposition:
             seen += 1
         assert seen > 5
 
+    def test_a_rank_one_inbound_map_makes_a_out_exactly_the_composition_gap(self):
+        """The mechanism behind the read's answer, as algebra rather than a plot.
+
+        When `F_in` has rank 1, `u = F_inᵀ d` is the *same* node-stalk direction
+        whatever arrives — only its length changes. So `‖F_out u‖ / ‖u‖` is a
+        constant of the maps, `a_out` stops being a property of the arriving
+        direction, and it equals `C` identically. `A = a_in · a_out / C` then
+        collapses to `A = a_in`.
+
+        This is why the measured answer is what it is: the arriving direction has
+        no purchase at the relay, so it cannot be misaligned there. Held as a
+        test because the run reports the two distributions and their near-equality
+        is the finding — an equality that holds by construction should be proved,
+        not eyeballed off a table.
+        """
+        generator = torch.Generator().manual_seed(97)
+        for m_in, m_out, perm in ((4, 4, 12), (8, 4, 24), (4, 8, 12)):
+            left = torch.randn(m_in, generator=generator, dtype=torch.float64)
+            stalk = torch.randn(perm, generator=generator, dtype=torch.float64)
+            # Rank 1 by construction, and padded to the node-stalk width the
+            # maps really have so nothing depends on the padding.
+            f_in = torch.outer(left / left.norm(), stalk / stalk.norm()) * 1.7
+            f_out = torch.randn(m_out, perm, generator=generator, dtype=torch.float64)
+            gain = 0.31
+            operator = (f_out @ f_in.T) * gain
+            for _ in range(5):
+                d = torch.randn(m_in, generator=generator, dtype=torch.float64)
+                parts = ar.decompose(
+                    operator, f_in, f_out, gain, d, m_in, perm
+                )
+                assert parts["a_out"] == pytest.approx(parts["composition"], rel=1e-9)
+                assert parts["a_out_over_c"] == pytest.approx(1.0, rel=1e-9)
+                assert ar.alignment(operator, d, m_in) == pytest.approx(
+                    parts["a_in"], rel=1e-9
+                )
+
+    def test_a_full_rank_inbound_map_leaves_a_out_free_of_the_composition_gap(self):
+        """The contrast case, so the test above is not vacuous.
+
+        With a well-conditioned `F_in` the arriving direction reaches different
+        node-stalk directions, `a_out` varies with it, and `a_out / C` moves off
+        1. If this passed as an equality too, the previous test would be proving
+        a property of `decompose`'s arithmetic rather than of rank.
+        """
+        generator = torch.Generator().manual_seed(101)
+        m_in, m_out, perm = 4, 4, 8
+        f_in = torch.randn(m_in, perm, generator=generator, dtype=torch.float64)
+        f_out = torch.randn(m_out, perm, generator=generator, dtype=torch.float64)
+        gain = 0.5
+        operator = (f_out @ f_in.T) * gain
+        ratios = []
+        for _ in range(8):
+            d = torch.randn(m_in, generator=generator, dtype=torch.float64)
+            ratios.append(
+                ar.decompose(operator, f_in, f_out, gain, d, m_in, perm)["a_out_over_c"]
+            )
+        assert np.std(ratios) > 0.01
+
     def test_the_composition_factor_is_233s_tier_three_over_tier_two(self):
         """`C` is the same number `construction_grading` reports, not a cousin.
 

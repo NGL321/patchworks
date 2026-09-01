@@ -230,10 +230,24 @@ def decompose(
     stalk = f_in.T @ direction
     d_norm, u_norm = float(direction.norm()), float(stalk.norm())
     fin_norm, fout_norm = float(f_in.norm()), float(f_out.norm())
-    out = dict(a_in=float("nan"), a_out=float("nan"), composition=float("nan"))
+    out = dict(
+        a_in=float("nan"),
+        a_out=float("nan"),
+        composition=float("nan"),
+        a_in_saturation=float("nan"),
+        a_out_over_c=float("nan"),
+    )
     if min(d_norm, fin_norm, fout_norm) <= 0:
         return out
     out["a_in"] = (u_norm / d_norm) / (fin_norm / np.sqrt(m_in))
+    # How much of `a_in`'s own ceiling the arriving direction takes. The ceiling
+    # is `sigma_max(F_in) sqrt(m_in) / ||F_in||_F`, reached only by a direction
+    # sitting exactly on the inbound map's leading right-singular vector. At 1
+    # the arriving direction has nothing left to gain, and — read beside
+    # `rank_in` — the reason is that a rank-1 map leaves it no choice.
+    ceiling = float(torch.linalg.matrix_norm(f_in, ord=2)) * np.sqrt(m_in) / fin_norm
+    if ceiling > 0:
+        out["a_in_saturation"] = out["a_in"] / ceiling
     if u_norm > 0:
         out["a_out"] = (float((f_out @ stalk).norm()) / u_norm) / (
             fout_norm / np.sqrt(perm)
@@ -241,6 +255,17 @@ def decompose(
     independent = gain * fin_norm * fout_norm / np.sqrt(m_in * perm)
     if independent > 0:
         out["composition"] = (float(operator.norm()) / np.sqrt(m_in)) / independent
+    # The centre of what this read found, as a ratio rather than as two
+    # distributions a reader has to compare by eye. When `F_in` is rank 1 the two
+    # are **equal by algebra**: `u = F_inᵀ d` is then the same node-stalk
+    # direction whatever arrives, so `‖F_out u‖ / ‖u‖` is a constant of the maps,
+    # and it is exactly the constant `‖M‖_F` carries. `A = a_in · a_out / C` then
+    # collapses to `A = a_in`, and the arriving direction has no purchase at the
+    # relay at all. Reported so that claim is measured and not inferred from
+    # `a_in` happening to sit at its ceiling.
+    if np.isfinite(out["a_out"]) and np.isfinite(out["composition"]):
+        if out["composition"] > 0:
+            out["a_out_over_c"] = out["a_out"] / out["composition"]
     return out
 
 
@@ -484,6 +509,11 @@ def read_hops(dome: Dome, samples: list[dict], agent) -> tuple[list[dict], dict]
             ticks=len(per_tick),
             null_median=float(np.median(null)),
         )
+        # A property of the trained maps, not of any tick — but recorded per hop
+        # so it is read against the hop's own alignment rather than as a
+        # graph-wide average, which is the Notes' standing rule.
+        row["rank_in"], _share_in = rank_profile(f_in)
+        row["rank_out"], _share_out = rank_profile(f_out)
         for field in (
             "alignment",
             "percentile",
@@ -491,6 +521,8 @@ def read_hops(dome: Dome, samples: list[dict], agent) -> tuple[list[dict], dict]
             "a_in",
             "a_out",
             "composition",
+            "a_in_saturation",
+            "a_out_over_c",
             "cosine",
             "magnitude",
         ):
@@ -597,6 +629,42 @@ def decomposition_section(rows: list[dict], checks: dict) -> None:
         "    satisfy it and are not meant to: a median does not distribute over\n"
         "    a product."
     )
+
+    # Why the arriving direction has no purchase at the relay, measured. A rank-1
+    # inbound map sends every arriving direction to the same node-stalk
+    # direction, so `a_out` stops being a property of what arrived and becomes a
+    # constant of the maps — the same constant `C` reports. Both halves are read
+    # here rather than inferred from `a_in` sitting at its ceiling.
+    print("\n  why: what the inbound map leaves the arriving direction to choose\n")
+    print(f"    {'quantity':>34} {'median':>10} {'p05':>10} {'p95':>10}")
+    spread(
+        "effective rank of F_in", np.array([r["rank_in"] for r in rows]), ""
+    )
+    spread(
+        "effective rank of F_out", np.array([r["rank_out"] for r in rows]), ""
+    )
+    spread(
+        "a_in / its own ceiling",
+        np.array([r["a_in_saturation"] for r in rows]),
+        "x",
+    )
+    spread(
+        "a_out / C  (1 = no purchase)",
+        np.array([r["a_out_over_c"] for r in rows]),
+        "x",
+    )
+    saturation = np.array([r["a_in_saturation"] for r in rows])
+    saturation = saturation[np.isfinite(saturation)]
+    ratio = np.array([r["a_out_over_c"] for r in rows])
+    ratio = ratio[np.isfinite(ratio)]
+    if len(saturation) and len(ratio):
+        print(
+            f"\n    {float((saturation > 0.99).mean() * 100.0):.1f}% of hops take "
+            f"their whole `a_in` ceiling, and {float((np.abs(ratio - 1) < 0.01).mean() * 100.0):.1f}% "
+            f"have `a_out = C`\n    to within 1%. Where both hold, `A = a_in` at "
+            "its ceiling exactly, and the\n    arriving direction is not choosing "
+            "anything — the inbound map is."
+        )
 
     pair = np.isfinite(composition) & np.isfinite(align)
     pair &= (composition > 0) & (align > 0)
