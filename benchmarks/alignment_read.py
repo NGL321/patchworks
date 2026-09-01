@@ -376,12 +376,25 @@ def collect(
         applied = np.zeros(env.action_space.shape, dtype=np.float64)
         det.hold_still(agent, observation, applied, hold)
         state = ufp.snapshot(agent.sheaf)
-        quiet = det.branch(agent, state, observation, applied, window, None)
+        quiet, _recorded = det.branch(
+            agent, state, observation, applied, window, None
+        )
         for direction, targets in ends.items():
             source = picks[direction][i]
             deviation = det.unit(dome.cells[source].stalk, generator)
-            moved = det.branch(
-                agent, state, observation, applied, window, (source, deviation * probe)
+            # `det.branch` moved twice under this read, in #232's four-corner
+            # work: `nudge` is a **sequence** of `(cell, deviation)`, and the
+            # return is `(trace, recorded)` rather than the trace alone. One
+            # pair is #214's stimulus, which is the one this read wants, and
+            # nothing is recorded. `sustained` stays `None`, so the deviation is
+            # added once — the impulse #214 and #233 both measured, unchanged.
+            moved, _recorded = det.branch(
+                agent,
+                state,
+                observation,
+                applied,
+                window,
+                ((source, deviation * probe),),
             )
             # The paired difference, as a vector and at every tick. This is the
             # object #233 reduced to a norm and then to a windowed maximum; both
