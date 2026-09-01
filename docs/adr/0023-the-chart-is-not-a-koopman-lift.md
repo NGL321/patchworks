@@ -1,4 +1,4 @@
-# ADR-0014: The chart is not a Koopman lift, and `K` is a linear recurrence
+# ADR-0023: The chart is not a Koopman lift, and `K` is a linear recurrence
 
 **Status:** accepted
 

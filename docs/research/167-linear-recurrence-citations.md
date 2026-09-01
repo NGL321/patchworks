@@ -1,9 +1,9 @@
 # Citation pass: linear recurrences, the nonlinearity's position, and who disagrees (patchworks#167)
 
 Checks the reassurance recorded in
-[ADR-0014](../adr/0014-the-chart-is-not-a-koopman-lift.md) — that having moved the design off the
+[ADR-0023](../adr/0023-the-chart-is-not-a-koopman-lift.md) — that having moved the design off the
 Koopman path, the **state-space-model and linear-RNN literature is a better-trodden path than the one
-it left**, making a 12-dimensional persisting **chart** per **cell** unremarkable. ADR-0014 says in
+it left**, making a 12-dimensional persisting **chart** per **cell** unremarkable. ADR-0023 says in
 its own text that this was argued from recall; only S4D's timescale initialisation was verified at
 source, in `docs/research/027-regional-jacobian-spectra.md`. This pass reads the rest.
 
@@ -41,20 +41,20 @@ below are verbatim from that decoding.
 
 **Three findings, in descending order of what they cost.**
 
-**1. ADR-0014 names the wrong comparison class, and its own Consequences section already knows.**
-The literature ADR-0014 reaches for — S4/S4D, LRU, Mamba — is the literature of a linear recurrence
+**1. ADR-0023 names the wrong comparison class, and its own Consequences section already knows.**
+The literature ADR-0023 reaches for — S4/S4D, LRU, Mamba — is the literature of a linear recurrence
 with the nonlinearity **between stacked layers**. Patchworks re-applies `encode` **inside the loop,
 every tick**. That is not a variant of the SSM class; it is the thing the SSM class was defined by
 excluding. Merrill, Petty & Sabharwal state the distinction in as many words and prove it is not
 cosmetic: *"adding a nonlinearity to the output of an SSM layer (as in Mamba) is not the same thing
 as an RNN-SSM. Rather, an RNN-SSM applies the nonlinearity at each recurrent update"* — and the
-second is strictly more expressive (§1.3). ADR-0014's Consequences section says the same thing
+second is strictly more expressive (§1.3). ADR-0023's Consequences section says the same thing
 correctly (*"`K . encode` is a **nonlinear** recurrence"*); its Decision section then hands the design
 to a comparison class that excludes it. **So the answer to question 1 is: yes, moving the
 nonlinearity out of the recurrence is a recognised architecture class with a universality theorem
 behind it — and Patchworks is not in it.** The direction of the error is favourable (the design sits
 on the *more* expressive side of the line), but the licence for `k = 12` cannot come from where
-ADR-0014 says it comes from. §1.4 gives the class the design **is** in, by a change of variables that
+ADR-0023 says it comes from. §1.4 gives the class the design **is** in, by a change of variables that
 takes ten lines and lands the cell squarely in reservoir computing.
 
 **2. The memory bound #166 wants exists, is stronger than #166 states, and its most-cited authors
@@ -94,7 +94,7 @@ Two smaller results:
   focuses on the current input x, while a small Δ persists the state."* Nobody asks whether these
   converge to a true spectrum. **#143's reading is confirmed at source.** But §5.3 carries two
   objections of a *different* kind that #143 does need. §5.
-- **ADR-0014's "mechanism transfers, results do not" is half right, and the half that is wrong is the
+- **ADR-0023's "mechanism transfers, results do not" is half right, and the half that is wrong is the
   expensive half.** The *expressivity* results are indeed about deep stacks trained by backprop and
   do not transfer. The *capacity* results transfer completely, because they are facts about how much
   a state of a given dimension can hold, indifferent to how the operator got there — Dambre et al.
@@ -122,7 +122,7 @@ of them, because Patchworks did not move it out.**
 **Orvieto, Smith, Gu, Fernando, Gulcehre, Pascanu & De**, *"Resurrecting Recurrent Neural Networks
 for Long Sequences"*, **ICML 2023**, PMLR 202, arXiv:2303.06349. **[FULL — body read via ar5iv]**
 
-This is the paper ADR-0014's reassurance is really about, and it does say what the reassurance
+This is the paper ADR-0023's reassurance is really about, and it does say what the reassurance
 attributes to it. Verbatim: *"linear RNN layers can be surprisingly expressive when coupled with
 nonlinear MLP or GLU blocks, outperforming tuned nonlinear RNN variants."* The ablation is explicit:
 the recurrence `x_k = σ(A x_{k-1} + B u_k)` has `σ` removed to give `x_k = A x_{k-1} + B u_k`, and
@@ -283,7 +283,7 @@ with k."* **Proposition 4**: *"The STM memory capacity of a linear network is N 
 form Hermans & Schrauwen and later Grigoryeva–Ortega restate.
 
 **How the hypotheses land on a cell.** The readout condition holds: `decode` is a frozen **linear**
-gauge (ADR-0014's companion, `0014-the-linear-readout-is-gauge-fixed.md`), and what neighbours read
+gauge ([ADR-0014](../adr/0014-the-linear-readout-is-gauge-fixed.md)), and what neighbours read
 of a cell passes through **linear restriction maps** into **edge stalks**. Patchworks is unusually
 well-placed here — the linear-readout hypothesis is not an idealisation for this design, it is a
 construction commitment. The input condition fails: `stalk_t` is written by reconciliation from
@@ -412,13 +412,13 @@ anything #148 found for the Koopman reading.
   edges, a learned `W` advancing the state.
 - **The nonlinearity is outside the loop, exactly as in §1.1.** Verbatim: *"Each block is composed of
   k iterations of the linear recurrence… followed by a learnable graph-agnostic nonlinear mapping."*
-- **The linearity buys an exact sensitivity statement**, which is the same currency ADR-0014 spends:
+- **The linearity buys an exact sensitivity statement**, which is the same currency ADR-0023 spends:
   *"The Jacobian of the linear recurrent equation… can be computed exactly, and it has the following
   form: ∂X_t^(i)/∂X_s^(j) = (A^{t−s})_{ij} (Wᵀ)^{t−s}"*, used for lower bounds on information flow
   and over-squashing.
 - **Trained end-to-end by backpropagation**, with residual connections, normalisation and dropout.
 
-So *"a spatially glued set of linear recurrences works"* is **claimed**. ADR-0014's sentence *"Nobody
+So *"a spatially glued set of linear recurrences works"* is **claimed**. ADR-0023's sentence *"Nobody
 has shown a spatially glued set of locally-trained linear recurrences works"* survives only on the
 word **locally-trained**, and it should be read that narrowly from here on.
 
@@ -521,17 +521,17 @@ reservoir line nor the graph-SSM line occupies.
 The last row is the claim, and it is a conjunction of four properties each of which is individually
 old. That is the same shape as #148's verdict and the same shape #127's Notes said was the good
 outcome. **It is not a loud "yes", but it is a quieter "yes" than the record currently allows for**,
-and the sentence in ADR-0014 should be read as resting entirely on the local rule.
+and the sentence in ADR-0023 should be read as resting entirely on the local rule.
 
 ---
 
 ## 4. What the transfer does not cover
 
-**Verdict: ADR-0014's boundary is drawn in the right place and labelled backwards. Mechanism
+**Verdict: ADR-0023's boundary is drawn in the right place and labelled backwards. Mechanism
 transfers, as it says. But so do the capacity results — and they are the unfavourable ones. What does
 not transfer is the reassurance.**
 
-ADR-0014: *"The state-space-model literature is about deep stacks trained by backprop on sequence
+ADR-0023: *"The state-space-model literature is about deep stacks trained by backprop on sequence
 benchmarks. Patchworks is a shallow-per-cell sheaf trained by local rules. Linear recurrence,
 timescale as an eigenvalue, and stability by norm bound transfer. **No result does.**"*
 
@@ -561,7 +561,7 @@ class and an input process. Three reasons they transfer intact:
 So the ADR's *"No result does"* is too strong, and the correction is not comforting: the results that
 survive the shallow, locally-trained setting are the ones that **bound** the design, and the ones
 that would have licensed it are the ones that need the stack. This is worth more than the reassurance
-was, exactly as the ticket predicted, and it lands on #166 rather than on ADR-0014's Decision.
+was, exactly as the ticket predicted, and it lands on #166 rather than on ADR-0023's Decision.
 
 One thing that would transfer favourably if checked, and was not: Merrill et al.'s Theorem 5.1 is a
 **one-layer** construction. A shallow in-loop-nonlinear recurrence recognising any regular language
@@ -599,7 +599,7 @@ both.**
   large Δ resets the state h and focuses on the current input x, while a small Δ persists the state
   and ignores the current input."* `Δ` is initialised to `τ_Δ^{-1}(Uniform([0.001, 0.1]))`. This is
   the *retention-policy* reading of a timescale in the clearest possible terms, and it is exactly
-  ADR-0014's *"A slow eigenvalue says the cell **chose to retain** that direction for that long."*
+  ADR-0023's *"A slow eigenvalue says the cell **chose to retain** that direction for that long."*
 
 **No source found in this pass treats a trained SSM's `λ` as an estimate of a true spectrum of
 anything, and none asks whether it converges.** The reason is structural: an SSM's `A` is a design
@@ -723,7 +723,7 @@ The dissent is uniformly about **linear** recurrences and fixed state size under
 language and copying** workloads. Two limits on how far it should be carried:
 
 - Patchworks' recurrence is not linear (§1.3–§1.4), so the TC⁰, parity and star-free results do not
-  bind it. They bind the object ADR-0014 says the design is, which is a reason to fix the description
+  bind it. They bind the object ADR-0023 says the design is, which is a reason to fix the description
   rather than a reason to worry about the design.
 - Copying and multi-query associative recall are not a cell's job. A cell advances a chart of its own
   **piece** under evidence; nothing in the spec asks it to retrieve a token emitted 4,000 ticks ago.
@@ -731,13 +731,13 @@ language and copying** workloads. Two limits on how far it should be carried:
 
 What the dissent *does* reach is the **conjunction of §2.3 and §6.1**: on the noisiest reading the
 chart's capacity at construction is 1, and on the most recent reading the metric that says otherwise
-is not informative. Both bear on #166 and neither bears on ADR-0014's Decision.
+is not informative. Both bear on #166 and neither bears on ADR-0023's Decision.
 
 ---
 
 ## What this threatens
 
-### ADR-0014 — one wording defect, one over-strong sentence, no structural damage
+### ADR-0023 — one wording defect, one over-strong sentence, no structural damage
 
 The **Decision** stands: the chart is not a Koopman lift, `K` is not advancing a dictionary of
 observables, and nothing found here re-opens the EDMD framing. Three flags:
@@ -863,7 +863,7 @@ Opened and specified by
 [patchworks#167](https://github.com/NGL321/patchworks/issues/167), *"Citation pass: linear recurrences
 with the nonlinearity outside, and who disagrees"*, part of
 [#127](https://github.com/NGL321/patchworks/issues/127). Audits
-[ADR-0014](../adr/0014-the-chart-is-not-a-koopman-lift.md), raised by
+[ADR-0023](../adr/0023-the-chart-is-not-a-koopman-lift.md), raised by
 [#145](https://github.com/NGL321/patchworks/issues/145). Unblocks
 [#166](https://github.com/NGL321/patchworks/issues/166) and reports to
 [#143](https://github.com/NGL321/patchworks/issues/143). Companion to
@@ -1123,7 +1123,7 @@ touched by this pass.
   a defect — but any future claim that a cell's learned `K` *means* something, as opposed to
   predicting well, now has a named precondition on the sheaf's first cohomology. **Flag only;
   pursuing it is a separate ticket.**
-- **Nothing here threatens ADR-0014, §1's finding, or #166.** This pass touched none of those
+- **Nothing here threatens ADR-0023, §1's finding, or #166.** This pass touched none of those
   arguments.
 
 ## 7.6 The residue, restated
@@ -1137,7 +1137,7 @@ construction, all at once. What it cannot supply — and what the whole surround
 built *not* to supply, because a proved global guarantee is the point of that literature — is the
 absence of a global objective and the presence of a state that persists in world-time.
 
-So §3.5's instruction to read ADR-0014's sentence as *"resting entirely on the local rule"* needs
+So §3.5's instruction to read ADR-0023's sentence as *"resting entirely on the local rule"* needs
 tightening: the weight rests on **local rule read strictly as *no global objective anywhere above
 it***, together with **world-time**. "Local rule" alone is now ambiguous, because Sheaf-ADMM's rule
 is local in every mechanical sense and still descends on a stated global functional.

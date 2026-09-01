@@ -6,7 +6,7 @@
 > evidence burden stays.** This ADR was titled and written over *“a small linear lift”*. That is an
 > assertion of an **immersion**, said out loud — and Corollary 4 of the discrete-time extension
 > (arXiv:2605.15161v2) reaches assertions whether or not it reaches code. It also flatly contradicted
-> [ADR-0014](./0014-the-chart-is-not-a-koopman-lift.md), written later: *“The design has no `k_lift`,
+> [ADR-0023](./0023-the-chart-is-not-a-koopman-lift.md), written later: *“The design has no `k_lift`,
 > because it has no lift.”* Two `accepted` ADRs, opposite claims. What the contract actually asserts
 > is **sufficiency of a small persisting chart under a frozen `encode`** — a claim about compression
 > and memory. Everything below about the assertion being **asserted and not granted**, and about each
@@ -44,7 +44,7 @@ not.
 **No immersion is asserted, and that is load-bearing.** A cell's chart is a function of the whole
 history of stalks that wrote it, not of the instantaneous state, so there is no `F` for a
 semiconjugacy to be built from — which is exactly the escape
-[ADR-0014](./0014-the-chart-is-not-a-koopman-lift.md) rests on. An earlier form of this ADR asserted
+[ADR-0023](./0023-the-chart-is-not-a-koopman-lift.md) rests on. An earlier form of this ADR asserted
 one by accident, in one word.
 
 So the assertion is split from the grant:
@@ -82,7 +82,7 @@ small pieces that compose back into an answer to it. That intuition is sound, an
 [ADR-0004](./0004-linear-restriction-maps-assume-local-flatness.md) is its actual justification:
 locality and local flatness. What makes *lift* the wrong word is that **a lift is a purchase by
 width**, and this design never buys width —
-[ADR-0014](./0014-the-chart-is-not-a-koopman-lift.md) already has the sentence: *“Linearity was never
+[ADR-0023](./0023-the-chart-is-not-a-koopman-lift.md) already has the sentence: *“Linearity was never
 bought with width. It is paid for in nonlinearity-in-the-loop and in time.”*
 
 **And the nonlinearity is not in the decomposition.** Recorded because it is the natural next

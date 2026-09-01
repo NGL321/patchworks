@@ -120,7 +120,7 @@ asserts that **a small persisting chart suffices for its piece** under a frozen 
 dimensions, carrying the cell's memory and re-fused with fresh evidence every tick, are enough for the
 one-step prediction the cell owes. The honest form matters, and it is a claim about **compression and
 memory** — not about a lift. A cell asserts no immersion of its piece into anything, and asserting one
-is what [ADR-0014](../adr/0014-the-chart-is-not-a-koopman-lift.md) forbids
+is what [ADR-0023](../adr/0023-the-chart-is-not-a-koopman-lift.md) forbids
 ([#151](https://github.com/NGL321/patchworks/issues/151)). Sufficiency is quantitative and
 domain-sensitive in a way "the sheaf is domain-general" is not. The contract asserts the property *of
 a cell's piece* and does **not** grant it per domain: each domain owes the evidence, measured, before
