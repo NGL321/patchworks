@@ -1,8 +1,8 @@
 # Patchworks
 
 [![status: spec complete](https://img.shields.io/badge/status-spec_complete-2ea44f)](docs/spec/)
-[![agent: not built](https://img.shields.io/badge/agent-not_built-lightgrey)](#-try-it-yourself)
-[![decisions: 13 ADRs](https://img.shields.io/badge/decisions-13_ADRs-blue)](docs/adr/)
+[![agent: built, not transmitting](https://img.shields.io/badge/agent-built,_not_transmitting-orange)](#-try-it-yourself)
+[![decisions: 25 ADRs](https://img.shields.io/badge/decisions-25_ADRs-blue)](docs/adr/)
 [![MuJoCo 3.10](https://img.shields.io/badge/MuJoCo-3.10.0-orange)](prototypes/sandbox/)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776ab)](prototypes/sandbox/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
@@ -23,12 +23,16 @@ until it runs.
 </p>
 
 <p align="center"><em>The sandbox, today. The arm is pushing the blue puck; the lit zone is where
-it has been asked to put it. There is no agent yet — this frame was driven by constant torque.</em></p>
+it has been asked to put it. No agent drove this frame — it was driven by constant torque.</em></p>
 
-> 🚧 **This is a specification, not a system.** Nothing has been trained. The design is finished —
-> ten spec files, thirteen decision records, and a sandbox that runs — worked out to the point where
-> a build can start cold with no architectural question left open. The two loops that belong at the
-> top of this page (*I moved the puck* · *I changed the goal*) don't exist until it does.
+> 🚧 **This is an architecture under measurement, not a working agent.** The design is written
+> down — twelve spec files, twenty-five decision records — and the build is complete: the sandbox,
+> the dome, the tick, both local rules and the demo surface all run, and runs of 100,000 ticks have
+> trained them. What is *not* settled is whether the architecture **transmits**. Read along the
+> channel, rim-to-core influence fails its bar in both directions, and nothing yet guarantees that
+> learning produces the retention gradient the design assumes it will. That is an architectural
+> question and it is open. The two loops that belong at the top of this page (*I moved the puck* ·
+> *I changed the goal*) don't exist until it closes.
 
 What *does* run is the world, the dome's construction, and an untrained agent driving the arm. On
 any machine that can run a container — no clone, no venv, no interpreter version to have:
@@ -147,7 +151,7 @@ wrong reason, and a remembered result about Rao's cross-map transfer turned out 
 paper at all. Each is a closed ticket with the correction in it.
 
 It has also turned up two things nobody appears to have done. Getting timescale separation out of
-*persistence alone* — no schedule, no gate, no rate parameter per unit — is, as far as fourteen
+*persistence alone* — no schedule, no gate, no rate parameter per unit — is, as far as twenty-three
 citation passes can tell, without precedent. And engineering a network's Jacobian spectra to be
 **wide** cuts against a literature that spends its time trying to make them narrow.
 
@@ -273,7 +277,7 @@ files in that directory are and what broke while building them; it does not repe
 | | |
 |---|---|
 | [`docs/spec/`](docs/spec/) | Twelve files, in reading order. The system, completely specified. Start with [the cell and its sheaf](docs/spec/01-cell-and-sheaf.md). |
-| [`docs/adr/`](docs/adr/) | Thirteen decisions that needed a reason on the record. |
+| [`docs/adr/`](docs/adr/) | Twenty-five decisions that needed a reason on the record. |
 | [`docs/research/`](docs/research/) | The citation passes, including the ones that found defects. |
 | [`docs/registers/`](docs/registers/) | Every constant the architecture rests on, typed by where the number came from, and what turning it would cost. Generated from the definition sites, so it cannot disagree with the code. |
 | [`CONTEXT.md`](CONTEXT.md) | The vocabulary. Narrow senses, deliberately. |
