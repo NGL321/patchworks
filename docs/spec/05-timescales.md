@@ -260,13 +260,24 @@ guillotine that has not dropped because the thing it cuts has not arrived. Wheth
 what construction meant to place is
 [#143](https://github.com/NGL321/patchworks/issues/143)'s question and is not ruled on here.
 
-**Those counts were read on the pre-conversion body.**
-[#155](https://github.com/NGL321/patchworks/issues/155) is open, so `step` is still ReLU on `action`
-and a "region" in the #202 and #206 reads is a facet of the composed `step ∘ encode`. The pass
-condition survives the conversion because it is definitional — one e-fold is one e-fold whatever the
-facets are. **The counts do not**, and they are marked as read on the body that ran rather than
-rescaled, per #206's precedent for `01`'s recorded margins: rescaling would publish a number nobody
-ran.
+**Those counts were read on the post-conversion body.** The Koopman conversion merged as
+[PR #161](https://github.com/NGL321/patchworks/pull/161), commit `cd52077`, on 2026-08-29 — before
+either read ran. The #202 read is commit `8fa297e` (2026-08-30) and #206's re-run is `bcc0a70`
+(2026-08-31), and `cd52077` is an ancestor of both, so each carries `K` and neither has a `step`
+left to compose. **The body that ran is the one on `main` today**, stated here so the next reader
+need not re-derive it: `K` per [#138](https://github.com/NGL321/patchworks/issues/138), `encode`
+still the body's only nonlinearity and still ReLU, `decode` linearised and frozen as a gauge. A
+"region" in those reads is therefore a facet of `encode` alone — which is what
+[`02-tick-semantics.md`](./02-tick-semantics.md) already records: linearising `step` took its folds
+off the round trip, so the partition is `encode`'s own.
+
+The pass condition survives the conversion because it is definitional — one e-fold is one e-fold
+whatever the facets are — and **the counts survive it too, by having been read after it**. Nothing
+here is rescaled: #206's precedent for `01`'s recorded margins holds in this direction as well,
+because rescaling would publish a number nobody ran. Not to be confused with
+[#155](https://github.com/NGL321/patchworks/issues/155), which is the *transmission* edit and not
+the conversion; it merged later still, as [PR #221](https://github.com/NGL321/patchworks/pull/221)
+on 2026-08-31, and gates nothing here.
 
 ### What "stable" means here
 
