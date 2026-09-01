@@ -59,9 +59,38 @@ A solve trades a local rule for a global loop, and the record has priced that re
   now necessarily a **cross-tick** phenomenon, arising from the persisted chart and the one-tick
   edge delay together, not a within-tick one. See "Known exposure" in
   [`docs/spec/02-tick-semantics.md`](../spec/02-tick-semantics.md).
-- The only remaining lever on how fast disagreement propagates is graph topology (relay cells,
-  effective distance), not a solver parameter. A future engineer should reach for topology
-  changes, not for reopening this decision to add rounds back.
+- **The lever on how fast disagreement propagates is retention, not topology — and not a solver
+  parameter under either reading.** What stood here, quoted rather than deleted because the
+  reasoning that produced it is worth keeping legible:
+
+  > The only remaining lever on how fast disagreement propagates is graph topology (relay cells,
+  > effective distance), not a solver parameter.
+
+  *Superseded by [#230](https://github.com/NGL321/patchworks/issues/230)*, which closed the
+  topological family outright on a measurement the record already owned: rim to apex is seven hops
+  but only **1.82 unit-resistance edges**
+  ([`docs/research/150`](../research/150-effective-resistance-and-the-gauge.md) §1), reducible to at
+  best ~1.0 because the patch's own leaf edge is irreducible — **under 2x**, against ~866x per hop
+  in the model term. [#214](https://github.com/NGL321/patchworks/issues/214) corroborates from the
+  far end: the binding edges are `L6/core—L7/core` and `L1/vision—L2/vision`, not the cut the spec
+  predicted. **The deficit is temporal, not spatial.** Every edge costs exactly one tick and a tick
+  is one relaxation step — this decision — while every cell's effective timescale is about one tick,
+  flat graph-wide at 0.91 at the apex against 0.99 at the rim
+  ([`05-timescales.md`](../spec/05-timescales.md)). The perturbation needs seven ticks to cross a
+  graph that holds nothing for more than about one, so what a future engineer reaches for is a
+  **stability gradient**: retention, the resource
+  [ADR-0005](./0005-timescale-is-persistence-not-a-schedule.md) already spends, priced against it in
+  [#235](https://github.com/NGL321/patchworks/issues/235).
+- **Neither lever is a reason to add rounds back**, which is the half of the superseded sentence that
+  survives it unchanged. Slow propagation is not remedied by reopening this decision under the
+  topological reading or the temporal one, and the three grounds above are what say so.
+- **The topological reading reopens on exactly one condition, and it has a ticket:**
+  [#237](https://github.com/NGL321/patchworks/issues/237).
+  [`docs/research/150`](../research/150-effective-resistance-and-the-gauge.md) computed the **graph**
+  Laplacian's effective resistance and explicitly not the **sheaf** Laplacian's, which can be
+  arbitrarily worse in specific directions. So the closure above is measured on the graph and not
+  along the learned channel [ADR-0022](./0022-a-hop-is-an-operator-norm-along-a-learned-channel.md)
+  names, and this ADR carries its own reopening condition rather than reading as closed forever.
 
 ## Considered and rejected
 
