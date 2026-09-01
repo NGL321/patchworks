@@ -531,17 +531,23 @@ def regress_section(dome: Dome, rows: list[dict], agent) -> None:
         "    independent-maps model, not stronger.\n"
         "    direction > 1 means the measured peak exceeds one application of that\n"
         "    operator to an average direction. A one-tick operator cannot be the\n"
-        "    whole of a peak-to-peak ratio taken over a window, so this gap is a\n"
-        "    lower-bound artifact plus whatever the graph's parallel routes carry —\n"
-        "    the two are separated by the degree reading below, not by assertion."
+        "    whole of a peak-to-peak ratio taken over a window, so this gap has a\n"
+        "    floor it cannot fall below — but what puts it THIS far above that\n"
+        "    floor is not settled here. The degree reading below rules out the\n"
+        "    graph's parallel routes; #244 rules out the window, by reading the\n"
+        "    same relationship tick-aligned and still finding 494.6x."
     )
 
-    # Which of the two the `direction` gap is. If parallel routes carry it, the
-    # gap grows with how many routes a relay has; if it is the window's
-    # accumulation, the gap is flat in degree and the correlation is nil. Either
-    # way this is reported per hop and never as a graph-wide claim.
+    # Whether parallel routes carry the `direction` gap: if they do, it grows
+    # with how many routes a relay has. Reported per hop and never as a
+    # graph-wide claim.
+    #
+    # **This check rules the routes out and does not rule the window in.** It
+    # originally concluded the gap *was* the window's accumulation; #244 read the
+    # same relationship tick-aligned, where there is no window, and the gap
+    # survives at 494.6x. See `docs/research/233-*` §7 and `alignment_read.py`.
     degree = np.array([float(dome.degrees[r["cell"]]) for r in rows])
-    print("\n  is the `direction` gap the graph's parallel routes, or the window?\n")
+    print("\n  does the `direction` gap grow with the relay's parallel routes?\n")
     print(
         f"    gap against relay degree: r = "
         f"{float(np.corrcoef(degree, np.log10(arriving))[0, 1]):+.3f} "
