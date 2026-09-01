@@ -38,21 +38,77 @@ from gymnasium import spaces
 
 from patchworks.sandbox.state import STATE_SPEC
 
+#: @register none
 ARENA_XML = os.path.join(os.path.dirname(os.path.abspath(__file__)), "arena.xml")
 
+#: @register none
 ENV_ID = "Patchworks/PlanarPushSandbox-v0"
+#: @register none
 ENTRY_POINT = "patchworks.sandbox.env:PlanarPushSandbox"
 
+#: @type stipulated
+#: @flexibility fixed with the arena: the pucks are geoms in arena.xml, so the count is the world's rather than a parameter
+#: @warrant src/patchworks/sandbox/arena.xml
 N_PUCKS = 3
+#: @type stipulated
+#: @flexibility fixed with the arena, and with ZONE_XY, which names each zone's place
+#: @warrant src/patchworks/sandbox/arena.xml
 N_ZONES = 3
+#: @register none
 ARM_JOINTS = ("j0", "j1", "j2")
 
 # 500 Hz physics, 10 substeps per tick, so control runs at 50 Hz.
+#: @type stipulated
+#: @flexibility fixed by the arena: `<option timestep="0.002">`, which is 1/500 s
+#: @warrant src/patchworks/sandbox/arena.xml
+#: The physics rate the arena's `timestep` states, in Hz. An **external**
+#: dependency in ADR-0018's sense -- an XML attribute, which nothing here can
+#: evaluate -- so `tests/test_sandbox_env.py` holds them equal instead:
+#: `env.model.opt.timestep * FRAME_SKIP == 1 / CONTROL_HZ`.
+PHYSICS_HZ = 500.0
+#: @type chosen
+#: @flexibility the arena's 500 Hz divided; moving it moves CONTROL_HZ with it
+#: @warrant here
 FRAME_SKIP = 10
-CONTROL_HZ = 50.0
+#: @type derived
+#: @depends_on PHYSICS_HZ, FRAME_SKIP
+#: @flexibility not free: #149's contraction reading rests on the tick being 1/50 s of world
+#: @warrant #149
+#: Both dependencies are **internal**, so this divides them rather than
+#: restating the quotient
+#: (`docs/adr/0018-a-derived-constant-is-derived-where-its-dependency-lives.md`).
+CONTROL_HZ = PHYSICS_HZ / FRAME_SKIP
 
-IMAGE_SIZE = 64
+#: @type stipulated
+#: @flexibility free, and the number the tiling is actually about: 4x4 px puts a puck across two to four patch cells, which is the patchwork thesis exercised at the seam; 8x8 was rejected because a puck would fit inside one patch. Never varied in any run
+#: @warrant docs/spec/06-graph-topology.md, Tiling granularity
+#: The side, in pixels, of the render one patch cell sees. The independent one of
+#: the three: `IMAGE_SIZE`, `DomeSpec.patch_grid` and this fix each other, and
+#: `agent.py` recovers this one by division at construction.
+PATCH_PX = 4
 
+#: @type stipulated
+#: @flexibility not free: MuJoCo renders RGB, so the world sets it
+#: @warrant docs/spec/06-graph-topology.md, Dimensions
+RENDER_CHANNELS = 3
+
+#: @type derived
+#: @depends_on DomeSpec.patch_grid, PATCH_PX
+#: @flexibility not free once those two are set: it is their product. Never varied in a run; the suite renders small worlds against small domes, and the pair moves together there too
+#: @warrant docs/spec/06-graph-topology.md, Dimensions
+#: The render is exactly the tiling: `patch_grid` patches of `PATCH_PX` a side.
+#: **One dependency on each of ADR-0018's arms.** `PATCH_PX` is importable here,
+#: so the definition *evaluates* it rather than restating 4, and the two cannot
+#: disagree. `DomeSpec.patch_grid` is not — the world does not import the dome,
+#: nothing here knows what graph will read it — so that half stays the literal
+#: `16`, held to the product by `tests/test_constant_registers.py`, as `cli.py`'s
+#: `MINIMUM_PYTHON` already has it. Left wholly to a comment, `patch_grid = 8`
+#: would silently leave this at 64 with the tiling no longer covering the render.
+IMAGE_SIZE = 16 * PATCH_PX
+
+#: @type chosen
+#: @flexibility a give-up bound rather than a physical quantity
+#: @warrant here
 #: How many layouts reset() will draw before giving up on finding one clear of
 #: the arm, whose pose it is not allowed to change.
 PLACEMENT_ATTEMPTS = 64
@@ -61,16 +117,38 @@ PLACEMENT_ATTEMPTS = 64
 # The held-out slice is defined along two axes at once, and the two are kept
 # separate: there is deliberately no split value returning their union, because
 # a number drawn from it would be attributable to neither axis.
+#: @type chosen
+#: @flexibility unknown; the two axes are deliberately kept separate, so widening one is not widening the other
+#: @warrant here
 HELDOUT_PAIRS = frozenset({(0, 2), (2, 0)})
+#: @type chosen
+#: @flexibility unknown
+#: @warrant here
 HELDOUT_SECTOR = (np.deg2rad(30.0), np.deg2rad(75.0))
+#: @type chosen
+#: @flexibility unknown
+#: @warrant here
 HELDOUT_SECTOR_MIN_R = 0.22
+#: @register none
 SPLITS = ("train", "heldout_pair", "heldout_sector", "any")
 
+#: @type derived
+#: @depends_on the arena's pedestal radius 0.08 and ring wall 0.52
+#: @flexibility bounded by the arena: an annulus that clears both
+#: @warrant src/patchworks/sandbox/arena.xml
 SPAWN_R = (0.15, 0.36)  # annulus: pedestal at 0.08, ring wall at 0.52
+#: @type stipulated
+#: @flexibility fixed with the arena's zone geoms
+#: @warrant src/patchworks/sandbox/arena.xml
 ZONE_XY = np.array([[0.0, 0.30], [-0.26, -0.15], [0.26, -0.15]])
+#: @type stipulated
+#: @flexibility fixed with the arena's zone geoms
+#: @warrant src/patchworks/sandbox/arena.xml
 ZONE_RADIUS = 0.075
 
+#: @register none
 ZONE_DIM_RGBA = np.array([0.35, 0.35, 0.35, 0.35])
+#: @register none
 ZONE_LIT_RGBA = np.array([1.00, 0.85, 0.10, 0.85])
 
 # --- the friction field --------------------------------------------------------
@@ -82,8 +160,17 @@ ZONE_LIT_RGBA = np.array([1.00, 0.85, 0.10, 0.85])
 # the model that `mjSTATE_INTEGRATION` does not cover, so restore would diverge
 # silently. A field is a pure function of state, so snapshot and restore stay
 # bit-exact, and where a puck *is* now changes what a push does.
+#: @type chosen
+#: @flexibility unknown; sums to the +/- 25% about nominal the field is specified at
+#: @warrant here
 FRICTION_FIELD_AMP = (0.15, 0.10)  # sums to the +/- 25% about nominal
+#: @type chosen
+#: @flexibility unknown; three incommensurate lengths, so the field does not repeat inside the arena
+#: @warrant here
 FRICTION_FIELD_WAVELENGTH = (0.31, 0.37, 0.53)
+#: @type chosen
+#: @flexibility unknown
+#: @warrant here
 FRICTION_FIELD_PHASE = 0.7
 
 
@@ -265,7 +352,9 @@ class PlanarPushSandbox(gym.Env):
                 "qpos": spaces.Box(-np.inf, np.inf, (len(ARM_JOINTS),), np.float32),
                 "qvel": spaces.Box(-np.inf, np.inf, (len(ARM_JOINTS),), np.float32),
                 "touch": spaces.Box(0.0, np.inf, (len(ARM_JOINTS),), np.float32),
-                "image": spaces.Box(0, 255, (image_size, image_size, 3), np.uint8),
+                "image": spaces.Box(
+                    0, 255, (image_size, image_size, RENDER_CHANNELS), np.uint8
+                ),
             }
         )
         self.action_space = spaces.Box(-1.0, 1.0, (self.model.nu,), np.float32)
@@ -317,7 +406,7 @@ class PlanarPushSandbox(gym.Env):
         image = (
             self._camera_image()
             if self.render_obs
-            else np.zeros((self.image_size, self.image_size, 3), np.uint8)
+            else np.zeros((self.image_size, self.image_size, RENDER_CHANNELS), np.uint8)
         )
         return {
             "qpos": self.data.qpos[self._arm_qadr].astype(np.float32),

@@ -62,6 +62,29 @@ under the constraint that they must not align with the graph's levels. A demo th
 and calling it a hierarchy. Onset cannot be supplied by the joint's mechanics, so it cannot be
 confused for them.
 
+## The nudge's impulse is not sized, and that is an open question
+
+`disturb_arm(joint, impulse)` leaves the impulse a **free parameter**, deliberately — this file fixes
+a protocol, not a magnitude, and onset latency is behavioural and reports nothing about how large the
+arriving deviation was.
+
+[ADR-0021](../adr/0021-rim-to-core-detectability-is-a-bottleneck-ratio.md) needed an amplitude
+convention for the rim perturbation and **created one rather than adopting this parameter**: a
+unit-norm deviation on the L1 boundary stalk, `A₀ = 1`. It refused to weld a claim about the graph to
+a demo parameter, because doing so re-opens the sufficiency verdict every time the parameter moves.
+
+The residue lands here, and it is a real question with no answer yet: **is the impulse this demo
+actually fires large enough for the disturbance to be detectable where the demo claims it acts?**
+ADR-0021's pre-registered arithmetic gives the shape of the answer — at ~0.2 per hop, each 5x of rim
+amplitude buys roughly one more hop — but the number that matters is measured, not assumed, and the
+measurement is [#214](https://github.com/NGL321/patchworks/issues/214)'s. Until it is read, no
+statement in this file about where a disturbance reaches is doing more than naming the level the
+*interface* addressed.
+
+Nothing in the protocol changes on this account. The event stays as specified, and the pass and fail
+conditions below are unaffected — they are orderings, and an ordering does not depend on the
+impulse's absolute size.
+
 ## Pass and fail, pre-registered
 
 Fixed **before** the live run, so that no result is narrated after the fact.

@@ -107,7 +107,7 @@ def main() -> None:
     dome = build_graph()
     print(
         f"{len(dome.predicting)} predicting cells, {len(dome.edges)} edges, "
-        f"n={dome.spec.n}, k={dome.spec.k}, float32, no_grad\n"
+        f"n={dome.shape.n}, k={dome.shape.k}, float32, no_grad\n"
     )
 
     samples = measure()

@@ -156,6 +156,13 @@ def test_a_restored_sheaf_is_where_it_was(settled):
     for name in fixed_point._TICK_STATE:
         assert torch.equal(getattr(settled.sheaf, name), state[name]), name
     assert settled.sheaf.ticks == state["ticks"]
+    # The live fold read too (#197): it accumulates a crossing count across
+    # ticks, so six variants run from one reference with it left running would
+    # each see a different dwell.
+    read = settled.sheaf.fold_read.state()
+    assert read["ticks"] == state["fold_read"]["ticks"]
+    for name in ("margin", "offset", "crossings", "region"):
+        assert torch.equal(read[name], state["fold_read"][name]), name
 
 
 def test_the_restored_state_is_everything_the_tick_produced(monkeypatch, settled):
@@ -172,7 +179,7 @@ def test_the_restored_state_is_everything_the_tick_produced(monkeypatch, settled
     guarded: dict[str, torch.Tensor] = {}
     monkeypatch.setattr(tick, "assert_no_tape", lambda **named: guarded.update(named))
     settled.sheaf.assert_no_tape()
-    assert set(guarded) == set(fixed_point._TICK_STATE)
+    assert set(guarded) == set(fixed_point._TICK_STATE) | set(fixed_point._READ_STATE)
 
 
 def test_the_small_dome_is_the_suite_s_own(settled):

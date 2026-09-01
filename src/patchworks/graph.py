@@ -39,7 +39,7 @@ from enum import Enum
 
 import torch
 
-from .body import BodyShape
+from .body import CHART_DIM, NODE_STALK_DIM, BodyShape
 
 __all__ = [
     "CellIndex",
@@ -150,6 +150,7 @@ class Edge:
         raise ValueError(f"cell {cell_id} is not an endpoint of edge {self.id}")
 
 
+#: @register architecture
 @dataclass(frozen=True)
 class DomeSpec:
     """Every count in the dome is a construction parameter, not a constant.
@@ -158,39 +159,79 @@ class DomeSpec:
     `apex_degree` are targets the lateral fill works to: the apex is lower
     because L7 has no predicting level above it and loses its up-edges by
     construction, which is what the private-dimension gradient depends on.
+
+    **The body's `n` and `k` are not the dome's counts** (ticket #186). They
+    sized the shared frozen body rather than this graph's topology, and #128
+    fixed one of each across both domains, so they are module-level constants —
+    :data:`patchworks.body.NODE_STALK_DIM` and
+    :data:`patchworks.body.CHART_DIM` — and not fields here. A field defaulting
+    to them would be an unused override that lets a graph silently disagree with
+    the body it shares. See `docs/spec/06-graph-topology.md`, *Dimensions*.
     """
 
+    #: @register world-and-build
+    #: @type stipulated
+    #: @flexibility free by construction, and the only field with a downstream number held to it: IMAGE_SIZE is patch_grid x PATCH_PX. 8x8 patches were rejected on the argument (a puck would fit inside one patch) rather than by a run, and no run has been made at any value but 16 -- the suite builds domes at 4 and 8 to exercise construction, which learns nothing
+    #: @warrant docs/spec/06-graph-topology.md, Tiling granularity
     patch_grid: int = 16
     """Side of the sensory tiling. 16x16 4x4-px patches over a 64x64 render."""
 
+    #: @type stipulated
+    #: @flexibility free in length and in each side, but not independently: the taper is checked, each lattice covering a 2x2 block of the one below. Never varied in any run; the suite's small domes use a single lattice
+    #: @warrant docs/spec/06-graph-topology.md, The levels
     vision_sides: tuple[int, ...] = (8, 4)
     """Sides of the L1 and L2 vision lattices, each over a 2x2 block below."""
 
+    #: @type stipulated
+    #: @flexibility free in each level's size but not in its length, which runs parallel to vision_sides and is checked against it. Never varied in any run; the column's internal wiring, not its size, is the rule the spec leaves open and this module chooses
+    #: @warrant docs/spec/06-graph-topology.md, The somatomotor column
     somatomotor_sizes: tuple[int, ...] = (6, 4)
     """Cells in the somatomotor column at L1 and L2."""
 
+    #: @type stipulated
+    #: @flexibility free in length and in each level's size, and the level count is what sets rim-to-apex depth. Never varied in any run; #150 measured the cost of the depth this one gives (7 hops, 1.82 unit-resistance edges) and found rewiring worth under 2x, which is the nearest thing to a reading
+    #: @warrant docs/spec/06-graph-topology.md, The levels
     core_sizes: tuple[int, ...] = (16, 14, 12, 10, 8)
     """Cells at L3-L7. The last entry is the apex, and the internal rim."""
 
+    #: @type stipulated
+    #: @flexibility free, and the arm is the world's: the arena has three joints and a dome built for a different count would not run against it. Never varied
+    #: @warrant src/patchworks/sandbox/arena.xml
     joints: int = 3
     """Arm joints, one proprioceptive and one touch boundary cell each."""
 
-    n: int = 32
-    """Node stalk dimension of a predicting cell."""
-
-    k: int = 12
-    """Chart dimension."""
-
+    #: @type stipulated
+    #: @flexibility free, and the thinnest number in the design: #32 found n, k and m = 8 comfortable and m = 4 thin, with no source either way on whether it is enough. It is the first rung on #14's constraint ladder and the one to pull first if a piece turns out not to fit through it. Never varied in any run; widening it trades directly against private dimension, since every interior stalk widened raises the sum of m_e at every cell
+    #: @warrant docs/spec/06-graph-topology.md, Dimensions
     interior_m: int = 4
+
+    #: @type stipulated
+    #: @flexibility free, and twice the interior's deliberately: a boundary cell's edges are the only route its information ever takes, unlike an interior cell, which is reachable many ways. Never varied in any run
+    #: @warrant docs/spec/06-graph-topology.md, Dimensions
     boundary_m: int = 8
+
+    #: @type stipulated
+    #: @flexibility free, and pinned to drive_stalk from above: the drive asserts one number, and an edge stalk wider than the stalk it carries carries nothing extra. Never varied in any run
+    #: @warrant docs/spec/06-graph-topology.md, Dimensions
     drive_m: int = 1
 
+    #: @register world-and-build
+    #: @type derived
+    #: @depends_on PATCH_PX, RENDER_CHANNELS
+    #: @flexibility not free: it is the raw size of one patch of the render, so the world sets it. Varied only in the suite's construction tests, in lockstep with a patch side that was never rendered
+    #: @warrant docs/spec/06-graph-topology.md, Dimensions
     patch_stalk: int = 48
     """4x4 px RGB, raw. The world writes it with no compressor in between."""
 
+    #: @type stipulated
+    #: @flexibility not free: the world writes it, and MuJoCo gives a hinge joint an angle and a velocity. Never varied
+    #: @warrant docs/spec/06-graph-topology.md, Dimensions
     proprioceptive_stalk: int = 2
     """Angle and velocity."""
 
+    #: @type chosen
+    #: @flexibility free, and the one stalk the spec does not size: ADR-0006 settles the rule (a boundary cell's stalk is whatever the thing writing it gives it) rather than the number, and the sandbox's touch observation is one scalar per joint. Never varied in any run
+    #: @warrant here
     touch_stalk: int = 1
     """One contact scalar per joint.
 
@@ -201,13 +242,26 @@ class DomeSpec:
     is `(3,)`, one scalar per joint, over three touch cells.
     """
 
+    #: @type stipulated
+    #: @flexibility not free: three commanded and three efference, so it is twice joints and moves only when the arm does. The efference half is mandatory rather than sized -- #128 made readback a requirement of the cell contract in both domains. Never varied
+    #: @warrant docs/spec/06-graph-topology.md, Dimensions
     actuator_stalk: int = 6
     """Three commanded, three efference."""
 
+    #: @type stipulated
+    #: @flexibility free, and one is what the drive means: it asserts a valence rather than specifying anything, so a wider stalk would be a channel the drive has nothing to put in. Never varied in any run
+    #: @warrant docs/spec/06-graph-topology.md, Dimensions
     drive_stalk: int = 1
     """Valence, not specification."""
 
+    #: @type stipulated
+    #: @flexibility free, and the private-dimension table reads straight off it: raising it lowers guaranteed private dimension at every core cell, since that is n minus the sum of m_e. Never varied in any run; the suite builds small domes at 4, which changes no reading
+    #: @warrant docs/spec/06-graph-topology.md, Connectivity
     core_degree: int = 6
+
+    #: @type stipulated
+    #: @flexibility free, but not independently: it must stay below core_degree, which __post_init__ enforces. It is lower because L7 loses its up-edges by construction, and that gap is the whole private-dimension gradient -- at a uniform 6 the apex would be flat with the rest of the core and the slack the drive attaches into would not exist. Never varied in any run
+    #: @warrant docs/spec/06-graph-topology.md, Connectivity
     apex_degree: int = 4
 
     def __post_init__(self) -> None:
@@ -244,6 +298,10 @@ class DomeSpec:
             )
 
 
+#: @register none
+#: Not the dome having no provenance: every field of :class:`DomeSpec` carries
+#: its own, and the class is marked so the register reaches them. This name binds
+#: one instance of it and has no value of its own to warrant.
 DEFAULT_SPEC = DomeSpec()
 
 
@@ -402,7 +460,7 @@ def build_graph(spec: DomeSpec = DEFAULT_SPEC) -> "Dome":
         zip(spec.vision_sides, spec.somatomotor_sizes), start=1
     ):
         ids = {
-            (r, c): b.cell(CellKind.PREDICTING, spec.n, CellIndex(depth, "vision", (r, c)))
+            (r, c): b.cell(CellKind.PREDICTING, NODE_STALK_DIM, CellIndex(depth, "vision", (r, c)))
             for r in range(side)
             for c in range(side)
         }
@@ -410,7 +468,7 @@ def build_graph(spec: DomeSpec = DEFAULT_SPEC) -> "Dome":
         somato_levels.append(
             [
                 b.cell(
-                    CellKind.PREDICTING, spec.n, CellIndex(depth, "somatomotor", (p,))
+                    CellKind.PREDICTING, NODE_STALK_DIM, CellIndex(depth, "somatomotor", (p,))
                 )
                 for p in range(column_size)
             ]
@@ -423,7 +481,7 @@ def build_graph(spec: DomeSpec = DEFAULT_SPEC) -> "Dome":
         depth = first_core + offset
         core_levels.append(
             [
-                b.cell(CellKind.PREDICTING, spec.n, CellIndex(depth, "core", (i,)))
+                b.cell(CellKind.PREDICTING, NODE_STALK_DIM, CellIndex(depth, "core", (i,)))
                 for i in range(size)
             ]
         )
@@ -607,7 +665,7 @@ class Dome:
             c.stalk if c.is_boundary else min(c.stalk, stalk_sums[c.id]) for c in cells
         ]
         predicting = tuple(c.id for c in cells if not c.is_boundary)
-        mask = torch.ones((len(predicting), spec.n), dtype=torch.bool)
+        mask = torch.ones((len(predicting), NODE_STALK_DIM), dtype=torch.bool)
         for row, cell_id in enumerate(predicting):
             mask[row, : permitted[cell_id]] = False
         return cls(
@@ -628,7 +686,7 @@ class Dome:
     @property
     def shape(self) -> BodyShape:
         """The predicting population's `n` and `k`, for the shared frozen body."""
-        return BodyShape(n=self.spec.n, k=self.spec.k)
+        return BodyShape(n=NODE_STALK_DIM, k=CHART_DIM)
 
     def restriction_mask(self, edge_id: int, cell_id: int) -> torch.Tensor:
         """`[stalk]` bool: which node stalk directions this cell may put on this edge.
@@ -694,7 +752,7 @@ class Dome:
         Fixed at construction and invariant under learning: no learned parameter
         appears in it. A diagnostic, not a budget, and nothing branches on it.
         """
-        return len(self.predicting) * self.spec.n - sum(e.m for e in self.edges)
+        return len(self.predicting) * NODE_STALK_DIM - sum(e.m for e in self.edges)
 
     @property
     def cut_capacities(self) -> tuple[tuple[str, int], ...]:
@@ -743,7 +801,7 @@ class Dome:
                     f"{name} ({len(ids)})",
                     span([self.degrees[i] for i in ids]),
                     span([self.stalk_sums[i] for i in ids]),
-                    span([max(0, self.spec.n - self.stalk_sums[i]) for i in ids]),
+                    span([max(0, NODE_STALK_DIM - self.stalk_sums[i]) for i in ids]),
                 )
             )
         return tuple(rows)
@@ -814,7 +872,7 @@ class Dome:
 
         lines.append("dimensions")
         lines.append(
-            f"  n = {spec.n}, k = {spec.k}, interior m = {spec.interior_m}, "
+            f"  n = {NODE_STALK_DIM}, k = {CHART_DIM}, interior m = {spec.interior_m}, "
             f"boundary m = {spec.boundary_m}, drive m = {spec.drive_m}"
         )
         lines.append(

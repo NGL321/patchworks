@@ -24,6 +24,7 @@ import pytest
 import torch
 
 from patchworks.agent import Agent
+from patchworks.body import NODE_STALK_DIM
 from patchworks.graph import (
     Cell,
     CellIndex,
@@ -158,10 +159,10 @@ class TestTheAxisIsHopDistanceFromTheSensorimotorRim:
         spec = DomeSpec()
         cells = (
             Cell(0, CellKind.PATCH, spec.patch_stalk, CellIndex(0, "vision", (0, 0))),
-            Cell(1, CellKind.PREDICTING, spec.n, CellIndex(1, "core", (0,))),
-            Cell(2, CellKind.PREDICTING, spec.n, CellIndex(2, "core", (1,))),
-            Cell(3, CellKind.PREDICTING, spec.n, CellIndex(3, "core", (2,))),
-            Cell(4, CellKind.PREDICTING, spec.n, CellIndex(4, "core", (3,))),
+            Cell(1, CellKind.PREDICTING, NODE_STALK_DIM, CellIndex(1, "core", (0,))),
+            Cell(2, CellKind.PREDICTING, NODE_STALK_DIM, CellIndex(2, "core", (1,))),
+            Cell(3, CellKind.PREDICTING, NODE_STALK_DIM, CellIndex(3, "core", (2,))),
+            Cell(4, CellKind.PREDICTING, NODE_STALK_DIM, CellIndex(4, "core", (3,))),
             Cell(
                 5,
                 CellKind.DRIVE,

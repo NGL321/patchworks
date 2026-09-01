@@ -40,14 +40,37 @@ import torch
 
 from .graph import Dome
 
-__all__ = ["GAUGE_RHO", "INITIAL_NORM", "RestrictionMaps", "pair_index"]
+__all__ = ["GAUGE_C", "GAUGE_RHO", "INITIAL_NORM", "RestrictionMaps", "pair_index"]
 
+#: @type stipulated
+#: @flexibility measured: 2 -> 16 buys 1.008x on the apex floor (#150)
+#: @warrant docs/spec/01-cell-and-sheaf.md, Scale is gauge-fixed
 #: `ρ`, the scale gauge's band edge, fixed at construction
 #: (`docs/spec/01-cell-and-sheaf.md`, *Scale is gauge-fixed*). Interior maps live
-#: in `[1/ρ, ρ]`; it also appears in the reconciliation gain's denominator, where
-#: `ρ² · deg(v)` bounds the local Laplacian block's largest eigenvalue.
+#: in `[1/ρ, ρ]`; it also appears in the reconciliation gain's denominator as
+#: `g_v`, the gauge each cell's maps are held to — `ρ` for a predicting cell and
+#: exactly 1 for a boundary cell's pinned maps.
 GAUGE_RHO = 2.0
 
+#: @type stipulated
+#: @flexibility measured: the overlap count runs 2.42 at the rim to 1.75-1.98 in the core (#182) against a ~1.05 floor set by effective rank, so 2 is conservative -- it is what levels 4-7 already satisfy untouched, and tightening it wants the cost to cross-edge alignment measured first (#184)
+#: @warrant docs/adr/0010-restriction-map-scale-is-gauge-fixed.md, Incoherence is gauge-fixed too
+#: `c`, the **effective overlap count**: how many of a cell's incident maps load
+#: the same input direction. Declared globally alongside `ρ` and held by the same
+#: projection, it is what makes `λ_max(Σ_e F_evᵀF_ev) ≤ g_v² · c_v` a true bound
+#: rather than the fully-coherent `deg(v)` (`docs/spec/02-tick-semantics.md`,
+#: *Reconciliation gain*; ruled by #190).
+#:
+#: **Declared, not yet enforced.** :meth:`RestrictionMaps.project` restores the
+#: mask and the norm band and does not yet hold the top singular directions
+#: apart, so nothing may divide by this constant until it does --
+#: :func:`patchworks.tick.reconciliation_gain` still forms the superseded
+#: denominator for exactly that reason. Both land together; see #220.
+GAUGE_C = 2
+
+#: @type chosen
+#: @flexibility unknown
+#: @warrant here
 #: The Frobenius norm every map is drawn at. **Chosen here, not recorded.**
 #: ADR-0010 fixes the band and the exact gauge but not where inside the band a
 #: run starts. One is the band's geometric centre and the same value the

@@ -108,20 +108,23 @@ above about a body driven by cells of differing width binds unchanged, from a na
 
 The reason to share it is that **the frozen nonlinearity is an architectural constraint, not a fitted
 shape.** It is random and highly nonlinear, and it exists to place nonlinearity at one specific point
-while keeping everything else linear. A random lift has no domain content it could be *wrong* about,
-so there is nothing for a second domain to disagree with. The consequence is the strong form of the
-architecture's portability claim: **same frozen maps, same dimensions, same rules, different
+while keeping everything else linear. A map that is drawn rather than fitted has no domain content it
+could be *wrong* about, so there is nothing for a second domain to disagree with. The consequence is
+the strong form of the architecture's portability claim: **same frozen maps, same dimensions, same rules, different
 operators.** Two cells in one domain already have different operators, so cross-domain difference is
 the same kind of object as cross-cell difference — one the architecture already has and already
 survives.
 
 **And the cell contract now asserts something about the world, which it did not before.** A cell
-asserts that **its piece admits a small linear lift**. The honest form matters: Koopman theory gives
-*any* nonlinear system a linear representation in some observable space, so linearisability is not the
-assumption — **sufficiency of a small finite lift is**, and that is quantitative and domain-sensitive
-in a way "the sheaf is domain-general" is not. The contract asserts the property *of a cell's piece*
-and does **not** grant it per domain: each domain owes the evidence, measured, before it is believed.
-See [ADR-0017](../adr/0017-a-cell-asserts-its-piece-admits-a-small-linear-lift.md).
+asserts that **a small persisting chart suffices for its piece** under a frozen `encode`: that `k`
+dimensions, carrying the cell's memory and re-fused with fresh evidence every tick, are enough for the
+one-step prediction the cell owes. The honest form matters, and it is a claim about **compression and
+memory** — not about a lift. A cell asserts no immersion of its piece into anything, and asserting one
+is what [ADR-0023](../adr/0023-the-chart-is-not-a-koopman-lift.md) forbids
+([#151](https://github.com/NGL321/patchworks/issues/151)). Sufficiency is quantitative and
+domain-sensitive in a way "the sheaf is domain-general" is not. The contract asserts the property *of
+a cell's piece* and does **not** grant it per domain: each domain owes the evidence, measured, before
+it is believed. See [ADR-0017](../adr/0017-a-cell-asserts-a-small-chart-suffices-for-its-piece.md).
 
 **What the cell contract may and may not know about its world**, stated once:
 
@@ -131,7 +134,7 @@ See [ADR-0017](../adr/0017-a-cell-asserts-its-piece-admits-a-small-linear-lift.m
 | **Algorithm** | world-independent in both halves — the frozen maps are an architectural constraint, `K`'s linearity a structural commitment |
 | **`n`** | world-independent, and now cross-domain |
 | **`k`** | world-independent in kind; its value is open |
-| **The small-lift assertion** | **a claim about the world** — not granted by the contract, discharged per domain by evidence |
+| **The sufficiency assertion** | **a claim about the world** — not granted by the contract, discharged per domain by evidence |
 
 Everything world-shaped stays confined to boundary cells and to the graph.
 
@@ -316,6 +319,12 @@ spread the widths are sometimes imagined to buy is flat across the range (τ rat
 Wider bodies pay margin for nothing, exactly as Hanin & Rolnick's `1/#neurons` scaling predicts.
 Dropping `encode` *below* its floor buys nothing back either (44 measures 0.018, inside the noise), so
 the floor is free in both directions.
+
+> **These margins were read with the pre-#206 denominator**, which divided by the whole `R^(k+n)`
+> hidden row rather than by its node stalk block, and so reported every margin **1.183x tighter** than
+> the current definition does. They are kept as measured rather than rescaled, because a rescale would
+> publish a number nobody ran. The comparisons above are between figures read the same way and are
+> unaffected; a margin read off today's code is not comparable to them.
 
 **The margin is read from `encode` alone.** It used to be read from `encode` and `step`, the two maps
 on the chart's own round trip, with `decode` excluded because it is not on that loop. The conversion

@@ -93,6 +93,9 @@ __all__ = [
     "transport_objective",
 ]
 
+#: @type chosen
+#: @flexibility unknown; the first thing to retune once #90 and #91 can measure a run
+#: @warrant here
 #: `η`, the single global learning-rate scalar — one of exactly two permitted
 #: global signals, and the only one this rule uses
 #: (`docs/spec/07-local-learning-rule.md`, *Permitted global signals*). It is
@@ -110,6 +113,9 @@ __all__ = [
 #: measure what a run actually does.
 DEFAULT_LEARNING_RATE = 1e-2
 
+#: @type chosen
+#: @flexibility unknown; inherits eta's retune duty
+#: @warrant docs/adr/0008-the-local-rule-splits-by-parameter-not-by-cell.md
 #: `c`, the ratio `eta_K = c * eta` at which `K` descends (ticket #139).
 #:
 #: **A construction-time constant, not a second global signal.** ADR-0008
@@ -426,11 +432,15 @@ class PredictionRule:
 # local as the rest of the rule, since a cell owns its own incident maps and
 # needs nothing from a neighbour to project them.
 
+#: @register none
 #: The key `functional_call` names the padded map tensor by, inside a
 #: :class:`TransportPath`. One tensor holds every edge endpoint's map, so the
 #: whole population's transport rule is one parameter and one gradient.
 MAPS_PARAMETER = "maps.maps"
 
+#: @type chosen
+#: @flexibility unknown; 1e-12 in the norm itself, far below anything the maps or stalks carry
+#: @warrant here
 #: The additive floor inside every norm this rule takes, in squared units.
 #: `‖v‖ = √(vᵀv + floor)` rather than `√(vᵀv)`, because the plain norm's
 #: gradient at `v = 0` is `0/0` and would put `nan` through the whole adapting
@@ -454,6 +464,9 @@ MAPS_PARAMETER = "maps.maps"
 #: nothing to learn from" — reads like a settling guarantee and is not one.
 NORM_FLOOR = 1e-24
 
+#: @type selected
+#: @flexibility measured: at 0.4 the pressure gradient is a median 0.12 of the transport term's (0.114-0.127, three seeds) on the default dome
+#: @warrant docs/spec/07-local-learning-rule.md, Permitted global signals; tests/test_transport_rule.py
 #: `λ_max`, the ceiling the sparsity pressure anneals up to — the second and
 #: last permitted global signal alongside `η`
 #: (`docs/spec/07-local-learning-rule.md`, *Permitted global signals*), and
@@ -477,6 +490,9 @@ NORM_FLOOR = 1e-24
 #: rose by roughly the same factor to hold the balance where it was.
 DEFAULT_SPARSITY_PRESSURE = 0.4
 
+#: @type chosen
+#: @flexibility unknown; set an order of magnitude above the slowest cell's tau >= 100 ticks
+#: @warrant docs/spec/05-timescales.md
 #: How many steps the pressure takes to reach that ceiling.
 #:
 #: **Chosen here, not recorded**, and the *direction* is the choice: the

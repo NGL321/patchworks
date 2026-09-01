@@ -70,12 +70,21 @@ pushes a cell across a fold into an activation region with a different spectral 
 separation would then be erased by its own reconciliation** — not by the slow value being dragged,
 but by the slowness being dragged.
 
-This makes the governing quantity a product of gain and floor, which forced a gap in the spec into
+This makes the governing quantity a product of gain and offset, which forced a gap in the spec into
 the open: **reconciliation's step size had never been named.** ADR-0002 forbids a round count, but a
 descent step needs a gain regardless. It is now specified in `02-tick-semantics.md` as
-`γ / Σ_e m_e` per cell, with the bound that `γ × floor` must stay below the cell's fold margin,
-checked at construction. Because `Σ_e m_e` falls with depth, the gain is largest at the apex and the
-bound **binds hardest exactly where timescale matters most**.
+`γ / Σ_e m_e` per cell, with the bound that `gain_v × offset` must stay below the cell's fold margin.
+
+*Amended by [#160](https://github.com/NGL321/patchworks/issues/160), twice over, and both amendments
+are [ADR-0019](./0019-construction-nominates-the-run-decides.md)'s.* **The divisor is the standing
+offset, not the floor** — the term two paragraphs above, *a bounded standing offset on the reconciled
+component of a node stalk*. A fold does not care why the operating point moved; this ADR's own
+derivation makes the offset the mechanism of concern and the floor merely its assumed source, and at
+construction the floor is not even the dominant contributor — model error is. **And the depth claim is
+struck.** [#190](https://github.com/NGL321/patchworks/issues/190) made `gain_v` uniform across the
+interior, so the bound binds on each cell's own margin draw rather than at the apex. Nothing replaces
+it: the measured profile down the levels is not monotone, and #178 found the quantity wanders 3.8x
+with no trend.
 
 *Amended by [#41](https://github.com/NGL321/patchworks/issues/41): the fold margin has a second job,
 and it is structural.* This ADR framed the margin as protecting the operating point *from the floor*.
@@ -86,6 +95,11 @@ makes "the cell's region" a well-defined object at all: it is the construction-t
 The bound is unchanged and the check is the same check — but it is now a precondition of the
 timescale claim as well as a stability condition, and `02-tick-semantics.md` says so at the point
 where a build would be tempted to relax `γ`.
+
+*Honoured rather than reopened by #160:* the margin still bounds dwell, and only the **moment of
+reading** moves. ADR-0005's precondition re-sources onto dwell **measured on the run** — the proxy
+was always a construction-time stand-in for a runtime quantity, and the runtime quantity is now
+available.
 
 *Amended by [#140](https://github.com/NGL321/patchworks/issues/140): the bound on `γ` is **demoted**,
 and the check survives it.* Three findings collide, and together they retire the consequence without
@@ -100,16 +114,24 @@ touching this ADR's argument.
 - **The margin keeps its referent**, because `encode` stays ReLU. It is now read from `encode`
   **alone**, that being the body's only nonlinearity and so the only map with folds at all.
 
-**So: demoted, not deleted.** The fold-margin check survives as a **construction-time diagnostic on
-`encode`**, keeping its go/no-go and its ADR-0005 falsification duty intact — it can still kill the
-timescale mechanism cheaply, before anything is trained. What it stops being is a **bound on `γ`**,
-whose constraint is now exactly two things: capped at 1.0 globally, and
+**So: demoted, not deleted.** The fold-margin check survives as a **diagnostic on `encode`**,
+keeping its go/no-go and its ADR-0005 falsification duty intact. What it stops being is a **bound on
+`γ`**, whose constraint is now exactly two things: capped at 1.0 globally, and
 [ADR-0010](./0010-restriction-map-scale-is-gauge-fixed.md)'s provable
 `λ_max(Σ_e Fᵀ F) ≤ ρ² · deg(v)`.
 
-The second job #41 gave the margin — construction-time proxy for region dwell — is **untouched**, and
-is now the whole of what the margin is for. Measured consequence of reading it from one map instead of
-two: the cap on `γ × floor` rose from 0.2600 to 0.3502.
+*Demoted a second time by #160, and this time out of construction* (ADR-0019). The clause struck from
+the paragraph above is *before anything is trained*: the check cannot kill the mechanism cheaply,
+because the number it would kill on is not the number the run has. Both remaining sides of the bound
+move — the offset falls 144x through a run, and the folds slide, their positions being the per-cell
+biases the prediction rule trains. So construction **nominates** the cap a body's draw permits, and
+the run **decides**, on measured dwell, with the live margin-against-offset comparison as the
+attribution. The falsification duty travels with the verdict.
+
+The second job #41 gave the margin — proxy for region dwell — is **untouched**, and is now the whole
+of what the margin is for; #160 moved it from a construction-time proxy to a live read of the
+quantity itself. Measured consequence of reading it from one map instead of two: the cap on
+`γ × offset` rose from 0.2600 to 0.3502.
 
 ### The learning rule tolerates the floor; it does not subtract it
 
@@ -174,6 +196,18 @@ naming, the other needed this bound extended.**
   still not a cap on what a map may learn. It fixes a magnitude no term in the objective has an opinion
   about, which is why it closes this hole without imposing the geometric constraint declined above.
 
+  *And this is where #37 and [#160](https://github.com/NGL321/patchworks/issues/160) have to be read
+  together, because apart they look like the same decision taken twice in opposite directions.* #37
+  struck a runtime re-derivation; #160 reinstated a runtime read. **They are about opposite sides of
+  the same inequality.** #37 is about the **denominator** — a graph quantity, which ADR-0010 froze,
+  and it stays frozen. #160 is about the **arrangement** and the **offset** — body quantities, which
+  nothing has ever held still: the per-cell biases the prediction rule trains *are* the positions of
+  `encode`'s folds, and the offset is model-error dominated and falls 144x through a run. **#37 was
+  right about the denominator and silent about the arrangement.** Nor is #160's read a re-derivation:
+  it recomputes nothing, reading the pre-activation the forward pass already produced against a
+  frozen weight's row norms. The full argument, and the reason it earns a file rather than a fourth
+  amendment here, is [ADR-0019](./0019-construction-nominates-the-run-decides.md).
+
 Neither half is [#20](https://github.com/NGL321/patchworks/issues/20)'s change gate or the probabilistic
 sheaf. The gate amplifies differentiation on an edge; it has no purchase on whether a cell's own
 parameter update oscillates or whether a spectral-radius proxy has gone stale. The probabilistic sheaf
@@ -194,7 +228,9 @@ what this question is actually about.
   [#33](https://github.com/NGL321/patchworks/issues/33) that check could not stay construction-time
   only — and per [#37](https://github.com/NGL321/patchworks/issues/37) it does after all, because
   ADR-0010 bounds the map magnitudes the `Σ_e m_e` proxy stood in for. One construction-time check, no
-  running re-derivation.
+  running re-derivation. *Amended by [#160](https://github.com/NGL321/patchworks/issues/160):* the
+  construction check is a **nomination** and the verdict is live, on measured dwell (ADR-0019). Still
+  no running re-derivation — what runs is a read.
 - **The gain is not a timescale knob and must not become one.** Normalising by `Σ_e m_e` tracks the
   local Laplacian block's largest eigenvalue; its job is to *equalise* the effective step across the
   taper, removing a degree artifact. A gain deliberately graded by depth would be ADR-0005's rejected

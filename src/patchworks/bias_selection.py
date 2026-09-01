@@ -44,10 +44,20 @@ The module also carries the **fold margin** check (:func:`fold_margin_check`) �
 same sweep, same afternoon. Since #138 the margin is read from **`encode`
 alone**, because `encode` is the body's only nonlinearity and so the only map
 that has folds at all. The check is **demoted rather than deleted** (#140): it
-survives as a construction-time diagnostic and keeps its ADR-0005 falsification
-duty, but it is no longer a bound on `gamma`, whose constraint is exactly two
-things — capped at 1.0 globally, and ADR-0010's provable
+is no longer a bound on `gamma`, whose constraint is exactly two things —
+capped at 1.0 globally, and ADR-0010's provable
 `lambda_max(sum_e F^T F) <= rho^2 deg(v)`.
+
+**Demoted again by #160, and this time out of construction** (ADR-0019).
+Neither side of the bound holds still: the standing offset falls 144x through a
+run (#158), and the folds themselves slide, because their positions are the
+per-cell biases the prediction rule trains. So what this module produces is a
+**nomination** — the cap a body's draw permits, before anything runs — and
+:class:`patchworks.tick.FoldRead` is what decides, live, on the run that
+actually happens. ADR-0005's falsification duty travels with the verdict: it is
+measured dwell that can kill the timescale mechanism, and the live
+margin-against-offset comparison that attributes a killed cell to
+reconciliation rather than to its own dynamics.
 
 The rig also produces **`a`**, the scalar in `K = a.I` at construction
 (:func:`operator_scale_rule`) — a fifth part of the construction, and a number
@@ -68,6 +78,7 @@ import torch
 
 from .body import DEFAULT_OPERATOR_SCALE, DEFAULT_RHO_K, CellBiases, CellBody
 from .graph import Dome
+from .restriction import GAUGE_RHO
 
 __all__ = [
     "DEFAULT_BURN_IN",
@@ -94,15 +105,24 @@ __all__ = [
     "sweep",
 ]
 
+#: @type chosen
+#: @flexibility unknown, and this register's flagship unknown: #178 found a rig tick count silently deciding a result
+#: @warrant here
 #: Ticks of driven trajectory each candidate is measured over. The rig's
 #: (`selection_sweep.trajectory_lambda`), long enough for the `lambda` estimate
 #: to settle and short enough that 64 of them per candidate stay an afternoon.
 DEFAULT_TICKS = 64
 
+#: @type chosen
+#: @flexibility unknown
+#: @warrant here
 #: Ticks run before measurement starts, so that the chart is measured on the
 #: trajectory the drive puts it on rather than on the way there.
 DEFAULT_BURN_IN = 16
 
+#: @type chosen
+#: @flexibility the arm the dwell measurement is most sensitive to; benchmarks/timescale_selection.py sweeps it rather than trusting it
+#: @warrant docs/spec/05-timescales.md
 #: Correlation time, in ticks, of the node stalk sequence the cell is driven
 #: with. **A stand-in, and the one the dwell arm is most sensitive to**: nothing
 #: is trained, so there is no real message stream to drive a cell with. The rig
@@ -113,16 +133,41 @@ DEFAULT_BURN_IN = 16
 #: the benchmark sweeps this rather than trusting it.
 DEFAULT_DRIVE_CORRELATION = 8.0
 
+#: @type stipulated
+#: @flexibility free as a convention, but nothing the rig reads is comparable across two values of it, which is what fixing it buys
+#: @warrant here
+#: Standard deviation of the draws the driven trajectory's Ornstein-Uhlenbeck
+#: walk is built from. The innovation scaling is `sqrt(1 - retention^2)`, so the
+#: **stationary** std of the walk *is* this number -- and `driven_trajectory`'s
+#: docstring already claims "unit stationary variance", which `1.0` is precisely
+#: what makes true. Stipulated rather than chosen: it is the selection rig's
+#: amplitude convention, not a number argued locally.
+#: **Not `agent.DRIVE_ASSERTION`**, which wears the same 1.0. That is the
+#: drive's asserted scalar, fixed by #137 on ADR-0009's warrant; this is the
+#: amplitude of a synthetic node stalk in the selection rig, about which
+#: ADR-0009 says nothing. The shared number is the trap, so the two are named
+#: apart and the collision is written down here.
+DEFAULT_DRIVE_SCALE = 1.0
+
+#: @type chosen
+#: @flexibility unknown; #42's rig drew 20,000 at a frozen operating point, and each draw here costs a whole trajectory
+#: @warrant here
 #: Candidate bias vectors drawn per sweep. #42's rig drew 20,000 at a frozen
 #: operating point; each draw here costs a whole trajectory instead, so the
 #: default is smaller and the benchmark says what it used.
 DEFAULT_DRAWS = 4096
 
+#: @type stipulated
+#: @flexibility none as a choice of statistic: tau = -1/ln rho diverges as rho -> 1, so no moment is admissible
+#: @warrant docs/spec/05-timescales.md
 #: `tau` is reported as **quantiles, never moments**: `tau = -1/ln rho` diverges
 #: as `rho -> 1`, so a mean is dominated by whichever draw came closest to the
 #: boundary.
 TAU_QUANTILES = (0.05, 0.25, 0.5, 0.75, 0.95)
 
+#: @type chosen
+#: @flexibility unknown
+#: @warrant docs/spec/05-timescales.md, The taper's timescale gradient is a gradient in means
 #: How far adjacent levels' bands overlap, as a fraction of a band's width. The
 #: taper's gradient is continuous and separates levels only as distributions
 #: (`05-timescales.md`, *The taper's timescale gradient is a gradient in
@@ -130,17 +175,35 @@ TAU_QUANTILES = (0.05, 0.25, 0.5, 0.75, 0.95)
 #: module's choice of how much.
 DEFAULT_OVERLAP = 0.5
 
+#: @type measured
+#: @flexibility not a knob: 2.6 is #27's measured one-tick non-normal amplification
+#: @warrant #27
 #: The safety factor the slow cap is stated with. #27 measured a **2.6x**
 #: one-tick non-normal amplification, and the slow-and-stable band is thin, so
 #: the factor is not decorative: a cell whose realised decay is slower than its
 #: regions imply by more than this is one bias update from crossing.
+#:
+#: Licensed for `contained()`'s realised-against-regional timescale ratio and
+#: nowhere else (#208). It bounds one time against another time; it was never
+#: derived for a *duration*, so its transplant onto region dwell carried no
+#: warrant -- `05-timescales.md`'s dwell bar is one e-fold, `dwell > tau`, and
+#: `dwell >= 2.6 tau` is reported headroom rather than a pass condition. This
+#: line exists so the next transplant is visibly a transplant.
 DEFAULT_SAFETY_FACTOR = 2.6
 
+#: @type derived
+#: @depends_on patchworks.restriction.GAUGE_RHO
+#: @flexibility none independently: it is the spec's rho, and the import is what makes disagreeing with it impossible
+#: @warrant docs/adr/0010-restriction-map-scale-is-gauge-fixed.md
 #: `rho` in `lambda_max <= rho^2 deg(v)`: the gauge bound on a restriction map's
 #: Frobenius norm (`docs/adr/0010-restriction-map-scale-is-gauge-fixed.md`),
-#: which is 2 in the spec. Named apart from the spectral radius this module
-#: otherwise calls `rho`.
-MAP_NORM_BOUND = 2.0
+#: which is the same `rho` as the gauge's band edge rather than a number that
+#: agrees with it -- so it is **imported** rather than restated
+#: (`docs/adr/0018-a-derived-constant-is-derived-where-its-dependency-lives.md`).
+#: Named apart from the spectral radius this module otherwise calls `rho`: the
+#: alias is a rename, not a second declaration, and it keeps a register row
+#: saying the slow cap depends on the gauge.
+MAP_NORM_BOUND = GAUGE_RHO
 
 #: `rho` this close to one is reported as this `tau` rather than as infinity.
 #: An expansive region has no `tau` at all; clamping keeps it at the slow end of
@@ -398,7 +461,7 @@ def driven_trajectory(
     ticks: int = DEFAULT_TICKS,
     burn_in: int = DEFAULT_BURN_IN,
     drive_correlation: float = DEFAULT_DRIVE_CORRELATION,
-    drive_scale: float = 1.0,
+    drive_scale: float = DEFAULT_DRIVE_SCALE,
     generator: torch.Generator | None = None,
 ) -> torch.Tensor:
     """A plausible node stalk sequence, `[burn_in + ticks, candidates, n]`.
@@ -449,17 +512,6 @@ def _map_jacobian(
     return output_weight @ (active.unsqueeze(-1) * hidden_weight)
 
 
-def _fold_margin(pre_activation: torch.Tensor, hidden_weight: torch.Tensor) -> torch.Tensor:
-    """`min_i |z_i| / ||grad z_i||` for one map, `[candidates]`.
-
-    Hanin & Rolnick's distance to the nearest region boundary, in the map's own
-    input space. With one hidden layer the gradient of the `i`th pre-activation
-    is that row of the hidden weight, so the row norms are the whole of it.
-    """
-    rows = torch.linalg.vector_norm(hidden_weight, dim=-1).clamp(min=1e-12)
-    return (pre_activation.abs() / rows).min(dim=-1).values
-
-
 def measure(
     body: CellBody,
     biases: CellBiases,
@@ -467,7 +519,7 @@ def measure(
     ticks: int = DEFAULT_TICKS,
     burn_in: int = DEFAULT_BURN_IN,
     drive_correlation: float = DEFAULT_DRIVE_CORRELATION,
-    drive_scale: float = 1.0,
+    drive_scale: float = DEFAULT_DRIVE_SCALE,
     operator_scale: float = DEFAULT_OPERATOR_SCALE,
     generator: torch.Generator | None = None,
 ) -> Measurement:
@@ -543,8 +595,12 @@ def measure(
             jacobian = operator_scale * through_encode
             rho.append(torch.linalg.eigvals(jacobian).abs().amax(dim=-1))
             # Read from `encode` alone: after #138 it is the body's only
-            # nonlinearity, so it is the only map that has folds at all.
-            margins.append(_fold_margin(fused_pre, body.encode_hidden_weight))
+            # nonlinearity, so it is the only map that has folds at all. Read
+            # through the body's own `fold_margin` for the same reason the
+            # forward path above is the body's own: the live read (ADR-0019)
+            # calls that method too, and construction nominating what the run
+            # then decides means one measurement, not two that resemble it.
+            margins.append(body.fold_margin(fused_pre))
 
             # A cell's activation region is which units of the round trip are on.
             # The chart crossing a fold is that pattern changing.
@@ -665,6 +721,9 @@ def sweep(
     )
 
 
+#: @type chosen
+#: @flexibility unknown
+#: @warrant here
 #: How many values of `a` :func:`operator_scale_rule` tries across the band.
 #: Log-spaced, because `a` multiplies a rate.
 DEFAULT_SCALE_STEPS = 12
@@ -889,28 +948,47 @@ def _restrict(measurement: Measurement, index: torch.Tensor) -> Measurement:
 
 @dataclass(frozen=True)
 class FoldMarginCheck:
-    """`02-tick-semantics.md`'s `gamma x floor <` fold margin, per cell across the taper.
+    """`02-tick-semantics.md`'s `gain_v x offset <` fold margin, per cell across the taper.
 
-    A disagreement floor leaves a bounded standing offset on the reconciled
-    component of a node stalk, and that offset shifts the cell's operating point
-    — which is where its timescale comes from. The check is therefore a
-    precondition of the timescale claim as well as a stability side-condition
-    (`ADR-0007`, amended).
+    Reconciliation leaves a **standing offset** on the reconciled component of a
+    node stalk, and that offset shifts the cell's operating point — which is
+    where its timescale comes from. The divisor is the offset, whatever caused
+    it, and not the disagreement floor: the floor is one contributor and, at
+    construction, not the dominant one (#160, ADR-0007 as amended).
 
-    The bound is read with the **per-cell gain** in it, `gain_v x floor <
-    margin_v` where `gain_v = gamma / max(sum_e m_e, rho^2 deg(v))`. That is what
-    makes the spec's own consequence true — the bound binds hardest at the apex,
-    because `sum_e m_e` falls with depth and `gain_v` is therefore largest there,
-    exactly where the slow cells live. Read without the gain the bound would be
-    the same number at every cell and could not bind anywhere in particular.
+    The bound is read with the **per-cell gain** in it, `gain_v x offset <
+    margin_v`, because read without it the bound would be the same number at
+    every cell. `gain_v = gamma / (g_v^2 . c_v)` since
+    [#190](https://github.com/NGL321/patchworks/issues/190) — one formula against
+    each cell's own gauge, uniform across the interior. **What this function
+    still forms is the superseded `max(sum_e m_e, rho^2 deg(v))`**.
+    [#195](https://github.com/NGL321/patchworks/issues/195) ran the re-measure
+    and reported what the ruled denominator permits -- the nominated cap moves
+    `0.3502 -> 0.1369`, which `02` now publishes -- but it did not swap the
+    code, and the swap is [#220](https://github.com/NGL321/patchworks/issues/220)'s
+    alongside the projection term the ruled denominator depends on. Nothing here
+    reads the result as a gate, so the stale denominator mis-states a nomination
+    rather than passing a bad build.
 
-    The floor is not known before anything runs, so what this produces is the
-    **product** `gamma x floor` each cell can carry. Divide by a floor to get a
-    cap on `gamma`, which `gamma <= 1` then caps again.
+    **The margin is also still taken in the wrong space**, and #220 owns that
+    too: `_fold_margin` takes row norms over `encode`'s whole `R^k x R^n` input
+    while reconciliation writes the node stalk alone, which is 1.183x tighter
+    than it needs to be. Conservative, never unsafe.
+
+    **A nomination, not a verdict** (ADR-0019). What the run decides is measured
+    dwell, with :class:`patchworks.tick.FoldRead`'s live margin-against-offset
+    as the attribution. The depth claim this docstring used to carry — that the
+    bound binds hardest at the apex because `sum_e m_e` falls with depth — is
+    **struck** and not replaced: #190 made `gain_v` uniform across the interior,
+    so it binds on each cell's own margin draw, which is partly a draw.
+
+    The offset is not known before anything runs, so what this produces is the
+    **product** `gamma x offset` each cell can carry. Divide by an offset to get
+    a cap on `gamma`, which `gamma <= 1` then caps again.
     """
 
     product_cap: torch.Tensor
-    """`[predicting cells]`: the largest `gamma x floor` this cell can carry."""
+    """`[predicting cells]`: the largest `gamma x offset` this cell can carry."""
 
     cells: tuple[int, ...]
     """Cell ids, in :attr:`product_cap`'s row order."""
@@ -927,12 +1005,17 @@ class FoldMarginCheck:
 
     @property
     def apex_binds(self) -> bool:
-        """Whether the tightest cell is at the apex, where the spec expects it."""
+        """Whether the tightest cell is at the apex.
+
+        Reported, not expected. `02` used to claim the apex binds hardest; #160
+        struck the claim with #190's uniform interior gain under it, so this is
+        now a fact about one body's draw and about nothing systematic.
+        """
         return self.levels[self.binding] == self.apex_level
 
     @property
     def cap(self) -> float:
-        """The global cap on `gamma x floor`, set by the tightest cell.
+        """The global cap on `gamma x offset`, set by the tightest cell.
 
         If the apex fails the bound, `gamma` is capped globally by the tightest
         cell; paying that everywhere costs only reconciliation speed at the rim,
@@ -940,19 +1023,27 @@ class FoldMarginCheck:
         """
         return float(self.product_cap.min())
 
-    def gamma_cap(self, floor: float) -> float:
-        """The cap on the global `gamma` at a stated disagreement floor, `gamma <= 1`."""
-        if floor <= 0:
-            raise ValueError(f"a disagreement floor is positive, got {floor}")
-        return min(1.0, self.cap / floor)
+    def gamma_cap(self, offset: float) -> float:
+        """The cap on the global `gamma` at a stated standing offset, `gamma <= 1`.
+
+        The argument was named `floor` while the record took the disagreement
+        floor to be what the bound divides by. It is the **standing offset**
+        (#160): the displacement itself, whose dominant contributor at
+        construction is model error rather than any floor.
+        """
+        if offset <= 0:
+            raise ValueError(f"a standing offset is positive, got {offset}")
+        return min(1.0, self.cap / offset)
 
     def by_level(self) -> tuple[tuple[int, int, float, float], ...]:
         """`(level, cells, median cap, tightest cap)` down the taper.
 
         The tightest *cell* is partly a draw — a cell's fold margin is
-        uncorrelated with everything else about it — so the level medians are
-        what show the systematic part of the bound, which is the one the spec
-        makes a claim about: it tightens with depth because `sum_e m_e` falls.
+        uncorrelated with everything else about it. There is **no systematic
+        part left for the level medians to show**: #190's `gain_v` is uniform
+        across the interior, and #160 struck the depth claim without replacing
+        it, on #178's finding that the quantity wanders 3.8x with no trend. The
+        levels are kept as a reporting axis, not as a shape the record predicts.
         """
         rows = []
         for level in sorted(set(self.levels)):
@@ -972,7 +1063,7 @@ def fold_margin_check(
     *,
     map_norm_bound: float = MAP_NORM_BOUND,
 ) -> FoldMarginCheck:
-    """Run the `gamma x floor <` fold margin check per cell across the taper.
+    """Run the `gain_v x offset <` fold margin check per cell across the taper.
 
     `margins` is one measured fold margin per entry of `cells`, which are dome
     cell ids — the selected cells', so the check runs on the body the graph will
@@ -983,8 +1074,9 @@ def fold_margin_check(
     never binding — `DEFAULT_GAMMA` is 1.0, the global ceiling `02` permits —
     and `02`'s stated reason for it, that a shifted operating point changes the
     cell's effective timescale, is the premise #138 retired when timescale moved
-    into `K`. What survives is a construction-time **diagnostic**, and the
-    number it produces is what #155's fold-margin precondition consumes.
+    into `K`. What survives is a **nomination** made before the run (#160,
+    ADR-0019), and the number it produces is what #155's fold-margin
+    precondition consumes.
     """
     if margins.shape != (len(cells),):
         raise ValueError(

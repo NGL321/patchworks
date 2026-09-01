@@ -37,6 +37,15 @@ Three commitments are structural here rather than configurable.
   better, which looks like the thesis being right — so the check is always on
   rather than a review habit.
 
+**Every tick is read.** :class:`FoldRead` takes the fold margin, the
+activation region and the standing offset off the two phases as they run — the
+pre-activation and the displacement they had already computed, against one
+frozen graph-wide constant. `02-tick-semantics.md`'s bound was checked once at
+construction until #160 found both of its sides moving, so **construction
+nominates and the run decides**
+(`docs/adr/0019-construction-nominates-the-run-decides.md`). It is always on,
+for the reason :func:`assert_no_tape` is.
+
 **Node stalks are one flat buffer.** Boundary cells are exempt from `n` and
 carry the world's shape instead, so the population's stalks are ragged. They
 are stored end to end in a single tensor with a per-cell offset, plus one
@@ -55,19 +64,37 @@ from .restriction import GAUGE_RHO, RestrictionMaps, pair_index
 
 __all__ = [
     "DEFAULT_GAMMA",
+    "FoldRead",
     "Sheaf",
     "StalkLayout",
     "assert_no_tape",
     "reconciliation_gain",
 ]
 
+#: @type stipulated
+#: @flexibility free in (0, 1] and held at the ceiling because nothing derives a lower value: #206 declined a ramp permanently and #205 declined a permanently lower value, so both alternatives are now closed
+#: @warrant docs/adr/0019-construction-nominates-the-run-decides.md
 #: The single global `γ` of the reconciliation gain, `γ ≤ 1`
 #: (`docs/spec/02-tick-semantics.md`, *Reconciliation gain*). One scalar for the
 #: whole graph: the per-cell variation is entirely in the denominator, which is
-#: a structural quantity. `γ` is capped globally by the tightest cell's fold
-#: margin, a construction-time check that belongs to bias selection (#85); until
-#: that check exists this sits at the bound the spec states, which is the only
-#: value in `(0, 1]` that is not an unmotivated constant.
+#: a structural quantity.
+#:
+#: **1.0 is the ceiling `02` permits, and nothing below it is derivable.** The
+#: fold margin was once expected to cap this — the `@provisional 85` that stood
+#: here — and #140 demoted that bound, #160 moved the check itself off
+#: construction. The margin bounds the *standing offset*, not `γ`, and both
+#: sides of it move through a run, so there is no construction-time number to
+#: read a cap off. #160 ruled that the bound holds **after a burn-in**; #202
+#: measured 100,000 ticks and found no such count — not one tick free of a
+#: breaching cell, and the density plateaus at ~15 cells in 150 — so #206 struck
+#: the clause and replaced it with nothing. The margin-against-offset comparison
+#: is an **attribution**, not a verdict, and carries no threshold; the verdict is
+#: measured region dwell. A ramp stays declined, aimed at a transient the run
+#: does not have; a permanently lower `γ` was handed to #205 and **declined
+#: there, permanently**, on arithmetic — it scales the numerator where the
+#: quantity that fails is the divisor's tail, which reaches zero, so no positive
+#: `γ` buys a clean run and `γ/33` still leaves half the ticks breaching
+#: (`docs/adr/0019-construction-nominates-the-run-decides.md`, decision 5).
 DEFAULT_GAMMA = 1.0
 
 
@@ -218,26 +245,47 @@ def _checked_gamma(gamma: object) -> float:
 def reconciliation_gain(
     dome: Dome, *, gamma: float = DEFAULT_GAMMA, rho: float = GAUGE_RHO
 ) -> torch.Tensor:
-    """`[cells]`: `gain_v = γ / max(Σ_{e∋v} m_e, ρ² · deg(v))`.
+    """`[cells]`: `gain_v = γ / max(Σ_{e∋v} m_e, ρ² · deg(v))` — **superseded**.
 
     The denominator bounds the largest eigenvalue of the cell's local Laplacian
     block provably rather than by proxy: ADR-0010 bounds every incident
     restriction map by `‖F‖_F ≤ ρ`, so
-    `λ_max(Σ_e F_evᵀF_ev) ≤ Σ_e ‖F_ev‖_F² ≤ ρ² · deg(v)`. At `ρ = 2` and the
-    vertical edges' `m = 4` the two terms are equal; it is written as the max so
-    that a later change to `ρ` cannot silently loosen the bound.
+    `λ_max(Σ_e F_evᵀF_ev) ≤ Σ_e ‖F_ev‖_F² ≤ ρ² · deg(v)`.
 
-    This **equalises** the effective step across the graph — every cell takes
-    roughly the same descent on its own local energy regardless of how many
-    edges it sits on. It removes a degree artifact. **It is not a timescale
-    knob and must not become one**: a gain graded by depth would be the explicit
-    per-cell clock divisor ADR-0005 rejected, wearing a different name. What
-    keeps that honest is the shape of this function — one global `γ` over a
-    denominator read straight off the built graph, with nothing per-cell to set.
+    **What this still forms is not what the spec says.**
+    [#190](https://github.com/NGL321/patchworks/issues/190) ruled the denominator
+    and `docs/spec/02-tick-semantics.md` now publishes it: `γ / (g_v² · c_v)`,
+    with `g_v = ρ` at a predicting cell and `1` at a boundary cell's pinned maps,
+    and `c_v = min(deg(v), max(c, ⌈deg(v)/n_v⌉))`. `Σ_e m_e`, `ρ² · deg(v)` and
+    the `max` are all struck — the first was never shown to bound anything, the
+    second is the fully-coherent case, and the `max` guarded a proxy that is
+    gone.
+
+    **The swap waits on the projection, deliberately, and #220 lands both.**
+    The ruled denominator is a bound *made good by construction*:
+    :meth:`patchworks.restriction.RestrictionMaps.project` has to hold each
+    cell's incident maps' top singular directions apart to `GAUGE_C` before
+    anything may divide by it. Today it restores the mask and the norm band and
+    no more, so swapping this function alone would ship an **unsafe** bound
+    rather than a loose one — worst at the drive, where eight maps share a
+    one-dimensional stalk and only the pigeonhole floor separates `c` from
+    `deg`. What ships meanwhile is conservative: this denominator is larger than
+    the ruled one at every cell, so the step is too small everywhere and stable
+    everywhere.
+
+    The old equalisation defence is **struck** and not replaced (#189, #190).
+    Measured as `gain_v · λ_max` it spread 3.57x across the taper at
+    initialisation, graded by depth and largest at the apex, so `Σ_e m_e` never
+    removed the degree artifact it was kept for. ADR-0005 is untouched: the
+    depth-invariance gloss was `02`'s attribution rather than that ADR's claim.
+    What stays true of this function's shape is the part worth keeping — one
+    global `γ` over a denominator read straight off the built graph, with
+    nothing per-cell to set.
 
     Boundary cells are included on the same formula. Their maps carry the
     tighter exact gauge, `Σ_e ‖F‖_F² = deg(v)`, so `ρ² · deg(v)` is a valid
-    bound for them too and merely a looser one.
+    bound for them too — looser by a **permanent 8x**, since an exact gauge is
+    an equality rather than a band the transport rule grows into.
     """
     gamma = _checked_gamma(gamma)
     stalk_sums = torch.tensor(dome.stalk_sums, dtype=torch.float32)
@@ -271,6 +319,145 @@ def assert_no_tape(**tensors: torch.Tensor) -> None:
             )
 
 
+class FoldRead:
+    """The fold margin, the standing offset and region dwell, read live off the tick.
+
+    ADR-0019's *the run decides*. The construction sweep
+    (:func:`patchworks.bias_selection.fold_margin_check`) **nominates** a cap
+    before anything runs; this reads the same quantities on the run that
+    actually happens, which is the only place they can be read, because both
+    sides of the bound move:
+
+    * the **standing offset** is dominated at construction by model error,
+      which is what learning exists to remove, and falls 144x through a run
+      ([#158](https://github.com/NGL321/patchworks/issues/158));
+    * the **folds** move too, because their positions are the per-cell biases
+      the prediction rule trains — one frozen set of orientations, rigidly
+      translated per cell, sliding under the operating point for the length of
+      the run.
+
+    **Two readings, and they are not the same reading.** :attr:`dwell` is the
+    **verdict**: ADR-0005's timescale mechanism holds only where a cell stays
+    in one activation region long against the `τ` that region implies, and
+    dwell is that, measured. The margin against the offset is the
+    **attribution**: dwell alone cannot say *why* a cell left its region, and
+    what ADR-0007 forbids specifically is reconciliation moving it. A cell with
+    short dwell and :attr:`reconciliation_reaches` false left its region under
+    its own dynamics, which is not this bound's business.
+
+    **No new state and no new time constant**, which is what sank every earlier
+    re-derivation proposal (#33, struck by #37). The margin's numerator is the
+    pre-activation the forward path already computed and its denominator is one
+    graph-wide frozen constant
+    (:attr:`patchworks.body.CellBody.fold_gradient_norms`); the offset is the
+    norm of the displacement the message-passing phase already formed. The
+    counters below are a tick count and a crossing count — nothing here
+    averages, so nothing here has a rate to set.
+    """
+
+    def __init__(self, cells: int) -> None:
+        #: `[predicting cells]`: last tick's margin, `min_i |z_i| / ‖∇z_i‖`.
+        self.margin = torch.zeros(cells)
+        #: `[predicting cells]`: the length of last tick's reconciliation
+        #: displacement, over the node stalk's `n` coordinates alone. The
+        #: comparison against :attr:`margin` is **conservative** in that
+        #: respect: displacement along a coordinate subspace is never less than
+        #: the perpendicular distance the margin measures.
+        self.offset = torch.zeros(cells)
+        #: `[predicting cells]`: how many times this cell's activation pattern
+        #: has changed since the read began.
+        self.crossings = torch.zeros(cells)
+        #: Ticks observed. Kept as the denominator for rates read off this
+        #: instrument, not as a burn-in: #202 measured that no burn-in exists
+        #: and #206 struck the clause, leaving the margin-against-offset
+        #: comparison an attribution with no threshold to reach.
+        self.ticks = 0
+        self._region: torch.Tensor | None = None
+
+    def observe_inference(self, pre_activation: torch.Tensor, body: CellBody) -> None:
+        """Read the margin and the activation region off `encode`'s pre-activations."""
+        self.margin = body.fold_margin(pre_activation)
+        here = pre_activation > 0
+        if self._region is not None:
+            self.crossings += (here != self._region).any(dim=-1).to(self.crossings.dtype)
+        self._region = here
+        self.ticks += 1
+
+    def observe_reconciliation(self, displacement: torch.Tensor) -> None:
+        """Read the standing offset off the displacement reconciliation applied."""
+        self.offset = torch.linalg.vector_norm(displacement, dim=-1)
+
+    @property
+    def dwell(self) -> torch.Tensor:
+        """`[predicting cells]`: mean ticks in one activation region so far.
+
+        The same quantity :attr:`patchworks.bias_selection.Measurement.dwell`
+        reports on the construction sweep, so the two are comparable directly —
+        which is the whole point of nominating and then deciding.
+        """
+        return self.ticks / (1.0 + self.crossings)
+
+    @property
+    def reconciliation_reaches(self) -> torch.Tensor:
+        """`[predicting cells]` bool: the offset is at least the margin.
+
+        The attribution. True means last tick's reconciliation was on its own
+        large enough to carry the cell out of its activation region — the
+        failure ADR-0007 names, observed rather than bounded. It does not say
+        the cell *did* leave: the displacement's direction may point across the
+        region rather than out of it, which is why this is read alongside
+        :attr:`dwell` and not instead of it.
+        """
+        return self.offset >= self.margin
+
+    def state(self) -> dict[str, object]:
+        """Everything the read carries between ticks, cloned.
+
+        The read is state a tick moves, so anything re-running a graph from a
+        saved place has to put it back — `benchmarks/untrained_fixed_point.py`'s
+        `sensitivity` runs six variants against one reference, and a crossing
+        count left running across them would make the six incomparable.
+        """
+        return {
+            "margin": self.margin.clone(),
+            "offset": self.offset.clone(),
+            "crossings": self.crossings.clone(),
+            "ticks": self.ticks,
+            "region": None if self._region is None else self._region.clone(),
+        }
+
+    def load(self, state: dict[str, object]) -> None:
+        """Put back what :meth:`state` took."""
+        margin, offset, crossings, region = (
+            state["margin"],
+            state["offset"],
+            state["crossings"],
+            state["region"],
+        )
+        assert isinstance(margin, torch.Tensor)
+        assert isinstance(offset, torch.Tensor)
+        assert isinstance(crossings, torch.Tensor)
+        self.margin, self.offset, self.crossings = (
+            margin.clone(),
+            offset.clone(),
+            crossings.clone(),
+        )
+        self.ticks = int(state["ticks"])  # type: ignore[arg-type]
+        self._region = None if region is None else region.clone()  # type: ignore[union-attr]
+
+    def __repr__(self) -> str:
+        if self.ticks == 0:
+            return "FoldRead(nothing read yet)"
+        return (
+            f"FoldRead({self.ticks} ticks, "
+            f"median margin {float(self.margin.median()):.4f}, "
+            f"median offset {float(self.offset.median()):.4f}, "
+            f"median dwell {float(self.dwell.median()):.1f} ticks, "
+            f"reconciliation reaches {int(self.reconciliation_reaches.sum())} "
+            f"of {self.margin.numel()} cells)"
+        )
+
+
 class StalkLayout:
     """Where every cell's node stalk lives in the flat buffer, and the indices over it.
 
@@ -291,7 +478,7 @@ class StalkLayout:
         #: bin every padded scatter is aimed at.
         self.pad = total
 
-        n = dome.spec.n
+        n = dome.shape.n
         #: `[predicting cells, n]`: where the population the body runs on lives,
         #: in the row order the biases are indexed by.
         self.predicting_positions = torch.tensor(
@@ -450,7 +637,7 @@ class Sheaf:
         self.stalks = self.layout.empty()
         #: `[predicting cells, k]`: the persisted chart. The cell's private
         #: state; reconciliation never reaches it.
-        self.charts = torch.zeros(len(dome.predicting), dome.spec.k)
+        self.charts = torch.zeros(len(dome.predicting), dome.shape.k)
         #: `[pairs, m_max]`: what every cell put on every incident edge stalk
         #: **this** tick. Read one tick later, which is the unit delay.
         self.broadcast = torch.zeros(self.maps.pairs, self.maps.edge_width)
@@ -462,7 +649,7 @@ class Sheaf:
         #: reconciliation edited it. What the prediction rule's prediction error is
         #: measured against next tick — though the rule never descends on *this*
         #: tensor, which is dead and has no gradient in anything.
-        self.prediction = torch.zeros(len(dome.predicting), dome.spec.n)
+        self.prediction = torch.zeros(len(dome.predicting), dome.shape.n)
         #: `[predicting cells, k]` and `[predicting cells, n]`: what the last
         #: inference phase **read** — the persisted chart it advanced from and
         #: the node stalk it took as evidence. Kept for the same reason
@@ -470,8 +657,14 @@ class Sheaf:
         #: path, live in the biases and `K`, against the node stalk reconciliation has
         #: since left behind (`docs/spec/09-the-build-stack.md`, *Learning is a
         #: separate phase over detached inputs*).
-        self.prior_charts = torch.zeros(len(dome.predicting), dome.spec.k)
-        self.prior_evidence = torch.zeros(len(dome.predicting), dome.spec.n)
+        self.prior_charts = torch.zeros(len(dome.predicting), dome.shape.k)
+        self.prior_evidence = torch.zeros(len(dome.predicting), dome.shape.n)
+        #: The live fold read (ADR-0019). Always on rather than opt-in, for
+        #: :func:`assert_no_tape`'s reason: a diagnostic that has to be
+        #: switched on is one that is off in every run nobody suspected yet,
+        #: and this one costs an `abs`, a divide, a `min` and a norm per tick
+        #: against a graph of matrix products.
+        self.fold_read = FoldRead(len(dome.predicting))
         self.ticks = 0
 
     # -- the two phases ----------------------------------------------------
@@ -504,10 +697,20 @@ class Sheaf:
             # view -- so neither record can be moved out from under the rule by
             # the message-passing phase's in-place edits to the stalk buffer.
             self.prior_charts, self.prior_evidence = self.charts, evidence
-            self.charts, self.prediction = self.body(
-                self.charts, evidence, self.biases, self.operators
+            # Split into its two halves rather than one `self.body(...)` call,
+            # for the pre-activation in the middle: it is what the fold margin
+            # and the activation region are read from, and reading them off
+            # this forward path is what stops the live read from measuring a
+            # body that is not the one running (ADR-0019). Same arithmetic —
+            # `body.forward` is these two calls — so the split costs nothing.
+            pre_activation, fused = self.body.encode_parts(
+                self.charts, evidence, self.biases
+            )
+            self.charts, self.prediction = self.body.advance(
+                fused, self.biases, self.operators
             )
             self.stalks[self.layout.predicting_positions] = self.prediction
+            self.fold_read.observe_inference(pre_activation, self.body)
         self.assert_no_tape()
 
     def message_passing_phase(self) -> None:
@@ -555,6 +758,13 @@ class Sheaf:
             positions = self.layout.pair_positions
             delta.index_add_(0, positions.reshape(-1), contribution.reshape(-1))
             delta.mul_(self._gain_per_component)
+            # Read before the subtraction, off the gained displacement itself:
+            # the standing offset is what reconciliation moves the operating
+            # point by, and the predicting cells' `n` coordinates are the whole
+            # of what `encode` reads back (ADR-0019). Boundary cells are absent
+            # because they run no body and so have no fold margin to compare a
+            # displacement against.
+            self.fold_read.observe_reconciliation(delta[self.layout.predicting_positions])
             self.stalks.sub_(delta)
 
             self.broadcast = outgoing
@@ -591,6 +801,8 @@ class Sheaf:
             incoming=self.incoming,
             prior_charts=self.prior_charts,
             prior_evidence=self.prior_evidence,
+            fold_margin=self.fold_read.margin,
+            standing_offset=self.fold_read.offset,
         )
 
     # -- reading the state -------------------------------------------------

@@ -21,7 +21,7 @@ feature. The word is used in its strict sense: coordinates on the cell's own pie
 problem, which is taken to be locally Euclidean and of the chart's dimension. The chart
 **persists** across ticks and the cell's own operator advances it; it is not recomputed from the
 node stalk each tick, and it is not a lift — the design has no lifted space and no second
-dimension besides the piece's (ADR-0014).
+dimension besides the piece's (ADR-0023).
 _Avoid_: latent, internal representation, hidden state, embedding, lift
 
 **Piece**:
@@ -62,6 +62,24 @@ singular values, read on the diagnostic cadence. Paired with per-edge disagreeme
 separates parameter collapse from a lag floor draining; neither reading separates them alone.
 _Avoid_: rank (bare), sparsity, bandwidth
 
+**Incoherence count**:
+The effective overlap count `c` — how many of a cell's incident restriction maps load the same input
+direction. `c = deg(v)` is fully coherent maps and `c = 1` perfectly incoherent ones. A gauge constant
+declared globally alongside `ρ` and held by the same projection (ADR-0010), and the term that makes the
+reconciliation gain's denominator a true bound rather than a loose one; applied per cell as
+`c_v = min(deg(v), max(c, ⌈deg(v)/n_v⌉))`, where the floor is a fact about stalk dimensions and not a
+hedge. Measured at 2.42 at the rim and 1.75–1.98 through the core, against a practical floor of ~1.05
+set by effective rank.
+_Avoid_: orthogonality, decorrelation, condition number, diversity
+
+**Channel**:
+The aligned subspace a chain of restriction maps and cell operators actually carries — the directions a
+perturbation survives along, as against the directions it is annihilated in. Learned by the transport
+rule rather than nominated by construction, and narrow because the maps are near-rank-1. A hop is an
+operator norm along it, never an isotropic average over directions (ADR-0022); reconciliation is fast
+along it and under-relaxed off it.
+_Avoid_: path, route, pathway, bandwidth, receptive field
+
 **Disagreement**:
 The difference, measured in an edge stalk, between the two adjacent cells' restrictions of
 their node stalks. Patchworks' only edge-level error signal: derived, never carried, and never
@@ -81,7 +99,8 @@ _Avoid_: error (bare), residual, disagreement, loss
 The part of an edge's disagreement that learning cannot remove. Umbrella over three kinds, static,
 lag, and settling. Nothing in the architecture represents it; the learning rule is constrained never
 to target zero residual. What is left over is model error, which is reducible and needs no name of
-its own — its role is to be what the floors are distinguished from.
+its own — its role is to be what the floors are distinguished from. It is **not** the quantity
+`02-tick-semantics.md`'s bound divides by — see *Standing offset*.
 _Avoid_: irreducible error, noise floor, bias, residual (bare)
 
 **Static floor**:
@@ -106,6 +125,34 @@ blocks it. Confined to mid-depth predicting cells — boundary cells run no body
 construction, deep cells are insulated by `H⁰`.
 _Avoid_: instability, confidence, null predictor (describes the cell's state, not the floor itself)
 
+**Standing offset**:
+The displacement reconciliation leaves on the reconciled component of a node stalk each tick — the
+gain multiplied by the disagreement the cell carries. What `02-tick-semantics.md`'s bound weighs
+against a cell's fold margin, because a displacement larger than the margin carries the cell into an
+activation region with a different regional spectrum. The disagreement floor is one contributor and,
+at construction, not the dominant one: model error dominates it, and learning removes model error —
+so the offset falls through a run rather than standing at a level. Named for what it is, a shift in
+the operating point, rather than for its cause.
+_Avoid_: floor, disagreement floor, the floor (as in `γ × floor <` fold margin), reconciliation error
+
+**Bottleneck ratio**:
+At one edge, the arriving perturbation over what is already standing there: `[A₀ · Π hop] / floor_e`,
+where the numerator is a unit-norm rim deviation carried by the cumulative gain of the edges it has
+crossed and the denominator is that edge's quiescent-hold floor — static plus settling, lag excluded.
+Dimensionless, and the object that made a dimensionless gain and a magnitude comparable at all
+(ADR-0021). Indexed on the **edge**, never on the level: per-edge is a property of the graph, per-level
+a property of the shape imposed on it.
+_Avoid_: floor (bare), transmission floor, margin, signal-to-noise ratio, headroom
+
+**Rim-to-core detectability**:
+The architecture's transmission predicate: over rim-to-apex paths, the max of the min bottleneck ratio
+along a path is at least 1 — *there exists a channel that carries the perturbation*, and what fails is
+an edge rather than a level. Read per trial, each trial reduced to its peak ratio, reported as a
+distribution over trials with the bar at the median. Stated twice, rim→apex and apex→rim, because the
+two directions do not share a gain. Detectability rather than magnitude because the floor never
+settles: the perturbation must be distinguishable from what stands on the edge, not clear a wall.
+_Avoid_: transmission target, reachability, the ~0.37 per hop (retired), sufficiency (bare)
+
 **Compression**:
 The lossy, nonlinear, cell-private map from node stalk into chart, performed inside `encode`.
 The counterpart to restriction, which is lossy, linear and shared. Naming both by what they
@@ -129,8 +176,14 @@ learned linear operator is an honest model of its motion. A claim about **time-e
 independent of local flatness in both directions — a piece may evolve linearly in its chart while the
 overlap it shares with a neighbour stays curved, and an overlap may be flat while the motion across it
 is not. Failure surfaces as prediction error no `K` can remove.
+The claim is made of **every** cell and admits no exception: no cell in this architecture is
+autonomous — a fresh node stalk arrives each tick and `encode` fuses it with the persisting chart — so
+there is no class of *driven* cells to hold a different operator, and no boundary at which one kind of
+cell would give way to another ([#146](https://github.com/NGL321/patchworks/issues/146)).
 _Avoid_: linear (bare), local flatness (that is the geometric claim), Koopman linearity, global
-linearity
+linearity, bilinear, bilinear realisation, control-affine (the last three name an exogenous input
+multiplying the state; this design has none, and borrowing the word re-imports the control literature
+ADR-0023 exited)
 
 **Readout gauge**:
 The claim a frozen linear `decode` rests on: a cell's node stalk is a linear function of its chart, so
@@ -164,6 +217,27 @@ The node stalk directions a cell exposes on no edge — masked out everywhere, a
 the sheaf's `H⁰`. Reconciliation cannot move them, which is what makes them the home of a cell's
 slowly-varying state as well as of its own sub-problem.
 _Avoid_: hidden features, internal state (reserve that for the chart), latent
+
+**Execution clock**:
+How often a cell runs: **one tick, uniformly across the graph**. Every cell infers one step ahead on
+the same clock, so no cell is frozen while its neighbours run, and ADR-0002's second ground is why. It
+is a property of the architecture, identical at the rim and at the apex, and nothing about a cell's
+depth, placement or content changes it. A cell with a longer timescale is **not** a cell that runs less
+often — that reading was live in the record and is not admissible.
+_Avoid_: timescale (bare, for this sense), latency (`05-timescales.md` uses it for unit delay, which is
+a phase shift and the wrong ratio), clock rate, update rate, tick rate, schedule
+
+**Retention**:
+How much of what a cell held it keeps — the other half of what *timescale* used to name, and the half
+that is **differentiated across the graph by design**. It is ADR-0005's subject: persistence in the
+private features rather than a schedule, and since #138 a per-cell time constant living in `K`'s
+spectrum. **Effective timescale** below is the measurement of it. The graph's retention currently
+measures flat at about one tick (`05-timescales.md`), which is a finding about this build and not a
+property of the architecture.
+
+*One clock, heterogeneous retention.* The two are separate objects and the record needs both words.
+_Avoid_: timescale (bare, for this sense), memory, decay rate, persistence (reserve for ADR-0005's
+mechanism), level, tier
 
 **Effective timescale**:
 How slowly a cell's content changes — set by how much private structure it holds and by the
@@ -210,21 +284,32 @@ _Avoid_: the cell's spectrum, its Jacobian, decay rate (unqualified)
 
 **Region dwell**:
 How long a cell stays in one activation region of the shared body before its chart carries it across
-a fold. The timescale mechanism holds only where dwell is long against the `τ` that region implies;
-where dwell is short, a cell still decays at some average rate, but by averaging over unrelated
-regions rather than by the mechanism the spec claims. Bounded at construction by the fold margin,
-measured at runtime on a driven trajectory.
-_Avoid_: region residence, switching rate, region stability
+a fold. The timescale mechanism holds only where the residency expresses **at least one e-fold of the
+region's own decay** — `dwell > τ`; where dwell is short, a cell still decays at some average rate,
+but by averaging over unrelated regions rather than by the mechanism the spec claims. Nominated at
+construction by the fold margin, measured at runtime on a driven trajectory — and since #160 the
+runtime measurement is **the verdict**, the construction reading a nomination
+(`patchworks.tick.FoldRead`, ADR-0019). Since #208 the verdict is the **median cell's** `dwell/τ > 1`,
+the quantity is the **cumulative mean residency to the horizon** (never the windowed one, and the
+estimator is named wherever dwell is published), the per-cell count below the floor is **reported,
+never asserted**, and `dwell ≥ 2.6 τ` is **reported headroom rather than the bar** — `2.6` is
+`DEFAULT_SAFETY_FACTOR`, licensed for a realised-against-regional timescale ratio and never derived
+for a residency duration.
+_Avoid_: region residence, switching rate, region stability, "clears 2.6 τ" as passing
 
 **Fold margin**:
 How far a cell sits from the nearest boundary of the activation region it occupies in `encode`. It
 had three jobs and keeps one and a half. **Dead:** bounding `γ`, which it never did in practice.
 **Falsified premise:** carrying timescale, which now lives in `K`'s spectrum. **Surviving:** it is
-still the construction-time proxy for region dwell, and still what makes an expansive region
-dangerous rather than a harmless transient. Falls as the body gets wider; read from `encode` alone
-since it is the only map with folds, which is why the measured cap rose when `step` was linearised.
-Inside a fixed body a cell's margin is uncorrelated with its decay rate.
-_Avoid_: slack, headroom, distance to boundary
+still the proxy for region dwell, and still what makes an expansive region dangerous rather than a
+harmless transient. Falls as the body gets wider; read from `encode` alone since it is the only map
+with folds, which is why the measured cap rose when `step` was linearised. Inside a fixed body a
+cell's margin is uncorrelated with its decay rate. **Read live since #160**, because it moves: the
+per-cell biases the prediction rule trains are the *positions* of `encode`'s folds. Weighed against
+the standing offset, never against a floor — and since #206 that weighing is an **attribution**
+carrying no threshold: it says why a cell lost its region, while region dwell says whether the
+mechanism holds. Breaching it is a standing condition of a run, not a fault.
+_Avoid_: slack, headroom, distance to boundary, construction-time check
 
 **Inference phase**:
 The half of a tick in which every cell locally advances its own chart and decodes a

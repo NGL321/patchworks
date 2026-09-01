@@ -1,4 +1,4 @@
-# ADR-0014: Depth decimates in time and not in space
+# ADR-0024: Depth decimates in time and not in space
 
 **Status:** accepted
 

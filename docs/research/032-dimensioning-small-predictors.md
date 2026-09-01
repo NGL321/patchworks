@@ -27,7 +27,7 @@ against that scale, `k = 12` under `n = 32` would be indefensible.
 **#145 resolved that the design has no `k_lift`, because it has no lift.** The chart *persists*, and
 `encode` fuses it with new evidence every tick, so `K` is a linear recurrence driven by a nonlinear
 input map rather than an EDMD dictionary over an instantaneous state. See
-[ADR-0014](../adr/0014-the-chart-is-not-a-koopman-lift.md).
+[ADR-0023](../adr/0023-the-chart-is-not-a-koopman-lift.md).
 
 Two consequences for this document specifically:
 

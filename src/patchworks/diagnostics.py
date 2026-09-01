@@ -134,6 +134,9 @@ __all__ = [
     "topology_only_h1",
 ]
 
+#: @type chosen
+#: @flexibility free: the pair reading is ~3 ms on the real dome, so the number is set by how finely the fall is worth resolving rather than by cost
+#: @warrant docs/adr/0010-restriction-map-scale-is-gauge-fixed.md
 #: How often the paired per-edge instrument is read, in ticks.
 #:
 #: **Chosen here, not recorded.** The record fixes that these run "on the
@@ -146,6 +149,9 @@ __all__ = [
 #: by how finely the fall is worth resolving rather than by what it costs.
 DEFAULT_EVERY = 10
 
+#: @type chosen
+#: @flexibility bounded by cost: one reading is a 3764x3764 eigendecomposition, ~16 s on the real dome
+#: @warrant here
 #: How often the whole-graph reading is taken, in ticks. Must be a multiple of
 #: :data:`DEFAULT_EVERY`.
 #:
@@ -158,6 +164,9 @@ DEFAULT_EVERY = 10
 #: dominated by its own instrumentation.
 DEFAULT_WHOLE_GRAPH_EVERY = 100
 
+#: @type chosen
+#: @flexibility none that matters: the baseline is a generic rank, and tests/test_diagnostics.py holds two unrelated seeds to one number
+#: @warrant here
 #: The seed the topology-only baseline's generic maps are drawn at.
 #:
 #: The baseline is a **generic** rank, which is the same for almost every draw,
@@ -387,7 +396,7 @@ def topology_only_h1(dome: Dome, *, generator: torch.Generator | None = None) ->
     """
     if generator is None:
         generator = torch.Generator().manual_seed(BASELINE_SEED)
-    n = dome.spec.n
+    n = dome.shape.n
     row = {cell_id: i for i, cell_id in enumerate(dome.predicting)}
     rows = sum(edge.m for edge in dome.edges)
     columns = len(dome.predicting) * n
@@ -481,7 +490,7 @@ class Diagnostics:
 
         dome = sheaf.dome
         maps = sheaf.maps
-        n = dome.spec.n
+        n = dome.shape.n
         self._rows = sum(edge.m for edge in dome.edges)
         self._columns = len(dome.predicting) * n
         row = {cell_id: i for i, cell_id in enumerate(dome.predicting)}
