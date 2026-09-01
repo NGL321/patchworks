@@ -1,4 +1,4 @@
-"""Rim-to-core detectability: the bottleneck ratio, per edge, over trials (ticket #214).
+"""Rim-to-core detectability: the bottleneck ratio, per edge, over trials (#214, #232).
 
 ADR-0021 fixed the predicate and #214 runs it. Nothing here decides anything —
 the predicate, the amplitude convention, the floor and the bar were all settled
@@ -6,7 +6,20 @@ before this file existed, and this is the read that returns a verdict against
 them::
 
     python benchmarks/detectability.py read
+    python benchmarks/detectability.py corners
     python benchmarks/detectability.py linearity
+
+**`corners` is #232 and it is the one thing here that chose something.** #214
+read one corner of a two-axis space, and #230 found it the corner least
+favourable to what the architecture claims: the stimulus is added once and the
+rim sources are written boundary cells, so it cannot persist; and it enters at
+one stalk, where #230 rules inbound rim influence is *collective*. `corners`
+varies both axes and reports all four against #214's published baseline, which
+stays reproducible because `read` is untouched. The predicate, the floor, `k`,
+the median bar and per-edge indexing are ADR-0021's throughout — what changes is
+the **stimulus convention** and nothing else. See :func:`injection` for what
+*collective* was taken to mean, which is this file's only open call, and
+:func:`branch` for what *sustained* was taken to mean.
 
 **The predicate.** `max` over rim-to-apex paths `P`, `min` over edges `e ∈ P`, of
 `[A₀ · Π_{i ≤ e} hop_i] / floor_e ≥ 1`, with `A₀ = 1` and `k = 1`; per trial,
@@ -171,7 +184,12 @@ def double_precision(root, depth: int = 0, seen: set[int] | None = None) -> int:
 class Trial:
     """One trial's per-edge peak ratios, and what the widest path did."""
 
-    source: int
+    source: tuple[int, ...]
+    """Every cell the deviation was injected into: one for #214, a stratum for #232."""
+
+    kind: str
+    """The stratum injected into, so the corners can be broken down by it."""
+
     bottleneck: float
     target: int
     edge: int
@@ -212,7 +230,7 @@ def apex(dome: Dome) -> tuple[int, ...]:
 
 
 def widest_path(
-    dome: Dome, values: np.ndarray, source: int, targets: tuple[int, ...]
+    dome: Dome, values: np.ndarray, source: int | tuple[int, ...], targets: tuple[int, ...]
 ) -> tuple[float, int, int, tuple[int, ...]]:
     """`max` over paths, `min` over edges: the widest path, where it lands, what stops it.
 
@@ -228,13 +246,21 @@ def widest_path(
     The source's own value is `inf` — a zero-edge path is bounded by no edge —
     which is what makes a target adjacent to the source come back with that
     edge's value rather than with `0`.
+
+    **Several sources are the same search, seeded wider.** A collective
+    perturbation (#232) has no single source, and the predicate's `max` is over
+    rim-to-apex paths, not over paths from one named cell — so every perturbed
+    cell starts at `inf` and the search returns the widest path from any of them.
+    That is the same object as a virtual super-source joined to each by an
+    unbounded edge, and it degenerates to #214's search when there is one.
     """
-    best = {source: float("inf")}
-    binding = {source: -1}
+    origins = (source,) if isinstance(source, int) else tuple(source)
+    best = {s: float("inf") for s in origins}
+    binding = {s: -1 for s in origins}
     came: dict[int, int] = {}
-    frontier = [(-float("inf"), source)]
+    frontier = [(-float("inf"), s) for s in origins]
     settled: set[int] = set()
-    reached = tuple(t for t in targets if t != source)
+    reached = tuple(t for t in targets if t not in set(origins))
     while frontier:
         value, cell = heappop(frontier)
         value = -value
@@ -267,26 +293,119 @@ def unit(width: int, generator: torch.Generator) -> torch.Tensor:
     return direction / direction.norm().clamp_min(1e-12)
 
 
-def branch(agent: Agent, state: dict, observation: dict, applied, ticks: int, nudge):
+def injection(
+    dome: Dome,
+    cells: tuple[int, ...],
+    generator: torch.Generator,
+    coherent: bool = True,
+) -> tuple[tuple[int, torch.Tensor], ...]:
+    """`A₀ = 1` spread over several rim cells: what *collective* is taken to mean.
+
+    **This convention is #232's, and it is the ticket's one open call.** ADR-0021
+    fixes `A₀ = 1` and #230 rules that inbound rim influence is *collective*;
+    neither says what a coherent many-cell deviation is, so it is stated here
+    with its reasoning, the way #214 stated its three instrument calls.
+
+    Two clauses, and each is load-bearing:
+
+    1. **Coherent means the same deviation in each cell's own coordinates.** The
+       cells of one rim stratum are exchangeable copies of a single sensor type
+       placed at different points of the surface — 256 patch cells of identical
+       stalk width, built alike — so a disturbance that is uniform over the
+       surface is, in their own coordinates, the same vector in each. That is
+       the only common coordinate they have: there is no chart over the rim in
+       which to write "the same direction" more strongly, and constructing one
+       would be inventing structure the graph does not carry. The alternative
+       drawn against this — an independent direction per cell — is available as
+       `coherent=False`, and running both is what makes the choice a measurement
+       rather than an assertion.
+
+    2. **The whole injection is unit-norm, not each cell's share.** Each of `K`
+       cells receives `1/√K` of the deviation, so `‖A₀‖ = 1` over the collective
+       exactly as over #214's single stalk. Without this the collective corner
+       would inject `√K = 16x` more and beat the baseline by arithmetic; the
+       question is whether *coherence* transmits, not whether *more* does. This
+       is the clause that keeps the four corners comparable, and it is also the
+       clause that makes the collective corner a hard test.
+
+    **Strata, not the whole rim.** The collective is all cells of one kind. The
+    rim's kinds have stalk widths 48, 2 and 1, so there is no common coordinate
+    across them and clause 1 has nothing to mean; kinds also die at different
+    levels by #120, which is why #214 stratified in the first place. Patch is
+    the only stratum that is genuinely many — proprioception and touch have
+    three cells each — and the report breaks the corners down by kind so that
+    the 256-cell read is never averaged into two 3-cell ones.
+    """
+    widths = {dome.cells[c].stalk for c in cells}
+    if len(widths) != 1:
+        raise ValueError(f"a collective needs one stalk width, got {sorted(widths)}")
+    width = widths.pop()
+    scale = 1.0 / np.sqrt(len(cells))
+    if coherent:
+        shared = unit(width, generator) * scale
+        return tuple((c, shared.clone()) for c in cells)
+    return tuple((c, unit(width, generator) * scale) for c in cells)
+
+
+def branch(
+    agent: Agent,
+    state: dict,
+    observation: dict,
+    applied,
+    ticks: int,
+    nudge,
+    sustained: dict[int, torch.Tensor] | None = None,
+    record: tuple[int, ...] = (),
+):
     """One branch of the fork: restore, optionally nudge, then hold for `ticks`.
 
     `[ticks, edges, m]` of disagreement comes back — the whole trace rather than
     a running maximum, because the two branches are differenced tick by tick and
-    a maximum taken inside a branch would have thrown the pairing away.
+    a maximum taken inside a branch would have thrown the pairing away. With
+    `record`, the named cells' stalks come back alongside it, read at the end of
+    each tick — which is what a later branch clamps against.
+
+    **`nudge` is a sequence of `(cell, deviation)`**, one pair being #214's read.
+
+    **`sustained` is what makes the stimulus persist.** #214's stimulus does not:
+    the deviation is added once, and the rim sources are written boundary cells,
+    so `agent.write` puts them back to quiet on the next tick and what is
+    measured is an impulse response with the source clamped. Passed the quiet
+    branch's own recorded stalks, this holds each source at *its counterfactual
+    value plus the deviation* at the end of every tick — a constant offset from
+    the control, maintained for the whole window.
+
+    Clamping against the recorded quiet trace rather than re-adding the
+    deviation is what makes *sustained* mean one thing in both directions. At a
+    written rim cell the two coincide, since the write has already restored
+    quiet. At an apex cell nothing writes, so re-adding would accumulate into a
+    ramp — a different stimulus wearing the same name, and one whose growth
+    would be read as transmission.
     """
     ufp.restore(agent.sheaf, state)
-    if nudge is not None:
-        cell, deviation = nudge
+    layout = agent.sheaf.layout
+    pairs = () if nudge is None else tuple(nudge)
+    if pairs:
         with torch.no_grad():
-            agent.sheaf.stalks[agent.sheaf.layout.slice(cell)] += deviation
+            for cell, deviation in pairs:
+                agent.sheaf.stalks[layout.slice(cell)] += deviation
     trace = []
-    for _ in range(ticks):
+    kept: dict[int, list[torch.Tensor]] = {c: [] for c in record}
+    for step in range(ticks):
         agent.sheaf.tick()
         trace.append(agent.sheaf.disagreement().clone())
         # The world's write is the tick's last word and both branches get the
         # same one. Nothing is stepped: this is the hold.
         agent.write(observation, applied)
-    return torch.stack(trace)
+        if sustained is not None:
+            with torch.no_grad():
+                for cell, deviation in pairs:
+                    agent.sheaf.stalks[layout.slice(cell)] = (
+                        sustained[cell][step] + deviation
+                    )
+        for cell in record:
+            kept[cell].append(agent.sheaf.stalks[layout.slice(cell)].clone())
+    return torch.stack(trace), {c: torch.stack(v) for c, v in kept.items()}
 
 
 def ratios(
@@ -295,14 +414,15 @@ def ratios(
     quiet: torch.Tensor,
     observation: dict,
     applied,
-    source: int,
-    deviation: torch.Tensor,
+    nudge,
     probe: float,
     window: int,
+    sustained: dict[int, torch.Tensor] | None = None,
 ) -> np.ndarray:
     """`[ticks, edges]`: the paired ratio at every edge and tick, reported at `A₀ = 1`."""
-    moved = branch(
-        agent, state, observation, applied, window, (source, deviation * probe)
+    scaled = tuple((cell, deviation * probe) for cell, deviation in nudge)
+    moved, _ = branch(
+        agent, state, observation, applied, window, scaled, sustained=sustained
     )
     numerator = (moved - quiet).norm(dim=-1).numpy() / probe
     denominator = quiet.norm(dim=-1).numpy()
@@ -324,8 +444,14 @@ def horizons(window: int) -> tuple[int, ...]:
     taken over a longer window is partly a maximum over more excursions. Printing
     the ladder is what makes the horizon's contribution visible instead of buried
     in the choice of :data:`WINDOW`.
+
+    **The ladder runs past 256 for #232.** #214's flatness from 32 to 64 was
+    measured on a decaying pulse and says nothing about a drive held for the
+    whole window: a sustained stimulus has a settling time the ladder has to be
+    long enough to show, and inheriting the pulse's flatness would assume the
+    answer.
     """
-    ladder = [h for h in (8, 16, 32, 64, 128, 256) if h <= window]
+    ladder = [h for h in (8, 16, 32, 64, 128, 256, 512, 1024) if h <= window]
     if window not in ladder:
         ladder.append(window)
     return tuple(ladder)
@@ -335,24 +461,53 @@ def trial(
     agent: Agent,
     observation: dict,
     applied,
-    source: int,
+    source,
     targets: tuple[int, ...],
     generator: torch.Generator,
     window: int,
     probe: float,
+    stimulus: str = "impulse",
+    coherent: bool = True,
+    fork=None,
 ) -> Trial:
-    """One perturbation: fork, inject, difference, reduce to a bottleneck."""
+    """One perturbation: fork, inject, difference, reduce to a bottleneck.
+
+    `source` is a cell or a tuple of them; `stimulus` is `impulse` (#214's, the
+    deviation added once) or `sustained` (#232's, the source held at a constant
+    offset for the window). `fork` carries the quiet branch and the recorded
+    source stalks when several corners share one — a control run per corner
+    would be the same arithmetic four times, and the pairing requires the
+    branches be forked from one state anyway.
+    """
     state = ufp.snapshot(agent.sheaf)
-    quiet = branch(agent, state, observation, applied, window, None)
-    deviation = unit(agent.dome.cells[source].stalk, generator)
+    cells = (source,) if isinstance(source, int) else tuple(source)
+    if fork is None:
+        quiet, held = branch(
+            agent, state, observation, applied, window, None, record=cells
+        )
+    else:
+        quiet, held = fork
+    if len(cells) == 1:
+        nudge = ((cells[0], unit(agent.dome.cells[cells[0]].stalk, generator)),)
+    else:
+        nudge = injection(agent.dome, cells, generator, coherent)
     ratio = ratios(
-        agent, state, quiet, observation, applied, source, deviation, probe, window
+        agent,
+        state,
+        quiet,
+        observation,
+        applied,
+        nudge,
+        probe,
+        window,
+        sustained=held if stimulus == "sustained" else None,
     )
     ufp.restore(agent.sheaf, state)
     peaks = ratio.max(axis=0)
-    value, target, edge, path = widest_path(agent.dome, peaks, source, targets)
+    value, target, edge, path = widest_path(agent.dome, peaks, cells, targets)
     return Trial(
-        source=source,
+        source=cells,
+        kind=agent.dome.cells[cells[0]].kind.value,
         bottleneck=value,
         target=target,
         edge=edge,
@@ -360,7 +515,7 @@ def trial(
         ratios=peaks,
         peak_at=ratio.argmax(axis=0),
         horizons=tuple(
-            (h, widest_path(agent.dome, ratio[:h].max(axis=0), source, targets)[0])
+            (h, widest_path(agent.dome, ratio[:h].max(axis=0), cells, targets)[0])
             for h in horizons(window)
         ),
     )
@@ -379,21 +534,39 @@ def quantiles(values: np.ndarray) -> dict:
     }
 
 
-def sources(dome: Dome, direction: str, generator: np.random.Generator, count: int):
+def sources(
+    dome: Dome,
+    direction: str,
+    generator: np.random.Generator,
+    count: int,
+    collective: bool = False,
+):
     """Which stalk the unit deviation is injected into, stratified across kinds.
 
     Stratified rather than drawn uniformly: 256 of the 263 rim cells are patch
     cells, so a uniform draw would report the render's fate under both columns'
     name, and proprioception — which #120 measured dying at a different level —
     would appear in about one trial in forty.
+
+    With `collective`, a trial's source is the **whole stratum** rather than one
+    cell drawn from it — #230's ruling that inbound rim influence is many-to-few,
+    read at the same rotation across kinds so the corners are trial-for-trial
+    comparable with #214's.
     """
     if direction == "apex-to-rim":
         pool = apex(dome)
         return [int(pool[i % len(pool)]) for i in range(count)]
+    strata = rim_strata(dome)
+    if collective:
+        return [tuple(strata[i % len(strata)]) for i in range(count)]
+    return [int(generator.choice(strata[i % len(strata)])) for i in range(count)]
+
+
+def rim_strata(dome: Dome) -> list[list[int]]:
+    """The rim's exchangeable sets: one list of cell ids per sensor kind."""
     kinds = (CellKind.PATCH, CellKind.PROPRIOCEPTIVE, CellKind.TOUCH)
     strata = [[c.id for c in dome.cells if c.kind is kind] for kind in kinds]
-    strata = [s for s in strata if s]
-    return [int(generator.choice(strata[i % len(strata)])) for i in range(count)]
+    return [s for s in strata if s]
 
 
 def hold_still(agent: Agent, observation: dict, applied, hold: int) -> None:
@@ -434,6 +607,8 @@ def linearity(
     window: int,
     hold: int,
     amplitudes: tuple[float, ...],
+    stimulus: str = "impulse",
+    collective: bool = False,
 ) -> None:
     """The read's own validity check: is the response linear, or is it rounding?
 
@@ -441,6 +616,12 @@ def linearity(
     reported *at `A₀ = 1`* is the same number whatever amplitude it was measured
     at — a flat column. Rounding is not, and shows as a column falling like
     `1/A₀`. Run this before believing anything `read` prints.
+
+    **Each corner needs its own run of this**, which is #232's requirement rather
+    than a convenience: a sustained drive is held for the whole window instead of
+    decaying, so it explores more of `encode`'s nonlinearity and has no claim on
+    the flat window #214 measured on a pulse. `--stimulus` and `--collective`
+    pick the corner, and the linear window is a property of the corner.
     """
     env, agent = prepared(name, split, seed, learn)
     observation, _info = env.reset(seed=seed * 1000)
@@ -448,27 +629,51 @@ def linearity(
     applied = np.zeros(env.action_space.shape, dtype=np.float64)
     hold_still(agent, observation, applied, hold)
     state = ufp.snapshot(agent.sheaf)
-    quiet = branch(agent, state, observation, applied, window, None)
+    cells = pick(agent.dome, seed, collective)
+    quiet, held = branch(
+        agent, state, observation, applied, window, None, record=cells
+    )
 
-    twice = branch(agent, state, observation, applied, window, None)
+    twice, _ = branch(agent, state, observation, applied, window, None)
     print(f"\nthe fork is exact: max |quiet - quiet| = {float((twice - quiet).abs().max())}")
 
-    source = sources(agent.dome, "rim-to-apex", np.random.default_rng(seed), 1)[0]
-    deviation = unit(
-        agent.dome.cells[source].stalk, torch.Generator().manual_seed(seed + 1)
-    )
+    generator = torch.Generator().manual_seed(seed + 1)
+    if len(cells) == 1:
+        nudge = ((cells[0], unit(agent.dome.cells[cells[0]].stalk, generator)),)
+    else:
+        nudge = injection(agent.dome, cells, generator)
     targets = apex(agent.dome)
-    print(f"injected at cell {source} ({agent.dome.cells[source].kind.value})")
+    kind = agent.dome.cells[cells[0]].kind.value
+    print(
+        f"corner: {stimulus} x {'collective' if collective else 'single-source'}; "
+        f"injected into {len(cells)} {kind} cell(s)"
+    )
     print("\n  A0         bottleneck at A0=1     median edge ratio")
     for a0 in amplitudes:
         ratio = ratios(
-            agent, state, quiet, observation, applied, source, deviation, a0, window
+            agent,
+            state,
+            quiet,
+            observation,
+            applied,
+            nudge,
+            a0,
+            window,
+            sustained=held if stimulus == "sustained" else None,
         )
         peaks = ratio.max(axis=0)
-        value, _target, _edge, _path = widest_path(agent.dome, peaks, source, targets)
+        value, _target, _edge, _path = widest_path(agent.dome, peaks, cells, targets)
         finite = peaks[np.isfinite(peaks)]
         print(f"  {a0:<10.3g} {value:<22.5g} {np.median(finite):.5g}")
     ufp.restore(agent.sheaf, state)
+
+
+def pick(dome: Dome, seed: int, collective: bool) -> tuple[int, ...]:
+    """`linearity`'s one source: #214's first stratified draw, or its whole stratum."""
+    drawn = sources(
+        dome, "rim-to-apex", np.random.default_rng(seed), 1, collective=collective
+    )[0]
+    return (drawn,) if isinstance(drawn, int) else tuple(drawn)
 
 
 def report(dome: Dome, direction: str, outcomes: list[Trial], window: int) -> None:
@@ -493,6 +698,15 @@ def report(dome: Dome, direction: str, outcomes: list[Trial], window: int) -> No
         for h, _ in outcomes[0].horizons
     )
     print(f"   median bottleneck by horizon (ticks:value) — {ladder}")
+    strata = sorted({o.kind for o in outcomes})
+    if len(strata) > 1:
+        breakdown = "  ".join(
+            f"{k}:{np.median([o.bottleneck for o in outcomes if o.kind == k]):.3g}"
+            for k in strata
+        )
+        # Never averaged into one number: patch is 256 cells and the other two
+        # are three each, so a collective read means something different in each.
+        print(f"   median by stratum — {breakdown}")
     middle = outcomes[int(np.argsort(values)[len(values) // 2])]
     print(f"   the median trial's binding edge: {name_edge(dome, middle.edge)}")
     profile = "  ".join(f"{middle.ratios[e]:.3g}" for e in middle.path)
@@ -548,11 +762,151 @@ def read(
         report(dome, direction, outcomes, window)
 
 
+#: The two-axis space #232 reads, inbound. #214 measured the first row's first
+#: column and it is the corner least favourable to what the architecture claims:
+#: a stimulus that cannot persist, from a single sensor's private disturbance.
+CORNERS = (
+    ("impulse", "single-source"),
+    ("impulse", "collective"),
+    ("sustained", "single-source"),
+    ("sustained", "collective"),
+)
+
+#: The collective corners run twice, coherent and not, so `injection`'s clause 1
+#: is measured instead of asserted. Same cells, same total norm, same everything
+#: else — the only difference is whether the cells were given one direction or
+#: `K` of them, so the gap between the two rows *is* what coherence is worth.
+CONTRAST = "collective (incoherent)"
+
+
+def corners(
+    name: str,
+    split: str,
+    seed: int,
+    learn: int,
+    trials: int,
+    window: int,
+    hold: int,
+    probe: float,
+    contrast: bool,
+) -> None:
+    """All four corners of the inbound stimulus space, against #214's baseline.
+
+    **One quiet branch per trial, shared by every corner.** The control does not
+    depend on the perturbation, and re-running it per corner would be the same
+    arithmetic six times over — but more than that, the corners must be forked
+    from *one* state to be compared with each other at all. The recorded stalks
+    that come back with it are what the sustained corners clamp against.
+
+    **Outbound stays single-source, in all four**, per #230: apex influence on
+    the rim is claimed to be individually strong, so one apex cell is the correct
+    instrument there and the collective axis has nothing to mean. It is read at
+    both stimuli, because the sustained axis is about the stimulus and applies to
+    either direction.
+    """
+    env, agent = prepared(name, split, seed, learn)
+    dome = agent.dome
+    inward, outward = apex(dome), rim(dome)
+    picker = np.random.default_rng(seed)
+    singles = sources(dome, "rim-to-apex", picker, trials)
+    collectives = sources(
+        dome, "rim-to-apex", np.random.default_rng(seed), trials, collective=True
+    )
+    outbound = sources(dome, "apex-to-rim", picker, trials)
+    generator = torch.Generator().manual_seed(seed + 1)
+
+    runs: list[tuple[str, str, str]] = [
+        (f"rim-to-apex  {stimulus} x {breadth}", stimulus, breadth)
+        for stimulus, breadth in CORNERS
+    ]
+    if contrast:
+        runs += [
+            (f"rim-to-apex  {stimulus} x {CONTRAST}", stimulus, CONTRAST)
+            for stimulus in ("impulse", "sustained")
+        ]
+    runs += [
+        (f"apex-to-rim  {stimulus} x single-source", stimulus, "outbound")
+        for stimulus in ("impulse", "sustained")
+    ]
+    results: dict[str, list[Trial]] = {label: [] for label, _, _ in runs}
+
+    for i in range(trials):
+        observation, _info = env.reset(seed=seed * 1000 + i)
+        agent.observe(observation)
+        applied = np.zeros(env.action_space.shape, dtype=np.float64)
+        hold_still(agent, observation, applied, hold)
+        touched = tuple(
+            sorted({singles[i], outbound[i], *collectives[i]})
+        )
+        state = ufp.snapshot(agent.sheaf)
+        fork = branch(
+            agent, state, observation, applied, window, None, record=touched
+        )
+        ufp.restore(agent.sheaf, state)
+        for label, stimulus, breadth in runs:
+            if breadth == "outbound":
+                source, targets = outbound[i], outward
+            elif breadth == "single-source":
+                source, targets = singles[i], inward
+            else:
+                source, targets = collectives[i], inward
+            results[label].append(
+                trial(
+                    agent,
+                    observation,
+                    applied,
+                    source,
+                    targets,
+                    generator,
+                    window,
+                    probe,
+                    stimulus=stimulus,
+                    coherent=breadth != CONTRAST,
+                    fork=fork,
+                )
+            )
+        print(
+            f"  trial {i + 1}/{trials}: "
+            + "  ".join(
+                f"{label.split('  ')[1]} {results[label][-1].bottleneck:.3g}"
+                for label, _, _ in runs
+                if label.startswith("rim")
+            ),
+            flush=True,
+        )
+
+    print()
+    for label, _, _ in runs:
+        report(dome, label, results[label], window)
+    table(results, runs)
+
+
+def table(results: dict[str, list[Trial]], runs) -> None:
+    """The 2x2 the ticket asks for, with the baseline's own corner in place."""
+    print("== the four corners, inbound: median bottleneck ratio ==")
+    print(f"   {'':<24}{'impulse':<16}sustained")
+    for breadth in ("single-source", "collective", CONTRAST):
+        cells = []
+        for stimulus in ("impulse", "sustained"):
+            label = f"rim-to-apex  {stimulus} x {breadth}"
+            if label in results:
+                cells.append(f"{np.median([o.bottleneck for o in results[label]]):.3g}")
+            else:
+                cells.append("-")
+        print(f"   {breadth:<24}{cells[0]:<16}{cells[1]}")
+    print(
+        "\n   #214's published baseline is impulse x single-source: 8.7e-10 "
+        "rim->apex, 1.3e-8 apex->rim."
+    )
+    print("   The finding is the size of the gap between corners, not any one of them.")
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     commands = parser.add_subparsers(dest="command", required=True)
     for spoken, help_text in (
         ("read", "the rim-to-core detectability read"),
+        ("corners", "all four corners of the inbound stimulus space (#232)"),
         ("linearity", "the read's own validity check"),
     ):
         p = commands.add_parser(spoken, help=help_text)
@@ -562,10 +916,21 @@ def main(argv: list[str] | None = None) -> None:
         p.add_argument("--learn", type=int, default=30000)
         p.add_argument("--window", type=int, default=WINDOW)
         p.add_argument("--hold", type=int, default=HOLD)
-        if spoken == "read":
+        if spoken in ("read", "corners"):
             p.add_argument("--trials", type=int, default=24)
             p.add_argument("--probe", type=float, default=PROBE)
-        else:
+        if spoken == "corners":
+            p.add_argument(
+                "--no-contrast",
+                dest="contrast",
+                action="store_false",
+                help="skip the incoherent collective rows",
+            )
+        if spoken == "linearity":
+            p.add_argument(
+                "--stimulus", default="impulse", choices=("impulse", "sustained")
+            )
+            p.add_argument("--collective", action="store_true")
             p.add_argument(
                 "--amplitudes",
                 nargs="+",
@@ -582,6 +947,21 @@ def main(argv: list[str] | None = None) -> None:
             arguments.window,
             arguments.hold,
             tuple(arguments.amplitudes),
+            arguments.stimulus,
+            arguments.collective,
+        )
+        return
+    if arguments.command == "corners":
+        corners(
+            arguments.dome,
+            arguments.split,
+            arguments.seed,
+            arguments.learn,
+            arguments.trials,
+            arguments.window,
+            arguments.hold,
+            arguments.probe,
+            arguments.contrast,
         )
         return
     read(
