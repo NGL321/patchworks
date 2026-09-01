@@ -362,7 +362,19 @@ def collect(
             ufp.restore(agent.sheaf, state)
             value, _target, _edge, path = det.widest_path(dome, ratio, source, targets)
             profiles.append(
-                dict(trial=i, direction=direction, bottleneck=float(value), path=path)
+                dict(
+                    trial=i,
+                    direction=direction,
+                    bottleneck=float(value),
+                    path=path,
+                    # Carried so `construction_grading.profile_section` can print
+                    # #214's own profile off this run. The paths are #233's by
+                    # construction — same seed, same surface, same reduction —
+                    # but "by construction" is an argument and the binding edge
+                    # is a measurement, and this read corroborates rather than
+                    # assumes, as #233 did.
+                    ratios=tuple(float(ratio[e]) for e in path),
+                )
             )
             for edge_in, cell, edge_out in cg.hops_of(dome, path):
                 if dome.cells[cell].is_boundary:
@@ -694,6 +706,9 @@ def main(argv: list[str] | None = None) -> None:
         arguments.probe,
     )
     null_section(dome)
+    # #233's printout, off this run's own surface: the binding edge and the
+    # per-hop profile the alignment below is read along.
+    cg.profile_section(dome, profiles)
     rows, checks = read_hops(dome, samples, agent)
     verdict_section(rows)
     decomposition_section(rows, checks)
