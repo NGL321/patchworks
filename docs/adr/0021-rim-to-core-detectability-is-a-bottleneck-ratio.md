@@ -53,8 +53,10 @@ floors is meant**, and **whether the comparison is per-hop or cumulative**.
 
 ### What this predicate is for
 
-**A per-edge diagnostic — sufficient but not necessary — and the operative bar until something
-falsifiable replaces it.** #230's re-scope in its own terms:
+**A per-edge diagnostic — sufficient but not necessary — and no longer the operative bar.** The bar
+is [ADR-0026](./0026-rim-core-influence-is-a-conduction-ratio.md). **What this predicate *is* has not
+changed**; what changed is what the map is read against. #230's re-scope, in its own terms and still
+exactly right about the diagnostic:
 
 > ADR-0021 is re-scoped, not replaced. It stays an excellent per-edge diagnostic that correctly
 > located where the channel dies, and stops being the destination's *done when* — a sufficient but not
@@ -68,13 +70,28 @@ wrong:
   transmission. Failing it does not certainly mean none, because the core's **retained** state may
   have moved without a deviation arriving, and nothing in this predicate reads retained state. Every
   instrument in its family reads arriving magnitude.
-- **It is nonetheless still the bar.** #127's *Done when* keeps it in terms — *the operative bar is
-  unchanged until something falsifiable replaces it* — because a bad predicate that fires beats a good
-  one that cannot be read, and this project's history says soft conditions rot. **Nothing here is
-  softened before that replacement exists**, and this ADR is not the place to try.
-- **[#242](https://github.com/NGL321/patchworks/issues/242) owes the replacement.** It writes the
-  falsifiable form of the influence reading, or rules that this ratio stays the bar and says what a
-  stage-3 gate then consists of. Whoever answers #242 rewrites this section; until then it stands.
+- **It is no longer the bar**, and this is the bullet that changed. What stood here until
+  [#242](https://github.com/NGL321/patchworks/issues/242) answered:
+
+  > **It is nonetheless still the bar.** #127's *Done when* keeps it in terms — *the operative bar is
+  > unchanged until something falsifiable replaces it* — because a bad predicate that fires beats a
+  > good one that cannot be read, and this project's history says soft conditions rot. **Nothing here
+  > is softened before that replacement exists**, and this ADR is not the place to try.
+
+  *Superseded by #242.* The clause was a promise with a trigger, and **the trigger fired**: the
+  replacement exists, it is falsifiable, and nothing here was softened ahead of it. It is quoted
+  rather than deleted because a reader has to be able to see that the condition was **met rather than
+  waived** — the same reason the retracted destination is quoted in *Context* above.
+- **[ADR-0026](./0026-rim-core-influence-is-a-conduction-ratio.md) is the operative bar.** The
+  **rim-core influence** predicate over the **conduction ratio** `τ̂_c / |loop(c)|`, which reads
+  **time rather than amplitude**: a cell's measured retention against the tick length of the shortest
+  cycle through it that reaches the rim and returns. #127's *Done when* and the stage-3 gate are read
+  against it, and not against this ratio. **The two are complements, and neither replaces the
+  other** — ADR-0026 says the loop *can close*, which is necessary and not sufficient; this predicate
+  says something *distinguishable arrives*, which is sufficient and not necessary. That is precisely
+  why this ADR is kept rather than retired. The obligation this section registered — *whoever answers
+  #242 rewrites it* — is discharged, by #242's ruling and
+  [#257](https://github.com/NGL321/patchworks/issues/257)'s writing.
 
 **The predicate has been read twice, and fired both times.** Recorded as a fact about its use, not as
 a re-derivation of it, and neither read is re-opened here:

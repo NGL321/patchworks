@@ -153,6 +153,38 @@ two directions do not share a gain. Detectability rather than magnitude because 
 settles: the perturbation must be distinguishable from what stands on the edge, not clear a wall.
 _Avoid_: transmission target, reachability, the ~0.37 per hop (retired), sufficiency (bare)
 
+**Conduction ratio**:
+A cell's measured retention time over the tick length of the shortest cycle through it that reaches
+the rim and returns — `τ̂_c / |loop(c)|`, dimensionless because both halves are in ticks. The
+numerator is the e-fold decay time of the paired counterfactual deviation restricted to the cell's
+private features; the denominator is a **construction-time** quantity, computed from the mask by
+enumeration and never inherited from a hop count (ADR-0026). It is `2 · d(c, rim)` — 14 at the apex of
+the default dome, where it was checked rather than assumed. Scale-free in time, so it touches neither
+the never-settling floor nor float32.
+_Avoid_: margin (`fold margin` is a distance to a boundary; this is a ratio), retention (bare), gain,
+timescale ratio
+
+**Rim-core influence**:
+The predicate over the conduction ratio, and **the map's operative bar**: over paths, the max of the
+min conduction ratio along a path is at least 1 — the cell still holds what it sent by the time the
+answer gets back. Stated twice, and the two directions **do not share a quantifier**: inbound is a
+swept single-source **count**, the fraction of rim cells whose loop closes, per stratum and never
+averaged across strata, with the bar that every stratum's reaching set is non-empty; outbound is a
+**universal** over L1 predicting cells and the actuator boundary cell. **Necessary, not sufficient**:
+it says the loop can close, not that anything distinguishable travels it. Distinct from **rim-to-core
+detectability**, ADR-0021's predicate over the bottleneck ratio, which is retained as the *sufficient*
+diagnostic and is no longer the bar.
+_Avoid_: transmission, detectability (that is ADR-0021's), reach
+
+**Collectively**:
+Of the rim's influence on the apex: **counted, not summed**. The word was doing two jobs — *many,
+counted* and *coherently summed* — and #232 measured the summed sense empty: the collective corner's
+2.7x is the predicate's `max` over 256 candidate entry points rather than coherence, the incoherent
+contrast reads level with it, and the missing `√K = 16x` says a rim-coherent injection sums as a
+random walk downstream. The counted sense is the one the destination means, and the retired one may
+not walk back in.
+_Avoid_: coherent, aggregated, pooled, summed
+
 **Compression**:
 The lossy, nonlinear, cell-private map from node stalk into chart, performed inside `encode`.
 The counterpart to restriction, which is lossy, linear and shared. Naming both by what they
