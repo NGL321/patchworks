@@ -276,6 +276,12 @@ under-evidenced one.
 The plain reading remains available and unproven: a one-route operator is not what decides what lands
 on a many-route edge.
 
+**The correction is applied at its source, not only recorded here.** #233's read was still in review
+when this one landed, so `docs/research/233-*` §7, `construction_grading.py`'s own printed output and
+[PR #249](https://github.com/NGL321/patchworks/pull/249)'s description were all corrected before that
+branch merged — the claim never reaches `action`. #233's other findings are untouched and were
+reproduced exactly by this read.
+
 **This does not touch §3's answer.** The alignment statistic is a ratio taken *within* a single tick,
 between the same operator's own measured and isotropic readings, so a level shift common to numerator
 and denominator divides out of it exactly. The correction matters for what `M` is worth as a
