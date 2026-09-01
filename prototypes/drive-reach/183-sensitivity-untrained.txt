@@ -1,0 +1,16 @@
+
+full dome, split 'train', seed 0: 1500 ticks, untrained, then the world held still for 400
+  settled pose [-3.1422 -2.1281 -1.2919]
+  settled command [-1.504245 -1.625257 -0.29478 ]
+
+  the largest change each altered write makes to a node stalk, by level, and to the command
+  variant              command    L0soma    L0visi    L1soma    L1visi    L2soma    L2visi    L3core    L4core    L5core    L6core    L7core    L7inte
+  render blanked      2.98e-08  2.98e-08  1.00e+00  1.67e-06  1.43e-01  1.26e-05  7.76e-04  3.64e-06  2.56e-06  6.68e-06  1.18e-05  1.91e-06  0.00e+00
+  qpos, qvel + 0.5    5.67e-04  5.00e-01  0.00e+00  3.00e-03  3.10e-06  1.19e-04  2.86e-06  2.70e-06  2.15e-06  3.65e-05  1.25e-05  3.58e-06  0.00e+00
+  touch + 1.0         3.93e-06  1.00e+00  0.00e+00  7.87e-03  3.46e-06  5.84e-04  2.38e-06  6.08e-06  2.62e-06  1.11e-05  2.86e-06  2.15e-06  0.00e+00
+  efference + 0.5     2.50e-01  5.00e-01  0.00e+00  2.15e-03  4.27e-06  5.30e-04  1.91e-06  5.60e-06  1.82e-06  3.45e-05  5.13e-06  3.10e-06  0.00e+00
+  drive 1 -> 0.0      1.19e-07  1.19e-07  0.00e+00  1.43e-06  4.77e-06  5.25e-06  2.38e-06  2.26e-06  2.62e-06  2.91e-05  4.29e-04  6.79e-02  1.00e+00
+  drive 1 -> 10.0     1.19e-07  1.19e-07  0.00e+00  9.54e-07  1.04e-05  5.42e-06  2.74e-06  6.68e-06  2.38e-06  5.05e-05  4.87e-03  1.04e+00  9.00e+00
+
+  float32 carries ~7 significant digits, so against node stalks of order 1-10
+  anything at 1e-6 is the representation's own floor and not a signal.
