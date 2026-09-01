@@ -464,6 +464,7 @@ def read_hops(dome: Dome, samples: list[dict], agent) -> tuple[list[dict], dict]
                 closure = max(closure, abs(rebuilt / score - 1.0))
             per_tick.append(
                 dict(
+                    tick=tick,
                     alignment=score,
                     percentile=float((null < score).mean() * 100.0),
                     versus_null=score / float(np.median(null)),
@@ -498,9 +499,19 @@ def read_hops(dome: Dome, samples: list[dict], agent) -> tuple[list[dict], dict]
             row[field] = float(np.median(series)) if len(series) else float("nan")
         # The same read at #233's own reduction, so the two are comparable at the
         # hop rather than only in prose.
-        peak = min(sample["peak_tick"], len(per_tick) - 1)
-        row["alignment_at_peak"] = per_tick[peak]["alignment"]
-        row["percentile_at_peak"] = per_tick[peak]["percentile"]
+        #
+        # Looked up **by tick number and not by position**: `per_tick` holds only
+        # the ticks that cleared the direction floor, so its indices are not tick
+        # indices and positional access would silently report a different tick
+        # than #233's — the reduction this row exists to be compared against.
+        # Falls back to the nearest surviving tick when the peak itself was
+        # dropped, which is a real case at a hop that arrives late.
+        peak = min(
+            per_tick, key=lambda entry: abs(entry["tick"] - sample["peak_tick"])
+        )
+        row["peak_tick_offset"] = abs(peak["tick"] - sample["peak_tick"])
+        row["alignment_at_peak"] = peak["alignment"]
+        row["percentile_at_peak"] = peak["percentile"]
         rows.append(row)
 
     print(

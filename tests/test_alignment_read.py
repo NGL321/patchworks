@@ -39,6 +39,8 @@ affordable whole; `align` needs a sandbox and a trained surface, so it is
 smoke-tested on the small dome.
 """
 
+import types
+
 import numpy as np
 import pytest
 import torch
@@ -306,6 +308,67 @@ class TestTheOperator:
             assert f_in.shape[0] == dome.edges[edge_in].m
             assert f_out.shape[0] == dome.edges[edge_out].m
             assert operator.dtype is torch.float64
+
+
+class TestThePeakLookup:
+    def test_finds_the_peak_by_tick_number_and_not_by_position(self):
+        """A dropped tick must not shift which tick `..._at_peak` reports.
+
+        `read_hops` keeps only the ticks that clear the direction floor, so its
+        per-tick list is compacted and its indices stop being tick indices. The
+        peak-tick columns exist to be compared against #233's own reduction, and
+        reporting a *different* tick under that name would make the comparison
+        quietly wrong rather than visibly broken — the failure mode this whole
+        file is written against.
+        """
+        dome = build_graph(SMALL)
+        maps = RestrictionMaps(dome, generator=torch.Generator().manual_seed(0))
+        gains = reconciliation_gain(dome, gamma=DEFAULT_GAMMA, rho=GAUGE_RHO)
+        agent = types.SimpleNamespace(sheaf=types.SimpleNamespace(maps=maps))
+
+        cell = next(
+            c for c in dome.cells if not c.is_boundary and dome.degrees[c.id] >= 2
+        )
+        edge_in, edge_out = dome.incident[cell.id][:2]
+        m_in, m_out = dome.edges[edge_in].m, dome.edges[edge_out].m
+
+        generator = torch.Generator().manual_seed(41)
+        ticks = 6
+        arriving = torch.randn(ticks, m_in, generator=generator, dtype=torch.float64)
+        leaving = torch.randn(ticks, m_out, generator=generator, dtype=torch.float64)
+        # Tick 0 is below the floor and is dropped, so position 2 of the
+        # surviving list is tick 3 — the off-by-one this test exists to catch.
+        arriving[0] = 0.0
+        peak_tick = 2
+
+        rows, _checks = ar.read_hops(
+            dome,
+            [
+                dict(
+                    trial=0,
+                    direction="rim-to-apex",
+                    edge_in=edge_in,
+                    cell=cell.id,
+                    edge_out=edge_out,
+                    arriving=arriving,
+                    leaving=leaving,
+                    peak_tick=peak_tick,
+                )
+            ],
+            agent,
+        )
+        assert len(rows) == 1
+        operator, _f_in, _f_out = ar.hop_operator(
+            dome, maps, gains, edge_in, cell.id, edge_out
+        )
+        expected = ar.alignment(operator, arriving[peak_tick], m_in)
+        assert rows[0]["alignment_at_peak"] == pytest.approx(expected, rel=1e-9)
+        assert rows[0]["peak_tick_offset"] == 0
+        # And the value at the position the old code would have read is
+        # genuinely different, so this test would have failed against it.
+        assert ar.alignment(operator, arriving[peak_tick + 1], m_in) != (
+            pytest.approx(expected, rel=1e-6)
+        )
 
 
 class TestBenchmark:
