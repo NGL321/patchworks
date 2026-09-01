@@ -30,7 +30,7 @@ mistake worth avoiding now.
 ## Depth does not supply it
 
 **Scoped to a spatially-indexed rim by
-[ADR-0014](../adr/0014-depth-decimates-in-time-and-not-in-space.md), and not weakened here.** The
+[ADR-0024](../adr/0024-depth-decimates-in-time-and-not-in-space.md), and not weakened here.** The
 argument below is about **spatial** pooling, where the cells a level covers are all written on the
 same tick, and it is sound there — the dome is entirely spatial, so nothing in this section changes
 for the sandbox. Where a rim's own axis is *time*, a cell covering four slots covers four ticks, and

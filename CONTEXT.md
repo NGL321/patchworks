@@ -21,7 +21,7 @@ feature. The word is used in its strict sense: coordinates on the cell's own pie
 problem, which is taken to be locally Euclidean and of the chart's dimension. The chart
 **persists** across ticks and the cell's own operator advances it; it is not recomputed from the
 node stalk each tick, and it is not a lift — the design has no lifted space and no second
-dimension besides the piece's (ADR-0014).
+dimension besides the piece's (ADR-0023).
 _Avoid_: latent, internal representation, hidden state, embedding, lift
 
 **Piece**:
@@ -183,7 +183,7 @@ cell would give way to another ([#146](https://github.com/NGL321/patchworks/issu
 _Avoid_: linear (bare), local flatness (that is the geometric claim), Koopman linearity, global
 linearity, bilinear, bilinear realisation, control-affine (the last three name an exogenous input
 multiplying the state; this design has none, and borrowing the word re-imports the control literature
-ADR-0014 exited)
+ADR-0023 exited)
 
 **Readout gauge**:
 The claim a frozen linear `decode` rests on: a cell's node stalk is a linear function of its chart, so
@@ -217,6 +217,27 @@ The node stalk directions a cell exposes on no edge — masked out everywhere, a
 the sheaf's `H⁰`. Reconciliation cannot move them, which is what makes them the home of a cell's
 slowly-varying state as well as of its own sub-problem.
 _Avoid_: hidden features, internal state (reserve that for the chart), latent
+
+**Execution clock**:
+How often a cell runs: **one tick, uniformly across the graph**. Every cell infers one step ahead on
+the same clock, so no cell is frozen while its neighbours run, and ADR-0002's second ground is why. It
+is a property of the architecture, identical at the rim and at the apex, and nothing about a cell's
+depth, placement or content changes it. A cell with a longer timescale is **not** a cell that runs less
+often — that reading was live in the record and is not admissible.
+_Avoid_: timescale (bare, for this sense), latency (`05-timescales.md` uses it for unit delay, which is
+a phase shift and the wrong ratio), clock rate, update rate, tick rate, schedule
+
+**Retention**:
+How much of what a cell held it keeps — the other half of what *timescale* used to name, and the half
+that is **differentiated across the graph by design**. It is ADR-0005's subject: persistence in the
+private features rather than a schedule, and since #138 a per-cell time constant living in `K`'s
+spectrum. **Effective timescale** below is the measurement of it. The graph's retention currently
+measures flat at about one tick (`05-timescales.md`), which is a finding about this build and not a
+property of the architecture.
+
+*One clock, heterogeneous retention.* The two are separate objects and the record needs both words.
+_Avoid_: timescale (bare, for this sense), memory, decay rate, persistence (reserve for ADR-0005's
+mechanism), level, tier
 
 **Effective timescale**:
 How slowly a cell's content changes — set by how much private structure it holds and by the

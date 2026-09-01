@@ -11,7 +11,7 @@ Terms used here are defined in [`CONTEXT.md`](../../CONTEXT.md). The decision th
 [#130](https://github.com/NGL321/patchworks/issues/130); the rim's contents come from
 [#129](https://github.com/NGL321/patchworks/issues/129) and the rim's ban from
 [#128](https://github.com/NGL321/patchworks/issues/128). The depth semantics are
-[ADR-0014](../adr/0014-depth-decimates-in-time-and-not-in-space.md).
+[ADR-0024](../adr/0024-depth-decimates-in-time-and-not-in-space.md).
 
 **This document is not a second topology.** It is the second *instantiation* of a construction rule
 that `06-graph-topology.md` already named as its own fallback, and the first section here is that
@@ -247,7 +247,7 @@ Two repairs were available and both were declined:
   cross-modal edges at L2 as "hand-specified wiring for something that should follow from position".
 
 This carries a falsification, and it is already in the register
-([ADR-0014](../adr/0014-depth-decimates-in-time-and-not-in-space.md) records it):
+([ADR-0024](../adr/0024-depth-decimates-in-time-and-not-in-space.md) records it):
 **if the agent converges on echo, the merge is too shallow.**
 
 ### Dimensions
@@ -310,7 +310,7 @@ ADR-0009 transfers with zero change.
 regions, two meanings, neither borrowed from the other.
 
 This is the wedge's central claim and it is load-bearing enough to have its own record:
-[ADR-0014](../adr/0014-depth-decimates-in-time-and-not-in-space.md). In outline — the ADR carries the
+[ADR-0024](../adr/0024-depth-decimates-in-time-and-not-in-space.md). In outline — the ADR carries the
 argument and the costs:
 
 - `05-timescales.md`'s *Depth does not supply it* is about **spatial** pooling and is sound there. A
