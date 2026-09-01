@@ -84,37 +84,99 @@ layer, and `K` is one batched matrix multiply over the population.
 
 ## Reconciliation gain
 
-One descent step needs a step size. It is **per cell**, normalised by that cell's total incident mask
-width:
+One descent step needs a step size. It is **per cell**, and it is the largest step that is stable
+against that cell's own local Laplacian block:
 
 ```
-gain_v  =  γ / max( Σ_{e∋v} m_e , ρ² · deg(v) )     with a single global γ ≤ 1
+gain_v  =  γ / ( g_v² · c_v )                        with a single global γ ≤ 1
+
+  g_v  =  ρ                                          predicting cells (band gauge, ‖F‖_F ≤ ρ)
+       =  1                                          boundary cells   (exact gauge, ‖F‖_F = 1)
+
+  c_v  =  min( deg(v), max( c, ⌈deg(v) / n_v⌉ ) )    c = 2, declared globally alongside ρ
 ```
 
-The denominator bounds the largest eigenvalue of the cell's local Laplacian block **provably**, not by
-proxy: [ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md) bounds every incident
-restriction map by `‖F‖_F ≤ ρ`, so `λ_max(Σ_e F_evᵀF_ev) ≤ Σ_e ‖F_ev‖_F² ≤ ρ² · deg(v)`. At the
-specified `ρ = 2` and the vertical edges' `m = 4` the two terms are equal, so the gain is in practice
-what it always was; it is written as the max so that a later change to `ρ` cannot silently loosen the
-bound below.
+Ruled by [#190](https://github.com/NGL321/patchworks/issues/190) against the ledger
+[#189](https://github.com/NGL321/patchworks/issues/189) assembled. Three terms left the denominator at
+once — `Σ_e m_e`, `ρ² · deg(v)`, and the `max` that chose between them — and what replaced them bounds
+the same quantity, `λ_max(Σ_e F_evᵀF_ev)`, by construction rather than by inheritance. Every surviving
+term is read off the built graph or declared once, so the shape of the formula is what it always
+claimed to be: one global `γ` over a denominator with **nothing per-cell to set**.
 
-`Σ_e m_e` tracks the largest eigenvalue of the cell's local Laplacian block, so this normalisation
-**equalises** the effective step across the graph: every cell takes roughly the same descent on its
-own local energy regardless of how many edges it sits on. It removes a degree artifact; it is not a
-timescale knob and must not become one. A gain deliberately graded by depth would be the explicit
-per-cell clock divisor [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md) rejected,
-wearing a different name.
+**Why the two old terms went.** `Σ_e m_e` was doing two jobs under one symbol and neither survived the
+ledger. As a **bound** it was never derived — nothing shows `Σ_e m_e` bounds `λ_max(Σ_e F_evᵀF_ev)` at
+all. As a **normalisation** it was defended in its own right, for *equalising* the effective step
+across the graph, and #189 measured that property for the first time: in the only units that make the
+claim mean anything — `gain_v · λ_max`, the step as a fraction of the largest stable one — the spread
+across the taper is **3.57x at initialisation and ~2.6x taught, and graded by depth, largest at the
+apex**. It does not remove the depth gradient. It inverts and shrinks it. **The property was never
+held, so striking it spends nothing**, and this is a correction rather than a purchase. `ρ² · deg(v)`
+is a true bound and goes for a different reason: it is tight only where a cell's incident maps load the
+same input direction, which they do not, and `c_v` is the term that says so.
 
-A single global scalar is not sufficient: degrees run from low at the rim to ~6 in the core
-([`06-graph-topology.md`](./06-graph-topology.md)), and one constant is either too slow at one end or
-unstable at the other. A per-edge gain derived from that edge's recent scale is rejected for the same
-reason a tracking baseline is — it needs its own time constant
-([ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md)).
+**Nothing here is a runtime read.** A construction-time read of `λ_max` would not merely go loose as
+the maps learn — it would go **unsafe**, because `λ_max` grows *toward* any bound fixed at
+construction: `bound / true λ_max` falls **41.29 untrained → 4.671 taught**
+([#182](https://github.com/NGL321/patchworks/issues/182)). A per-tick read is a per-cell runtime
+quantity computed from live parameters, which is the shape this architecture avoids everywhere else.
+So the bound is **made true instead**, in
+[ADR-0011](../adr/0011-the-locality-guarantee-is-enforced-not-inherited.md)'s idiom — enforced, not
+inherited. [ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md)'s projection already runs
+after every transport step to restore the mask and the norm band; it also holds a cell's incident maps'
+top singular directions apart, and `c` is the count it holds them to. **Without that term the
+denominator is not loose but false**, which is why `c` is gauge-fixed alongside `ρ` rather than
+tracked, and why it is ADR-0010 that owns it.
+
+**`c_v`'s two clamps are facts, not hedges.** The **pigeonhole floor** `⌈deg(v) / n_v⌉` is a statement
+about stalk dimensions: the drive cell carries `deg = 8` incident maps on a stalk of dimension 1, eight
+directions cannot be mutually orthogonal in one dimension, they coincide, and `λ_max` there is exactly
+`deg`. A bare global `c = 2` at that cell would be an **unsafe** bound rather than a loose one. The
+**ceiling** at `deg(v)` keeps the denominator from ever exceeding the bound `ρ² · deg(v)` already gave.
+Every cell on this dome lands identically with or without the ceiling; it is carried because the
+un-ceilinged form breaks on a graph that is not this one.
+
+**One formula, evaluated against each cell's actual gauge.** ADR-0010 pins a boundary cell's maps to
+the exact gauge `‖F‖_F = 1`, so `Σ_e ‖F‖_F² = deg(v)` is an *equality* there and not a band the
+transport rule grows into. The record applied `Σ_e m_e = 8 · deg(v)` to all 264 of them — loose by a
+**permanent 8x**, with no gauge headroom to spend, ever. `g_v` is what separates the two cases, and it
+is read off the graph like every other term.
+
+**`gain_v` is uniform across the interior, for the first time.** At `ρ = 2, c = 2` every predicting
+cell takes `γ/8`. What the correction is worth runs the other way from the old shape — 2.50x at the
+apex, 3.00–3.75x through the core, **6.10x at the rim**, 8.00x at the sensory boundary cells and
+**12.0x at the actuator**, whose commanded components are the return path's last step into the arm.
+The old denominator was loosest where the graph is widest, so the raise is largest at the rim and
+smallest at the apex, which is the inverse of what the superseded reading predicted.
+
+**The equalisation claim named [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md), and
+misnamed it.** This section used to argue that a denominator graded by depth would be the explicit
+per-cell clock divisor that ADR rejected, wearing a different name. ADR-0005 rejects a **schedule** — a
+hand-set per-cell rate — and its prohibition is explicitly about *runtime*, the #41 amendment calling
+the restriction structural rather than disciplinary because a per-tick draw is not a value anything
+could branch on. A construction-time denominator read off the built graph is neither hand-set nor
+readable by anything at runtime. The depth-invariance gloss was **this file's attribution, not that
+ADR's claim**: ADR-0005 is untouched and this file is corrected.
+
+A single global scalar in place of `gain_v` is still not sufficient: degrees run from low at the rim to
+~6 in the core ([`06-graph-topology.md`](./06-graph-topology.md)) and stalk dimensions differ across
+the boundary, so one constant is either too slow at one end or unstable at the other.
+
+**What is rejected is a gain that tracks a signal — not a gain that is a function of the maps.** This
+section used to reject "a per-edge gain derived from that edge's recent scale", and the sentence read
+wider than it was meant to, as though any denominator finer than a global constant were suspect. The
+objection is narrower and it is
+[ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md)'s: a gain derived from
+an edge's **recent disagreement scale** needs a tracking window and its own time constant, which is the
+per-edge auxiliary variable with a hand-set rate that ADR rejects. `g_v` and `c_v` are neither. They
+are functions of the graph and of the gauge — **state, not signal** — fixed when the dome is built and
+constant for as long as the run is. `gain_v` remains **one scalar per cell, formed once at
+construction**, and that is the property worth protecting.
 
 **What constrains `γ`, stated without embellishment.** Exactly two things:
 
 1. it is capped at **1.0** globally, and
-2. ADR-0010's provable `λ_max(Σ_e F_evᵀF_ev) ≤ ρ² · deg(v)`, which is the denominator above.
+2. the denominator above — a bound on `λ_max(Σ_e F_evᵀF_ev)` that ADR-0010's projection makes good for
+   as long as the run does.
 
 **Not, in practice, the fold margin** — and that is a change, made by
 [#140](https://github.com/NGL321/patchworks/issues/140). This section used to carry a third:
@@ -158,18 +220,51 @@ across the interior, so it binds on each cell's own margin draw and nowhere in p
 quantity that wanders 3.8x with no trend. Boundary cells were never in it — they run no body, so they
 have no fold margin at all.
 
-**The conversion loosened it, measurably, and moved where it binds.** Linearising `step` took its
-folds off the round trip, so the margin is `encode`'s alone rather than the minimum over two maps, and
-the cap on `γ × floor` rose from **0.2600 to 0.3502** — a 35% loosening. Measured on the construction
-sweep, 8192 draws, seed 42, at the `a = 1.0` the selection rig returns.
+**The conversion loosened it and the two corrections since have tightened it further, on net 2.56x.**
+Linearising `step` took its folds off the round trip, so the margin is `encode`'s alone rather than the
+minimum over two maps, and the nominated cap on `gain_v × offset` rose from **0.2600 to 0.3502**.
+[#195](https://github.com/NGL321/patchworks/issues/195) then re-measured it in the right space and
+against #190's denominator, and it lands at **0.1369** — which reproduces `02`'s own published number
+exactly. Measured on the construction sweep, 8192 draws, seed 42, at the `a = 1.0` the selection rig
+returns.
 
-Two riders, because the number is easy to misread. It is **larger than the 0.3278 first reported**,
-which was the figure for linearising `step` alone; the full conversion linearises `decode` too, and
-losing that map's hidden layer moves the operating point the margin is read at. And **the apex no
-longer binds**: the tightest cell now sits at level 3, where before it was the apex. That is a draw
-artifact rather than a change of shape — a cell's fold margin is uncorrelated with everything else
-about it — and the *systematic* claim below is unaffected, since the level medians still fall with
-depth, 1.25 at level 1 to 0.52 at the apex.
+The two corrections run in opposite directions and the tightening wins:
+
+| reading | nominated cap |
+|---|---|
+| full `encode` input space, old denominator | 0.3502 |
+| the node-stalk subspace alone | 0.4107 |
+| #190's denominator alone | 0.1167 |
+| **both, as the check now stands** | **0.1369** |
+
+**The margin is read in the subspace reconciliation actually moves.** `encode` takes `R^k × R^n`, and
+the check took its row norms over the whole of that input — but reconciliation writes the **node stalk
+alone** and never the chart, so the displacement lives in the `R^n` block. Restricting the gradient
+there is the margin in the space the offset moves in, and it is worth **1.183x** measured on the built
+body across four budgets, against the isotropic expectation `√(44/32) = 1.173`. It was never unsafe:
+the whole-space reading is uniformly *tighter*, so the standing check was too strict rather than too
+loose, which is why it was left standing rather than treated as a live bug.
+
+**`gain_v` is the subject of the bound, and `γ` was shorthand.** The implementation has always used the
+per-cell gain; one sentence of this file never matched its own code. Under the old denominator the two
+forms differed per cell by up to 2.6x, and the shorthand is what hid that the *"binds hardest at the
+apex"* claim was a claim about the **denominator's shape** rather than about the check. #190 flattens
+the denominator to a constant at every predicting cell, so the two forms now differ by one global
+factor and which cell binds no longer depends on which is written. This is a correction to the prose,
+not a third defect in the mechanism.
+
+One rider, because the number is easy to misread. The 0.3502 is **larger than the 0.3278 first
+reported**, which was the figure for linearising `step` alone; the full conversion linearises `decode`
+too, and losing that map's hidden layer moves the operating point the margin is read at.
+
+**And the apex does not bind.** The tightest cell moved to level 3 after the conversion, and at 100,000
+ticks the apex is the **loosest** level on the built surface, 0.0540 against a graph median of 0.0192.
+That is what a struck depth claim looks like when it is read: #190 predicted it in the abstract and
+#195 measured it. A cell's fold margin is uncorrelated with everything else about it, so which cell
+binds is largely a draw — and #195 found it does not even reproduce, four runs at one seed and one
+budget giving four different binding cells and a 5.8x spread on the cap. **A per-cell extremum on this
+surface is not a reproducible quantity**, which bears on anything in the record quoting one off a long
+run.
 
 **The denominator is settled at construction; the rest of the bound is not.**
 [#33](https://github.com/NGL321/patchworks/issues/33) found the denominator could not stay fixed: the
