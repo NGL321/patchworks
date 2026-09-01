@@ -243,6 +243,38 @@ So goal-directed behaviour is not something to hope emerges. Something outside t
 that an unmet task is uncomfortable, and it is that discomfort, not any planner, that makes the agent
 move.
 
+### The dark room on a language rim
+
+The problem is general; **its signature is not**, and the language domain's is different enough that
+looking for the sandbox's would miss it entirely.
+
+**The direct analogue is gone.** On a language rim silence is a *value*
+([#128](https://github.com/NGL321/patchworks/issues/128)), so the agent emits a character every tick
+whether or not it has anything to say. There is no standstill available: **the agent cannot fail to
+act.**
+
+**The failure takes a new form: constant emission** — the agent settling on whichever single character
+is cheapest to keep predicting, plausibly a space or a vowel rather than the idle symbol itself. That
+is a degenerate fixed point, it is reachable, it is stable, and it is low-error for exactly the reason
+the dark room is.
+
+**Under an idle run yielding the floor, two failures collapse into one object.** Constant emission
+means never yielding the floor, so the interlocutor never speaks, so the incoming stream is pure idle
+and maximally predictable ([`12-the-interlocutor.md`](./12-the-interlocutor.md), *Half-duplex, and an
+idle run yields the floor*). The degenerate fixed point and the failure to yield the floor are the
+**same object**, which is why one observable catches both.
+
+**The observable is emission entropy, not idle-symbol fraction.** Idle fraction reads only the
+special case where the character the agent settles on happens to be idle; entropy reads the whole
+family, and the family is what the failure actually is.
+
+This gives ADR-0009's *Bootstrapping* exposure its language-domain reading: in the sandbox it is no
+motion at all, and here it is **emission entropy pinned near zero while drive-edge disagreement is
+non-trivial**. The response is the one ADR-0009 already names and is **not** a rung on the width
+ladder — a **curiosity drive**, arriving as an ordinary drive boundary cell at the internal rim.
+Widening the coherence drive does not reach it, for the reason *Valence, not specification* gives
+below.
+
 ### A drive is a boundary cell in the core
 
 A **drive boundary cell** is written from outside the sheaf — by the human today, by an internal

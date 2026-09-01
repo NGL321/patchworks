@@ -627,3 +627,42 @@ meanings of depth are kept apart deliberately, and neither region borrows the ot
 *dome*, built by the same construction rule and differing in the number of axes its rim is indexed
 on; abandonable on the same terms.
 _Avoid_: stack, dilated stack, pyramid, temporal hierarchy, the language dome
+
+**Interlocutor**:
+The language domain's world: a small local language model that talks to the agent and, crucially,
+**responds because the agent spoke**. Not a data source and not a teacher — it holds an agenda, never
+remarks on the babble, and supplies no instruction, so what it gives the agent is a world to act on
+rather than a target to match. It is the entire compute cost of the domain, which is why it is small
+and local. The counterpart of the *arm and arena* together, not of either alone.
+_Avoid_: teacher, oracle, environment model, partner model, LLM (bare), corpus
+
+**Floor**:
+Which party currently holds the right to speak. Half-duplex, so exactly one does. Not a lock the rig
+enforces on the agent — the agent emits every tick regardless — but a property of the world that
+decides whether what it emits is **taken up**. **An idle run yields the floor**, so falling silent is
+how the agent is heard, which is what makes silence an action rather than padding.
+_Avoid_: turn, lock, mutex, speaking rights, channel
+
+**Uptake**:
+Whether a character the agent emitted was actually taken up by the interlocutor, reported back on the
+spoken rim as a flag. The language rim's **refusal**: the analogue of the arm's torque clip, and what
+makes the motor edge carry real disagreement rather than an echo. A character emitted while the
+interlocutor holds the floor is not taken up, tick after tick, and that is the world declining a
+command rather than a failure of the rig.
+_Avoid_: acceptance, acknowledgement, delivery, success flag
+
+**Coherence readback**:
+The interlocutor's next-character surprisal, normalised by the entropy of its own next-character
+distribution — carried as a component of the **spoken** rim's readback, never on a sensory cell and
+never as the drive's asserted value. It is what the world made of the agent's command, so it is a
+readback in exactly the sense efference copy is; a scalar that arrives after the agent acts and
+evaluates what it did would otherwise be a reward under another name.
+_Avoid_: coherence reward, coherence score, fluency signal, likelihood (bare), feedback
+
+**Topic roster**:
+The fixed set of concrete simple subjects the interlocutor talks about, with a sampler that draws one
+per conversation — the language domain's counterpart of the sandbox's task sampler, and `reset()`
+draws from it the way `reset()` there rearranges the world. A roster rather than a knowledge base, so
+that "the partner is talking about something" costs no machinery the contract would have to describe.
+Topic identity is privileged and lives in `info`.
+_Avoid_: curriculum, prompt bank, knowledge base, corpus, task set
