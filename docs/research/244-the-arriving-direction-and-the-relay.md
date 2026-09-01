@@ -30,22 +30,25 @@ one ratio and the bar it is read against, and both have a plausible wrong form.
    Only 25% of hops fall below their null's median. At #233's own peak tick the reading is the same
    (76.4%), so it is not an artifact of which tick is read.
 
-2. **It could not have come out the other way, and that is the real finding.** The inbound restriction
-   maps are effectively rank 1, so `u = F_inᵀ d` is the *same* node-stalk direction whatever arrives.
-   `a_in` therefore sits on its own ceiling — exactly `2.000 = √4` and `2.828 = √8` at the widths this
-   graph uses — and the arriving direction has **no purchase at the relay at all**. It cannot be
-   misaligned there, because the inbound map, not the arrival, picks the direction.
+2. **It almost could not have come out the other way, and that is the real finding.** The trained
+   inbound maps have **effective rank 1 at the median**, so `u = F_inᵀ d` is very nearly the same
+   node-stalk direction whatever arrives. `a_in` therefore sits on its own ceiling — exactly
+   `2.000 = √4` and `2.828 = √8` at the widths this graph uses — on **87.8%** of hops. The arriving
+   direction has almost **no purchase at the relay**: it is largely the inbound map, not the arrival,
+   that picks the direction.
 
 3. **#233's composition finding is absorbed, and it is absorbed as an identity rather than a
    judgement.** `A = a_in · a_out / C` holds tick by tick (closure `2.5e-14` over 18,648 tick-pairs),
-   where `C` is #233's composition gap — measured here at median **0.0079x**, #233's own figure. When
-   `F_in` is rank 1, `a_out ≡ C` by algebra, so the relay's "misalignment" and the maps' failure to
-   share dominant directions are **one quantity**, not two candidates.
+   where `C` is #233's composition gap — measured here at median **0.0079x**, #233's own figure. At
+   exactly rank 1, `a_out ≡ C` by algebra, so the relay's "misalignment" and the maps' failure to
+   share dominant directions are **one quantity** rather than two candidates. Measured, `a_out / C`
+   has median **0.892x** and is within 1% on a quarter of hops — the collapse is typical, not
+   universal, and §4 reports where it loosens.
 
 4. **One of #233's attributions does not survive, and is corrected.** #233 read its ~480x gap between
    the measured quantity and the single-step prediction as the *window's* accumulation. The
    tick-aligned read has no window and the gap is still ~**495x**. Whatever it is, it is not the
-   window.
+   window — and this read does not claim to know what replaces it.
 
 **None of this changes the grading's verdict.** Misalignment is closed as a *contributor* — the
 arriving direction is not the loss — and what remains is #233's already-quantified per-edge floor
@@ -204,11 +207,31 @@ maps**, and it is exactly the constant `‖M‖_F` carries. `a_out` and `C` are 
 exactly. This is proved in `tests/test_alignment_read.py` on synthetic rank-1 maps, with a
 full-rank contrast case beside it so the equality is a property of *rank* and not of the arithmetic.
 
+**The premise is measured, not assumed** — the trained maps really are rank 1:
+
+| quantity | median | p05 | p95 |
+|---|---|---|---|
+| effective rank of `F_in` | **1.000** | 1.000 | 1.726 |
+| effective rank of `F_out` | **1.000** | 1.000 | 1.734 |
+| `a_in` / its own ceiling | **1.000x** | 0.642x | 1.000x |
+| `a_out / C` (1 = no purchase) | 0.892x | 0.174x | 1.000x |
+
+**87.8% of hops take their whole `a_in` ceiling.** The effective rank is the participation ratio
+`(Σs²)² / Σs⁴`, which is 1 only for an exactly rank-1 map, and it is 1 at the median for both maps.
+
+The `a_out / C` column is where the idealisation shows its edge, and it is reported rather than
+smoothed: only **25.0%** of hops have `a_out = C` to within 1%, with a median of 0.892x. The maps are
+rank 1 at the median but not everywhere — p95 effective rank 1.73 — and where they are not, the
+arriving direction recovers a little purchase. So the collapse is the *typical* case and not a
+universal law, and the honest form of the claim is that **the arriving direction's remaining freedom
+is small and shrinking in the rank**, not that it is exactly zero.
+
 That is the mechanism, and it says something stronger than the ticket asked for. **The arriving
-direction has no purchase at the relay.** Whatever arrives is collapsed onto one node-stalk direction
-by the inbound map before the outbound map ever sees it, so the question *is what arrives badly
-placed for the next hop* has no room to be answered yes. What looks like a relay's misalignment is a
-property of the two maps, fixed at the relay, and identical to the composition gap #233 measured.
+direction has almost no purchase at the relay.** Whatever arrives is collapsed onto (essentially) one
+node-stalk direction by the inbound map before the outbound map ever sees it, so the question *is
+what arrives badly placed for the next hop* has very little room to be answered yes. What looks like
+a relay's misalignment is largely a property of the two maps, fixed at the relay, and to that extent
+identical to the composition gap #233 measured.
 
 **The correlation confirms they are not two independent effects.** `r = +0.091` between `log C` and
 `log A` over 296 hops — a hop whose maps compose badly is not thereby a hop whose arriving direction
@@ -230,10 +253,28 @@ lands badly, because the arriving direction is not what is varying.
 
 #233 read its own ~480x gap as **the window's accumulation**, on a degree-flatness check run against
 its windowed quantity. **This read has no window and the gap is still there.** So the window is not
-the cause, and the honest reading is the one #233's check was aimed at ruling out: a one-route
-operator is not what decides what lands on a many-route edge. The same degree check is re-run here on
-the windowless quantity rather than the attribution being inherited or contradicted by assertion —
-see §5's table in the run output.
+the cause.
+
+The same degree check, re-run on the windowless quantity rather than inherited or contradicted by
+assertion:
+
+| relay degree | hops | median gap |
+|---|---|---|
+| 5 | 8 | 1,119x |
+| 6 | 207 | 418.6x |
+| 7 | 35 | 808.5x |
+| 8 | 23 | 15,050x |
+| 9 | 23 | 635.7x |
+
+`r = +0.114` against degree over 296 hops. **This does not positively attribute the gap either**, and
+it is not claimed to: the correlation is weak, the non-monotonicity is driven by two cells of 23
+hops, and the sign is merely opposite to #233's `−0.121` rather than convincingly positive. What the
+table establishes is the negative result — the level shift survives the removal of the window, so the
+window is not its cause — and what replaces that cause is left open rather than swapped for a second
+under-evidenced one.
+
+The plain reading remains available and unproven: a one-route operator is not what decides what lands
+on a many-route edge.
 
 **This does not touch §3's answer.** The alignment statistic is a ratio taken *within* a single tick,
 between the same operator's own measured and isotropic readings, so a level shift common to numerator
@@ -252,9 +293,15 @@ against `M`, which is this ticket's.
   bottom — so #233's stated body limit does not bite on the primary statistic. It would bite if the
   body *rotated* `u = F_inᵀ d`; §5 reads the empirical single step rather than assuming either way,
   and the median cosine of 0.601 is the evidence available on it.
-- **"Rank 1" is an effective-rank statement, not an exact one.** The maps are near rank 1, which is
-  enough for `a_in` to saturate and for `a_out ≈ C`; the identity `A = a_in` is exact only in the
-  exactly-rank-1 limit, and the measured `a_out / C` is what says how close this graph sits to it.
+- **"Rank 1" is an effective-rank statement, not an exact one.** The participation ratio is 1.000 at
+  the median and 1.73 at p95, which is enough for `a_in` to saturate on 87.8% of hops and for
+  `a_out ≈ C` typically. The identity `A = a_in` is exact only in the exactly-rank-1 limit, and the
+  measured `a_out / C` — median 0.892x, within 1% on 25% of hops — is what says how close this graph
+  sits to it. The claim is "almost no purchase", not "none".
+- **The level shift is left unattributed.** §5 establishes that it is not the window and stops there.
+  The degree correlation (`r = +0.114`) is too weak, and too dependent on two thin degree cells, to
+  put the graph's parallel routes in the window's place. Replacing one under-evidenced attribution
+  with another is the error this section exists to correct.
 - **The widest path is a max-min path, not a flow.** It names the edge the predicate binds on, which
   is what ADR-0021 asks of it, and is not a claim that transport travels only along it.
 - **296 hops from 24 trials in two directions are not 296 independent samples.** Trials share one
