@@ -961,11 +961,19 @@ class FoldMarginCheck:
     every cell. `gain_v = gamma / (g_v^2 . c_v)` since
     [#190](https://github.com/NGL321/patchworks/issues/190) — one formula against
     each cell's own gauge, uniform across the interior. **What this function
-    still forms is the superseded `max(sum_e m_e, rho^2 deg(v))`**, and swapping
-    it is [#195](https://github.com/NGL321/patchworks/issues/195)'s, which owns
-    the re-run and reports what the new denominator permits. Nothing here reads
-    the result as a gate, so the stale denominator mis-states a nomination
+    still forms is the superseded `max(sum_e m_e, rho^2 deg(v))`**.
+    [#195](https://github.com/NGL321/patchworks/issues/195) ran the re-measure
+    and reported what the ruled denominator permits -- the nominated cap moves
+    `0.3502 -> 0.1369`, which `02` now publishes -- but it did not swap the
+    code, and the swap is [#220](https://github.com/NGL321/patchworks/issues/220)'s
+    alongside the projection term the ruled denominator depends on. Nothing here
+    reads the result as a gate, so the stale denominator mis-states a nomination
     rather than passing a bad build.
+
+    **The margin is also still taken in the wrong space**, and #220 owns that
+    too: `_fold_margin` takes row norms over `encode`'s whole `R^k x R^n` input
+    while reconciliation writes the node stalk alone, which is 1.183x tighter
+    than it needs to be. Conservative, never unsafe.
 
     **A nomination, not a verdict** (ADR-0019). What the run decides is measured
     dwell, with :class:`patchworks.tick.FoldRead`'s live margin-against-offset

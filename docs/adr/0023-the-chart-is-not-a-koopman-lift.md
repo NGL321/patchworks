@@ -129,13 +129,47 @@ that consistent rather than aspirational.
   independent caveat is unaffected: `encode` is interleaved, so `lambda(K)` is the operator's
   *contribution* to realised timescale, not the realised timescale.
 
-### The escape holds only while the linear reading is declined.
+### The escape holds only while no cell runs without evidence.
 
-Both the spectral certification cost (§5 of #148) and Liu–Ozay–Sontag's omega-limit-set obstruction
-([#151](https://github.com/NGL321/patchworks/issues/151)) are stated over embeddings **into linear
-systems**. `K . encode` is not one. Any future move to treat a cell as a linear system re-imports
-both in full. That is one trade arriving from two directions, and it is the standing cost of this
-ADR.
+*Repaired by [#151](https://github.com/NGL321/patchworks/issues/151), which read the discrete-time
+extension at source. The verdict is unchanged; the reason given for it was wrong, and a wrong safety
+argument is worse than none.*
+
+**Struck**: *“Both the spectral certification cost and Liu–Ozay–Sontag's omega-limit-set obstruction
+are stated over embeddings **into linear systems**. `K . encode` is not one.”* The discrete-time
+extension — Ristich, Sontag & Ozay, *On the Nonexistence of Continuous Immersions for Discrete-time
+Systems*, arXiv:2605.15161v2 — walks straight through that. Its **Corollary 4** needs only a target
+that is **continuous with closed basins**; Lemma 3 supplies linear systems as an *instance*, and
+Corollary 2 says so in its own parenthesis, *“(e.g., a linear system)”*. Linearity is an example, not
+a hypothesis. As written the clause was a **trapdoor**: checked once by a future reader against a
+hypothesis that was never the binding one, and passed.
+
+**The escape rests on two hypotheses this ADR has already established, one section above** — under
+*The chart is recurrent* and *The cell is driven*:
+
+- **No cell is autonomous.** The theorem's object is `x_{k+1} = f(x_k)`, wound up and left alone, and
+  that is *how* omega-limit sets come to exist at all. A fresh node stalk arrives from reconciliation
+  every tick and `encode` fuses it before `K` runs; `body.py` composes the two in a single call and
+  there is no code path that iterates `K` without evidence. There is no `f: X -> X` here to have
+  limit sets.
+- **No semiconjugacy is claimed.** Definition 7 fixes an immersion as a mapping `F: X -> Z` with
+  `F . f = g . F` — a *function of state*, and nothing weaker. The chart persists, so it is not a
+  function of the instantaneous state and no such `F` exists. The only thing one would have bought is
+  already surrendered above: *“No error bound tied to invariance.”*
+
+**The standing cost survives verbatim, and is now a trigger rather than a test.** Any future move
+that lets a cell **run without evidence** re-imports both obstructions in full — that is one trade
+arriving from two directions, and it is the standing cost of this ADR. A reader can recognise that
+condition without holding the proof, which the linearity test never was.
+[#144](https://github.com/NGL321/patchworks/issues/144), which reads disagreement at horizon `h` as
+`K^h z` with no `encode` between steps, is **the only place in the design that currently proposes
+one**; the constraint on how its output may be read is pre-registered in its own body.
+
+**A third door, recorded and not leaned on.** The paper's **Assumption 1** requires `X` to be path
+connected — which the authors themselves flag as *“more restrictive in discrete-time dynamical systems
+than continuous-time systems”*, because non-constant discrete trajectories have disconnected images.
+Nobody here has checked it for a piece. It is written down so it is not rediscovered as an escape,
+and it stays shut and unused because the first two suffice.
 
 **Invoked once, and discharged.** [#146](https://github.com/NGL321/patchworks/issues/146) asked
 whether cells adjacent to a motor edge need a **bilinear** operator, `z' = A z + (B + sum_i u_i C_i) z`,
@@ -148,8 +182,8 @@ persisting chart at a latency of one tick, which is *shorter* than a motor-adjac
 loop out through the world and back by efference copy. **There is therefore no boundary at which a
 linear cell would give way to a bilinear one**, and the question is all cells or none. Bruder et al.
 (2021, arXiv:2010.09961) is stated over Koopman lifts of control-affine systems and does not reach
-`K . encode`, exactly as this ADR's escape says. What survives is not about motor edges at all: whether
-a cell's linear maps should be **conditioned on the evidence it is currently seeing**, which is fog on
+`K . encode`, which is a lift of nothing — the escape's second hypothesis, above. What survives is
+not about motor edges at all: whether a cell's linear maps should be **conditioned on the evidence it is currently seeing**, which is fog on
 [#127](https://github.com/NGL321/patchworks/issues/127) and is asked of the restriction maps and `K`
 together.
 

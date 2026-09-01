@@ -166,6 +166,84 @@ collapse as numerical ill-conditioning in a parameter no diagnostic watches.
 
 `F = 0` is now **unrepresentable**, not merely disfavoured.
 
+### Incoherence is gauge-fixed too: `c` joins `ρ`
+
+*Added by [#190](https://github.com/NGL321/patchworks/issues/190), written by
+[#155](https://github.com/NGL321/patchworks/issues/155). The value of `c` and the pigeonhole floor were
+**ceded** — yielded to the agent on stated insufficient information, the recommendation taken unchanged
+([#194](https://github.com/NGL321/patchworks/issues/194)).*
+
+The band fixes each map's **magnitude**. It says nothing about how a cell's incident maps are arranged
+*relative to one another*, and one thing downstream depends on exactly that. `02-tick-semantics.md`'s
+reconciliation gain divides by a bound on `λ_max(Σ_{e∋v} F_evᵀF_ev)`, and the only bound the band alone
+supports is `Σ_e ‖F_ev‖_F² ≤ g_v² · deg(v)` — the fully-coherent case, tight only if every incident map
+loads the same input direction. They do not. Measured, the **effective overlap count** runs 2.42 at the
+rim and 1.75–1.98 through the core ([#182](https://github.com/NGL321/patchworks/issues/182)), against a
+bound that assumes `deg(v)`, which is 5 to 8.
+
+So the gain has been dividing by a number that is 2.5x to 6x larger than the quantity it bounds, and
+the whole of that is a statement about arrangement rather than about scale.
+
+**The projection holds the arrangement, as it already holds the norm.** The same step that restores the
+mask and the band after each transport step also pushes a cell's incident maps' **top singular
+directions** apart, to the effective overlap count
+
+```
+c = 2, declared globally alongside ρ
+```
+
+so that `λ_max(Σ_e F_evᵀF_ev) ≤ g_v² · c_v` holds by construction for as long as the run does. This is
+[ADR-0011](./0011-the-locality-guarantee-is-enforced-not-inherited.md)'s idiom and it is adopted for
+ADR-0011's reason: the alternative is a per-cell runtime read of `λ_max` from live parameters, and such
+a read does not merely go loose as the maps learn — it goes **unsafe**, since `λ_max` grows *toward* any
+bound fixed at construction (`bound / true λ_max` falls 41.29 untrained → 4.671 taught, #182).
+
+**`c` is a constant of the gauge, not a target of the objective.** Nothing in the transport rule has an
+opinion about the arrangement of a cell's incident maps, for the same reason nothing has an opinion
+about their magnitude: the relative objective is computed edge by edge and no term in it sees two
+incident maps together. So this is again *fixing an unidentified parameter*, not capping a learned one,
+and the argument this ADR already makes for `ρ` carries over unchanged.
+
+**Why 2, and why not tighter.** `c = 2` is conservative on purpose: it is the value **levels 4–7
+already satisfy untouched**, so the term does corrective work at three levels rather than fighting the
+whole surface. The measured spread leaves headroom down to a practical floor of ~1.05, set by the
+residual effective rank (1.02–1.06, #182) — a map that transmits one direction cannot be made
+incoherent with anything. `c` can be tightened toward that floor once the cost below is measured; the
+first edit deliberately does not spend the whole 2.4x.
+
+**The stated cost, named here rather than discovered later.** This pressure and a *cross-edge* coherence
+pressure pull the same maps in opposite directions. The transport rule builds cross-edge alignment
+unaided — 14.20x taught, 3.66x untrained — and that alignment is what a chained hop rides. Pushing a
+cell's incident maps apart could eat it. That is the pre-registered falsification condition on #155's
+run, and it is why [#184](https://github.com/NGL321/patchworks/issues/184) must re-size its own 2.15x
+after this term is in circuit rather than before.
+
+**The sparsity term gains a rationale it did not have.** L1 on the normalised map was adopted for
+pruning within the mask (`06-graph-topology.md`). Concentrating a map onto fewer, more nearly disjoint
+sets of directions is also what makes a cell's incident maps mutually incoherent, so the term the ADR
+already carries pushes toward the arrangement this section enforces, rather than against it. That is a
+consistency check on the composition, not a second mechanism, and the enforcement does not lean on it.
+
+**The floor is not optional, and the drive cell is why.** `c` is applied as
+
+```
+c_v  =  min( deg(v), max( c, ⌈deg(v) / n_v⌉ ) )
+```
+
+The drive cell carries `deg = 8` incident maps on a stalk of dimension 1. Eight directions cannot be
+mutually orthogonal in one dimension — they coincide, the overlap count is forced to 8, and the ledger
+measured exactly that, `λ_max = 8`, precisely `deg`. A bare global `c = 2` there is an **unsafe** bound
+and not a loose one, so the pigeonhole floor `⌈deg(v) / n_v⌉` is load-bearing rather than defensive: at
+`deg = 3, n = 2` two maps must already share a direction, so `λ_max ≥ 2σ²` while `deg/n = 1.5`, which is
+why the ceiling is taken on the ratio. The outer `min` keeps the result from exceeding the bound the
+band alone gave. Every cell on this dome lands identically either way; the un-ceilinged form breaks on a
+graph that is not this one, and the clamp is kept for that reason rather than for this graph.
+
+**Pinned maps are out of reach, and that is not an omission.** A boundary cell's maps carry the exact
+gauge, so there is no freedom for a projection to spend: no incoherence term applies to a pinned map.
+Those cells gain from the gain's correction — their bound was `deg(v)` all along while `8 · deg(v)` was
+applied — but they gain it from `g_v = 1`, not from this section.
+
 ### Frobenius, not spectral — and therefore no rank floor
 
 Unit **spectral** norm pins only the largest singular value; every other direction may shrink to zero at
@@ -215,12 +293,16 @@ concentration, effective rank is the only thing that says which regime the maps 
 ## Consequences
 
 - **The reconciliation gain bound becomes provable, and #33's re-derivation retires.**
-  `λ_max(Σ_e F_evᵀF_ev) ≤ Σ_e ‖F_ev‖_F²`, which the band bounds by `ρ² · deg(v)`. The denominator in
-  [`02-tick-semantics.md`](../spec/02-tick-semantics.md) becomes `max(Σ_e m_e, ρ² · deg(v))` — at
-  `ρ = 2, m = 4` the two are equal, so the gain does not move in practice, but it is written as the max
-  so a later change to `ρ` cannot silently loosen `γ × floor < fold margin`. The per-cell spectral
-  re-derivation [#33](https://github.com/NGL321/patchworks/issues/33) added to ADR-0007 tracked a drift
-  that no longer happens and is **struck** rather than kept just-in-case.
+  `λ_max(Σ_e F_evᵀF_ev) ≤ Σ_e ‖F_ev‖_F²`, which the band bounds by `g_v² · deg(v)`. The per-cell
+  spectral re-derivation [#33](https://github.com/NGL321/patchworks/issues/33) added to ADR-0007
+  tracked a drift that no longer happens and is **struck** rather than kept just-in-case.
+  *Amended by [#190](https://github.com/NGL321/patchworks/issues/190).* This bullet used to hand
+  [`02-tick-semantics.md`](../spec/02-tick-semantics.md) the denominator `max(Σ_e m_e, ρ² · deg(v))`.
+  Both terms and the `max` are struck: `Σ_e m_e` was never shown to bound anything, and `deg(v)` is
+  the fully-coherent case. The denominator is now `g_v² · c_v`, and this ADR owns **both** of its
+  constants — `ρ` through the band, `c` through *Incoherence is gauge-fixed too* above. The bound is
+  no longer merely provable from the gauge; it is **made true by the projection**, and it is false
+  without it.
 - **A new contributor to the static floor.** With both ends bounded, an edge's representable scale ratio
   is `ρ²` times the `√m` range rank concentration affords. Genuine mismatch beyond that is irreducible
   and appears as static floor. ADR-0007's static-floor list is amended.

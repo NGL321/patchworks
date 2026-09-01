@@ -62,6 +62,24 @@ singular values, read on the diagnostic cadence. Paired with per-edge disagreeme
 separates parameter collapse from a lag floor draining; neither reading separates them alone.
 _Avoid_: rank (bare), sparsity, bandwidth
 
+**Incoherence count**:
+The effective overlap count `c` — how many of a cell's incident restriction maps load the same input
+direction. `c = deg(v)` is fully coherent maps and `c = 1` perfectly incoherent ones. A gauge constant
+declared globally alongside `ρ` and held by the same projection (ADR-0010), and the term that makes the
+reconciliation gain's denominator a true bound rather than a loose one; applied per cell as
+`c_v = min(deg(v), max(c, ⌈deg(v)/n_v⌉))`, where the floor is a fact about stalk dimensions and not a
+hedge. Measured at 2.42 at the rim and 1.75–1.98 through the core, against a practical floor of ~1.05
+set by effective rank.
+_Avoid_: orthogonality, decorrelation, condition number, diversity
+
+**Channel**:
+The aligned subspace a chain of restriction maps and cell operators actually carries — the directions a
+perturbation survives along, as against the directions it is annihilated in. Learned by the transport
+rule rather than nominated by construction, and narrow because the maps are near-rank-1. A hop is an
+operator norm along it, never an isotropic average over directions (ADR-0022); reconciliation is fast
+along it and under-relaxed off it.
+_Avoid_: path, route, pathway, bandwidth, receptive field
+
 **Disagreement**:
 The difference, measured in an edge stalk, between the two adjacent cells' restrictions of
 their node stalks. Patchworks' only edge-level error signal: derived, never carried, and never
