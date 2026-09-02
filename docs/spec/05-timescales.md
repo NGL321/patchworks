@@ -270,6 +270,15 @@ still the body's only nonlinearity and still ReLU, `decode` linearised and froze
 [`02-tick-semantics.md`](./02-tick-semantics.md) already records: linearising `step` took its folds
 off the round trip, so the partition is `encode`'s own.
 
+**The sandbox has moved under them since, in one respect.**
+[#266](https://github.com/NGL321/patchworks/issues/266) put an `mj_forward` into
+`PlanarPushSandbox.step`, which until then handed back an observation drawn from kinematics one
+integration stale — so both reads were driven by an image and a touch reading that disagreed with the
+`qpos` and `qvel` beside them. The stalks feeding these counts move by ~2.8% relative, which **dates
+the digits without touching what they say**: `τ` flat at about a tick with no depth gradient is a
+shape, and the gate's verdict turns on the shape rather than on a third decimal place. Re-reading is
+a 100,000-tick run and has not been done.
+
 The pass condition survives the conversion because it is definitional — one e-fold is one e-fold
 whatever the facets are — and **the counts survive it too, by having been read after it**. Nothing
 here is rescaled: #206's precedent for `01`'s recorded margins holds in this direction as well,
