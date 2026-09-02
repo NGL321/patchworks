@@ -728,16 +728,43 @@ which is not on that loop at all.
 ## Demonstrating it
 
 The acceptance demo's evidence is a **live private-component readout**: during a perturbation,
-display `‖Δ(private component)‖` per cell against hop distance from the sensorimotor rim. The viewer
-watches the rim swing while deep private state barely moves.
+display `‖Δ(private component)‖` per cell against hop distance from the sensorimotor rim.
 
 Cheap — the private component is the node-stalk directions masked out on every incident edge, known
-at construction, so it is a fixed projection computed per tick. Falsifiable live: if deep private
-state swings with the rim, the mechanism is not working and it is visible in the moment. This is a
-requirement on the demo surface, which exposes the private/reconciled decomposition rather than raw
-stalk values. It is drawn as its own panel — deliberately not folded into the dome's marks, so that
-it can disagree with the claim it tests: [`10-the-demo-surface.md`](./10-the-demo-surface.md), *The
-private-component panel*.
+at construction, so it is a fixed projection computed per tick. This is a requirement on the demo
+surface, which exposes the private/reconciled decomposition rather than raw stalk values. It is drawn
+as its own panel — deliberately not folded into the dome's marks, so that it can disagree with the
+claim it tests: [`10-the-demo-surface.md`](./10-the-demo-surface.md), *The private-component panel*.
+
+**The picture is kept; the criterion is not the picture.** This readout was also the demo's *depth
+criterion*, passing when the trace fell with hop distance, and that clause **cannot fail** — the
+channel's own attenuation supplies a falling trace whether or not anything is retained, which
+[#214](https://github.com/NGL321/patchworks/issues/214) measured at **8.7e-10** rim→apex. The
+criterion is now a **conduction time**: per cell, the e-fold decay time `τ̂_c` of the paired
+private-feature deviation over `|loop(c)|`, with the bar at `τ̂_c / |loop(c)| ≥ 1`
+([ADR-0026](../adr/0026-rim-core-influence-is-a-conduction-ratio.md) for the quantity,
+[ADR-0027](../adr/0027-the-demos-depth-criterion-is-a-conduction-time.md) for the demo's calls
+against it, [`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md) for the protocol). The scatter
+stays on the panel because it is what a viewer can read; passing is the ratio.
+
+**Falsifiable live, in weakened and stated form.** The old promise was that a flat trace refutes the
+mechanism in the moment. The establishing measure is now a **paired** one — two forked runs from a
+common state, which `restore` supplies and a human poking a live agent does not — so that promise
+does not survive as written, and it is replaced rather than dropped. The panel gains a **live
+single-run `τ̂` read**: the excursion above the agent's working baseline after an event marker (which
+`10` already owed for onset, and now owes to a second consumer), e-fold time from peak, no fork
+needed. It is **noisier** than the paired version and **confounded by the ongoing task** in exactly
+the way [ADR-0021](../adr/0021-rim-to-core-detectability-is-a-bottleneck-ratio.md)'s quiescent-hold
+floor describes — the baseline it reads against is a working agent's, not a quiet one's. And it can
+still fail in the moment, because **`τ̂` flat across depth is a flat scatter**. This is `08`'s own
+split — *the live run demonstrates, the repeated runs establish* — applied to the half that never had
+it.
+
+**A decay time here is not a decay time in the body.** `08`'s guard on onset latency — *never as
+settling or decay time* — is aimed at the body's mechanics and at
+[`03-the-sandbox.md`](./03-the-sandbox.md)'s 17.9x joint ladder. `τ̂_c` is a decay time on private
+features **inside the graph**, which no joint can supply, and the ladder is deliberately built not to
+align with the graph's levels. The two senses do not meet.
 
 This readout is the *depth* half of the demo's evidence; the other half is **onset latency**, and the
 protocol that fixes what passing means is

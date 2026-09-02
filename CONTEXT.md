@@ -164,6 +164,17 @@ the never-settling floor nor float32.
 _Avoid_: margin (`fold margin` is a distance to a boundary; this is a ratio), retention (bare), gain,
 timescale ratio
 
+**Loop length**:
+`|loop(c)|`: the tick length of the shortest cycle through a cell that reaches the sensorimotor rim
+and returns — the conduction ratio's denominator, and the cell's **own round trip**, which is what a
+retention time has to beat. A **construction-time** quantity: enumerated from the mask by breadth-
+first sweep, `2 · d(c, rim)`, and **never inherited from a hop count** (ADR-0026). It moves with
+`DomeSpec` and is recomputed rather than quoted — 14 at the apex of the default dome, where it was
+checked rather than assumed. That it coincides with `2 · level` there is a fact about the current
+taper's wiring and not a licence to index by level. **Computed nowhere in the tree today**; #99 owes
+it.
+_Avoid_: round trip (bare), cycle length, depth, hop count, `2 · level`
+
 **Rim-core influence**:
 The predicate over the conduction ratio, and **the map's operative bar**: over paths, the max of the
 min conduction ratio along a path is at least 1 — the cell still holds what it sent by the time the
@@ -649,14 +660,23 @@ The single live interaction the proof of concept is judged by: a human disturbs 
 and the agent recovers at the appropriate level of its hierarchy. One named protocol with fixed
 pass and fail conditions, settled before the run — not a category of demonstration. **Evaluation**
 is not a broader thing that contains it: the two are coextensive. The demo's pre-registered readouts
-are the whole of what "evaluation" names here, and nothing aggregates a score over runs.
-_Avoid_: the demo (bare), benchmark, test run, showcase
+are the whole of what "evaluation" names here, and nothing aggregates a score over runs. Passing is
+**one closure and one ordering**: per event, the event's loop closes — the **conduction ratio** holds
+along some path from its injection site, read over L1 predicting cells, single-source rather than
+swept — and the two hands' onset-latency IQRs do not overlap (ADR-0027). The between-event depth
+ordering is **reported, not claimed on**: both its ends are supplied by the injection site, and every
+event modifies information at every level it passes through, so what differs is the deepest level
+each one reaches.
+_Avoid_: the demo (bare), benchmark, test run, showcase, depth ordering (retired as a claim)
 
 **Onset latency**:
 Ticks from a disturbance to the first corrective torque. The demo's temporal measure, chosen
 because it is a property of the graph — how far a correction had to travel before acting — where a
-settling or decay time would be a property of the body's mechanics. Reported per event; a
-difference in onset is what "recovered at a different level" means in time rather than in hops.
+settling or decay time would be a property of the body's mechanics. Reported per event. **A pass
+establishes that a correction travelled a longer path, not that a hierarchy produced it** — every
+edge costs one tick, so an onset ordering is a restatement of hop count; the hierarchy claim rests on
+the conduction ratio. Distinct from `τ̂`, which is also a decay time but on private features *inside
+the graph*, where no joint can supply it.
 _Avoid_: reaction time, settling time, response time, recovery time, latency (bare)
 
 **Trial**:

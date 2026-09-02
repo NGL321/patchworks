@@ -202,18 +202,35 @@ Default off, so the README capture stays clean and the live demo can turn it on.
 A second panel, below the dome: `‖Δ(private component)‖` per cell, against hop distance from the
 sensorimotor rim.
 
-This is `05-timescales.md`'s readout and `08`'s **depth** measurement, and it is displayed during each
-of the three events. The private component is the node-stalk directions masked out on every incident
-edge, known at construction, so it is a fixed projection computed per tick.
+This is `05-timescales.md`'s readout, and it is displayed during each of the three events. The private
+component is the node-stalk directions masked out on every incident edge, known at construction, so
+it is a fixed projection computed per tick.
 
-**It stays off the dome's marks deliberately.** Folding it in as brightness or dot size beside
-prediction-error-as-hue puts two quantities on one mark and makes neither readable — and
-readability is the whole point, because this panel has to be able to *disagree*: if deep private
-state swings as far as the rim, the mechanism is not working, and `08` counts that a failure even
-when every recovery looks perfect. A scatter against depth either slopes or it does not.
+**The panel has a second reading, and it is the one `08` passes on.** `‖Δ private‖` against depth is
+the *picture*; `08`'s depth criterion is the **conduction ratio**, `τ̂_c / |loop(c)| ≥ 1`
+([ADR-0027](../adr/0027-the-demos-depth-criterion-is-a-conduction-time.md)). The amplitude scatter
+was the criterion and is not any more, for a reason this panel's own design already knew: the
+channel's attenuation supplies a falling scatter whether or not anything is retained, so the picture
+and the claim were the same number. So the panel draws **two** scatters against depth, both per
+cell — `‖Δ private‖`, the picture, and **`τ̂`**, the quantity that decides.
 
-For the same reason the trail is **not** driven by `‖Δ private‖`. That would make the display's decay
-and the claim the display tests the same number, so the panel could never contradict the thesis.
+- **The `τ̂` scatter is the live single-run read.** The excursion above the agent's working baseline
+  after an event marker, e-fold time from peak. No fork, so no `restore` and no paired branch — it is
+  what a viewer poking a live agent can be shown. It is noisier than the paired version `08`
+  establishes on, and confounded by the ongoing task; `05`'s *Demonstrating it* states both.
+- **Draw the bar.** `τ̂ = |loop(c)|` is a line on the panel, per cell, because the criterion is a
+  comparison and a scatter without its bar cannot be read against one. Points above the line are
+  cells whose loop closes.
+
+**It stays off the dome's marks deliberately.** Folding either scatter in as brightness or dot size
+beside prediction-error-as-hue puts two quantities on one mark and makes neither readable — and
+readability is the whole point, because this panel has to be able to *disagree*: **`τ̂` flat across
+depth is a flat scatter**, sitting under the bar at every depth, and `08` counts that a failure even
+when every recovery looks perfect. A scatter against depth either clears its line or it does not.
+
+For the same reason the trail is **not** driven by `‖Δ private‖`, and this is **untouched** by the
+criterion moving. That would make the display's decay and the claim the display tests the same
+number, so the panel could never contradict the thesis. Nothing above reaches the trail.
 
 ## Onset, and the near-misses
 
@@ -223,6 +240,12 @@ counter** on the motor strip running from the most recent marker. Onset is then 
 rather than reconstructed afterward.
 
 The commanded/applied bars already carry "first corrective torque", so no new quantity is needed.
+
+**The event marker now has a second consumer**, and it is the private-component panel's `τ̂` read
+above: the live single-run `τ̂` is measured from the marker, which is its `t = 0` for the excursion
+above baseline. One marker, two readers — the marker is not duplicated and the two must not drift
+apart, because a `τ̂` timed from a different origin than the onset it is displayed beside is two
+clocks on one panel.
 
 The three near-misses `08` names in advance are each legible on this surface, which is what stops
 convincing footage from passing: **restart** is a shallow-band-only picture with a home-pose
