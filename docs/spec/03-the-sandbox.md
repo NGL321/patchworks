@@ -179,9 +179,9 @@ demo's load-bearing measure is onset latency
 ([`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md)): ticks from the event to the first
 corrective torque, which needs the event to be perceivable at a known tick. From a hidden event the
 interval becomes event → search → discovery → correction, and search duration is a property of where
-a fovea happened to be pointing. It would swamp the one-to-four-hop difference the depth ordering
-rests on, and the teleported puck is the *intermediate* rung precisely because a displacement
-arrives through vision at ~4 hops.
+a fovea happened to be pointing. It would swamp the one-to-four-hop difference the latency
+ordering rests on, and the teleported puck is the *intermediate* rung precisely because a
+displacement arrives through vision at ~4 hops.
 
 So the runner-up sensory surface — a short-range sensor rigidly attached to the arm tip, exploration
 becoming a sweep of the fovea over the workspace — is **out of scope** rather than deferred: it is a

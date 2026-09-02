@@ -2,22 +2,27 @@
 
 `docs/spec/10-the-demo-surface.md`, *The private-component panel*, is the whole
 of what this module implements, over `docs/spec/05-timescales.md`'s
-*Demonstrating it*. It is the acceptance demo's **depth** measurement
-(`docs/spec/08-the-acceptance-demo.md`, *What is measured*), displayed during
-each of the three events.
+*Demonstrating it*. It is displayed during each of the three events.
+
+**This scatter is the picture, and it is no longer the criterion.** `08`'s
+depth criterion is the conduction ratio `tau_hat_c / |loop(c)| >= 1`
+(`docs/adr/0026-...`, `docs/adr/0027-...`), because the amplitude reading below
+cannot fail: the channel's own attenuation supplies a falling scatter whether
+or not anything is retained. The panel keeps `‖Δ private‖` because it is what a
+viewer can read, and `10` now also owes a `tau_hat` scatter with its bar drawn
+at `|loop(c)|`. Neither is built here yet -- #99 owes the loop lengths, which
+are computed nowhere in the tree today.
 
 **A second panel, below the dome.** One mark per predicting cell: how far that
 cell's private component moved this tick, against the cell's hop distance from
-the sensorimotor rim. The viewer watches the rim swing while deep private state
-barely moves.
+the sensorimotor rim.
 
 **It stays off the dome's marks deliberately.** Folding it in as brightness or
 dot size beside prediction-error-as-hue puts two quantities on one mark and
 makes neither readable -- and readability is the whole point, because this
-panel has to be able to *disagree*: if deep private state swings as far as the
-rim, the mechanism is not working, and `08` counts that a failure even when
-every recovery looks perfect. A scatter against depth either slopes or it does
-not. So this panel reads exactly one of a record's arrays --
+panel has to be able to *disagree*: a `tau_hat` scatter flat across depth sits
+under its bar at every depth, and `08` counts that a failure even when every
+recovery looks perfect. So this panel reads exactly one of a record's arrays --
 :attr:`~patchworks.surface.record.TickRecord.private_delta` -- and the dome's
 channel (#93) is not reachable from anything here.
 
@@ -148,8 +153,10 @@ class Scatter:
     """One tick's marks: what moved, and how deep it sits.
 
     The numbers behind :meth:`PrivateComponentPanel.draw`, handed out because
-    the drawing is not the only consumer -- `08`'s depth ordering is read off
-    these, and a falsification sweep reads them and renders no frame at all.
+    the drawing is not the only consumer -- a falsification sweep reads them
+    and renders no frame at all. `08`'s depth *criterion* is not read off
+    these: it is the conduction ratio, on a per-cell decay time these arrays do
+    not carry.
 
     `eq=False` for :class:`~patchworks.surface.record.TickRecord`'s reason: the
     fields are arrays, so a generated `__eq__` would raise rather than compare.
