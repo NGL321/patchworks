@@ -1,4 +1,4 @@
-# ADR-0027: A cell holds a spectrum of retention constants, learned and not placed
+# ADR-0028: A cell holds a spectrum of retention constants, learned and not placed
 
 **Status:** accepted
 

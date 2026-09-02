@@ -63,7 +63,7 @@ So there are two guarantees, distinct, and the record had only ever argued one a
 **At the measured `τ ≈ 1` tick an assertion cannot stand at all**, and `H⁰` protection is beside the
 point, because the threat is not coming from outside. This is stronger and more specific than the
 *commitment* row above, and it is the statement
-[ADR-0027](../adr/0027-a-cell-holds-a-spectrum-of-retention-constants.md) records.
+[ADR-0028](../adr/0028-a-cell-holds-a-spectrum-of-retention-constants.md) records.
 
 ## Depth does not supply it
 
@@ -110,7 +110,7 @@ would spend the thing persistence runs on.
 Timescale is **not a schedule**. Every cell runs every tick, exactly as
 [`02-tick-semantics.md`](./02-tick-semantics.md) specifies; nothing in this section changes the tick.
 A cell is slow because its content **persists**, not because it updates rarely. See
-[ADR-0027](../adr/0027-a-cell-holds-a-spectrum-of-retention-constants.md), which supersedes
+[ADR-0028](../adr/0028-a-cell-holds-a-spectrum-of-retention-constants.md), which supersedes
 [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md) — **the schedule-versus-persistence
 choice above is ADR-0005's and is unchanged; what its successor replaces is the source of the
 persistence.** ADR-0005 is left standing rather than edited, so the reasoning that reached
@@ -360,7 +360,7 @@ with the construction sweep — `corr(log τ, log dwell) = −0.110` against #42
 **unenforced precondition**, and what a collapse of it falsifies is
 [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md)'s falsification clause —
 **stated in the bias mechanism's terms, and read that way**: it falsifies the sufficiency of
-*placing* a rate, which is the thing ADR-0027 stopped doing. Under `λ(K)` the corresponding
+*placing* a rate, which is the thing ADR-0028 stopped doing. Under `λ(K)` the corresponding
 falsification is not this one; it is *the gradient does not appear*, below.
 
 **What the live read says today, and why the gate is not slack** (#208, on
@@ -536,7 +536,7 @@ construction assigned `τ` bands by level; the run reports **0.91 at the apex ag
 rim** — no gradient at all. The biases *are* the adapting surface
 ([ADR-0001](../adr/0001-continual-learning-applies-to-the-adapting-surface.md)), they drift off their
 bands, and **nothing re-selects** — deliberately, because re-selection needs a rate to steer toward,
-which is exactly the runtime parameter ADR-0005 refused and ADR-0027 keeps refusing. Placing by level
+which is exactly the runtime parameter ADR-0005 refused and ADR-0028 keeps refusing. Placing by level
 a second time buys the same drift and the same cost banding always booked: the depth↔timescale
 correspondence built rather than found, leaving only the behavioural claim falsifiable. It would also
 cut against [ADR-0015](../adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md)'s **one global
@@ -556,7 +556,7 @@ placed a rate, and nothing stores one for a running cell to consult.
 
 **A cheap go/no-go before anything is built.** It was the falsification condition for
 [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md); under
-[ADR-0027](../adr/0027-a-cell-holds-a-spectrum-of-retention-constants.md) it is **demoted from the
+[ADR-0028](../adr/0028-a-cell-holds-a-spectrum-of-retention-constants.md) it is **demoted from the
 falsifier to a body check**, because what can now falsify the mechanism is *the gradient does not
 appear*, and that is read on the run rather than before it. The run is still worth what it costs —
 it can establish that a body forecloses the target before anything is trained — so what counts as
@@ -826,7 +826,7 @@ what the demo shows, and a spectrum is not displayable in its place.
   mid-depth cell oscillating between activation regions under ambiguous evidence — and the run came
   out **flat**. This bullet recorded the risk rather than addressing it, and **#143 addressed it by
   removing the placement**, not by adding re-selection: re-selection still needs a rate to steer
-  toward, which is exactly the runtime parameter ADR-0005 refused and ADR-0027 keeps refusing. What
+  toward, which is exactly the runtime parameter ADR-0005 refused and ADR-0028 keeps refusing. What
   carries forward is the instrument and the reason to watch — the *Demonstrating it* readout is a
   live per-cell trace of `‖Δ(private component)‖`, and it is still **the first place to look**, now
   for the opposite event: not a placed gradient degrading, but a learned one failing to appear.

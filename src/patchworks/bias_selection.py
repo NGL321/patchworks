@@ -6,7 +6,7 @@ vectors into per-level bands. That mechanism is retired: retention now lives in
 the spectrum of a cell's own learned `K`, a cell holds a **spectrum** of
 retention constants rather than one rate, `a` stays global, and **construction
 places no per-level `tau` at all** — the depth gradient is learning's to produce
-or not. See `docs/adr/0027-a-cell-holds-a-spectrum-of-retention-constants.md`,
+or not. See `docs/adr/0028-a-cell-holds-a-spectrum-of-retention-constants.md`,
 which supersedes `docs/adr/0005-timescale-is-persistence-not-a-schedule.md`.
 
 It was not built on argument and it was not dropped on argument either: the

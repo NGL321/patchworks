@@ -273,7 +273,7 @@ a phase shift and the wrong ratio), clock rate, update rate, tick rate, schedule
 **Retention**:
 How much of what a cell held it keeps — the other half of what *timescale* used to name, and the half
 that is **meant to be differentiated across the graph**. It is ADR-0005's subject and now
-ADR-0027's: persistence in the private features rather than a schedule, and since #138 a per-cell
+ADR-0028's: persistence in the private features rather than a schedule, and since #138 a per-cell
 time constant living in `K`'s spectrum — **a spectrum of them per cell, not one** (#143).
 **Retention constant** below is the quantity, and **Effective timescale** the measurement of it. The
 graph's retention currently measures flat at about one tick (`05-timescales.md`), which is a finding
@@ -289,7 +289,7 @@ mechanism), level, tier
 `λ(K)`, an eigenvalue magnitude of a cell's own learned operator, and the quantity *effective
 timescale* is now read off: `τ = −1/ln|λ(K)|`. **A cell has up to `k` of them at once, one per
 eigen-direction** — it can commit in some chart directions while staying reactive in others — so it
-has a **spectrum** and not a rate (ADR-0027). Healthy **near 1**: `λ(K) = 0.99` is `τ ≈ 99.5`, a slow
+has a **spectrum** and not a rate (ADR-0028). Healthy **near 1**: `λ(K) = 0.99` is `τ ≈ 99.5`, a slow
 cell, comfortably inside the operator band. **A slow eigenvalue is a memory policy, never a mode of
 the piece's physics** (ADR-0023). Distinguish `λ(K)`, the operator's retention and the published
 quantity, from `λ(K · J_encode)`, the realised chart retention, which is region-dependent and
@@ -319,7 +319,7 @@ folds no longer bound `γ` and no longer carry timescale, which lives in `K`'s s
 _Avoid_: linear region, cell, piece (reserve that for the sub-problem), basin
 
 **Timescale band**:
-**Retired as a mechanism** (#143, ADR-0027) and kept only to name what the record used to do. A level
+**Retired as a mechanism** (#143, ADR-0028) and kept only to name what the record used to do. A level
 of the taper was built to hold a range of effective timescales, with bias vectors drawn, measured and
 kept if they landed in the band, adjacent bands overlapping to keep the taper's gradient continuous.
 **It was built and the graph came out flat** — 0.91 at the apex against 0.99 at the rim — because the
@@ -663,7 +663,7 @@ is not a broader thing that contains it: the two are coextensive. The demo's pre
 are the whole of what "evaluation" names here, and nothing aggregates a score over runs. Passing is
 **one closure and one ordering**: per event, the event's loop closes — the **conduction ratio** holds
 along some path from its injection site, read over L1 predicting cells, single-source rather than
-swept — and the two hands' onset-latency IQRs do not overlap (ADR-0027). The between-event depth
+swept — and the two hands' onset-latency IQRs do not overlap (ADR-0028). The between-event depth
 ordering is **reported, not claimed on**: both its ends are supplied by the injection site, and every
 event modifies information at every level it passes through, so what differs is the deepest level
 each one reaches.
