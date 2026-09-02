@@ -276,21 +276,37 @@ that is **differentiated across the graph by design**. It is ADR-0005's subject:
 private features rather than a schedule, and since #138 a per-cell time constant living in `K`'s
 spectrum. **Effective timescale** below is the measurement of it. The graph's retention currently
 measures flat at about one tick (`05-timescales.md`), which is a finding about this build and not a
-property of the architecture.
+property of the architecture — and a narrower finding than it reads: flat **in runs where nothing was
+placed** (#276). The banded placement `05-timescales.md` calls the mechanism has never written into a
+running Sheaf, so the flat reading is not evidence about what the mechanism, or learning, produces.
 
 *One clock, heterogeneous retention.* The two are separate objects and the record needs both words.
 _Avoid_: timescale (bare, for this sense), memory, decay rate, persistence (reserve for ADR-0005's
 mechanism), level, tier
 
 **Effective timescale**:
-How slowly a cell's content changes — set by how much private structure it holds and by the
-*distribution* of regional spectra its biases select, not by any one of them. A mean rate rather
+How slowly a cell's content changes — set by the *distribution* of regional spectra its biases
+select, not by any one of them. **Not by how much private structure it holds** (#271, struck by
+#276): private width is a *relay aperture* and buys no retention, `corr(p_v, Δρ) = −0.019`, and the
+instrument that measures effective timescale slices the chart half of `encode`'s input and cannot see
+private structure at all. See **Private width** below; the two may not re-collide. A mean rate rather
 than a fixed one, and well defined only while the cell's region dwell is long against it. A property
 measured from outside, never an input to any computation and **never a criterion anything selects on
 at runtime** — though it is exactly the criterion the body's construction selects biases against,
 once, before the graph runs. Under the distributional reading there is no constant for a running
 cell to read even in principle.
 _Avoid_: clock rate, update rate, level, tier, frequency
+
+**Private width**:
+`p_v = max(0, n − Σ_e m_e)` — the part of a cell's node stalk no incident edge's restriction map
+reads. A **relay aperture**: how much of a cell's decoded prediction returns to its own `encode` next
+tick undisturbed by reconciliation, since `∂evidence/∂chart = (I − g_v Σ_e F_evᵀ F_ev) @ D` is the
+identity exactly on the private block. It is a **transmission** property and belongs to the influence
+predicate — **not** a retention term and not a timescale term (#271): construction grades it by depth
+(0 at the rim, 15 at the apex) and that grading produces no retention gradient, because `g_v`'s
+ADR-0010 bound damps the public block in proportion to its size and the grading cancels itself.
+_Avoid_: private dimension (reserve for the count as a construction parameter), private structure
+(the struck phrase from *Effective timescale*), memory, capacity
 
 **Activation region**:
 One of the finitely many convex regions of chart values on which `encode` is exactly affine. Its

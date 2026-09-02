@@ -259,6 +259,20 @@ guillotine that has not dropped because the thing it cuts has not arrived. Wheth
 what construction meant to place is
 [#143](https://github.com/NGL321/patchworks/issues/143)'s question and is not ruled on here.
 
+**And the flat `τ` is a flat measurement of a gradient nobody placed (#271, amended by #276).** Every
+number in the paragraph above was read on a body whose biases were **drawn iid**: `Sheaf.__init__`
+(`tick.py:557`) defaults to `CellBiases(...)`, and `benchmarks/untrained_fixed_point.build()` — the
+harness behind #206 and #208 and therefore behind this reading — constructs its `Agent` with no
+biases argument. The banded, depth-ordered placement specified below as *the* mechanism, **`select()`
+has never written into a Sheaf that runs**. So the absence of a depth→timescale gradient here is not
+a finding about what the mechanism produces, and it is **not** evidence for
+[#143](https://github.com/NGL321/patchworks/issues/143)'s claim that nothing guarantees learning
+produces the gradient — that claim stands **unchecked**, because no run has carried a placed gradient
+for learning to preserve or destroy. What the placement *would* deliver is separately known to fall
+short: see *The timescale constraint is the binding one* below, where the cap reaches 2.50 ticks
+against a demand of 14 or more. The honest sentence is that the mechanism specified to place the
+gradient has never been run, and is known to fall ~6x short of its own target band when it is.
+
 **Those counts were read on the post-conversion body.** The Koopman conversion merged as
 [PR #161](https://github.com/NGL321/patchworks/pull/161), commit `cd52077`, on 2026-08-29 — before
 either read ran. The #202 read is commit `8fa297e` (2026-08-30) and #206's re-run is `bcc0a70`
@@ -403,6 +417,22 @@ depth and timescale is now built rather than found, so it can no longer be cited
 working. What stays falsifiable is behavioural: recovery at the level matching the perturbation's
 horizon. It does not weaken ADR-0005's prohibition, which is about *runtime*: the placement happens
 once, at construction, and leaves no rate for anything to consult afterwards.
+
+**And in this build it is not built either, in any run that has been measured (#271, #276).** The
+piece of evidence banding costs is only paid for if the banding happens. Say plainly which rigs apply
+the placement and which do not:
+
+| rig | applies `select()`? |
+|---|---|
+| `bias_selection.go_no_go` — the construction-time go/no-go below | **yes**, and reports on it |
+| `tests/test_bias_selection.py` | **yes**, against fixtures |
+| `Sheaf.__init__` (`tick.py:557`) — every running graph | **no**; defaults to `CellBiases(...)`, drawn iid |
+| `benchmarks/untrained_fixed_point.build()` — the #206/#208 rig behind `τ` above | **no**; passes no biases |
+
+So `select()` is exercised only where nothing runs afterwards, and the two places a graph actually
+ticks both take iid draws. The correspondence between depth and timescale is neither found **nor
+built** in any measured run. Nothing that reads flat is entitled to be read as the mechanism failing;
+wiring the placement into the rigs that run is a prerequisite to reading it at all.
 
 **A cheap go/no-go before anything is built.** This is the falsification condition for
 [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md), so what counts as passing is
