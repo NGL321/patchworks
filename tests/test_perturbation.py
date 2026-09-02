@@ -587,14 +587,29 @@ class TestPerturbingOneCellsRestrictionMaps:
         # specified (tests/test_transport_rule.py holds it down directly), not
         # a perturbation nobody could feel, and this test says so out loud so
         # the weaker containment is not read as a weaker claim.
+        #
+        # Read off the update itself rather than across a perturbation (#254,
+        # #265). Flatness is the sentence above; bit-identity before and after
+        # is a stricter one, and it is the wrong instrument for this. The
+        # perturbed update stays zero only to within one float32 ulp -- `2^-25`
+        # of rounding in an analytically zero gradient, landing on the map's
+        # single open weight, exactly zero again in float64 -- and
+        # `moved_rows` scores that residue as a move, so the unmoved set can
+        # empty while every word of the claim still holds. *Which* endpoints
+        # are flat is a property of the tick state and moves with the
+        # reconciliation gain; that some are and not all are, does not.
         cell = DRIVE_CELL  # the drive boundary cell: three edges, each of width 1
-        before, after = readings(
-            running, cell, map_update, perturb_the_restriction_maps_of, TransportRule
-        )
-        unmoved = owned_endpoints(running, cell) - moved_rows(before, after)
-        assert unmoved
-        for endpoint in unmoved:
-            assert torch.equal(before[endpoint], torch.zeros_like(before[endpoint]))
+        update = map_update(running)
+        owned = owned_endpoints(running, cell)
+        flat = {
+            endpoint
+            for endpoint in owned
+            if torch.equal(update[endpoint], torch.zeros_like(update[endpoint]))
+        }
+        assert flat
+        # The teeth. A cell whose every endpoint were flat would satisfy the
+        # line above while being the missing signal this test exists to deny.
+        assert flat < owned
 
 
 class TestThePermittedChannel:
