@@ -1,19 +1,42 @@
 """Bias selection: the spread, the fold margin, and the go/no-go.
 
-The construction rig that places each cell's timescale, promoted from
-`prototypes/regional-spectra` (`spread_pilot.py`, `selection_sweep.py`). It runs
-**before anything is trained** and it is the falsification condition for
-`docs/adr/0005-timescale-is-persistence-not-a-schedule.md`, so it can kill the
-timescale mechanism cheaply.
+**This module is no longer the timescale mechanism, and #143 is why.** It was
+the construction rig that *placed* each cell's timescale by selecting bias
+vectors into per-level bands. That mechanism is retired: retention now lives in
+the spectrum of a cell's own learned `K`, a cell holds a **spectrum** of
+retention constants rather than one rate, `a` stays global, and **construction
+places no per-level `tau` at all** — the depth gradient is learning's to produce
+or not. See `docs/adr/0027-a-cell-holds-a-spectrum-of-retention-constants.md`,
+which supersedes `docs/adr/0005-timescale-is-persistence-not-a-schedule.md`.
 
-Two quantities stay permanently distinguished, and the whole module is arranged
-around the distinction (`docs/spec/05-timescales.md`, *The mechanism*):
+It was not built on argument and it was not dropped on argument either: the
+placement **ran and the graph came out flat**, 0.91 at the apex against 0.99 at
+the rim, because the biases are the adapting surface and drift off their bands
+with nothing re-selecting. This module is that evidence.
+
+**What it is now.** A body check, not a falsifier. It still runs before anything
+is trained and it can still establish cheaply that a body *forecloses* the
+target band — which is worth knowing, because `K` has to learn its retention
+inside whatever the body admits. What it can no longer do is kill the timescale
+mechanism: `lambda(K)` is learned and is not a draw off this body.
+:func:`select` and :meth:`TargetRange.bands` are kept for that reading and for
+reproducing the runs already published against them; **nothing downstream should
+treat their output as a placed timescale.**
+
+`operator_scale_rule` and `a`'s derivation are **unaffected** by the ruling —
+ADR-0015 already makes `a` a single global rule rather than a per-level one, and
+that is exactly what #143 keeps.
+
+Two quantities stayed permanently distinguished under the retired mechanism, and
+the module's arrangement still reflects it (`docs/spec/05-timescales.md`):
 
 * the **regional spectrum** is per-tick — the local Jacobian of whichever
   activation region the cell occupies this tick, re-drawn as its chart crosses
-  folds — and is never a cell attribute;
-* a cell's **effective timescale** is the central tendency of the distribution
-  those draws come from, and *that distribution is what the biases select*.
+  folds — and is never a cell attribute. This survives; `encode` is still ReLU;
+* a cell's **effective timescale** was the central tendency of the distribution
+  those draws come from. **Retired, not ported** (#143): that describes a
+  distribution over draws of *one* rate, where a cell now holds a set of
+  simultaneous rates. Same word, different object.
 
 The construction has four parts, and they are as much a constraint on the body
 as `n = 32` and `k = 12`:
@@ -34,11 +57,13 @@ as `n = 32` and `k = 12`:
    `lambda` stays negative by a stated safety factor, a number this run produces
    per body.
 
-Selected timescales are **assigned by level in overlapping bands**
-(:meth:`TargetRange.bands`). Banding is a construction choice and it costs a
-piece of evidence: the depth-timescale correspondence is built rather than
-found, so it can no longer be cited as the mechanism working. What stays
-falsifiable is behavioural.
+Selected timescales *were* **assigned by level in overlapping bands**
+(:meth:`TargetRange.bands`). **Spent by #143.** Banding was a construction
+choice that cost a piece of evidence — the depth-timescale correspondence built
+rather than found, so its presence could never be cited as the mechanism
+working — and it bought no gradient in exchange. Nothing places `tau` by level
+now; :meth:`TargetRange.bands` is retained as a reporting partition over the
+target range, not as a placement.
 
 The module also carries the **fold margin** check (:func:`fold_margin_check`) —
 same sweep, same afternoon. Since #138 the margin is read from **`encode`
@@ -54,10 +79,14 @@ run (#158), and the folds themselves slide, because their positions are the
 per-cell biases the prediction rule trains. So what this module produces is a
 **nomination** — the cap a body's draw permits, before anything runs — and
 :class:`patchworks.tick.FoldRead` is what decides, live, on the run that
-actually happens. ADR-0005's falsification duty travels with the verdict: it is
-measured dwell that can kill the timescale mechanism, and the live
-margin-against-offset comparison that attributes a killed cell to
-reconciliation rather than to its own dynamics.
+actually happens. The falsification duty that travelled with that verdict was
+ADR-0005's and has **moved with the mechanism**: measured dwell no longer kills
+anything, because #143 demoted dwell from gating whether `tau` exists to gating
+how faithfully the operator's rate is realised — `K` does not reset at a fold.
+Whether the `dwell > tau` bar survives the demotion is #226, and it is open, so
+the bar is unrepealed here. The live margin-against-offset comparison keeps its
+job unchanged: attributing a cell that left its region to reconciliation rather
+than to its own dynamics.
 
 The rig also produces **`a`**, the scalar in `K = a.I` at construction
 (:func:`operator_scale_rule`) — a fifth part of the construction, and a number
@@ -65,8 +94,10 @@ this run produces per body exactly as :meth:`Sweep.slow_cap` is.
 
 **The go/no-go is read as a shape check.** The body's widths are fixed but
 nothing is trained, so the sweep runs plausible chart and stalk sequences rather
-than real ones (:func:`driven_trajectory`). It establishes that the mechanism is
-available. It does not produce the body's number.
+than real ones (:func:`driven_trajectory`). It establishes what the body admits.
+It does not produce the body's number, and since #143 it does not establish that
+the mechanism is available either — that is `K`'s to learn and the run's to
+report.
 """
 
 from __future__ import annotations
@@ -167,12 +198,14 @@ TAU_QUANTILES = (0.05, 0.25, 0.5, 0.75, 0.95)
 
 #: @type chosen
 #: @flexibility unknown
-#: @warrant docs/spec/05-timescales.md, The taper's timescale gradient is a gradient in means
-#: How far adjacent levels' bands overlap, as a fraction of a band's width. The
-#: taper's gradient is continuous and separates levels only as distributions
-#: (`05-timescales.md`, *The taper's timescale gradient is a gradient in
-#: means*), so bands overlap by construction; a half-band overlap is this
-#: module's choice of how much.
+#: @warrant docs/spec/05-timescales.md, The gradient is learning's job
+#: How far adjacent levels' bands overlap, as a fraction of a band's width.
+#: **Spent as a placement by #143**, which stopped construction assigning `tau`
+#: by level at all; the section that warranted this — *The taper's timescale
+#: gradient is a gradient in means* — is retired and *The gradient is learning's
+#: job* replaces it. Kept because :meth:`TargetRange.bands` survives as a
+#: reporting partition over the target range, where a half-band overlap is still
+#: this module's choice of how much.
 DEFAULT_OVERLAP = 0.5
 
 #: @type measured

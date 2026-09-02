@@ -23,9 +23,47 @@ bought here:
 | **Representation** — encoding a variable that only exists over seconds | this section |
 | **Memory** — retaining information across hundreds of ticks | recurrent failure modes; escape hatch is recurrent-state gating, a protected channel through `K` before a learned gate |
 | **Credit** — associating an abstract belief with a much later outcome | [`#5`](https://github.com/NGL321/patchworks/issues/5) |
+| **Compositionality** — one abstract step standing for many primitive ones | a property of the **graph**; declined here ([#143](https://github.com/NGL321/patchworks/issues/143)) |
+| **Action selection** — choosing between competing abstract routes | a property of the **reconciliation phase**; declined here (#143) |
 
-Nothing in this section improves memory or credit assignment. Believing otherwise later would be a
-mistake worth avoiding now.
+The last two rows are new, and they are **declined deliberately rather than left unbooked**. They
+arrive from hierarchical active predictive coding as intuition — `T1`/`T2`, micro-steps against
+macro-steps — and a later reader reaching for the APC temporal hierarchy to justify a timescale
+mechanism is reaching for something this section does not supply. What compositionality *did*
+contribute is the axis: it needs a **ratio** rather than a rate, so `τ_deep / τ_rim` is the whole of
+the temporal hierarchy, and at ratio 1 there is a deep feedforward reflex arc — which is what
+[#120](https://github.com/NGL321/patchworks/issues/120) measured.
+
+**The memory disclaimer is bounded, not blanket** (#143). An earlier draft said *"nothing in this
+section improves memory or credit assignment"*, and that is not survivable once the mechanism is a
+linear recurrence: **a linear recurrence's retention is its short-term memory.** What this section
+buys is retention **up to the chart's capacity**, and that capacity is bounded by `k` — the chart's
+double duty, [#166](https://github.com/NGL321/patchworks/issues/166), which this mechanism does not
+inherit but **creates**. **Long-horizon** memory and **credit** are still refused, unchanged.
+
+## What timescale enforces
+
+**`τ` is what lets [ADR-0003](../adr/0003-action-is-prediction-the-world-clears.md)'s standing
+assertion stand.** Settled in [#143](https://github.com/NGL321/patchworks/issues/143), and stated
+before the mechanism because it is what the mechanism is judged against.
+
+ADR-0003 is where this design does its planning: no second faculty, no counterfactual evaluation, no
+termination signal — *"a goal is realised by a standing assertion propagating to the boundary."* It
+sources commitment entirely on `H⁰` insulation, *"which makes a losing route structurally unable to
+re-assert through message passing."* That is half of what an assertion needs, and this section says
+in its own words below why it is only half: insulation is from neighbours, and **the private
+component still passes through `encode` → `K` → `decode` every tick.**
+
+So there are two guarantees, distinct, and the record had only ever argued one at a time:
+
+- **`H⁰` is commitment against the graph.** Neighbours cannot move the private component.
+- **`τ` is commitment against the cell itself.** The cell does not overwrite its own assertion
+  between ticks.
+
+**At the measured `τ ≈ 1` tick an assertion cannot stand at all**, and `H⁰` protection is beside the
+point, because the threat is not coming from outside. This is stronger and more specific than the
+*commitment* row above, and it is the statement
+[ADR-0027](../adr/0027-a-cell-holds-a-spectrum-of-retention-constants.md) records.
 
 ## Depth does not supply it
 
@@ -72,7 +110,11 @@ would spend the thing persistence runs on.
 Timescale is **not a schedule**. Every cell runs every tick, exactly as
 [`02-tick-semantics.md`](./02-tick-semantics.md) specifies; nothing in this section changes the tick.
 A cell is slow because its content **persists**, not because it updates rarely. See
-[ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md).
+[ADR-0027](../adr/0027-a-cell-holds-a-spectrum-of-retention-constants.md), which supersedes
+[ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md) — **the schedule-versus-persistence
+choice above is ADR-0005's and is unchanged; what its successor replaces is the source of the
+persistence.** ADR-0005 is left standing rather than edited, so the reasoning that reached
+*persistence* stays legible.
 
 Persistence needs two things, and they defend against two different disturbances.
 
@@ -102,60 +144,131 @@ diffusion converges to as `t → ∞`; here it is state that persists tick to ti
 dynamics, and that second half has no analogue in a formalism with no per-node recurrence in it
 ([#29](https://github.com/NGL321/patchworks/issues/29)).
 
-### Persistence under the cell's own dynamics: the regional Jacobian
+### Persistence under the cell's own dynamics: `K`'s spectrum
 
 Insulation is from *neighbours*. It is not insulation from the cell itself — the private component
 still passes through `encode` → `K` → `decode` every tick, and nothing about `ker δ` makes that round
-trip near-identity.
+trip near-identity. **That round trip is where retention has to come from**, and since
+[#143](https://github.com/NGL321/patchworks/issues/143) it comes from `K`.
 
-> **The Koopman conversion moved where persistence comes from, and this section has not been rewritten
-> around the successor** ([#138](https://github.com/NGL321/patchworks/issues/138),
-> [#140](https://github.com/NGL321/patchworks/issues/140)). What follows describes the mechanism as
-> built: persistence supplied by *bias translation*, read off the regional spectra of a frozen
-> piecewise-linear map. The conversion replaced the map that carried it. `K` is a per-cell learned
-> linear operator, so a cell's decay is now `ρ(K)` composed with `encode`'s regional Jacobian rather
-> than `step`'s regional spectrum alone — **twelve per-cell time constants where there were none**.
->
-> That is the foreclosure ADR-0005 recorded and this conversion **lifts**: per-cell time constants
-> were rejected because they "appeared to be foreclosed by the shared frozen body", and a per-cell `K`
-> *is* a per-cell time constant. The four-way choice this document made is therefore **reopened**, and
-> its replacement is **not decided here** — reading timescale off `K`'s spectrum is a separate
-> question with its own difficulties, and it is deliberately not front-run.
->
-> What survives unchanged in the meantime: activation regions and fold margins are still real,
-> because `encode` is still ReLU; the construction rig still places every cell's `τ` before anything
-> runs; and nothing stores a rate for a running cell to consult.
+`K` is a per-cell **learned linear operator** ([#138](https://github.com/NGL321/patchworks/issues/138)),
+so its eigenvalues are **retention constants by construction**: `τ = −1/ln|λ|`. That is arithmetic
+for a scalar linear recurrence rather than a convention borrowed from anywhere —
+[#167](https://github.com/NGL321/patchworks/issues/167) read the state-space-model literature for the
+formula and found the field plainly reasoning this way without any source writing it down.
 
-What supplied persistence in the built mechanism is bias translation. Per `01-cell-and-sheaf.md`
-(*The division of labour between the two adapting surfaces*), `encode` is one piecewise-linear map
-whose fold directions are fixed and whose fold offsets are per-cell. Each cell therefore operates in a
-**different activation region of the same map**, and each region has its own local Jacobian with its
-own spectrum.
+> **`λ` carries two senses in this document and they have opposite health directions. Read the
+> qualifier, never the bare letter.** A **retention constant** — `λ(K)`, `λ(K · J_encode)`, always
+> written with the operator it belongs to — is an eigenvalue magnitude, and a cell is **healthy near
+> 1**: `λ(K) = 0.99` is a slow cell, which is what this section wants. The **realised contraction
+> rate** — `λ = lim (1/T) log‖J_T ⋯ J_1‖`, *What "stable" means here* below — is a log-rate, and a
+> cell is **unstable when `λ ≥ 0`**. Under that second reading `0.99` would be violently divergent.
+> The two are related by `τ = −1/ln|λ_retention|` and nothing else, they are never interchangeable,
+> and `λ(K · J_encode)` (*realised chart retention*) is deliberately not the same object as
+> *realised contraction rate* despite the near-homonym. `CONTEXT.md` carries both entries and the
+> same warning.
 
-**Two quantities, permanently distinguished.** An earlier draft of this section collapsed them, and
-[#27](https://github.com/NGL321/patchworks/issues/27)'s measurement found the collapse: at a fixed
-operating point, varying only the biases spreads `τ = −1/ln ρ` by 7.7× across 150 cells — but varying
-only the operating point, biases fixed, spreads it by 7.3×. The two are statistically
-indistinguishable, and the cell's chart moves every tick.
+**No eigenvalue of `K` is a mode of the piece's physics.** This is the sharpest constraint on the
+vocabulary here, and it is
+[ADR-0023](../adr/0023-the-chart-is-not-a-koopman-lift.md)'s permanently:
+there is no lift, `K` advances a *persisting* chart, and **a slow eigenvalue says the cell chose to
+retain that direction for that long** — a property of its memory policy, not a discovery about the
+world. The whole spectral reading survives on that distinction: the certification objections
+[#148](https://github.com/NGL321/patchworks/issues/148) raised — no convergence to the approximate
+point spectrum in one limit, spectral pollution as the default — are **voided rather than answered**,
+because they were damage to a claim the design does not make. Treating a cell as a linear system
+whose spectrum estimates something re-imports them in full.
 
-- The **regional spectrum** is a **per-tick** quantity: the spectrum of the local Jacobian of
-  whichever region the cell occupies *this tick*. The chart moves, so it is re-drawn as the cell
-  crosses folds. It is not a cell attribute.
-- A cell's **effective timescale** is the central tendency of the distribution those draws are
-  taken from. **That distribution is what the biases select** — a mean rate, not a fixed rate.
+#### Three quantities, named separately
 
-So: **private dimension supplies protected state; the distribution of regional spectra supplies its
-decay rate.** Neither is new mechanism. Both were already committed to, for other reasons.
+The claim is sourced on the round trip, and `λ(K)` is what gets published.
+
+| quantity | what it is |
+|---|---|
+| `λ(K)` | the **operator's retention** — per-cell, learned, region-independent, settable. The reported quantity. |
+| `λ(K · J_encode)` | the **realised chart retention**. Region-dependent, per-tick. |
+| the body round trip on `ker δ` | what actually governs whether an assertion stands. **The precondition.** |
+
+**Naming all three is what discharges the old objection** that `λ(K)` is only the operator's
+*contribution* to the realised rate and not the rate itself. That is true, and it is not a refutation
+— the same holds of every factor in a product. It was a problem only while the three were conflated.
+
+**The third row is forced by *What timescale enforces*.** What must not decay is the private
+component of the *node stalk*, and with `decode` frozen as a gauge
+([ADR-0014](../adr/0014-the-linear-readout-is-gauge-fixed.md)) a cell's output is confined to
+`im(D)` — so retention reaches the standing assertion only through **`im(D) ∩ ker δ`**. **If that
+intersection is thin, no value of `λ(K)` makes an assertion stand**, because the cell cannot write
+its retained content back into the protected subspace. That is this mechanism's named precondition
+and it is [#225](https://github.com/NGL321/patchworks/issues/225), open and **not** settled here.
+
+#### A cell has a spectrum, not a timescale
+
+The bias mechanism could only ever give a cell **one** number. A learned `K` gives it up to twelve
+coexisting retention constants, one per eigen-direction, so **a single cell can hold a commitment in
+some chart directions while staying reactive in others** — rather than being assigned wholesale to
+the reflex or to the plan.
+
+**The sentence that stood here is retired rather than ported.** *"A cell's effective timescale is the
+central tendency of the distribution those draws are taken from"* describes a distribution over draws
+of **one** rate; the object now is a **set of simultaneous** rates. Same word, different object, and
+porting the phrase would hide the change. What that sentence was answering to remains true of the
+frozen body and is now a fact about `J_encode` alone: the **regional spectrum** is still a per-tick
+quantity, re-drawn as the cell crosses folds, and still never a cell attribute — it is the
+region-dependent half of `λ(K · J_encode)` in the table above.
+
+**What the retirement costs, and what it buys.** It costs the reading that
+[#27](https://github.com/NGL321/patchworks/issues/27) made unavoidable — biases and operating point
+spreading `τ` by 7.7× and 7.3×, *"statistically indistinguishable"*, so **no per-cell rate was
+attributable to the cell at all**. It buys exactly that back: `λ(K)` is a property of a per-cell
+operator and needs no distribution over region draws to be defined. Retention is also **learned
+rather than drawn** — under the biases `τ` was selected before the cell had modelled anything; under
+`K` the prediction rule sets it from the cell's own evidence.
+
+So: **private dimension supplies protected state; `K`'s spectrum supplies its retention.** The first
+was already committed to for other reasons. The second is the conversion's, spent here for a second
+purpose.
+
+#### `ρ(K)` was never spoken for, and the slow band is reachable
+
+The objection that the conversion already spends `ρ(K)` on transmission does not survive its own
+premise. [#140](https://github.com/NGL321/patchworks/issues/140) banded `σ_max(K)`, the spectral
+**norm**, and [ADR-0015](../adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md) says so
+outright: *"`ρ(K)` survives as the reported spectral quantity — it is what timescale wants — but it
+is not the constrained one."* **Transmission spends the norm; retention reads the radius.**
+`06-graph-topology.md`'s *"already spoken for three times over"* does not arrive here.
+
+**One real interaction, and it is one-sided.** ADR-0015 restores the band by *rescaling the whole
+operator*, which moves every eigenvalue by the same factor — so when the projection fires, **all of
+that cell's retention constants shorten together**. Enforcement can make a cell faster and never
+slower. Recorded; no mechanism is added for it.
+
+**And the target is reachable for the first time.** ADR-0015's upper face of exactly 1 permits
+`ρ(K) = 1`, which it already flags as *"a memory that never fades. For a cell that is arguably
+wanted."* A retention constant of `0.99` gives `τ ≈ 99.5`, comfortably inside the band — against this
+section's own standing finding that the slow end was out of reach by roughly 6× under bias-drawing.
+**The question moves from *can the body draw a slow cell* to *will anything make one*.**
 
 ### The precondition: region dwell against `τ`
 
-A mean rate is still a rate, and the mechanism survives — but it is only *the mechanism* under a
-condition the earlier draft never stated. A cell's **region dwell** — how long it stays in one
-activation region before its chart carries it across a fold — must express **at least one e-fold of
-the region's own decay within the residency**: `dwell > τ`. Where it does, the cell has a timescale.
-Where dwell collapses to a tick or two, the cell still decays at some average rate, but it does so by
-*averaging over unrelated regions*, which is a different mechanism from the one specified here and is
-not what the biases were supposed to buy.
+**Dwell is demoted, and the demotion is what #143 changed here — not the quantity, its job.** Under
+the bias mechanism dwell gated whether `τ` was a **well-defined object** at all: the rate was a
+property of whichever region the cell occupied, so a cell that left its region too fast had no
+timescale to speak of. Under `λ(K)`, **`K` is one matrix and it does not reset when a cell crosses a
+fold**, so `τ` is defined regardless of dwell. What dwell now gates is how **faithfully** the
+operator's rate is realised — the gap between `λ(K)` and `λ(K · J_encode)` in the table above.
+**From existence to fidelity: neither vacuous nor false.**
+
+**Whether the `dwell > τ` bar survives that demotion is
+[#226](https://github.com/NGL321/patchworks/issues/226), and it is open.** The bar and its derivation
+are left standing below exactly as #208 wrote them, because a demotion is not a repeal and nothing
+here licenses reading a fidelity gate as slack. What follows is the bar as it stands, and #226 owns
+what becomes of it.
+
+`encode` is still ReLU, so activation regions and fold margins are still real and the object below
+still has a referent. A cell's **region dwell** — how long it stays in one activation region before
+its chart carries it across a fold — must express **at least one e-fold of the region's own decay
+within the residency**: `dwell > τ`. Where dwell collapses to a tick or two, what the cell realises
+is an average over unrelated regions rather than the rate its operator holds.
 
 **One e-fold is a derivation rather than a constant**
 ([#208](https://github.com/NGL321/patchworks/issues/208)). Over a residency `D` at rate `1/τ` the
@@ -191,9 +304,11 @@ because it is informative and comparable across runs. It stopped being the bar.
 
 **The fold margin is the proxy for dwell.** `02-tick-semantics.md` checks
 `gain_v × offset <` fold margin per cell, derived there from the standing offset shifting the
-operating point. That check is doing a second job, and this section is the one that needs it: **the
-fold margin is what makes "the cell's region" a well-defined object at all.** It is a cheap static
-quantity standing in for a dynamic one.
+operating point. That check is doing a second job, and this section is the one that needs it. **What
+that second job is has moved with dwell's demotion**: the margin used to be what made *"the cell's
+region"* a well-defined object, and therefore what made a timescale exist; under `λ(K)` the timescale
+exists without it, and the margin bounds how faithfully the operator's rate is realised. It is still
+a cheap static quantity standing in for a dynamic one, and it is still this section's.
 
 **Since [#160](https://github.com/NGL321/patchworks/issues/160) the proxy nominates and the
 measurement decides** ([ADR-0019](../adr/0019-construction-nominates-the-run-decides.md)). Dwell was
@@ -243,7 +358,10 @@ operating point across creases, and the precondition above is a ratio of the two
 with the construction sweep — `corr(log τ, log dwell) = −0.110` against #42's construction-time
 `−0.006` — so **nothing in the architecture makes the precondition hold.** The mechanism has an
 **unenforced precondition**, and what a collapse of it falsifies is
-[ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md)'s falsification clause.
+[ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md)'s falsification clause —
+**stated in the bias mechanism's terms, and read that way**: it falsifies the sufficiency of
+*placing* a rate, which is the thing ADR-0027 stopped doing. Under `λ(K)` the corresponding
+falsification is not this one; it is *the gradient does not appear*, below.
 
 **What the live read says today, and why the gate is not slack** (#208, on
 `prototypes/live-fold-read-206/206-per-tick.npz`). At the horizon the median cell sits at
@@ -255,9 +373,13 @@ gradient in `τ` at all — not because the placement is healthy. Against this s
 outright**, and it fails at the level where the slow cells are meant to live. That is a reading of
 these two measured numbers, not a revival of the margin claim #190 struck — it is the *dwell* gate at
 a `τ` the run has not reached, not `gain_v` falling with depth. The gate is not slack; it is a
-guillotine that has not dropped because the thing it cuts has not arrived. Whether `τ ≈ 1 tick` is
-what construction meant to place is
-[#143](https://github.com/NGL321/patchworks/issues/143)'s question and is not ruled on here.
+guillotine that has not dropped because the thing it cuts has not arrived.
+
+**Whether `τ ≈ 1 tick` is what construction meant to place was #143's question, and it is now
+answered: construction is not what places it.** The flat reading — 0.91 at the apex against 0.99 at
+the rim, after a construction that assigned `τ` bands by level — is the measurement the placement
+mechanism failed on, and it is why the gradient is handed to learning below. The `dwell/τ` numbers
+above are unaffected: they are a ratio of two measured quantities and say what they said.
 
 **Those counts were read on the post-conversion body.** The Koopman conversion merged as
 [PR #161](https://github.com/NGL321/patchworks/pull/161), commit `cd52077`, on 2026-08-29 — before
@@ -310,54 +432,62 @@ them. Where dwell is long, the cell has a genuine timescale *and* a cell parked 
 region genuinely diverges. The fold margin is therefore doing a third job, alongside the two named
 above: it is what makes an expansive region dangerous.
 
-### What being a distribution costs, and what it buys
+### What a per-cell spectrum costs, and what it buys
 
 **Nothing in the architecture reads a cell's timescale** (*The clock divisor, as an instrument*,
-below). That prohibition was a discipline; under this reading it is **structural**. A per-tick
-regional spectrum is not a value anything *could* branch on — there is no constant to read. The
-clock divisor and the persistence mechanism stay interchangeable for the same reason as before: no
-mechanism can tell them apart.
+below), and this is unchanged. What changed is **why**. Under the bias mechanism the prohibition had
+become structural for free — a per-tick regional draw is not a value anything *could* branch on,
+because there was no constant to read. **`λ(K)` is a constant, and it is readable in principle**, so
+the prohibition goes back to being a **discipline** that has to be kept rather than a fact that keeps
+itself. It is kept: no cell, edge or rule consults a retention constant while the graph runs. The
+clock divisor and the persistence mechanism stay interchangeable only while that holds, and the
+moment anything branches on rate, the cheap fallback is gone.
 
-**The taper's timescale gradient is a gradient in means.** `06-graph-topology.md`'s private-dimension
-gradient (0 at the rim, ~8 through L3–L6, 15 at the apex) supplies a timescale gradient, and that
-gradient is now distributional: cells adjacent in depth overlap on any single tick, and only their
-distributions separate. Note it is a **step rather than a ramp** — degree falls at the apex and
-nowhere else in the core — so the structural gradient was never graded through the core either, and
-these two facts blunt the same over-reading from different directions. The demo's sharpest falsifiable form — two different depths responding to two different
-perturbations (arm-only ~1 hop, puck-moving ~4) — is a behavioural claim over many ticks and is
-untouched.
+**The gradient is not placed, so the taper does not supply it.** `06-graph-topology.md`'s
+private-dimension gradient (0 at the rim, ~8 through L3–L6, 15 at the apex) still says how much
+protected state a cell has room for — **capacity, not rate**. It is a **step rather than a ramp**
+anyway, degree falling at the apex and nowhere else in the core. Where the retention gradient is to
+come from is *The gradient is learning's job*, below. The demo's sharpest falsifiable form — two
+different depths responding to two different perturbations (arm-only ~1 hop, puck-moving ~4) — is a
+behavioural claim over many ticks and is untouched by any of this.
 
-**This is the honest shape of a timescale gradient, not a concession.** Discrete levels, each with
-its own rate, were the artificial imposition — a construct built to solve the commitment problem
-rather than a thing the substrate does. A graded, overlapping distribution of rates solves the same
-problem and is what a shared piecewise-linear body with per-cell fold offsets actually produces.
+**A cell is not on a rung, and that is the gain the mechanism buys.** Discrete levels, each with its
+own rate, were the artificial imposition — a construct built to solve the commitment problem rather
+than a thing the substrate does. What replaces them is not a smeared version of the same object: a
+cell holds **up to twelve retention constants at once**, so it can commit in some chart directions
+while staying reactive in others rather than being assigned wholesale to the reflex or to the plan.
+An overlapping distribution of single rates was the best the biases could do; it is not what is being
+claimed now.
 
 ## What this requires elsewhere
 
-**A body whose regional spectra actually spread, and a construction that places them.** If the
-distribution of regional Jacobian spectral radii — across the bias settings cells occupy — is a
-spike, every cell lands in the same dynamic regime and nothing differentiates. Initialisation is a
-parameter of the body (`01-cell-and-sheaf.md`), and this is the first thing that freedom is spent
-on: the body is to be constructed for spread, not merely assumed to have it. Whether such a
-construction exists was [#27](https://github.com/NGL321/patchworks/issues/27) — *constructible but
-coupled* — and [#42](https://github.com/NGL321/patchworks/issues/42) took the coupling apart. The
-construction has **five** parts, and they are as much a constraint on the body as `n = 32` and
-`k = 12`. The fifth arrived with the Koopman conversion:
+**A body that does not itself destroy retention, and a construction that leaves room for it.** What
+this section asks of construction has **narrowed** since #143: the rig no longer has to *place* a
+gradient, because it no longer places `τ` at all (*The gradient is learning's job*, below). What
+survives is everything that keeps a body from foreclosing the thing learning is now asked to
+produce — containment, the target range the demo derives, the slow cap, and `a`.
+
+Initialisation is a parameter of the body (`01-cell-and-sheaf.md`). Whether a construction exists
+that spreads regional spectra at all was [#27](https://github.com/NGL321/patchworks/issues/27) —
+*constructible but coupled* — and [#42](https://github.com/NGL321/patchworks/issues/42) took the
+coupling apart; that history is why parts 1 and 4 read as they do. The construction has **five**
+parts, and they are as much a constraint on the body as `n = 32` and `k = 12`. The fifth arrived with
+the Koopman conversion, and **the second is spent**:
 
 1. **`σ_w²` is set for containment, and never asked to buy spread.** It is a global, shared,
    frozen quantity; using it to widen the `τ` distribution is what put a material fraction of
    regions past `ρ = 1` in #27's sweep. Its only job is to keep the body's realised contraction
    negative with margin.
-2. **The spread is imposed by selection, not by drawing.** Draw candidate bias vectors, measure the
-   timescale each one produces, and **keep a set whose timescales cover the target band** —
-   discarding the rest. Nothing is added to the architecture: no rate is stored, no parameter is
-   introduced, and a cell's rate is still whatever its region gives it, so
-   [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md) is untouched. What changes is
-   that the spread stops depending on what an iid draw happens to yield. Measured on the rig: taken
-   *as drawn*, 400 cells span a `τ` ratio of 4.5 with the boundary clear; **selected** from that
-   same distribution the reachable span is 16×, and 20,000 draws contain bias vectors whose regional
-   `τ` is ≥ 100 ticks with `ρ` still under one. Those candidates are *reachable*, not yet *usable*:
-   whether one holds up is a `λ` question, which is what the cap below is for.
+2. **~~The spread is imposed by selection, not by drawing.~~ Spent by #143, and kept struck rather
+   than deleted.** The rig drew candidate bias vectors, measured the timescale each produced, and
+   kept a set covering the target band. **It worked as specified and the graph came out flat
+   anyway** — 0.91 at the apex against 0.99 at the rim — because the biases are the adapting surface
+   and drift off their bands with nothing re-selecting. That measurement is why *The gradient is
+   learning's job* rules the way it does, so the part is left visible: **placement is rejected on
+   evidence, not on argument, and this is the evidence.** What the sweep established stays true of
+   the body and is now read as reachability rather than as placement — taken *as drawn*, 400 cells
+   span a `τ` ratio of 4.5; the reachable span across 20,000 draws is 16×, containing bias vectors
+   whose regional `τ` is ≥ 100 ticks with `ρ` under one.
 3. **The target is a range in ticks, derived from the acceptance demo's perturbation horizons** —
    the shape chrono initialisation and S4D both use, where the range comes from the task rather
    than from whatever the initialisation produced. The number is deliberately *not* fixed here: the
@@ -395,26 +525,51 @@ construction has **five** parts, and they are as much a constraint on the body a
    shortfall is a pre-existing property of a body whose effective timescale sits around one tick, and
    it is what arm 1 of the go/no-go below exists to report.
 
-**Selected timescales are assigned by level, in overlapping bands.** The taper's gradient
-(`06-graph-topology.md`) is continuous, not two rates: adjacent levels overlap and only their
-distributions separate, exactly as *The taper's timescale gradient is a gradient in means* has it.
-Banding is a **construction choice and it costs a piece of evidence** — the correspondence between
-depth and timescale is now built rather than found, so it can no longer be cited as the mechanism
-working. What stays falsifiable is behavioural: recovery at the level matching the perturbation's
-horizon. It does not weaken ADR-0005's prohibition, which is about *runtime*: the placement happens
-once, at construction, and leaves no rate for anything to consult afterwards.
+### The gradient is learning's job
 
-**A cheap go/no-go before anything is built.** This is the falsification condition for
-[ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md), so what counts as passing is
-specified here and does not drift with the rig. The run must establish three things:
+**`a` stays global. Construction places no per-level `τ`, and learning produces the gradient or
+nothing does.** This is #143's ruling and it replaces *Selected timescales are assigned by level, in
+overlapping bands*, which stood here.
+
+**Placement is not rejected on argument. It was built, and it failed on measurement.** The
+construction assigned `τ` bands by level; the run reports **0.91 at the apex against 0.99 at the
+rim** — no gradient at all. The biases *are* the adapting surface
+([ADR-0001](../adr/0001-continual-learning-applies-to-the-adapting-surface.md)), they drift off their
+bands, and **nothing re-selects** — deliberately, because re-selection needs a rate to steer toward,
+which is exactly the runtime parameter ADR-0005 refused and ADR-0027 keeps refusing. Placing by level
+a second time buys the same drift and the same cost banding always booked: the depth↔timescale
+correspondence built rather than found, leaving only the behavioural claim falsifiable. It would also
+cut against [ADR-0015](../adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md)'s **one global
+band, not one per level**, and against #127's standing *measure the graph, not the shape imposed on
+it*.
+
+**The falsification is pre-registered, and it is this section's own:** nothing guarantees the
+gradient appears. Learning may simply not produce it. That is stated as a cost rather than hoped
+past, and it is **the first time the depth↔timescale correspondence has been falsifiable at all** —
+under banding the correspondence was built in, so its presence could never be evidence. The run is
+read for it. If learning cannot produce the gradient, that redirects
+[#127](https://github.com/NGL321/patchworks/issues/127) rather than deadlocking it.
+
+**What stays falsifiable behaviourally is unchanged**: recovery at the level matching the
+perturbation's horizon. And the **runtime** prohibition is untouched in either direction — nothing
+placed a rate, and nothing stores one for a running cell to consult.
+
+**A cheap go/no-go before anything is built.** It was the falsification condition for
+[ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md); under
+[ADR-0027](../adr/0027-a-cell-holds-a-spectrum-of-retention-constants.md) it is **demoted from the
+falsifier to a body check**, because what can now falsify the mechanism is *the gradient does not
+appear*, and that is read on the run rather than before it. The run is still worth what it costs —
+it can establish that a body forecloses the target before anything is trained — so what counts as
+passing is specified here and does not drift with the rig. It must establish three things:
 
 1. **Reachability of the target band**, reported as **acceptance rate per band** — what fraction of
-   drawn bias vectors land in each band of the target range. Spread itself is no longer a
-   falsifier, because under *selection* above the spread is constructed rather than observed; what
-   can still fail is the body being unable to *reach* a band at any sampling budget, which kills
-   the mechanism exactly as a spike would have. This arm is cheap and runs before anything is
-   trained. Where `τ` is reported it is reported as **quantiles** rather than moments: `τ = −1/ln ρ`
-   diverges as `ρ → 1`, so moments are dominated by the tail.
+   drawn bias vectors land in each band of the target range. Spread itself is not a falsifier; what
+   can still fail is the body being unable to *reach* a band at any sampling budget, which forecloses
+   the target exactly as a spike would have. **Read against `a` rather than against a placement**:
+   nothing is being selected into a band any more, so this arm reports what the body admits, and it
+   is where the ~6× shortfall recorded under (5) above surfaces. Where `τ` is reported it is
+   reported as **quantiles** rather than moments: `τ = −1/ln ρ` diverges as `ρ → 1`, so moments are
+   dominated by the tail.
 2. **Measured over a driven trajectory, with the operating point varying as it will at runtime** —
    not at a frozen chart and stalk. A sweep that varies biases at a fixed operating point measures
    roughly half the phenomenon and attributes all of it to the biases. The same run reports **region
@@ -425,9 +580,11 @@ specified here and does not drift with the rig. The run must establish three thi
    `λ` is the stability object (*What "stable" means here*); `max ρ < 1` is the construction-time
    sufficient check, and this run is where the sufficient check gives way to the measurement.
 
-If no draw reaches the slow band, this mechanism is dead and the afternoon that established it was
-well spent. If the band is reachable but dwell is short against `τ`, the mechanism is not dead but
-it is not this one either — see *The precondition* above.
+**What a failure of this run now means, restated for the demotion.** If no draw reaches the slow
+band, the *body* forecloses the target and the afternoon that established it was well spent — it does
+not kill the mechanism, because `λ(K)` is learned and is not a draw off this body. If the band is
+reachable but dwell is short against `τ`, the operator's rate is realised unfaithfully rather than
+undefined — see *The precondition* above, and #226.
 
 The estimator is the rig's: `prototypes/regional-spectra/spread_pilot.py` and its extension
 `selection_sweep.py` — the latter adding separate `encode`/`step` widths (before the conversion left
@@ -589,23 +746,31 @@ protocol that fixes what passing means is
 Behaviour alone is **not** accepted as evidence — a purely reflexive controller produces the same
 footage.
 
-The readout is unaffected by timescale being a distribution, and this is not a coincidence: a
-measured trace of how far private content actually moved is already an average over whatever regions
-the cell passed through. It was never an eigenvalue, and it must not become one.
+**The readout survived the mechanism changing under it, twice, and that is not a coincidence.** A
+measured trace of how far private content actually moved is agnostic to where the retention came
+from: it was already an average over whatever regions the cell passed through, and it is equally an
+average over `K`'s eigen-directions weighted by wherever the cell's content actually sits. **It was
+never an eigenvalue, and now that the cell has twelve of them it must not become one** — the trace is
+what the demo shows, and a spectrum is not displayable in its place.
 
 ## Known exposure
 
-- **The biases are over-subscribed.** They now carry three geometrically distinct jobs on one
-  per-cell vector: fix the cell's fold offsets (`01-cell-and-sheaf.md`), select a regional spectrum
-  slow enough to hold state, and select a region whose Jacobian preserves the private directions
-  through **compression**. That third job is the fragile one — `encode` is frozen and shared, so a
+- **The biases are over-subscribed — by one job fewer since #143, and the fragile one stayed.** They
+  carried three geometrically distinct jobs on one per-cell vector: fix the cell's fold offsets
+  (`01-cell-and-sheaf.md`), **select a regional spectrum slow enough to hold state** — *this one is
+  gone, retention is `K`'s* — and select a region whose Jacobian preserves the private directions
+  through **compression**. Two jobs is not one, and the survivor is the fragile one — `encode` is
+  frozen and shared, so a
   private direction that survives reconciliation still has to survive being compressed into a
   `k`-dimensional chart, and nothing guarantees it does. There is slack (the restriction maps fix
   the node stalk's basis, so a cell can partly align its private directions with what `encode`
   preserves) but the masks are construction-fixed and never re-open, so that alignment is bounded at
   build time. **This is the first concrete argument for pulling the first rung of the flex ladder —
-  per-cell adapters — sooner than planned:** adapters are what buys a fourth handle if three jobs
-  will not fit on one.
+  per-cell adapters — sooner than planned:** adapters are what buys a further handle if two jobs will
+  not fit on one. The argument is **weakened but not withdrawn** by losing the timescale job, and it
+  is not transferred to `K`: `K` acquires the retention duty and the chart's double duty with it
+  ([#166](https://github.com/NGL321/patchworks/issues/166)), which is a budget question about `k`
+  rather than about the biases.
 - **Some disagreement is irreducible by design** — a slow cell adjacent to a fast one never agrees
   with it, and that is the mechanism working. **No longer exposure; decided** in
   [ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md). It is a **lag
@@ -626,16 +791,18 @@ the cell passed through. It was never an eigenvalue, and it must not become one.
   section's mechanism; see *The change gate, pre-specified* above for its trigger, its shape, and
   what it costs. No longer open exposure: [#20](https://github.com/NGL321/patchworks/issues/20)
   settled it.
-- **The selected spread is an initialisation, and the biases drift off it.** The construction places
-  each cell's timescale in its level's band, but the biases *are* the adapting surface
-  ([ADR-0001](../adr/0001-continual-learning-applies-to-the-adapting-surface.md)) and the local rule
+- **~~The selected spread is an initialisation, and the biases drift off it.~~ No longer exposure —
+  it happened, and it is why placement was dropped.** The construction placed each cell's timescale
+  in its level's band; the biases *are* the adapting surface
+  ([ADR-0001](../adr/0001-continual-learning-applies-to-the-adapting-surface.md)), the local rule
   moves them every tick — [#33](https://github.com/NGL321/patchworks/issues/33) found it can leave a
-  mid-depth cell oscillating between activation regions under ambiguous evidence. So a band is where
-  a cell **started**, not where it stays. **Nothing re-selects**, and deliberately: re-selection
-  needs a rate to steer toward, which is exactly the runtime parameter ADR-0005 refuses. Recorded
-  rather than addressed, and self-announcing — the *Demonstrating it* readout is already a live
-  per-cell trace of `‖Δ(private component)‖`, so drift appears in an instrument that exists. This is
-  the first place to look if the timescale gradient degrades over a long run.
+  mid-depth cell oscillating between activation regions under ambiguous evidence — and the run came
+  out **flat**. This bullet recorded the risk rather than addressing it, and **#143 addressed it by
+  removing the placement**, not by adding re-selection: re-selection still needs a rate to steer
+  toward, which is exactly the runtime parameter ADR-0005 refused and ADR-0027 keeps refusing. What
+  carries forward is the instrument and the reason to watch — the *Demonstrating it* readout is a
+  live per-cell trace of `‖Δ(private component)‖`, and it is still **the first place to look**, now
+  for the opposite event: not a placed gradient degrading, but a learned one failing to appear.
 - **A confidence gate is not a substitute.** Suppressing transmission when a belief is *uninformative*
   sparsifies the graph but decimates nothing in time — a confident, fast-changing cell still sends
   every tick. Recorded because the two gates are easy to conflate, and only one is a low-pass filter.
