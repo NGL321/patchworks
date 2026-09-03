@@ -425,6 +425,15 @@ def loop_lengths(dome: Dome) -> dict[int, int]:
     return {c: 2 * distance[c] for c in dome.predicting if c in distance}
 
 
+#: The relative slack on `τ̂`'s `1/e` comparison, so a sample landing *on* the
+#: threshold counts as having crossed it (#381). Order the double's own
+#: resolution — about 4.5e4 times `eps_f64`, which is nothing this instrument can
+#: resolve and far more than the 1-ULP disagreement it exists to absorb. Private
+#: to this reduction and not a knob: a value large enough to change a `τ̂` would
+#: be interpolating between samples, which ADR-0026 forbids.
+_CROSSING_SLACK = 1e-12
+
+
 def tau_hat(deviation: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """`τ̂` per cell: peak-to-`1/e` in ticks, ADR-0026's reading taken literally.
 
@@ -452,6 +461,27 @@ def tau_hat(deviation: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     **A cell the deviation never reaches gets `τ̂ = 0`**, not a decay time. There
     is nothing to decay, and `0 / |loop|` is the falsification reading rather
     than a small pass.
+
+    **A sample sitting exactly on the threshold has crossed** (#381). The
+    comparison carries :data:`_CROSSING_SLACK`, a relative tolerance of order the
+    double's own resolution, because a sample landing *on* `peak / e` is a 1-ULP
+    question and numpy answers it differently on different hardware: it dispatches
+    `exp` on the runner's SIMD capability, and on an exact exponential — which is
+    what `tests/test_detectability.py` feeds — the two answers differ. The same
+    commit went green on one CI runner and red on another with `τ̂` reading `9`
+    where the decay constant is `8`.
+
+    **It fails in the direction that matters, which is why it is fixed rather
+    than tolerated.** Missing the crossing reads `τ̂` one tick **long**, and long
+    is the direction that manufactures a PASS on a bar of exactly `1` — the same
+    asymmetry #224 ruled on, arriving through the crossing test itself. The
+    censoring branch above is already careful to fail the safe way; this is that
+    care applied to the comparison.
+
+    **It is not interpolation.** ADR-0026's reading stays integer ticks and whole
+    samples: the tolerance decides only what *equality* at a sample means, and it
+    is far below any difference the instrument could resolve. Nothing moves
+    except a boundary case that was previously decided by rounding.
     """
     ticks, cells = deviation.shape
     peak_at = deviation.argmax(axis=0)
@@ -462,7 +492,8 @@ def tau_hat(deviation: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         start = int(peak_at[cell])
         if not peak[cell] > 0.0:
             continue
-        below = np.nonzero(deviation[start:, cell] <= peak[cell] / np.e)[0]
+        threshold = (peak[cell] / np.e) * (1.0 + _CROSSING_SLACK)
+        below = np.nonzero(deviation[start:, cell] <= threshold)[0]
         if below.size:
             tau[cell] = float(below[0])
         else:
