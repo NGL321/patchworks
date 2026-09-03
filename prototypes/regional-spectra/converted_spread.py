@@ -54,7 +54,29 @@ from typing import Iterable
 
 import numpy as np
 
-__all__ = ["spread_statistics", "stored_seeds", "format_table"]
+__all__ = [
+    "spread_statistics",
+    "stored_seeds",
+    "radii_of_operators",
+    "format_table",
+    "main",
+]
+
+#: The floor under `log`, and the deliberate absence of a ceiling above it.
+#: `prototypes/driven-rho-274/read.py` carries `RHO_CEILING = 1 - 1e-6` so that
+#: every `tau` it prints is the same quantity; this statistic drops the ceiling
+#: on purpose, because **exclusion replaces clipping** -- a cell at `rho >= 1` is
+#: counted and left out rather than pinned just under one, which is what keeps
+#: `tau_p95` a statement about cells that actually retain. The floor stays only
+#: to keep `log` defined at `rho = 0`.
+#:
+#: Dropping the ceiling is safe **because the statistic is a quantile**, which is
+#: 027 section 5's own protocol correction earning its keep. #274's stored radii
+#: are raw -- they reach 1.546, above any ceiling -- and the closest contracting
+#: cell to unity sits at `rho = 0.99997`, a `tau` of about 31,000 ticks. A mean
+#: would be destroyed by that one cell out of 136; the p95 does not move, because
+#: the runaway is in the tail the quantile steps over.
+_LOG_FLOOR = 1e-12
 
 #: The stand-in's numbers, for the comparison the amendment is about. 027
 #: section 6 and section 7: a `tau` p95/p05 ratio of 7.7 from biases alone at a
@@ -71,7 +93,7 @@ SELECTION_TAU_RATIO_DRAWN = 4.5
 SELECTION_TAU_RATIO_SELECTED = 16.0
 
 
-def spread_statistics(rho: Iterable[float]) -> dict[str, float]:
+def spread_statistics(rho: Iterable[float]) -> dict[str, float | int]:
     """027's spread statistic over one population of spectral radii.
 
     `tau = -1/ln rho` at p95 over p05, taken over the cells with `rho < 1`;
@@ -83,7 +105,7 @@ def spread_statistics(rho: Iterable[float]) -> dict[str, float]:
         raise ValueError("no cells")
     contracting = radii[radii < 1.0]
     if contracting.size:
-        tau = -1.0 / np.log(np.clip(contracting, 1e-12, None))
+        tau = -1.0 / np.log(np.clip(contracting, _LOG_FLOOR, None))
         p05, p50, p95 = (float(v) for v in np.quantile(tau, [0.05, 0.5, 0.95]))
         ratio = p95 / p05 if p05 > 0 else float("nan")
     else:
@@ -97,7 +119,7 @@ def spread_statistics(rho: Iterable[float]) -> dict[str, float]:
         "tau_p95": p95,
         "tau_p95_over_p05": ratio,
         "rho_median": float(np.median(radii)),
-        "sd_log10_rho": float(np.std(np.log10(np.clip(radii, 1e-12, None)))),
+        "sd_log10_rho": float(np.std(np.log10(np.clip(radii, _LOG_FLOOR, None)))),
     }
 
 
@@ -141,11 +163,12 @@ _HEADER = (
 )
 
 
-def _row(seed: int, ticks: int, s: dict[str, float]) -> str:
+def _row(seed: int, ticks: int, stats: dict[str, float | int]) -> str:
     return (
-        f"    {seed:>4} {ticks:>7} {s['cells']:>7} {s['expansive']:>10}"
-        f"   {s['tau_p05']:7.2f}   {s['tau_median']:7.2f}   {s['tau_p95']:7.2f}"
-        f"   {s['tau_p95_over_p05']:7.1f}   {s['sd_log10_rho']:13.3f}"
+        f"    {seed:>4} {ticks:>7} {stats['cells']:>7} {stats['expansive']:>10}"
+        f"   {stats['tau_p05']:7.2f}   {stats['tau_median']:7.2f}"
+        f"   {stats['tau_p95']:7.2f}   {stats['tau_p95_over_p05']:7.1f}"
+        f"   {stats['sd_log10_rho']:13.3f}"
     )
 
 
@@ -153,9 +176,9 @@ def format_table(rows: list[dict], key: str, label: str) -> str:
     lines = [f"  {label}", _HEADER]
     ratios = []
     for entry in rows:
-        s = entry[key]
-        ratios.append(s["tau_p95_over_p05"])
-        lines.append(_row(entry["seed"], entry["ticks"], s))
+        stats = entry[key]
+        ratios.append(stats["tau_p95_over_p05"])
+        lines.append(_row(entry["seed"], entry["ticks"], stats))
     finite = [r for r in ratios if not math.isnan(r)]
     if finite:
         lines.append(
@@ -219,7 +242,9 @@ def main(argv: list[str] | None = None) -> None:
     if args.stored_only:
         return
 
-    sys.path.append(str(pathlib.Path(__file__).resolve().parents[2] / "benchmarks"))
+    _BENCH = str(pathlib.Path(__file__).resolve().parents[2] / "benchmarks")
+    if _BENCH not in sys.path:
+        sys.path.append(_BENCH)
     from untrained_fixed_point import build, teaching  # noqa: PLC0415
 
     print("OPERATOR RETENTION, rho(K) -- ADR-0028's reported quantity")
