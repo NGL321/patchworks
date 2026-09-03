@@ -183,8 +183,13 @@ draw a slow cell* to *will anything make one*** — which is what the falsificat
   and dwell still matters — but `K` is one matrix that does not reset when a cell crosses a fold, so
   `τ` is **defined regardless**. Under the bias mechanism dwell gated whether `τ` was *well-defined*;
   under `λ(K)` it gates only how **faithfully** the operator's rate is realised. Neither vacuous nor
-  false. Whether ADR-0005's `dwell > τ` bar survives the demotion is
-  [#226](https://github.com/NGL321/patchworks/issues/226) and is **not** ruled on here.
+  false. *Settled by [#226](https://github.com/NGL321/patchworks/issues/226):* the `dwell > τ` bar
+  **survives**, with the same derived `1`, its referent re-pointed from the region's decay to the
+  operator's own retention, and read off the full loop `ρ(K · (J_chart + J_stalk · A_v · D))`. What
+  changes is its rank — it is the **licence for the cheap spectral instrument**, published wherever
+  that instrument's `τ` is published and **reported rather than asserted**, and ADR-0005's
+  falsification clause is retired with it. It composes with ADR-0026 as `|loop(c)| ≤ τ_c < dwell_c`:
+  one architectural bar plus the condition for substituting the proxy into it.
 - **Enforcement is one-sided, and it is the one real interaction with the band.** ADR-0015 restores
   the band by *rescaling the whole operator*, which moves every eigenvalue by the same factor — so
   when the projection fires, **all of that cell's retention constants shorten together**. Enforcement

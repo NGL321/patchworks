@@ -393,11 +393,16 @@ How long a cell stays in one activation region of the shared body before its cha
 a fold. **Demoted by #143 from existence to fidelity**: it used to gate whether a cell's `τ` was a
 well-defined object at all, since the rate was a property of the region; under `λ(K)` the operator is
 one matrix that does not reset at a fold, so `τ` is defined regardless and dwell gates only how
-**faithfully** that rate is realised — the gap between `λ(K)` and `λ(K · J_encode)`. The bar below
-stands unrepealed while [#226](https://github.com/NGL321/patchworks/issues/226) rules on whether it
-survives the demotion. The residency must express **at least one e-fold of the region's own decay** —
-`dwell > τ`; where dwell is short, a cell realises an average over unrelated regions rather than the
-rate its operator holds. Nominated at
+**faithfully** that rate is realised — the gap between `λ(K)` and `λ(K · J_encode)`. **The bar below
+survives the demotion and changes rank** ([#226](https://github.com/NGL321/patchworks/issues/226)):
+it is the **licence for the cheap spectral instrument** — the condition under which `τ = −1/ln ρ` may
+stand in for ADR-0026's measured `τ̂` — and not a bar on the design, so ADR-0005's falsification
+clause is retired and the reading is published wherever the spectral `τ` is. The residency must
+express **at least one e-fold of the operator's own retention** (re-pointed by #226 from *the
+region's decay*; the number is unchanged) — `dwell > τ`; where dwell is short, a cell realises an
+average over unrelated regions rather than the rate its operator holds. It composes with ADR-0026 as
+**`|loop(c)| ≤ τ_c < dwell_c`** — one architectural bar plus the licence for the proxy, whose
+`τ`-free consequence `dwell_c > |loop(c)|` is what is readable today. Nominated at
 construction by the fold margin, measured at runtime on a driven trajectory — and since #160 the
 runtime measurement is **the verdict**, the construction reading a nomination
 (`patchworks.tick.FoldRead`, ADR-0019). Since #208 the verdict is the **median cell's** `dwell/τ > 1`,

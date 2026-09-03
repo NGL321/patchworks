@@ -68,10 +68,16 @@ So there are two guarantees, distinct, and the record had only ever argued one a
 - **`τ` is commitment against the cell itself.** The cell does not overwrite its own assertion
   between ticks.
 
-**At the measured `τ ≈ 1` tick an assertion cannot stand at all**, and `H⁰` protection is beside the
-point, because the threat is not coming from outside. This is stronger and more specific than the
+**At the measured `τ` an assertion cannot stand across its own loop**, and `H⁰` protection is beside
+the point, because the threat is not coming from outside. This is stronger and more specific than the
 *commitment* row above, and it is the statement
-[ADR-0028](../adr/0028-a-cell-holds-a-spectrum-of-retention-constants.md) records.
+[ADR-0028](../adr/0028-a-cell-holds-a-spectrum-of-retention-constants.md) records. *The figure this
+sentence used to name — `τ ≈ 1` tick — was read on the chart's direct round trip and is superseded by
+[#274](https://github.com/NGL321/patchworks/issues/274):* the corrected reading is **2.9 to 10.3
+ticks** at the median predicting cell, quotable only as a range, and **0 of 8 apex cells reach the
+14-tick loop** ([#226](https://github.com/NGL321/patchworks/issues/226)). The conclusion is unchanged
+and the arithmetic behind it moved by 3–10x, which is why the range and not a median is what this
+document quotes.
 
 ## Depth does not supply it
 
@@ -266,25 +272,78 @@ fold**, so `τ` is defined regardless of dwell. What dwell now gates is how **fa
 operator's rate is realised — the gap between `λ(K)` and `λ(K · J_encode)` in the table above.
 **From existence to fidelity: neither vacuous nor false.**
 
-**Whether the `dwell > τ` bar survives that demotion is
-[#226](https://github.com/NGL321/patchworks/issues/226), and it is open.** The bar and its derivation
-are left standing below exactly as #208 wrote them, because a demotion is not a repeal and nothing
-here licenses reading a fidelity gate as slack. What follows is the bar as it stands, and #226 owns
-what becomes of it.
+**The bar survives the demotion, and what changed is its status**
+([#226](https://github.com/NGL321/patchworks/issues/226)). `dwell > τ` stays, with the same derived
+`1` and a **new referent**. What does not stay is its rank: it is **not a bar on the architecture**.
+It is the **licence for the instrument** — the condition under which the cheap spectral reading of
+retention may be substituted for the expensive measured one. ADR-0005's falsification clause is
+**retired** rather than re-pointed, because no dwell reading falsifies anything about the design; see
+*What a breach means* below.
+
+**There are two instruments for retention and only one of them is cheap.**
+
+| | instrument | what it reads | available |
+|---|---|---|---|
+| cheap | `τ = −1/ln ρ`, `ρ` of the cell's operator | the instantaneous rate in the region the cell occupies **this tick** | at construction, before anything runs |
+| expensive | [#242](https://github.com/NGL321/patchworks/issues/242)'s `τ̂` | e-fold decay of a paired counterfactual deviation in private features, **on the trajectory** | only from a run |
+
+`encode` is piecewise linear, so a cell's **effective** operator changes when its input crosses a
+fold: realised retention over `N` ticks is a product of `N` operators `K · J_encode(region_t)`, not
+the `N`th power of one. The cheap reading predicts the expensive one only while that operator holds
+still, and **dwell is how long it holds still**. Below the bar you have not learned that the cell
+forgets too fast — you have learned that you measured a tick and asked a question about a loop.
 
 `encode` is still ReLU, so activation regions and fold margins are still real and the object below
 still has a referent. A cell's **region dwell** — how long it stays in one activation region before
-its chart carries it across a fold — must express **at least one e-fold of the region's own decay
-within the residency**: `dwell > τ`. Where dwell collapses to a tick or two, what the cell realises
-is an average over unrelated regions rather than the rate its operator holds.
+its chart carries it across a fold — must express **at least one e-fold of the operator's own
+retention within the residency**: `dwell > τ`. Where dwell collapses to a tick or two, what the cell
+realises is an average over unrelated regions rather than the rate its operator holds.
 
 **One e-fold is a derivation rather than a constant**
-([#208](https://github.com/NGL321/patchworks/issues/208)). Over a residency `D` at rate `1/τ` the
-in-region residual is `exp(−D/τ)`, so at `D = τ` it is `1/e`: **63% of the cell's content decays
-inside the region it is claimed to decay in.** Below one e-fold the regional spectrum describes a
-decay that never happened — which is this section's own named failure, *dwell collapses to a tick or
-two*. Above it, every further multiple is a **choice** of how many e-folds to demand, not a
+([#208](https://github.com/NGL321/patchworks/issues/208)), and the derivation is **re-pointed rather
+than re-shaped** (#226). Over a residency `D` at rate `1/τ` the in-region residual is `exp(−D/τ)`, so
+at `D = τ` it is `1/e`: **63% of the cell's retained content decays while the observables hold
+still.** The referent moved — from *the region's* decay to *the operator's own* retention — and the
+number is unchanged, because the arithmetic never depended on `τ` being the region's; it is cleaner
+under `λ(K)`, not weaker. Below one e-fold the spectral reading describes a decay that never
+happened. Above it, every further multiple is a **choice** of how many e-folds to demand, not a
 derivation, which is why no larger factor is written here.
+
+**A spread would be the better long-run object and is not adopted here.** A *fidelity* criterion is
+naturally a spread of realised retention around `λ(K)`, not a threshold on a duration — but a spread
+needs a per-region realised-retention instrument nobody has built, and a **tolerance**, which
+[#206](https://github.com/NGL321/patchworks/issues/206) declined and #208 declined again. It is
+carried in [#127](https://github.com/NGL321/patchworks/issues/127)'s *Not yet specified* as the
+measure that would supersede the threshold, with #27's 7.3× operating-point spread as its motivating
+reading.
+
+**Whose `τ`, and off which operator — both are now written down** (#226), because both read as open
+in every artifact and neither is.
+
+- **The slowest of the cell's twelve retention constants.** `read.py` computes
+  `eigvals(...).abs().amax()`, so `τ = −1/ln ρ` is already the max-modulus eigenvalue. That is the
+  direction a standing assertion lives in and the one the ratio treats worst. Nothing changes; it
+  gets stated.
+- **Read off the full loop, not the chart half:** `ρ(K · (J_chart + J_stalk · A_v · D))`. #271 found
+  the instrument omits the stalk relay and #274 re-read it driven; every figure #208 computed was
+  read on the chart-only operator and is superseded below.
+
+**The bar and #242's conduction predicate are complementary, and the record says so because retiring
+either as a copy of the other is the available mistake:**
+
+> **`|loop(c)| ≤ τ_c < dwell_c`**
+
+#242 bounds `τ` from **below** — retention must outlast the loop or nothing conducts. This section
+bounds it from **above, in units of residency** — retention must not outlast the residency it is
+claimed within, or the spectral reading is not measuring the cell's behaviour.
+
+**The chain's status, stated exactly, because it is easy to over-read:** it is *not* two
+architectural bars. It is **one architectural bar** (#242, on the measured `τ̂`) **plus the condition
+under which the cheap proxy may be substituted into it**. Its consequence has no `τ` in it at all —
+**`dwell_c > |loop(c)|`**, two graph quantities — which is what makes it readable today, independent
+of the operator controversy that moved every number in this section. Enumerating `|loop(c)|` from the
+mask and pairing it with dwell across seeds is
+[#361](https://github.com/NGL321/patchworks/issues/361).
 
 **The verdict is the median cell's `dwell/τ > 1`.** Not a per-cell extremum:
 [#195](https://github.com/NGL321/patchworks/issues/195) ran four times at one seed and got four
@@ -295,6 +354,12 @@ chosen level: the derived `1` is the whole bar. **The per-cell count below the f
 never asserted**, which keeps the low-dwell cells visible without constituting them as a population
 — [#205](https://github.com/NGL321/patchworks/issues/205) read those arrays and found the set is the
 base rate.
+
+**And the whole reading is reported, never asserted** (#226, in #206's established language).
+`dwell > τ` is published **wherever the spectral `τ` is published**, as the condition licensing that
+reading — `05` here, `bias_selection.py`'s go/no-go report, and the live rigs. It is not a pass/fail
+on the design, and a cell that breaches it is a cell whose spectral `τ` may not be quoted, not a cell
+that has been shown to forget too fast.
 
 **Dwell is the cumulative mean residency to the horizon, and the estimator is part of the published
 quantity.** #206's *"131 of 150 clear `2.6 τ`"* is a **windowed** dwell over the last 25,000 ticks;
@@ -361,30 +426,95 @@ the trade above is paid **once, in the body's widths**, and never again per cell
 
 **The other direction of that decoupling is a cost, and this section only ever wrote the favourable
 one.** If `τ` and dwell are uncorrelated then selecting a cell slow also buys it no **residency to be
-slow in**: `τ` is placed by the biases, dwell is set by how fast the graph's chatter walks the
-operating point across creases, and the precondition above is a ratio of the two. The live run agrees
+slow in**: `τ` is a property of the cell's own operator — *placed by the biases* while the bias
+mechanism was in force, learned as `λ(K)` since #143 — dwell is set by how fast the graph's chatter
+walks the operating point across creases, and the precondition above is a ratio of the two. The
+decoupling is unaffected by which of the two supplies `τ`. The live run agrees
 with the construction sweep — `corr(log τ, log dwell) = −0.110` against #42's construction-time
 `−0.006` — so **nothing in the architecture makes the precondition hold.** The mechanism has an
-**unenforced precondition**, and what a collapse of it falsifies is
-[ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md)'s falsification clause —
-**stated in the bias mechanism's terms, and read that way**: it falsifies the sufficiency of
-*placing* a rate, which is the thing ADR-0028 stopped doing. Under `λ(K)` the corresponding
-falsification is not this one; it is *the gradient does not appear*, below.
+**unenforced precondition**. *What a breach of it means is corrected by
+[#226](https://github.com/NGL321/patchworks/issues/226), and the sentence that stood here — that it
+falsifies the sufficiency of placing a rate — is withdrawn with
+[ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md)'s clause:* placement stopped being
+the mechanism at #143 and #276 found it never ran, so there is no sufficiency claim left to falsify.
+A breach invalidates the **instrument**, not the design — see *What a breach means* below. The
+coupling itself is still missing and is filed as an open problem,
+[#344](https://github.com/NGL321/patchworks/issues/344).
 
-**What the live read says today, and why the gate is not slack** (#208, on
-`prototypes/live-fold-read-206/206-per-tick.npz`). At the horizon the median cell sits at
-`dwell/τ = 9.49` and 147 of 150 cells clear `dwell > τ`; at tick 100 the median sat at 0.96. The graph
-**fails the condition at the start and earns it over the run.** It clears comfortably because `τ`
-**on the chart's direct round trip** is **flat at about one tick graph-wide** — 0.91 at the apex
-against 0.99 at the rim, no depth→timescale gradient in `τ` at all — not because the placement is
-healthy. Against this section's own target of
-`τ ≥ 100` ticks the apex's dwell of 33 gives `dwell/τ ≈ 0.33`: **at the target band the gate fails
-outright**, and it fails at the level where the slow cells are meant to live. That is a reading of
-these two measured numbers, not a revival of the margin claim #190 struck — it is the *dwell* gate at
-a `τ` the run has not reached, not `gain_v` falling with depth. The gate is not slack; it is a
-guillotine that has not dropped because the thing it cuts has not arrived.
+**What the live read says today, and why the gate is live rather than latent** (#226, pairing #274's
+per-cell `τ_full` against #206's `final_cumulative_dwell` on
+`prototypes/live-fold-read-206/206-per-tick.npz`; same seed, split, dome and horizon, `cell_ids`
+identical, and #274's rig reproduces the chart-only `τ` to 1e-5 — a like-for-like swap of the
+operator and nothing else).
 
-> **Those `τ` were read on the chart's *direct* round trip, which is one of two routes from
+| reading | median `dwell/τ` | clears `dwell > τ` |
+|---|---|---|
+| the chart-only figure this section used to publish | **9.49** | **147 / 150** |
+| corrected, on the full loop | **2.00** | **93 / 150** |
+
+**57 of 150 cells fail the licence today.** The gate is not a guillotine waiting on a slow apex to
+arrive: it is **live now, with about a 2x margin at the median**, and the cells that breach it are
+cells whose spectral `τ` may not be quoted. Per level — reported as a diagnostic only, never as an
+index for the bar, per #127's standing *measure the graph, not the shape imposed on it*:
+
+| level | n | median dwell | median `τ_full` | median ratio | clear |
+|---|---|---|---|---|---|
+| L1 (rim) | 70 | 8.2 | 4.75 | 1.82 | 41/70 |
+| L2 | 20 | 14.0 | 3.87 | 3.11 | 13/20 |
+| L3 | 16 | 23.0 | 5.77 | 3.02 | 11/16 |
+| L4 | 14 | 8.2 | 7.95 | **1.03** | 7/14 |
+| L5 | 12 | 7.1 | 4.21 | 1.71 | 9/12 |
+| L6 | 10 | 6.5 | 4.68 | **0.63** | 4/10 |
+| L7 (apex) | 8 | 33.1 | 2.84 | 11.62 | **8/8** |
+
+**The verdict is seed-sensitive, and that is stated as sensitivity rather than as measurement.**
+Pairing seed-42 dwell against each of #274's nine seeds' `τ_full`, the median ratio runs **0.861 to
+3.468** — seed 46 fails outright. Dwell is held at one seed's while `τ` varies, and six of those
+seeds are 2,000-tick reads. A single-seed verdict is exactly the defect #208 §3 exists to kill, which
+is why #361 exists.
+
+**Against the 14-tick target rather than against the retired 100.** `τ_full ≥ 14` at **34 of 150**
+and **0 of 8** at the apex — the conduction shortfall #242 already reports. `dwell > 14` at **59 of
+150**, apex **7 of 8**. So the apex's admissible band `|loop| ≤ τ < dwell` is **non-empty at 7 of its
+8 cells** — dwell of 33.1 against a loop of 14 clears by **2.36x** — while its `τ` sits far below the
+band's floor. *That is a reading of measured numbers, not a revival of the margin claim #190 struck.*
+
+> **The `τ ≥ 100` this paragraph used to be read against was never this section's target, and the
+> line asserting it was an error.** The derivation is fixed under *What this requires elsewhere* (3)
+> below — *a range in ticks, derived from the acceptance demo's perturbation horizons* — and read off
+> under (5) as **a slow end of 14 ticks or more**. The `τ ≥ 100` under (2) is a **reachability**
+> claim about bias draws, and that passage says so in terms: those candidates are *reachable, not yet
+> usable*. [#212](https://github.com/NGL321/patchworks/issues/212) wrote #208's *"this section's own
+> target"* into this paragraph, so a target was read out of `05` that `05` never held and then
+> written back into `05`, where it became self-confirming. Struck by #226; it is the fourth instance
+> of [#345](https://github.com/NGL321/patchworks/issues/345) and the first of that sub-shape.
+> **Corroboration, recorded as corroboration and not as derivation:** #242 derives `|loop(apex)| = 14`
+> from seven hops out and back, independently of the demo. Two routes to one number is evidence;
+> collapsing them would manufacture a constant, and #242 flags its own 14 as not verified pending
+> enumeration from the mask (#361).
+
+**`τ_full` falls monotonically across the run** — 17.29 → 4.69 over 100k ticks on seed 42, matching
+#274's `ρ` falling on all nine seeds. **Learning is making cells faster.** Handed to
+[#335](https://github.com/NGL321/patchworks/issues/335), whose one-sided band projection predicts
+exactly that; it is a positive reading, not a diagnosis, since other causes are live.
+
+**What a breach means, and why ADR-0005 loses its clause.** ADR-0005 says *timescale is persistence,
+not a schedule*. **No dwell reading falsifies that.** What would is retention achieved and conduction
+still absent — `τ̂` raised to the loop and the rim still not reaching the core — and that experiment
+lives on #242's measured quantity, in
+[ADR-0026](../adr/0026-rim-core-influence-is-a-conduction-ratio.md), not here. So the clause is
+**retired**, and `dwell > τ` keeps the job it can actually do.
+
+The systemic reason is the load-bearing part. This section has now been burned four times on this one
+quantity, the same way each time: **#271** (the instrument omitted the stalk relay), **#274** (every
+`τ` in the record was consequently 3–10x wrong), **#276** (flat `τ` read as *support* for #143 when
+no gradient had ever been placed), and the `τ ≥ 100` above. In none of them did the architecture
+fail — the reading did. `dwell > τ` is the member of that family that says **when the reading is
+allowed at all**, and promoting it to an architectural verdict is how it would become the fifth.
+
+**The correction that moved every figure above, kept as it was written** ([#275](https://github.com/NGL321/patchworks/issues/275)):
+
+> **The superseded `τ` were read on the chart's *direct* round trip, which is one of two routes from
 > `chart(t)` to `chart(t+1)`.** `decode` writes `D chart + b` onto the node stalk, reconciliation
 > damps what is there by `A_v = I − g_v Σ_{e∋v} F_ev^T F_ev`, and `encode`'s stalk half returns it
 > to the chart on the next tick. The instrument — `bias_selection.measure`, which the #202 and #206
@@ -400,14 +530,17 @@ guillotine that has not dropped because the thing it cuts has not arrived.
 > becomes that whole spread in `τ`, and a median lifted from one run is exactly the error this
 > correction repairs.
 >
-> **The figures above are kept as measured rather than rescaled**, on #206's precedent for `01`'s
-> recorded margins: a rescale would publish a number nobody ran. What the corrected operator does
-> and does not move:
+> **The chart-only figures this note supersedes were kept as measured rather than rescaled**, on
+> #206's precedent for `01`'s recorded margins: a rescale would publish a number nobody ran. #226 has
+> since **recomputed** the `dwell/τ` reading rather than rescaling it — see *What the live read says
+> today* above — which is the same discipline reaching the same figure by running it. What the
+> corrected operator does and does not move:
 >
 > - **The graph still contracts, so nothing here is falsified.** `ρ_full` at the median predicting
 >   cell is 0.708 to 0.908 on all nine seeds, so *What "stable" means here* stands and
 >   [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md)'s falsification clause is not
->   reached. A **minority** is expansive — 0 to 33 of 150, and how large depends on the seed far
+>   reached — *and that clause has since been **retired** by #226, so nothing can reach it; the
+>   sentence is kept because the contraction reading it rests on is the point.* A **minority** is expansive — 0 to 33 of 150, and how large depends on the seed far
 >   more than on the drive — where the chart-only reading reports **0 of 150 on every seed**. Those
 >   cells exist only under the corrected operator, and no instrument this document quotes can see
 >   them.
@@ -422,12 +555,12 @@ guillotine that has not dropped because the thing it cuts has not arrived.
 >   decays **1.6x to 2.1x faster** than the rim. Stated as an apex-versus-rim reading of per-cell
 >   values, with [#181](https://github.com/NGL321/patchworks/issues/181) intact: level is a reporting axis
 >   here and nothing is concluded from it.
-> - **`dwell/τ = 9.49` is a ratio of two measured quantities and one of them has moved.** With `τ`
->   three to ten times larger the ratio falls by the same factor, and the guillotine is nearer the
->   neck than the figure above says. It is deliberately **not** recomputed here: what `dwell > τ` is
->   a ratio *of* is [#226](https://github.com/NGL321/patchworks/issues/226)'s question, and #274 left the
->   per-cell `τ_full` arrays at every checkpoint so that ticket can pair them with #206's dwell
->   without re-running anything.
+> - **`dwell/τ = 9.49` is a ratio of two measured quantities and one of them has moved.** #274 left
+>   the per-cell `τ_full` arrays at every checkpoint, and
+>   [#226](https://github.com/NGL321/patchworks/issues/226) has since paired them with #206's dwell
+>   without re-running anything: the median falls from **9.49 to 2.00** and the count clearing
+>   `dwell > τ` from **147 of 150 to 93**. The recomputed reading and its seed sensitivity are under
+>   *What the live read says today*; there is no guillotine, the gate is simply live.
 >
 > Rig, per-run JSON, and the two checks that pin it to this instrument and to the run:
 > [`prototypes/driven-rho-274/`](../../prototypes/driven-rho-274/).
@@ -456,8 +589,9 @@ still flatness in a run where nothing was placed.
 [#143](https://github.com/NGL321/patchworks/issues/143)'s claim — that nothing guarantees learning
 produces the gradient — therefore stands **unchecked**: no run has carried a placed gradient for
 learning to preserve or destroy. The `dwell/τ` numbers are a ratio of two measured quantities — and
-**one of them has since moved**, which is the note's last bullet and
-[#226](https://github.com/NGL321/patchworks/issues/226)'s to settle.
+**one of them has since moved**, which is the note's last bullet;
+[#226](https://github.com/NGL321/patchworks/issues/226) settled it at a median of **2.00** on the
+corrected operator, and none of that bears on this paragraph either way.
 
 **Those counts were read on the post-conversion body.** The Koopman conversion merged as
 [PR #161](https://github.com/NGL321/patchworks/pull/161), commit `cd52077`, on 2026-08-29 — before
@@ -475,9 +609,11 @@ off the round trip, so the partition is `encode`'s own.
 `PlanarPushSandbox.step`, which until then handed back an observation drawn from kinematics one
 integration stale — so both reads were driven by an image and a touch reading that disagreed with the
 `qpos` and `qvel` beside them. The stalks feeding these counts move by ~2.8% relative, which **dates
-the digits without touching what they say**: `τ` flat at about a tick with no depth gradient is a
-shape, and the gate's verdict turns on the shape rather than on a third decimal place. Re-reading is
-a 100,000-tick run and has not been done.
+the digits without touching what they say**: `τ` flat across depth with no gradient is a shape, and
+the gate's verdict turns on the shape rather than on a third decimal place. *The magnitude that stood
+in this sentence — about a tick — is the chart-only reading and has moved to 2.9–10.3 ticks (#274);
+the **flatness** is what survives (`corr(p_v, Δρ) ∈ [−0.11, +0.05]`), and it is the flatness this
+sentence rests on.* Re-reading is a 100,000-tick run and has not been done.
 
 The pass condition survives the conversion because it is definitional — one e-fold is one e-fold
 whatever the facets are — and **the counts survive it too, by having been read after it**. Nothing
@@ -689,7 +825,15 @@ passing is specified here and does not drift with the rig. It must establish thr
 band, the *body* forecloses the target and the afternoon that established it was well spent — it does
 not kill the mechanism, because `λ(K)` is learned and is not a draw off this body. If the band is
 reachable but dwell is short against `τ`, the operator's rate is realised unfaithfully rather than
-undefined — see *The precondition* above, and #226.
+undefined — see *The precondition* above.
+
+**The go/no-go gains no arm for `dwell > τ`, and #226 ruled on the temptation explicitly.** If the
+spectral reading needs dwell to be valid, then selection — which chooses cells *by* their spectral
+`τ` before anything runs — is choosing on a number it cannot license. But **dwell is a property of a
+run and construction cannot read it.** An arm that can never be evaluated at the moment it gates is
+worse than no arm; that is #206's burn-in again. The condition attaches where `τ` is **published**,
+not where it is chosen — which is why this rig's report carries the licence alongside every `τ` it
+prints and none of its three arms tests it.
 
 The estimator is the rig's: `prototypes/regional-spectra/spread_pilot.py` and its extension
 `selection_sweep.py` — the latter adding separate `encode`/`step` widths (before the conversion left
