@@ -310,23 +310,36 @@ Pre-registered, because discarding trials after the fact is narration.
 
 - **Satisfied at the snapshot tick.** The goal is already met, so there is no task to be mid-way
   through.
-- **Not engaged.** No torque directed at the target puck in the preceding **`K` = 25 ticks**
+- **Not engaged.** No torque directed at the target puck in the preceding **K = 25 ticks**
   (0.5 s at `03-the-sandbox.md`'s 50 Hz control rate).
 
-**`K`'s warrant, and it is stipulated long.** The number is a stipulation, not a derivation; what a
-warrant owes is the reason for *this* stipulation rather than a neighbouring one. `K` has to exceed
-the longest quiet interval an agent can leave while still being engaged, and this graph fixes what
-that is: every edge costs exactly one tick (*Unit edge delay*, above), so the deepest correction the
-graph admits is the apex's own round trip, `|loop| = 14` ticks (*Failing*, above). A `K` below that
-disqualifies snapshots for the silence a deep correction spends **in transit** — deleting precisely
-the trials the demo exists to collect, and biasing what survives toward the shallow rung. 25 ticks
-clears 14 with room, and it is not a fresh number: it is the same half second
-[`03-the-sandbox.md`](./03-the-sandbox.md) already spends deciding that a goal is *held* rather than
-momentarily touched. That is this project's existing convention for *long enough that an instant is
-not mistaken for a state*, which is the same question `K` asks.
+**K's warrant, and it is stipulated long.** The number is a stipulation, not a derivation; what a
+warrant owes is the reason for *this* stipulation rather than a neighbouring one. Two things fix it,
+and only the second reaches a number.
 
-**Erring long is the cheap direction, and the pairing is why.** A short `K` deletes deep trials
-selectively, which is a bias with a direction. A long `K` admits the occasional idling snapshot,
+**A floor, from the graph.** Nothing has been injected at the snapshot tick, so what K has to
+survive is not a correction in flight but ordinary engaged behaviour — an agent *between* decisions.
+Every edge costs exactly one tick (*Unit edge delay*, above), so a commitment taken at the apex
+cannot be revised in less than that cell's own round trip: `|loop| = 14` ticks, the widest of the
+loop lengths this file reports against 2 at L1 (*Failing*, above). **Only the length is borrowed.**
+`|loop|` is a hop count that unit delay happens to denominate in ticks; the depth clause's
+instrument is the *ratio* `τ̂_c / |loop(c)|`, and no part of `τ̂` enters here — this file keeps its
+two measures apart and this warrant does not reach across. A K under 14 would read the graph's own
+deliberation as disengagement, and would disqualify snapshots in proportion to how deep the
+machinery working at them is — biasing what survives toward the shallow rung. That rules out the
+short end and nothing else.
+
+**Then a number already in this world, answering this exact question.**
+[`03-the-sandbox.md`](./03-the-sandbox.md)'s achievability measurement counts a solve as the goal
+**held for half a second** rather than the first satisfied tick, because *"`goal_satisfied` is
+instantaneous, and a puck skidding across a zone has not been put in it."* That is the question K
+asks — *how long before an instant may be read as a state* — settled once already, in this arena and
+at this control rate. 25 ticks is that half second at 50 Hz, and borrowing it is the whole warrant:
+the alternative is a second unrelated number for the same judgement, which is a second place a
+decision lives.
+
+**Erring long is the cheap direction, and the pairing is why.** A short K deletes deep trials
+selectively, which is a bias with a direction. A long K admits the occasional idling snapshot,
 whose onset latency is inflated by however long the agent takes to re-engage — but the snapshot is
 restored three times and both hands meet that same idling agent at that same tick, so the inflation
 lands on `perturb` and `retarget` **together**. It can widen the two distributions; it cannot
@@ -346,26 +359,33 @@ Failures leave the distribution nowhere.
 keep are the ones that do not recover: the stalled agent above, whose latency counts; and the case
 this file already anticipates in *Failing* — nothing transmitting, no corrective torque, **both
 hands record the ceiling and the IQRs overlap**. That failure mode only lands as a clean overlap
-because the ceiling gives a non-recovery a number to be. There is a floor beneath it that is not
-this protocol's to set: below ADR-0026's bit-identical deviation the paired branches differ nowhere
-and there is nothing to time at any window (*the impulse must still be large enough to produce a
-deviation the paired fork can see at all*, above). The ceiling handles the case above that floor
-where a deviation exists and no correction follows it.
+because the ceiling gives a non-recovery a number to be. Beneath it sits a different kind of limit,
+and not one this protocol sets: where the paired branches come back **bit-identical** there is no
+deviation to time at any window whatever, which is ADR-0026's falsification and not a small latency
+(*the impulse must still be large enough to produce a deviation the paired fork can see at all*,
+above). The ceiling governs the other case — a deviation exists, and no correction follows it.
 
-So the window is not sized to sit tightly around the expected onsets; it is sized so that reaching
-it **means** non-recovery. At 100 ticks it stands at about **7x** the apex round trip of 14 and 4x
-`K`, wide enough that a censored trial reads as a correction that did not come rather than one
-truncated on its way. Note what is ceilinged: **onset**, the first corrective torque — expected near
-three ticks at the shallow rung — and not settling time. Two seconds is generous against that
-quantity; it is not a budget for crossing the arena.
+**A floor, then a stipulation, as with K.** The floor: a trial that reaches the ceiling should have
+been silent for a full not-engaged window *after* the deepest correction the graph could still be
+conducting — `14 + K = 39` ticks — so that reaching it means *not engaged by this file's own test*
+rather than merely slow. 100 ticks (2 s) sits well clear of 39, and the clearance is the deliberate
+part, because the ceiling's two errors are not symmetric. Set loose, it only lengthens the run. Set
+tight, it censors slow-but-real corrections, and censors them **unequally between the hands** — the
+retarget is the deeper hand and is truncated first, which manufactures the very ordering being
+claimed. So the number is placed with room rather than at the floor, and what the stipulation has to
+be is comfortably above 39 and a round figure in seconds. Note also what is ceilinged: **onset**,
+the first corrective torque — expected near three ticks at the shallow rung — and not settling time.
+Two seconds is generous against that quantity; it is not a budget for crossing the arena.
 
-**Censoring is reported, and it cannot be what carries the result.** A ceiling value sits above
-every uncensored one, so ceilings accumulating in one hand push that hand's IQR up on their own. The
-count of ceilinged trials is therefore reported **per hand, beside the IQRs**, and: **if dropping
-the ceilinged trials from both hands collapses the non-overlap, the latency half has not passed.**
-A separation carried by censoring would be reporting how often the agent fails to recover, not how
-deep the correction that recovered it was. Pre-registered here rather than decided at the run, for
-the reason the whole section exists.
+**The count of ceilinged trials is reported per hand, beside the IQRs.** A ceiling value sits above
+every uncensored one, so ceilings accumulating in one hand push that hand's IQR up on their own, and
+the count is what lets a reader see whether a separation is carried by them. This is a reporting
+obligation and **not a further pass condition** — passing remains the loop closure and the latency
+ordering (*Pass and fail*, above), and what guards the result against censoring is the clearance
+above, not an extra test run after the data exists. Nor is the count a success rate in disguise, as
+*Nothing here is aggregated into a score* below would forbid: it is not summed across the hands, not
+broken out by split, and not compared against anything. It states how much of each reported
+distribution is censored, which is what makes that distribution readable at all.
 
 **Nothing here is aggregated into a score.** Goal satisfaction gates whether a trial is valid and
 that is its whole job; no success rate is computed, over splits or otherwise. The map rules degree

@@ -241,6 +241,11 @@ rather than reconstructed afterward.
 
 The commanded/applied bars already carry "first corrective torque", so no new quantity is needed.
 
+**The counter terminates.** `08` ceilings onset at **100 ticks** (*What disqualifies a snapshot*),
+so the strip's counter stops there and says it stopped rather than running on: a trial that reaches
+the ceiling is a non-recovery the protocol keeps, and a counter still climbing past the value the
+record will hold would show the viewer a number the run does not report.
+
 **The event marker now has a second consumer**, and it is the private-component panel's `τ̂` read
 above: the live single-run `τ̂` is measured from the marker, which is its `t = 0` for the excursion
 above baseline. One marker, two readers — the marker is not duplicated and the two must not drift
