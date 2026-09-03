@@ -9,6 +9,21 @@ them::
     python benchmarks/detectability.py corners
     python benchmarks/detectability.py linearity
 
+**`read` carries the cutoff hook** (#284). Two open problems cut on this rig —
+[#325](https://github.com/NGL321/patchworks/issues/325) and
+[#329](https://github.com/NGL321/patchworks/issues/329) — and both write the
+same bar, `conduction ratio >= 1`, because both wait on the same precondition:
+*it needs charts from a graph that transmits*. That is the quantity
+:func:`report` turns into `HOLDS` or `FAILS`, so `read` states the verdict
+against each of them, records the run on the problem, and adds
+`register:overdue` on a crossing. It asserts nothing and its exit code does not
+move; `tools/cutoff_report.py` holds the argument, and the reading it hands over
+is :func:`readings`.
+
+Pass `--no-file` on any read that is not *the* read — a short `--learn`, the
+small dome — because filing records a run against those two problems, and a toy
+reading is not one.
+
 **`corners` is #232 and it is the one thing here that chose something.** #214
 read one corner of a two-axis space, and #230 found it the corner least
 favourable to what the architecture claims: the stimulus is added once and the
@@ -98,6 +113,11 @@ if _HERE not in sys.path:
 # `tests/test_untrained_fixed_point.py`, and a second copy drifting from it would
 # leave this script forking a branch that shares state with its own control.
 import untrained_fixed_point as ufp  # noqa: E402
+
+# The cutoff hook lives in `tools/` and not here, because it shells `gh` and a
+# network tool belongs on the far side of the line `tests/test_cli.py` defends.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+from cutoff_report import report as report_cutoffs  # noqa: E402
 
 #: How many ticks each branch is ticked for after the fork. The dome is seven
 #: levels deep and one hop is one tick, so this is several times the crossing.
@@ -714,6 +734,32 @@ def report(dome: Dome, direction: str, outcomes: list[Trial], window: int) -> No
     print()
 
 
+def readings(results: dict[str, list[Trial]]) -> dict[str, float]:
+    """What this read has to offer a `measurement` cutoff, by name.
+
+    **`conduction_ratio` is the lower of the two directions**, because a graph
+    that transmits one way and not the other does not transmit: the bar #325 and
+    #329 both write, `conduction ratio >= 1`, is the same quantity :func:`report`
+    turns into `HOLDS` or `FAILS`, at the median trial, and taking the minimum
+    is the reading that cannot say *holds* while a direction fails. The two
+    directions are also offered by name, so a cutoff that means one of them can
+    say so.
+    """
+    medians = {
+        direction: float(np.median([o.bottleneck for o in outcomes]))
+        for direction, outcomes in results.items()
+        if outcomes
+    }
+    if not medians:
+        return {}
+    found = {
+        f"conduction_ratio_{direction.replace('-', '_')}": value
+        for direction, value in medians.items()
+    }
+    found["conduction_ratio"] = min(medians.values())
+    return found
+
+
 def read(
     name: str,
     split: str,
@@ -723,6 +769,7 @@ def read(
     window: int,
     hold: int,
     probe: float,
+    file_cutoffs: bool = True,
 ) -> None:
     """The whole read: train once, then sweep configurations, both directions."""
     env, agent = prepared(name, split, seed, learn)
@@ -760,6 +807,11 @@ def read(
     print()
     for direction, outcomes in results.items():
         report(dome, direction, outcomes, window)
+    # The measurement half of the cutoff mechanism (#284). #325 and #329 both
+    # cut on this rig, and both wait on the same thing: a graph that transmits,
+    # which is what this read measures. It states a verdict, files the run, and
+    # asserts nothing.
+    report_cutoffs("detectability", readings(results), file=file_cutoffs)
 
 
 #: The two-axis space #232 reads, inbound. #214 measured the first row's first
@@ -919,6 +971,18 @@ def main(argv: list[str] | None = None) -> None:
         if spoken in ("read", "corners"):
             p.add_argument("--trials", type=int, default=24)
             p.add_argument("--probe", type=float, default=PROBE)
+        if spoken == "read":
+            p.add_argument(
+                "--no-file",
+                dest="file_cutoffs",
+                action="store_false",
+                help=(
+                    "print the cutoff report and file nothing on the tracker. "
+                    "Use it for a read that is not the read -- a short --learn, "
+                    "the small dome -- because filing records a run against "
+                    "#325 and #329 and a toy reading is not one"
+                ),
+            )
         if spoken == "corners":
             p.add_argument(
                 "--no-contrast",
@@ -973,6 +1037,7 @@ def main(argv: list[str] | None = None) -> None:
         arguments.window,
         arguments.hold,
         arguments.probe,
+        arguments.file_cutoffs,
     )
 
 

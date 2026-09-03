@@ -2,7 +2,7 @@
 
 [![status: spec complete](https://img.shields.io/badge/status-spec_complete-2ea44f)](docs/spec/)
 [![agent: built, not transmitting](https://img.shields.io/badge/agent-built,_not_transmitting-orange)](#-try-it-yourself)
-[![decisions: 28 ADRs](https://img.shields.io/badge/decisions-28_ADRs-blue)](docs/adr/)
+[![decisions: 29 ADRs](https://img.shields.io/badge/decisions-29_ADRs-blue)](docs/adr/)
 [![MuJoCo 3.10](https://img.shields.io/badge/MuJoCo-3.10.0-orange)](prototypes/sandbox/)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776ab)](prototypes/sandbox/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
@@ -26,7 +26,7 @@ until it runs.
 it has been asked to put it. No agent drove this frame — it was driven by constant torque.</em></p>
 
 > 🚧 **This is an architecture under measurement, not a working agent.** The design is written
-> down — twelve spec files, twenty-eight decision records — and the build is complete: the sandbox,
+> down — twelve spec files, twenty-nine decision records — and the build is complete: the sandbox,
 > the dome, the tick, both local rules and the demo surface all run, and runs of 100,000 ticks have
 > trained them. What is *not* settled is whether the architecture **transmits**. Read along the
 > channel, rim-to-core influence fails its bar in both directions, and nothing yet guarantees that
@@ -277,9 +277,9 @@ files in that directory are and what broke while building them; it does not repe
 | | |
 |---|---|
 | [`docs/spec/`](docs/spec/) | Twelve files, in reading order. The system, completely specified. Start with [the cell and its sheaf](docs/spec/01-cell-and-sheaf.md). |
-| [`docs/adr/`](docs/adr/) | Twenty-eight decisions that needed a reason on the record. |
+| [`docs/adr/`](docs/adr/) | Twenty-nine decisions that needed a reason on the record. |
 | [`docs/research/`](docs/research/) | The citation passes, including the ones that found defects. |
-| [`docs/registers/`](docs/registers/) | Every constant the architecture rests on, typed by where the number came from, and what turning it would cost. Generated from the definition sites, so it cannot disagree with the code. |
+| [`docs/registers/`](docs/registers/) | Every constant the architecture rests on, typed by where the number came from and what turning it would cost — plus every open problem, proposed solution and dismissed solution. Generated from the definition sites and from the issue tracker, so no register can disagree with its source. See [`docs/agents/registers.md`](docs/agents/registers.md). |
 | [`CONTEXT.md`](CONTEXT.md) | The vocabulary. Narrow senses, deliberately. |
 | [`src/patchworks/sandbox/`](src/patchworks/sandbox/) | The world, as a `gymnasium.Env`. |
 | [`src/patchworks/graph.py`](src/patchworks/graph.py) | The dome: construction, the structural masks, and the diagnostics it records. |
