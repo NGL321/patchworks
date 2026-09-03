@@ -101,7 +101,9 @@ lag, and settling. Nothing in the architecture represents it; the learning rule 
 to target zero residual. What is left over is model error, which is reducible and needs no name of
 its own — its role is to be what the floors are distinguished from. It is **not** the quantity
 `02-tick-semantics.md`'s bound divides by — see *Standing offset*.
-_Avoid_: irreducible error, noise floor, bias, residual (bare)
+_Avoid_: irreducible error, noise floor (a real term for a **different object** — see
+*Arithmetic floor*, which is a floor on resolvable difference rather than on disagreement), bias,
+residual (bare)
 
 **Static floor**:
 Disagreement floor that is a function of *configuration* — curvature the linear restriction map
@@ -124,6 +126,27 @@ reconciliation (`γ`); `decode` still emits every tick, so it degrades a neighbo
 blocks it. Confined to mid-depth predicting cells — boundary cells run no body and are exempt by
 construction, deep cells are insulated by `H⁰`.
 _Avoid_: instability, confidence, null predictor (describes the cell's state, not the floor itself)
+
+**Arithmetic floor**:
+The granularity of the precision the architecture runs in, read at the magnitude the state sits at —
+`eps_f32 · ‖state‖`, where the epsilon is the machine's (`patchworks.tick.EPS_F32`) and the norm is
+read. **The architecture's noise floor, and not a defect** (#224): a difference smaller than it **has
+not arrived**, and the architecture is not required to keep a ripple above it. The ground is the
+image's — the chamber is dissipative and echoes are supposed to fade, so *what survives is not the
+ripple but the structure it assembles* (`docs/motivating-image.md`, *The chamber*; the map's
+*persistence is sustained, not stored*). So **precision is never a design variable**: float64 was
+rejected on that image rather than on cost, and the requirement stays on retention and on sustained
+structure under continual drive. **Not a fourth kind of disagreement floor.** Those are floors on
+*disagreement magnitude*, which learning cannot remove; this is a floor on the *resolvable difference
+between two states*, which is not disagreement at all — and the two may not be folded, because
+ADR-0021's predicate already divides an arriving deviation **by** the quiescent-hold floor, so one
+object would make that ratio self-referential. Bears on the conduction ratio's numerator, which is
+measured below it by construction — see there.
+_Avoid_: noise floor (bare, in a context where a disagreement floor is also live), machine epsilon
+(that is the granularity at 1.0; the floor is at the state's magnitude), rounding error, the float32
+problem (#224's own framing before it ruled; it named a hazard rather than an object). ADR-0026 and
+`patchworks.tick.precision_floor` say **runtime precision floor** for the same thing, which is the
+gate's phrasing and not a second object.
 
 **Standing offset**:
 The displacement reconciliation leaves on the reconciled component of a node stalk each tick — the
@@ -159,10 +182,13 @@ the rim and returns — `τ̂_c / |loop(c)|`, dimensionless because both halves 
 numerator is the e-fold decay time of the paired counterfactual deviation restricted to the cell's
 private features; the denominator is a **construction-time** quantity, computed from the mask by
 enumeration and never inherited from a hop count (ADR-0026). It is `2 · d(c, rim)` — 14 at the apex of
-the default dome, where it was checked rather than assumed. Scale-free in time, so it touches neither
-the never-settling floor nor float32. The denominator is the **graph's** round trip and not the
-command-to-consequence loop the predicate is justified by; where the two differ the ratio is read
-against the shorter one (#368).
+the default dome, where it was checked rather than assumed. Scale-free in time, so the never-settling
+floor does not touch it — **float32 does** (#224). `τ̂` is read on a float64-cast surface, so a PASS
+is a claim about **the graph's** conduction and not the float32 build's; and the reading is valid at
+a cell only where the projected deviation stays above the *arithmetic floor* at the `1/e` crossing,
+a reading failing that gate being reported alongside `τ̂` rather than dropped (ADR-0026, amended). The
+denominator is the **graph's** round trip and not the command-to-consequence loop the predicate is
+justified by; where the two differ the ratio is read against the shorter one (#368).
 _Avoid_: margin (`fold margin` is a distance to a boundary; this is a ratio), retention (bare), gain,
 timescale ratio
 

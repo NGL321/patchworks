@@ -215,6 +215,42 @@ class TestTauHat:
         assert peak_at[0] == 5
         assert tau[0] == 4.0
 
+    def test_a_sample_one_ulp_above_the_threshold_has_still_crossed(self):
+        """The flake that reddened one CI runner and not another (#381).
+
+        `tau_hat` reads the crossing as `deviation <= peak / e`, and the test
+        above feeds `exp(-t/8)`, whose sample at `t = 8` *is* the threshold.
+        Whether it compares less-or-equal is a 1-ULP question, and numpy 1.26
+        dispatches `exp` on the runner's SIMD capability, so two machines gave
+        two answers on the same commit: `τ̂` read 8 on one and 9 on the other.
+
+        Reproduced here without depending on the hardware, by placing the sample
+        one ULP above the threshold deliberately. **Long is the direction that
+        matters**: a missed crossing over-reports `τ̂`, and over-reporting is what
+        manufactures a PASS on a bar of exactly `1`.
+        """
+        decay = np.exp(-np.arange(64.0) / 8.0)
+        decay[8] = np.nextafter(decay[0] / np.e, np.inf)
+        tau, censored, _peak_at = det.tau_hat(decay[:, None])
+        assert tau[0] == 8.0
+        assert not censored[0]
+
+    def test_the_slack_settles_equality_and_does_not_interpolate(self):
+        """A sample genuinely above the threshold has not crossed.
+
+        The tolerance decides what *equality* at a sample means and nothing
+        else — ADR-0026's reading is integer ticks and whole samples. A slack
+        loose enough to accept a sample the instrument could actually tell apart
+        would be interpolating between ticks, which that ADR forbids and which at
+        L1, where `|loop| = 2`, would be doing the deciding.
+        """
+        decay = np.exp(-np.arange(64.0) / 8.0)
+        # A part in a million above the threshold: far below anything the read
+        # resolves, and still far above the slack.
+        decay[8] = (decay[0] / np.e) * (1.0 + 1e-6)
+        tau, _censored, _peak_at = det.tau_hat(decay[:, None])
+        assert tau[0] == 9.0
+
     def test_a_window_that_ends_first_is_censored_and_flagged(self):
         """A lower bound, and it says so: it can cost a pass, never manufacture one."""
         flat = np.ones((16, 1))

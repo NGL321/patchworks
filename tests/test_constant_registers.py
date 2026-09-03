@@ -212,6 +212,85 @@ class TestAProvisionalIsWellFormed:
         assert "0019" in gamma[0].warrant
 
 
+class TestTheArithmeticFloorHasADefinitionSite:
+    """#224's floor is a register row, not a sentence in a glossary (#381).
+
+    The ruling is that **float32's granularity is the architecture's noise
+    floor** — precision is never a design variable — and the rider that came
+    with it is that the floor must be *created so that it lands in the register
+    when there is a value*. A glossary entry is prose; this is the enforced
+    surface, and it is what stops the floor being restated as a literal at the
+    next site that needs one.
+    """
+
+    def _entry(self, surveys, name):
+        found = [
+            entry
+            for survey in surveys.values()
+            for entry in survey.entries
+            if entry.name == name
+        ]
+        assert len(found) == 1, f"{name} is registered exactly once"
+        return found[0]
+
+    def test_the_epsilon_is_evaluated_rather_than_typed(self, surveys):
+        """ADR-0018's internal arm, on the arithmetic itself.
+
+        A typed `1.19e-07` would read correctly today and go silently stale
+        against the dtype the sheaf is actually built at, which is the failure
+        mode ADR-0018 exists for. The general derived-arm test holds the
+        `@depends_on` honoured; this pins that it is *this* dependency, because
+        the whole ruling is about the precision the architecture runs in.
+        """
+        entry = self._entry(surveys, "EPS_F32")
+        assert entry.type == "derived"
+        assert "finfo" in entry.references and "float32" in entry.references
+        assert registers.internal_dependencies(entry)
+        assert registers.lands_in(entry) == "architecture"
+
+    def test_it_is_the_architectures_and_not_the_rigs(self, surveys):
+        """Q2's ruling, in the one place a reader checks *may I turn this*.
+
+        The floor is a property of the running architecture's arithmetic rather
+        than of a measurement rig, so `benchmarks/` — which is not scanned at
+        all — could not have held it, and the rig register would have said the
+        opposite of what #224 ruled.
+        """
+        assert registers.lands_in(self._entry(surveys, "PRECISION_FLOOR")) == "architecture"
+
+    def test_the_floor_magnitude_is_a_debt_against_the_first_read(self, surveys):
+        """No run has published `eps_f32 * ||state||`, and the row says so.
+
+        `@provisional` is *resting on an unmet precondition*, which is exactly
+        this: the precondition is a read, owed by
+        [#379](https://github.com/NGL321/patchworks/issues/379), which carries
+        ADR-0026's gate into the `tau_hat` reading. Typing it `measured` with no
+        measurement, or leaving the quantity in a comment, are the two things
+        the rider ruled out.
+        """
+        entry = self._entry(surveys, "PRECISION_FLOOR")
+        assert entry.provisional == "379"
+        assert entry.type == ""
+        assert entry.value == "None"
+
+    def test_the_floor_is_read_at_the_state_and_not_at_one(self):
+        """`precision_floor` multiplies, because the epsilon is relative.
+
+        The gate is a magnitude and `EPS_F32` is a granularity at 1.0, so a
+        reading compared against the bare epsilon would be gated nine decades
+        from where the state actually sits.
+        """
+        import torch
+
+        from patchworks.tick import EPS_F32, precision_floor
+
+        state = torch.tensor([3.0, 4.0])
+        assert precision_floor(state) == pytest.approx(EPS_F32 * 5.0)
+        assert precision_floor(state * 100) == pytest.approx(
+            100 * precision_floor(state)
+        )
+
+
 class TestTheRegisterReachesIntoAMarkedClass:
     """`DomeSpec`'s fifteen, which a module-level scan could not see (#187).
 
