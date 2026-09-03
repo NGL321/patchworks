@@ -310,7 +310,8 @@ def read(
         wandered = wander(result, loops)
         print(
             f"\n   seed {seed}:  draining edges {drained['share']:.1%}"
-            f"   median effective rank on them {drained['rank']:.3g}"
+            f"   median effective rank on them {drained['was']:.3g} -> "
+            f"{drained['rank']:.3g}"
             f"   maps transmitting {result['transmitting']}/{2 * len(dome.edges)}"
         )
         print(
