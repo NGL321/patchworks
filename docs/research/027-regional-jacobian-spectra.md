@@ -45,11 +45,24 @@ against 7.7× is like-for-like rather than a change of units. The two realised r
 
 | quantity (ADR-0028's rows) | `τ` p95/p05, across seeds | `τ` median | `sd(log₁₀ ρ)` | expansive |
 |---|---|---|---|---|
-| `ρ(K)` — the **operator's retention**, per-cell, learned | **9.0–18.0** (med 10.3) | 19–26 ticks | 0.023–0.073 | 0/150 |
+| `ρ(K)` — the **operator's retention**, per-cell, learned | **8–20** (see the instability note) | 19–27 ticks | 0.02–0.12 | 0/150 |
 | `ρ(K · J_chart)` — the **realised chart retention** (#206's object) | **1.8–2.8** (med 2.1) | 1.0–1.3 ticks | 0.077–0.107 | 0/150 |
 | `ρ(K · (J_chart + relay))` — the **full chart loop** (#274's correction) | **9.6–49.6** (med 12.9) | 2.9–7.6 ticks | 0.063–0.089 | 0–33/150 |
 
-`ρ(K)` at 5 seeds × 2,000 ticks; the realised readings at 9 seeds, one to 100,000 ticks.
+`ρ(K)` at 5 seeds × 2,000 ticks, each seed read in its own process; the realised
+readings at 9 seeds, one to 100,000 ticks, off #274's stored radii.
+
+**The `ρ(K)` ratio is not a reproducible statistic, and that is itself a finding.** Repeated runs of
+the *same* seed move it: seed 46 read 8.1 through 10.0 over six runs, seed 44 read 12.2 through 20.1.
+Two causes were found and one closed — multithreaded float reduction is not associative, so the rig
+pins `torch.set_num_threads(1)`; and a seed read in a process that has already run another seed does
+not read what it reads alone, so seeds are looped in the shell rather than in `main`. A residue
+survives both. **What moves is the tail, not the distribution:** across every run `τ`'s *median* stays
+inside 19–27 ticks and `sd(log₁₀ ρ)` inside 0.02–0.12, while `τ` p05 and p95 — the ends the ratio
+divides — wander. This is 027 §5's own protocol correction arriving one level further in: quantiles
+are stabler than moments, **and a ratio of two quantiles is not stable at all** when it straddles a
+`τ` that diverges as `ρ → 1`. Quote the median and the log-radius dispersion; treat any p95/p05
+figure, this document's 7.7× included, as an order of magnitude and not a measurement.
 
 **Four things follow, and the first is the one that matters for anyone quoting this document.**
 
@@ -58,10 +71,13 @@ against 7.7× is like-for-like rather than a change of units. The two realised r
    *realised* per-tick retention of the chart, region included — reads about **2×**, not 7.7×: the
    stand-in overstated the realised spread by roughly a factor of four. **Any citation of 7.7× as
    headroom, reachable spread, or "what the body gives" is withdrawn.**
-2. **The headroom claim survives, but at the operator and not at the region.** `ρ(K)` spreads
-   9–18×, which brackets 7.7× — so a spread of that order is real in the converted design. It is a
-   property of a *learned per-cell operator*, which is precisely what this pass's §7 said the bias
-   mechanism could not deliver, and what ADR-0028's *Attributability* consequence books.
+2. **The headroom claim survives, but at the operator and not at the region.** Every reading of
+   `ρ(K)`'s ratio taken here — 8 to 20 across five seeds and repeated runs — sits **above** the
+   stand-in's 7.7×, and the median retention it corresponds to is 19–27 ticks. So a spread of that
+   order is real in the converted design, though per the instability note the honest comparison is
+   *same order, higher*, not a ratio of ratios. It is a property of a *learned per-cell operator*,
+   which is precisely what this pass's §7 said the bias mechanism could not deliver, and what
+   ADR-0028's *Attributability* consequence books.
 3. **§6's headline — "spread and stability are the same knob" — is a fact about the bias mechanism
    and does not transfer.** Every configuration here with a usable ratio put 5–39% of cells past
    `ρ ≥ 1`; `ρ(K)` shows **no expansive cell at any seed**, because

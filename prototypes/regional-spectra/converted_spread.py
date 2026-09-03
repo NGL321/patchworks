@@ -35,12 +35,19 @@ statistic that stays finite when the ratio does not.
 
 Usage::
 
-    # The spread of `rho(K)` off a driven run, and the roll-up against #274.
-    PYTHONPATH=src python prototypes/regional-spectra/converted_spread.py
-    PYTHONPATH=src python prototypes/regional-spectra/converted_spread.py --ticks 2000
-
     # The roll-up alone, over #274's stored seeds -- no run, seconds not minutes.
     python prototypes/regional-spectra/converted_spread.py --stored-only
+
+    # The spread of `rho(K)` off a driven run: one seed per process, always.
+    # Each invocation prints the roll-up and then that seed's `rho(K)` row.
+    for seed in 42 43 44 45 46; do
+        PYTHONPATH=src python prototypes/regional-spectra/converted_spread.py \\
+            --ticks 2000 --seed "$seed" | tail -1
+    done
+
+**Read one seed per process.** The reason is in `main` beside the thread pin: a
+second seed run in the same process does not read the same number it reads
+alone. A shell loop is the interface, deliberately.
 """
 
 from __future__ import annotations
@@ -193,7 +200,7 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--dome", default="real", choices=("small", "real"))
     parser.add_argument("--split", default="train")
-    parser.add_argument("--seeds", type=int, nargs="+", default=[42, 43, 44])
+    parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--ticks", type=int, default=2_000)
     parser.add_argument(
         "--stored-only",
@@ -245,16 +252,42 @@ def main(argv: list[str] | None = None) -> None:
     _BENCH = str(pathlib.Path(__file__).resolve().parents[2] / "benchmarks")
     if _BENCH not in sys.path:
         sys.path.append(_BENCH)
+    import torch  # noqa: PLC0415
+
     from untrained_fixed_point import build, teaching  # noqa: PLC0415
+
+    # **One thread, or the reported ratio is not reproducible.** `build` and
+    # `teaching` are both seeded, so the run is deterministic in its draws --
+    # but multithreaded float reduction is not associative, and 2,000 ticks of
+    # accumulated reordering is enough to move `rho(K)` in the last places. That
+    # is invisible in `tau`'s median and in `sd(log10 rho)` and very visible in
+    # `tau_p95`, which sits where a small change in `rho` is a large change in
+    # `tau`: seed 46 read 8.1, 8.3, 8.4, 8.7, 9.0 and 10.0 on six threaded runs
+    # of the same command, and 9.2 twice running on one thread. The instability
+    # is the tail 027 section 5 warned about, not a defect in the graph, so it
+    # is pinned here rather than papered over in the write-up.
+    #
+    # **And one seed per process, which is why this takes a `--seed` and not a
+    # `--seeds`.** Pinning the thread count is necessary and not sufficient:
+    # `build` and `teaching` take explicit generators, but not every draw on the
+    # path goes through one, so a second seed run in the same process inherits
+    # state from the first and reads differently than it does alone -- measured,
+    # seed 46 at 8.4 after four other seeds against 9.2 on its own, and seed 44
+    # at 18.3 or 20.1 depending only on which seed preceded it. Re-seeding the
+    # global generator per iteration did not close it. So each row is read from
+    # its own process, and the seeds are looped in the shell.
+    torch.set_num_threads(1)
 
     print("OPERATOR RETENTION, rho(K) -- ADR-0028's reported quantity")
     print(_HEADER)
-    for seed in args.seeds:
-        _, agent = build(args.dome, args.split, seed)
-        for _ in teaching(agent, args.ticks, seed):
-            pass
-        print(_row(seed, args.ticks, spread_statistics(radii_of_operators(agent))),
-              flush=True)
+    torch.manual_seed(args.seed)
+    _, agent = build(args.dome, args.split, args.seed)
+    for _ in teaching(agent, args.ticks, args.seed):
+        pass
+    print(
+        _row(args.seed, args.ticks, spread_statistics(radii_of_operators(agent))),
+        flush=True,
+    )
 
 
 if __name__ == "__main__":

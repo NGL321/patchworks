@@ -462,8 +462,10 @@ Two questions travel together under "long-horizon planning" and separate cleanly
 **Horizon as duration** is a measurable quantity, not a hope. Plan depth is graph depth and
 deliberation time is ticks; how long a deep cell holds a commitment is the decay rate of its private
 component. What sets that rate is a cell's **learned operator** `K`
-([ADR-0028](../adr/0028-a-cell-holds-a-spectrum-of-retention-constants.md)), and measured on driven
-runs of the built graph `ρ(K)` spreads `τ` by **9–18×** across 150 cells, at a median of 19–26 ticks
+([ADR-0028](../adr/0028-a-cell-holds-a-spectrum-of-retention-constants.md)). Measured on driven runs
+of the built graph, `ρ(K)` gives a **median `τ` of 19–27 ticks** across 150 cells, with an across-cell
+p95/p05 ratio of roughly **8–20×** — the median is the reproducible half of that reading and the ratio
+is not, for the reason `docs/research/027`'s amendment sets out
 (`prototypes/regional-spectra/converted_spread.py`, [#349](https://github.com/NGL321/patchworks/issues/349)).
 
 > **Corrected by #349.** This paragraph quoted #27's **7.7×** as the operative figure. That number was
