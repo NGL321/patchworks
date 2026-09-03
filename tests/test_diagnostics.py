@@ -34,6 +34,8 @@ from patchworks.diagnostics import (
     EdgeReading,
     Reading,
     WholeGraphReading,
+    TOPOLOGY_ENERGY_DRAWS,
+    topology_only_energy,
     topology_only_h1,
 )
 from patchworks.graph import build_graph
@@ -486,6 +488,100 @@ class TestTheCadence:
     def test_the_defaults_are_a_pair_the_constructor_would_accept(self):
         assert DEFAULT_WHOLE_GRAPH_EVERY % DEFAULT_EVERY == 0
 
+
+class TestTheTopologyOnlyEnergy:
+    """`topology_only_h1`'s twin on the energy scale (#363).
+
+    The reference level #156's prototype stood in at `0.05` and recorded as
+    owed: *a measured construction quantity*. What is held here is that it is a
+    level of the right kind — on ADR-0010's gauge rather than off it, moving
+    with the world and not with the maps, and supported on every edge, which is
+    the property that ruled out the null-space minimum it might have been.
+    """
+
+    def test_it_is_one_value_an_edge_and_none_of_them_negative(self, sheaf):
+        level = topology_only_energy(sheaf)
+        assert level.shape == (len(sheaf.dome.edges),)
+        assert bool((level >= 0).all())
+
+    def test_it_is_supported_on_every_edge(self, sheaf):
+        """The property the null-space minimum does not have, and the reason it lost.
+
+        `‖P_null b‖²` is identically zero on every edge with a free end, so it
+        is zero on every interior edge and cannot be a per-edge level. This one
+        is a Dirichlet energy of the same configuration and is non-zero wherever
+        the configuration disagrees at all — which, on a random configuration,
+        is everywhere.
+        """
+        assert bool((topology_only_energy(sheaf) > 0).all())
+
+    def test_it_reads_no_learned_map(self, sheaf):
+        """The maps are generic, so collapsing the real ones moves nothing.
+
+        This is the half it shares with `topology_only_h1`, and it is what makes
+        the level a *reference* rather than a second reading of the thing it is
+        being compared against. It survives the maps being zeroed, which is the
+        strongest form of the check.
+        """
+        before = topology_only_energy(sheaf).clone()
+        with torch.no_grad():
+            sheaf.maps.maps.zero_()
+        assert torch.allclose(topology_only_energy(sheaf), before)
+
+    def test_it_is_drawn_on_the_gauge(self, sheaf):
+        """Every generic map is at unit Frobenius norm, which is ADR-0010's centre.
+
+        Read off the level rather than off the draw: for a single-draw energy on
+        a one-edge complex the whole quantity is `‖F_u x_u − F_v x_v‖²`, which is
+        bounded by `(‖F_u‖‖x_u‖ + ‖F_v‖‖x_v‖)²`. At unit norm that bound is
+        computable here; at the `√(m·n) ≈ 20` an unnormalised draw carries it is
+        two orders of magnitude larger, which is the failure this pins.
+        """
+        level = topology_only_energy(sheaf)
+        dome = sheaf.dome
+        for edge in dome.edges:
+            reach = sum(
+                float(sheaf.stalks[sheaf.layout.slice(c)].double().norm())
+                for c in (edge.u, edge.v)
+            )
+            assert float(level[edge.id]) <= reach**2 + 1e-9
+
+    def test_it_moves_with_the_world(self, sheaf):
+        """Unlike the baseline, it is a reading of a configuration.
+
+        Scaling every stalk by 3 scales every restricted end by 3 and the energy
+        is quadratic, so the level scales by 9. A level that ignored the
+        configuration would not move at all. To float32 and not to float64: the
+        read runs in double but the buffer it reads is the sheaf's own single,
+        so the `* 3.0` below is where the digits go.
+        """
+        before = topology_only_energy(sheaf).clone()
+        with torch.no_grad():
+            sheaf.stalks *= 3.0
+        assert torch.allclose(topology_only_energy(sheaf), before * 9.0, rtol=1e-6)
+
+    def test_averaging_the_draws_is_what_makes_it_a_level(self, sheaf):
+        """One draw is a sample; the point of `draws` is that the mean is not.
+
+        Two disjoint single draws disagree per edge by of order the value
+        itself, and two disjoint eight-draw means are much closer. Held as an
+        ordering rather than a number, `08-the-acceptance-demo.md`'s discipline.
+        """
+
+        def spread(draws: int) -> float:
+            a, b = (
+                topology_only_energy(
+                    sheaf, draws=draws, generator=torch.Generator().manual_seed(s)
+                )
+                for s in (11, 22)
+            )
+            return float(((a - b).abs() / (a + b)).mean())
+
+        assert spread(TOPOLOGY_ENERGY_DRAWS) < spread(1)
+
+    def test_a_draw_count_below_one_is_refused(self, sheaf):
+        with pytest.raises(ValueError, match="count of generic draws"):
+            topology_only_energy(sheaf, draws=0)
 
 class TestTheTopologyOnlyBaseline:
     def test_it_is_computed_at_construction_and_stored(self, sheaf):

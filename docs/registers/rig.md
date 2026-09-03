@@ -61,3 +61,4 @@ construction has to answer it as much as one bound at import.
 | `DEFAULT_SCALE_STEPS` | `12` | chosen | unknown | here | — | `src/patchworks/bias_selection.py` |
 | `DEFAULT_TICKS` | `64` | chosen | unknown, and this register's flagship unknown: #178 found a rig tick count silently deciding a result | here | — | `src/patchworks/bias_selection.py` |
 | `DEFAULT_WHOLE_GRAPH_EVERY` | `100` | chosen | bounded by cost: one reading is a 3764x3764 eigendecomposition, ~16 s on the real dome | here | — | `src/patchworks/diagnostics.py` |
+| `TOPOLOGY_ENERGY_DRAWS` | `8` | chosen | free: the level's noise falls as 1/sqrt(draws) and eight is already far below the factor the level is read at; the whole read is milliseconds | here | — | `src/patchworks/diagnostics.py` |
