@@ -27,4 +27,6 @@ None yet.
 
 Each row **names the rig and the reading that killed it**. That is enforced: a `failed` entry with no rig and no reading is refused by the generator, because "we tried it" without a reading is unfalsifiable folklore and the pre-registration discipline exists to keep that out. Proposing one of these again requires stating what has changed since.
 
-None yet.
+| solution | shape | kind | rig | reading | where |
+|---|---|---|---|---|---|
+| Cross-edge coherence term | reconciliation too weak to carry rim-to-core influence | failed | detectability | 8.7e-10 against a bar of 1; the term is worth ~212x compounded against a 1.15e9x shortfall | [#346](https://github.com/NGL321/patchworks/issues/346) |
