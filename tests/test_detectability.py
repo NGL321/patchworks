@@ -399,6 +399,30 @@ class TestTheStructuralZero:
         }
         assert touched == {1}
 
+    def test_no_path_between_the_rim_and_the_apex_avoids_a_zero_private_cell(self):
+        """So **both** directions are pinned, not only the inbound one.
+
+        The reduction is a `min` over the cells of a path. Every predicting cell
+        adjacent to the rim is zero-private, and no apex cell is adjacent to the
+        rim, so any walk between the two ends crosses one of them — whichever way
+        it is walked. That makes the pin independent of retention, training,
+        seed, stimulus and horizon, which is the claim #385 rests on and the one
+        a reader would otherwise have to take on trust.
+        """
+        from patchworks.graph import DEFAULT_SPEC
+
+        dome = build_graph(DEFAULT_SPEC)
+        dimensions = dome.private_dimensions
+        rows = {cell: row for row, cell in enumerate(dome.predicting)}
+        zero = {c for c in dome.predicting if dimensions[rows[c]] == 0}
+        adjacent = {
+            dome.edges[e].other(cell)
+            for cell in det.rim(dome)
+            for e in dome.incident[cell]
+        }
+        assert adjacent and adjacent <= zero
+        assert not adjacent & set(det.apex(dome))
+
 
 class TestTheFork:
     """The paired counterfactual, on the small dome: exact, and linear."""
