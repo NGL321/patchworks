@@ -203,10 +203,16 @@ staleness, because CI cannot ask GitHub anything offline.
 
 Freshness is `.github/workflows/problem-registers.yml`'s job, mirroring
 `.github/workflows/constant-provenance.yml`: triggers on
-`issues: [opened, closed, edited, labeled, unlabeled]` and `issue_comment: [created, edited]`, a
-weekly net, and `workflow_dispatch`; it regenerates and commits when the render changes. Its
-concurrency group sets `cancel-in-progress: true` — unlike the provenance workflow's, because a
-superseded run of a pure projection is worth nothing and comment edits fire often.
+`issues: [opened, closed, reopened, edited, labeled, unlabeled]` and
+`issue_comment: [created, edited, deleted]`, a weekly net, and `workflow_dispatch`; it regenerates
+and commits when the render changes. Its concurrency group sets `cancel-in-progress: true` — unlike
+the provenance workflow's, because a superseded run of a pure projection is worth nothing and
+comment edits fire often. The trigger set is argued in the workflow's own header and pinned by
+`tests/test_problem_registers.py`; this line is a pointer, not a second copy of the reasoning.
+
+One lag is structural and worth knowing before #284 lands: GitHub does not start a workflow from an
+event the default `GITHUB_TOKEN` created, so a rig report's comment and its `register:overdue` label
+reach the page on the weekly net rather than at once. The tracker is right immediately either way.
 
 `--check` still exists, for a human at a terminal.
 

@@ -18,6 +18,15 @@ name: Problem registers
 # The rendered files are therefore briefly stale by construction, and are never
 # the authority. That is the point: GitHub is the definition site, and the file
 # exists so an agent can read the register without a network call or a token.
+#
+# **One class of change reaches the render only via the weekly net**, and it is
+# worth knowing before #284 is written: GitHub does not start a workflow from
+# an event that the default `GITHUB_TOKEN` created. The rig report files its
+# report as a comment on the problem issue and adds `register:overdue`, both of
+# which this workflow reads -- so a cutoff that fires shows up on the page on
+# the following Monday rather than at once, unless #284 acts under a token of
+# its own or calls this workflow directly. The tracker is right immediately
+# either way; only the projection lags.
 
 on:
   # Every event that can change the render, and no others. Labels decide which
@@ -26,10 +35,18 @@ on:
   # makes this not a labels-only query. `edited` matters more here than
   # `opened` -- `@status` on a proposal is edited in place as it changes, and
   # the comment thread around it is the history.
+  #
+  # `reopened` and `deleted` are in the set for the same reason their partners
+  # are, and #283's sketch of this block omitted both. A closed problem renders
+  # in a resolved section of its own carrying its ground, so open-vs-closed is
+  # a rendered distinction and `closed` without `reopened` is a one-way door:
+  # a problem that turns out not to have resolved would sit in the resolved
+  # section until the weekly net. And a proposal comment deleted is a row
+  # deleted, exactly as a proposal comment edited is a row moved.
   issues:
-    types: [opened, closed, edited, labeled, unlabeled]
+    types: [opened, closed, reopened, edited, labeled, unlabeled]
   issue_comment:
-    types: [created, edited]
+    types: [created, edited, deleted]
   # A net for anything that changed while this workflow was broken, disabled,
   # or while the repository had no runner minutes. Mondays, early, and not on
   # `constant-provenance.yml`'s minute.
@@ -63,6 +80,13 @@ jobs:
     # first arm alone -- and leaving is exactly a change the render must see.
     # `github.event.label` is null on every other event, and `startsWith` of
     # null is false, so it costs nothing there.
+    #
+    # The label arm is a substring match over the joined names rather than a
+    # prefix test, which GitHub's expression language has no way to write over
+    # a list. It therefore also fires on a hypothetical `not-register:x`. That
+    # is the direction to be wrong in: this guard is an optimisation over
+    # running always, so a false positive costs one cheap job and a false
+    # negative costs a silently stale register.
     if: >-
       github.event_name == 'schedule'
       || github.event_name == 'workflow_dispatch'
@@ -92,6 +116,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          # `set -u` does not catch a variable that is set and empty, and an
+          # empty branch name here would push to `HEAD:` and then fetch the
+          # empty string, failing halfway with a message about neither.
+          #
+          # No apostrophe in the message: bash processes quote characters
+          # inside a `${var:?word}` word even within double quotes, so one
+          # there opens a string that never closes and the whole step is a
+          # syntax error -- at run time, on a workflow nothing can dry-run.
+          : "${BRANCH:?the default branch is missing from the event payload}"
+
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           message='Re-render the problem registers from the tracker
@@ -99,7 +133,15 @@ jobs:
           Automatic, by .github/workflows/problem-registers.yml. The tracker is
           the definition site; this file is a projection of it (#279).'
 
-          if git diff --quiet -- docs/registers; then
+          # `git diff` cannot see a register file that does not exist yet, and
+          # the first render of a new one is exactly the moment this must not
+          # report "unchanged" and exit clean. `git status --porcelain` sees
+          # the untracked file too.
+          rendered_changed() {
+            [ -n "$(git status --porcelain -- docs/registers)" ]
+          }
+
+          if ! rendered_changed; then
             echo 'The render is unchanged.'
             exit 0
           fi
@@ -109,8 +151,8 @@ jobs:
           # merge in that case and a rebase would be the wrong instrument --
           # the render is a pure function of the tracker, so the answer is to
           # throw this commit away, take whatever main now says, and render
-          # again on top of it. The second render may legitimately produce no
-          # diff at all, if the run that beat us here rendered the same rows.
+          # again on top of it. The second render may legitimately find nothing
+          # to do, if the run that beat us here rendered the same rows.
           for attempt in 1 2 3; do
             git add docs/registers
             git commit -m "$message"
@@ -118,10 +160,15 @@ jobs:
               exit 0
             fi
             echo "Push $attempt rejected; re-rendering on top of origin/$BRANCH."
+            # `FETCH_HEAD` rather than `origin/$BRANCH`: the remote-tracking
+            # ref is only updated opportunistically by a refspec-less fetch,
+            # and on the shallow, single-branch checkout the action leaves
+            # behind it may not exist at all. `FETCH_HEAD` is what was just
+            # fetched, without qualification.
             git fetch origin "$BRANCH"
-            git reset --hard "origin/$BRANCH"
+            git reset --hard FETCH_HEAD
             python tools/problem_registers.py
-            if git diff --quiet -- docs/registers; then
+            if ! rendered_changed; then
               echo 'The render is unchanged against the new tip.'
               exit 0
             fi

@@ -60,9 +60,11 @@ how. Everything below :func:`fetch` is a pure function of a payload, which is
 the seam `tests/test_problem_registers.py` tests against fixtures.
 
 Freshness is `.github/workflows/problem-registers.yml`'s job (#283): it renders
-on every issue and comment event that can move a row, and commits when the
-render changes. ``--check`` exists for a human at a terminal; CI never runs it,
-because CI cannot ask GitHub anything offline.
+on the issue and comment events that can move a row, and commits when the
+render changes. A weekly net catches the rest -- notably anything a workflow's
+own `GITHUB_TOKEN` wrote, which GitHub does not start a workflow from.
+``--check`` exists for a human at a terminal; CI never runs it, because CI
+cannot ask GitHub anything offline.
 
     python tools/problem_registers.py
     python tools/problem_registers.py --check
