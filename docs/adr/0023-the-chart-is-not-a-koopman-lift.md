@@ -278,11 +278,29 @@ would overturn it is stated in advance, in two tiers, both readable once
    wider `k` fixes and more training does not.
 
 Both point at the same suspect: the chart's **double duty**. Twelve dimensions must now name the
-piece *and* carry the cell's memory, and a linear recurrence's recoverable short-term memory is
-bounded by its state dimension — the same bound `docs/research/032` already invokes when it caps one
-cell's linearly recoverable memory at `n = 32` delay taps. #32's headroom argument covers the naming
-job alone and says nothing about two jobs sharing one budget. That is a separate ticket, blocked on
-transmission.
+piece *and* carry the cell's memory — and those are **one budget with a trade-off inside it**, not
+two budgets that happen to share twelve numbers. Dambre, Verstraeten, Schrauwen & Massar,
+*Information Processing Capacity of Dynamical Systems*, *Sci. Rep.* **2**, 514 (2012), Theorem 4:
+*"the sum of the capacities for these functions is bounded by the number N of output functions"*,
+carrying a *"universal trade-off between the non-linearity of the computation and the system's
+short-term memory"* — read at source by
+[#167](https://github.com/NGL321/patchworks/issues/167) §2.2. #32's headroom argument covers the
+naming job alone and says nothing about how the one budget is split. That was a separate ticket,
+[#166](https://github.com/NGL321/patchworks/issues/166).
+
+> **Resolved by [#166](https://github.com/NGL321/patchworks/issues/166); the pre-registration above
+> is history and is annotated here, not rewritten.** The paragraph originally read the duty as two
+> jobs with **independent** budgets and sourced the memory bound from recall rather than at source;
+> the framing above is the corrected one.
+>
+> **Tier 1 cannot fire, and no later session should re-run it.** `CellOperators.__init__` builds
+> `K = a·I` — rank 12 — and `project()` only rescales, one common factor across every singular value,
+> which can send none of them to zero. **Numerical rank 12 is the null construction hands out for
+> free**, not the signal the width is binding, and it measured 12.0 at 150 of 150 cells, at every
+> checkpoint, on every seed. Rank *deficiency* is the only thing the statistic could ever have
+> reported. **Tier 2 is deferred rather than struck**, on the ground that there is no ceiling to
+> attribute. The ruling — the double duty is **not a contest for width** — and its rig, numbers and
+> consequences are on [#166's resolution](https://github.com/NGL321/patchworks/issues/166#issuecomment-5520717326).
 
 *Note added by [#172](https://github.com/NGL321/patchworks/issues/172).* Tier 1's rank read has a
 companion the pre-registration did not know about:
@@ -292,6 +310,12 @@ readable at the same cost and answers the other half. Rank saturation says the w
 non-normality says whether the width is *usable* as memory at all. This note records the instrument;
 registering it belongs to the double-duty ticket
 ([#166](https://github.com/NGL321/patchworks/issues/166)), not to this pre-registration.
+
+*The instrument was taken, and it carried the answer the rank read could not.* #166 measured a
+population non-normality of ~0.05 against 0 at construction, which leaves `K` overwhelmingly normal
+and its recoverable **sequence** memory at ~1 rather than 12 — Ganguli, Huh & Sompolinsky, *PNAS*
+**105**(48):18970–18975 (2008), #167 §2.3. The memory shortfall is the operator's **shape**, not its
+size, which is why no `k` fixes it. See [#166's resolution](https://github.com/NGL321/patchworks/issues/166#issuecomment-5520717326).
 
 ## What the literature does and does not give
 

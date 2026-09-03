@@ -41,6 +41,14 @@ buys is retention **up to the chart's capacity**, and that capacity is bounded b
 double duty, [#166](https://github.com/NGL321/patchworks/issues/166), which this mechanism does not
 inherit but **creates**. **Long-horizon** memory and **credit** are still refused, unchanged.
 
+> **[#166](https://github.com/NGL321/patchworks/issues/166) is closed, and the double duty is not a
+> contest for width.** Naming and memory are **one** budget with a trade-off inside it, not two
+> bidding against each other, and measured on a driven dome twelve dimensions carry both with room
+> unspent — so the retention this section buys is **not** capped by the naming job. What caps it is
+> `K`'s **shape**: the learned operator stays overwhelmingly normal, and a normal recurrence's
+> recoverable sequence memory is 1 whatever its dimension, so no `k` fixes it. See
+> [#166's resolution](https://github.com/NGL321/patchworks/issues/166#issuecomment-5520717326).
+
 ## What timescale enforces
 
 **`τ` is what lets [ADR-0003](../adr/0003-action-is-prediction-the-world-clears.md)'s standing
@@ -895,6 +903,20 @@ what the demo shows, and a spectrum is not displayable in its place.
   is not transferred to `K`: `K` acquires the retention duty and the chart's double duty with it
   ([#166](https://github.com/NGL321/patchworks/issues/166)), which is a budget question about `k`
   rather than about the biases.
+
+  > **Corrected by [#166](https://github.com/NGL321/patchworks/issues/166): it is not a budget
+  > question about `k` either.** The width is unspent, so the retention duty does not compete with
+  > the naming one, and the adapter argument above gains nothing from it. **And the spectrum this
+  > section grants is measured nearly degenerate.** Per predicting cell on a driven `real` dome at
+  > 30k ticks, both rules, three seeds, eleven of a cell's twelve mean eigenvalue moduli lie inside a
+  > band of ~0.13 with only the twelfth separated — seed 42 runs
+  > `0.866 0.862 0.858 0.857 0.855 0.853 0.849 0.842 0.828 0.798 0.735 | 0.325`, seeds 43 and 44
+  > alike. No mode is specialised as the cell's memory and none as its fast coordinate. This is
+  > [#230](https://github.com/NGL321/patchworks/issues/230)'s *"there is no stability gradient"* one
+  > level below where it has been read: flatness **inside** one cell's operator rather than across
+  > cells. Recorded here as a measurement — whether learning breaks it belongs to
+  > [#357](https://github.com/NGL321/patchworks/issues/357). Numbers and rig on
+  > [#166's resolution](https://github.com/NGL321/patchworks/issues/166#issuecomment-5520717326).
 - **Some disagreement is irreducible by design** — a slow cell adjacent to a fast one never agrees
   with it, and that is the mechanism working. **No longer exposure; decided** in
   [ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md). It is a **lag
