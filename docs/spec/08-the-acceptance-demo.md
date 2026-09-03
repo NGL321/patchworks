@@ -310,16 +310,62 @@ Pre-registered, because discarding trials after the fact is narration.
 
 - **Satisfied at the snapshot tick.** The goal is already met, so there is no task to be mid-way
   through.
-- **Not engaged.** No torque directed at the target puck in the preceding K ticks, K fixed in
-  advance.
+- **Not engaged.** No torque directed at the target puck in the preceding **`K` = 25 ticks**
+  (0.5 s at `03-the-sandbox.md`'s 50 Hz control rate).
+
+**`K`'s warrant, and it is stipulated long.** The number is a stipulation, not a derivation; what a
+warrant owes is the reason for *this* stipulation rather than a neighbouring one. `K` has to exceed
+the longest quiet interval an agent can leave while still being engaged, and this graph fixes what
+that is: every edge costs exactly one tick (*Unit edge delay*, above), so the deepest correction the
+graph admits is the apex's own round trip, `|loop| = 14` ticks (*Failing*, above). A `K` below that
+disqualifies snapshots for the silence a deep correction spends **in transit** — deleting precisely
+the trials the demo exists to collect, and biasing what survives toward the shallow rung. 25 ticks
+clears 14 with room, and it is not a fresh number: it is the same half second
+[`03-the-sandbox.md`](./03-the-sandbox.md) already spends deciding that a goal is *held* rather than
+momentarily touched. That is this project's existing convention for *long enough that an instant is
+not mistaken for a state*, which is the same question `K` asks.
+
+**Erring long is the cheap direction, and the pairing is why.** A short `K` deletes deep trials
+selectively, which is a bias with a direction. A long `K` admits the occasional idling snapshot,
+whose onset latency is inflated by however long the agent takes to re-engage — but the snapshot is
+restored three times and both hands meet that same idling agent at that same tick, so the inflation
+lands on `perturb` and `retarget` **together**. It can widen the two distributions; it cannot
+separate them, and the separation is the entire latency result.
 
 **A stalled agent is a valid trial and its latency counts.** Stall is a *predicted* failure with a
 known cause — #25's annulus signature, the blend of left and right being *stay put* — and
 disqualifying it would quietly delete the demo's most likely honest negative. It is named in *Pass
 and fail* as a near-miss precisely so it can be recognised, not so it can be dropped.
 
-For the same reason there is a **ceiling, not a discard**: if no corrective torque arrives within a
-fixed window, the trial records the ceiling. Failures leave the distribution nowhere.
+For the same reason there is a **ceiling, not a discard**: if no corrective torque arrives within
+**100 ticks (2 s)** of the event, the trial records 100 and enters the distribution at that value.
+Failures leave the distribution nowhere.
+
+**The ceiling's warrant, and it is set from the failure side.** This number is load-bearing on the
+**honest negative** specifically, which is what decides how it is chosen. The trials it exists to
+keep are the ones that do not recover: the stalled agent above, whose latency counts; and the case
+this file already anticipates in *Failing* — nothing transmitting, no corrective torque, **both
+hands record the ceiling and the IQRs overlap**. That failure mode only lands as a clean overlap
+because the ceiling gives a non-recovery a number to be. There is a floor beneath it that is not
+this protocol's to set: below ADR-0026's bit-identical deviation the paired branches differ nowhere
+and there is nothing to time at any window (*the impulse must still be large enough to produce a
+deviation the paired fork can see at all*, above). The ceiling handles the case above that floor
+where a deviation exists and no correction follows it.
+
+So the window is not sized to sit tightly around the expected onsets; it is sized so that reaching
+it **means** non-recovery. At 100 ticks it stands at about **7x** the apex round trip of 14 and 4x
+`K`, wide enough that a censored trial reads as a correction that did not come rather than one
+truncated on its way. Note what is ceilinged: **onset**, the first corrective torque — expected near
+three ticks at the shallow rung — and not settling time. Two seconds is generous against that
+quantity; it is not a budget for crossing the arena.
+
+**Censoring is reported, and it cannot be what carries the result.** A ceiling value sits above
+every uncensored one, so ceilings accumulating in one hand push that hand's IQR up on their own. The
+count of ceilinged trials is therefore reported **per hand, beside the IQRs**, and: **if dropping
+the ceilinged trials from both hands collapses the non-overlap, the latency half has not passed.**
+A separation carried by censoring would be reporting how often the agent fails to recover, not how
+deep the correction that recovered it was. Pre-registered here rather than decided at the run, for
+the reason the whole section exists.
 
 **Nothing here is aggregated into a score.** Goal satisfaction gates whether a trial is valid and
 that is its whole job; no success rate is computed, over splits or otherwise. The map rules degree
