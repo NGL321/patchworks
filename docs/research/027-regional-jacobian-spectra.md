@@ -91,6 +91,15 @@ each correct and the pairing is misleading. The re-run keeps the same convention
 `tests/test_converted_spread.py` pins it, so the comparison is not a change of population dressed as
 a change of body.
 
+**One standing caveat travels with every `τ` in the table, and it is not this ticket's to discharge.**
+The cheap spectral reading of retention is licensed only where a cell dwells in one activation region
+long enough for its operator's rate to express — `dwell > τ`, ADR-0005's precondition re-pointed by
+[#226](https://github.com/NGL321/patchworks/issues/226). That licence is not enforced anywhere:
+[#344](https://github.com/NGL321/patchworks/issues/344) measures the median `dwell/τ` at **2.00**,
+with **57 of 150 cells breaching** it on the corrected full-loop operator. So the realised readings
+above are quoted subject to that open problem, and the `ρ(K)` row is the one least exposed to it —
+`K` is region-independent, which is exactly ADR-0028's *dwell is demoted from existence to fidelity*.
+
 **What is *not* withdrawn.** §1–§5's citation work stands entirely — it is about the literature, not
 about the body, and #167 and ADR-0028 both build on it. §7.4's argument against reporting `ρ` alone
 survives the conversion and is if anything strengthened by the `ρ(K)`-versus-realised gap in the
