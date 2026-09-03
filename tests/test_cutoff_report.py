@@ -160,6 +160,36 @@ class TestABarIsAMetricAComparatorAndANumber:
     def test_an_unreadable_bar_is_none_rather_than_a_guess(self, threshold):
         assert hook.read_bar(threshold) is None
 
+    @pytest.mark.parametrize(
+        "threshold",
+        [
+            "conduction ratio >= 1",
+            "conduction-ratio >= 1",
+            "conduction_ratio>=1",
+            "Conduction Ratio >= 1",
+        ],
+    )
+    def test_a_metric_written_in_words_is_the_same_metric(self, threshold):
+        """#325 and #329 both write `conduction ratio >= 1`, and they are real.
+
+        A grammar that refused a space would be a tool telling an author how to
+        spell a quantity they named in the prose above it — which
+        `problem_registers.rig_name` already declines to do for the rig, in
+        those terms.
+        """
+        bar = hook.read_bar(threshold)
+        assert (bar.metric, bar.comparator, bar.value) == ("conduction_ratio", ">=", 1.0)
+
+    def test_the_bar_is_quoted_back_as_the_issue_wrote_it(self):
+        assert hook.read_bar("conduction ratio >= 1").text == "conduction ratio >= 1"
+
+    def test_the_rigs_spelling_meets_the_issues(self):
+        watch = hook.watching(
+            rendered(problem(cutoff="measurement sandbox_throughput conduction ratio >= 1")),
+            "sandbox_throughput",
+        )[0]
+        assert hook.judge(watch, {"Conduction-Ratio": 1.4}).crossed is True
+
     @pytest.mark.parametrize("threshold", ["offset == 0.2", "offset != 0.2"])
     def test_equality_is_not_a_comparator_a_cutoff_may_use(self, threshold):
         """A cutoff is a direction a reading may go far enough in.

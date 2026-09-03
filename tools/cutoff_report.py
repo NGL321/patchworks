@@ -115,11 +115,21 @@ _ISSUE_CELL = re.compile(r"^\[#(?P<number>\d+)\]\((?P<url>[^)]+)\)$")
 #: it is not read at all rather than read partly. `ticks_per_second < 300
 #: sometimes` parses under a loose pattern and silently discards the judgement,
 #: which is the admission the two-forms rule exists to refuse.
+#:
+#: The metric may be **several words**. #325 and #329 both write `conduction
+#: ratio >= 1`, and a grammar that refused them would be a tool telling an
+#: author how to spell a quantity they named in the prose above it --
+#: `problem_registers.rig_name` already declines to do that for the rig, in
+#: those terms, and the metric is the same kind of name. :func:`metric_name`
+#: settles the spelling instead.
 _BAR = re.compile(
-    r"^(?P<metric>[A-Za-z_]\w*)\s*"
+    r"^(?P<metric>[A-Za-z_][A-Za-z0-9_ \t-]*?)\s*"
     r"(?P<comparator><=|>=|<|>)\s*"
     r"(?P<value>[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)$"
 )
+
+#: Anything that separates the words of a metric's name.
+_SEPARATOR = re.compile(r"[\s-]+")
 
 #: The four comparators, and not `==` or `!=`. A cutoff is a *direction* a
 #: reading may go far enough in; equality on a measured float is a bar nothing
@@ -238,16 +248,33 @@ def watching(text: str, rig: str) -> list[Watch]:
 class Bar:
     """`<metric> <comparator> <number>`: the reading at which a problem is due."""
 
+    #: Normalised by :func:`metric_name`, so that the issue's spelling and the
+    #: rig's key are the same name.
     metric: str
     comparator: str
     value: float
+    #: The threshold as the issue wrote it. Quoted back rather than reformatted:
+    #: a report that showed the author a tidied version of their own bar would
+    #: make them work out whether the tidying changed anything.
+    written: str = ""
 
     @property
     def text(self) -> str:
-        return f"{self.metric} {self.comparator} {self.value:g}"
+        return self.written or f"{self.metric} {self.comparator} {self.value:g}"
 
     def crossed_by(self, reading: float) -> bool:
         return bool(_COMPARE[self.comparator](reading, self.value))
+
+
+def metric_name(written: str) -> str:
+    """`conduction ratio`, `conduction-ratio` and `conduction_ratio` are one name.
+
+    The same service `problem_registers.rig_name` does for a rig written three
+    ways, and for its reason: the register may not tell an author how to spell a
+    quantity, and a bar refused over a space would read to its author as the
+    mechanism not working.
+    """
+    return _SEPARATOR.sub("_", written.strip()).lower()
 
 
 def read_bar(threshold: str) -> Bar | None:
@@ -261,9 +288,10 @@ def read_bar(threshold: str) -> Bar | None:
     if match is None:
         return None
     return Bar(
-        metric=match.group("metric"),
+        metric=metric_name(match.group("metric")),
         comparator=match.group("comparator"),
         value=float(match.group("value")),
+        written=threshold.strip(),
     )
 
 
@@ -298,7 +326,13 @@ class Verdict:
 
 
 def judge(watch: Watch, readings: dict[str, float]) -> Verdict:
-    """One problem, against what this run measured."""
+    """One problem, against what this run measured.
+
+    The rig's keys are put through :func:`metric_name` too, so that the issue
+    and the rig meet in the middle rather than the issue having to guess the
+    rig's punctuation.
+    """
+    readings = {metric_name(key): value for key, value in readings.items()}
     bar = read_bar(watch.threshold)
     if bar is None:
         return Verdict(
