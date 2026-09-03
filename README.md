@@ -199,9 +199,18 @@ observation render alike. It is fast enough to drive by hand and it is not the h
 
 **What is verified in there, and what rests on a human at the screen.** Both windows open on the
 container's own X server — the scene viewer and the panel beside it — and `doctor` passes through
-the display stack, both on every push. Whether each *gesture* survives the browser round-trip is
-checked by hand, and any that does not will be named right here rather than treated as a blocker:
-the headless tier is the floor, and the desktop tier is honest about what it delivers.
+the display stack, both on every push. The place kept here for gestures that do not survive the
+browser round-trip is **empty, and that is the finding**: driven by hand through noVNC
+([#135](https://github.com/NGL321/patchworks/issues/135)), all three acceptance-demo events, `r`,
+and all nine `1`-`9` pairs arrive intact — no modifier chord eaten, no double-click split in two —
+confirmed against the markers the run's own trace recorded.
+
+One container-specific limit, and it is the screen rather than the browser: the image's X server is
+a fixed `1600x1000`, and the panel window opens at `--scale` times the composed frame's height —
+424 px at the default `--pitch 8`. **At the default `--scale 2`, `--pitch 9` is the largest that
+fits**; above it the window is taller than the screen, the window manager clamps it and the panel
+re-fits the frame into what it was given — letterboxed rather than stretched, so the picture settles
+and no mark moves. Use `--scale 1` for a bigger pitch.
 
 ### Developing on the host
 
@@ -262,9 +271,13 @@ error per cell, the somatomotor strip, and `‖Δ(private component)‖` against
 .venv/bin/python   -m patchworks.surface.watch --replay run.npz
 ```
 
-**Shift-ctrl-drag** a link or a puck and you are performing events 1 and 2 of the acceptance demo by
-hand; left-double-click a puck and then a zone for event 3, and `r` rearranges the world without
-resetting the arm. `1`-`9` cycle the goal pairs. Replay needs no scene window and runs under plain
+**Left-double-click a link or a puck to select it, then shift-ctrl-drag it with the right button**,
+and you are performing events 1 and 2 of the acceptance demo by hand: the drag MuJoCo turns into a
+gesture is the translating one, which is ctrl and the right button over something already selected,
+and the shift is what keeps it in this world's plane — pull up the screen without it and the drag
+names a height, which is refused with a message saying so. Left-double-click a puck and then a zone
+for event 3, and `r` rearranges the world without resetting the arm. `1`-`9` cycle the goal pairs —
+which puck goes to which zone, so the lit zone moves and no puck does. Replay needs no scene window and runs under plain
 `python` — but it is not display-free: it opens a frame window of its own, so in a container it is
 the `:desktop` tag like everything else that opens one. The panel is closable and closing it changes nothing but the view; `--pitch` sizes a
 lattice slot and `--scale` sizes the window.

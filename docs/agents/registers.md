@@ -194,9 +194,23 @@ author, and "when it becomes a problem" is not a cutoff but the absence of one.
   nothing: a crossing is a report and a label, never a failure and never a non-zero exit.
   `benchmarks/detectability.py read` carries it — that is the rig the live register names, and
   ADR-0026's conduction ratio is the bar — and `benchmarks/sandbox_throughput.py` carries it as the
-  cheap worked example. Both take `--no-file`, which prints the report and touches the tracker not at
-  all: filing records a *run* against a problem, and a read taken on the small dome to check the code
-  works is not one.
+  cheap worked example. [#351](https://github.com/NGL321/patchworks/issues/351) added four more, one
+  per bar it set: `loop_length.py` (`|loop(c)|` with and without ADR-0016's split),
+  `projection_firing.py` (how often ADR-0015's band projection fires, against depth),
+  `driven_settling.py` (the paired edge instrument and `λ(K)`'s wander on a driven run) and
+  `floor_split.py` (ADR-0007's two floors and the transport rule's own). Every one takes `--no-file`,
+  which prints the report and touches the tracker not at all: filing records a *run* against a
+  problem, and a read taken on the small dome to check the code works is not one.
+
+  **A problem carries one `@cutoff`, and a sequenced second one cannot be written down.** `_one`
+  takes the first value and the rest are dropped in silence, so *this bar, but only once that bar has
+  fired* has no spelling here. #351 met this on
+  [#329](https://github.com/NGL321/patchworks/issues/329), whose settling bar is meaningful only on
+  charts from a graph that already transmits; the bar is measured and reported by
+  `benchmarks/driven_settling.py` and the field on the issue was left at the precondition. Whether
+  the grammar should grow a sequenced cutoff is
+  [#353](https://github.com/NGL321/patchworks/issues/353)'s, with the register's other missing
+  mechanisms.
 - **`uncut`** — admitted, and loud. The register sorts these first and states them as a debt, in the
   voice `@flexibility unknown` uses: *nobody has said when this stops being tolerable* is a fact, and
   hiding it is worse than showing it.

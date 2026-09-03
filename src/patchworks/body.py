@@ -680,8 +680,8 @@ class CellOperators(torch.nn.Module):
         """
         return torch.linalg.eigvals(self.K).abs().amax(dim=-1)
 
-    def project(self) -> None:
-        """Restore the band, in place. Runs after a prediction-rule step.
+    def project(self) -> torch.Tensor:
+        """Restore the band, in place. Returns which cells it moved.
 
         `sigma_max(K) in [1/rho_K, 1]`, by rescaling the whole operator — which
         moves its norm proportionally and so restores the band exactly, without
@@ -696,11 +696,21 @@ class CellOperators(torch.nn.Module):
         the transform, has no gradient, and reads nothing the cell did not
         already own — a cell owns its own `K` outright and needs nothing from a
         neighbour to take its norm.
+
+        **The return value is the observable, not a side effect.**
+        :meth:`~patchworks.learning.PredictionRule.step` names it in those
+        words — *a projection that binds every step is instead the observable
+        that calls #138's named fallback from a dense `K` to a structured one* —
+        and until #351 nothing could read it, because the mask was computed
+        here and dropped. `[cells]` of `bool`, true where the operator was out
+        of band and was rescaled. It is a **report**: the projection is
+        enforcement either way, and nothing here branches on it.
         """
         with torch.no_grad():
             norms = self.norms.clamp(min=1e-12)
             target = norms.clamp(min=1.0 / self.rho_k, max=1.0)
             self.K.mul_((target / norms).view(-1, 1, 1))
+            return target != norms
 
     def subset(self, index: torch.Tensor) -> "CellOperators":
         """The same operators over the cells `index` names, in that order.
