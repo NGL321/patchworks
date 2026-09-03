@@ -6,8 +6,7 @@ for the acceptance demo's instrumentation only. Feeding it to the agent defeats
 the sandbox." `docs/adr/0025-coherence-is-a-motor-readback-not-a-sensory-value.md`
 rules the same thing one domain along, where it costs more: a scalar the
 interlocutor computes about the agent's **own output** is a reward whatever it
-is labelled, and the one channel already shaped like a place to put it is
-`info`.
+is labelled, and the one place already shaped to hold it is `info`.
 
 `docs/spec/12-the-interlocutor.md`'s *Known exposure* is not that the mistake is
 likely. It is that the mistake is **cheap to make again** — a future rig that
@@ -35,14 +34,25 @@ cannot do is speak about a rig that has not been written: it runs
 is neither.
 
 **The static guard** (:class:`TestNothingDownstreamOfInfoReachesTheAgent`) is
-the half still standing when the interlocutor arrives. It reads every module
-under `src/patchworks`, finds each value that comes off the `info` channel,
-propagates that taint through assignment, and refuses to let a tainted value go
-anywhere except into a name, into a `return`, or into one of the constructions
-named in :data:`PERMITTED_SINKS`. Today that list has one entry —
+the half that survives the rig it was written against. It reads every module
+under `src/patchworks`, finds each value that comes off `info`, propagates that
+taint through assignment, and refuses to let a tainted value go anywhere except
+into a name, into a `return`, or into one of the constructions named in
+:data:`PERMITTED_SINKS`. Today that list has one entry —
 :class:`~patchworks.agent.TickOutcome`, the record the tick hands to logging —
 and every other destination fails. `info` is read **nowhere** in
 `src/patchworks`; that is the invariant, and this is what holds it down.
+
+**What it does not do on its own is meet the interlocutor**, and saying so
+plainly is worth more than the sentence it replaces. The strongest of its three
+source rules reads a *position* in the world's answer, and the positions are
+Gymnasium's: an interlocutor is not a `gymnasium.Env`, so a rig reaching its
+world through some new verb returns a tuple no rule here knows the shape of.
+:class:`TestTheWorldIsEnteredThroughTheVerbsTheRuleReads` is the answer —
+:data:`WORLD_VERBS` pins every verb the package calls on a world, so a new seam
+**cannot arrive silently**; it arrives as a failing test that says what it owes.
+The guard does not extend itself to a rig nobody has written. It refuses to let
+one be written without being extended.
 
 **Written deny-by-default, and that is the whole design.** The exposure names
 the shape exactly: coherence into `info`, and then `info` "fed to anything". A
@@ -57,14 +67,14 @@ list is cheap; widening it silently is what is impossible.
 
 **The principle underneath, in one line: reading spreads taint, and only
 leaving is a violation.** `x = info["coherence"]` is not a leak, it is a
-rename — and `x` is now the channel. What fails is the step after: `x` passed
+rename — and `x` is now privileged truth. What fails is the step after: `x` passed
 to a call that is not a permitted sink, or `x` written *through* a subscript or
 an attribute into an object that outlives the statement. That is what "reaches
 the agent" means operationally, and it is why the guard does not have to
 enumerate the sinks a cell is behind.
 
-**Measured, not assumed: kill-tested against eleven leaks, and it caught all
-eleven.** Seven are snippets, in :class:`TestTheAnalyserCatchesALeak`, each a
+**Measured, not assumed: kill-tested against fifteen leaks, and it caught all
+fifteen.** Eleven are snippets, in :class:`TestTheAnalyserCatchesALeak`, each a
 shape a future rig would plausibly write. The other four
 (:class:`TestTheGuardCatchesALeakPlantedInTheRealSource`) go into
 `src/patchworks/agent.py`'s own `act()`, on `tests/test_perturbation.py`'s
@@ -72,28 +82,45 @@ precedent of planting in `learning.py` rather than in a fixture: a rule that
 catches a hand-written example and misses the file it is aimed at is the
 failure the example was supposed to rule out.
 
-**And it can stay silent.** :class:`TestTheAnalyserPermitsWhatIsPermitted` is
-five shapes the package actually writes, each of which must keep passing, plus
-the blind-spot check that closes them off; and there is a control mutation —
-the clip in the same function, made a no-op multiplication — which must not be
-reported either. An analyser that failed on every input would satisfy the kill
-tests alone, which is what those two are for.
+**Four of those eleven were found by `/code-review` against the first version
+of this file, and each was reproduced before it was fixed** — #109's rule,
+which is that a reported hole is a claim until somebody runs it. The world's
+answer bound whole and subscripted (`result[4]["coherence"]`); a starred
+unpacking; a walrus, which binds like an assignment and hides like an
+expression; and a helper returning `{"coherence": …}` for the caller to dig out
+again. All four were silent, and the last two are what
+:func:`_privileged_slots`'s blunt branch and the dict clause of
+:meth:`Analysis._returns_taint` exist for.
 
-**One false positive was found by that planting and fixed**, and it is worth
-the sentence because it is the shape a leak-detector fails in. Taint used to
-follow a write target's base name, so `self.sheaf.stalks[0] += info["d"]` made
-`self` the channel — and `self` appears in the `env.step` unpacking, so
-`observation` came back tainted too and the guard reported the *sensory rim*
-alongside the real leak. Three false findings around one true one is how a
-guard gets narrowed rather than believed. Only a plain binding carries taint
-now; a write through a subscript or an attribute is a violation and taints
-nothing further, because there is nothing further to protect once it has
-happened.
+**And it can stay silent.** :class:`TestTheAnalyserPermitsWhatIsPermitted` is
+six shapes that must keep passing, plus the blind-spot check that bounds them;
+and there is a control mutation — the clip in the same function, made a no-op
+multiplication — which must not be reported either. An analyser that failed on
+every input would satisfy the kill tests alone, which is what those are for.
+
+**Two false positives were found and fixed, and they matter more than the
+misses.** A guard that misses a leak is worth less than it looks; a guard that
+reports the architecture working gets switched off, and then it is worth
+nothing.
+
+* Taint used to follow a write target's base name, so
+  `self.sheaf.stalks[0] += info["d"]` made `self` privileged — and `self`
+  appears in the `env.step` unpacking, so `observation` came back tainted with
+  it and the guard reported the *sensory rim* beside the real leak. Only a
+  plain binding carries taint now; a write through a subscript or an attribute
+  is a violation and taints nothing further, because there is nothing further
+  to protect once it has happened.
+* Any callee named `info` counted as a mint, so the first `logger.info(...)` in
+  the package would have failed the aim check — with a message about the
+  sandbox's privileged truth, pointing at a log line. `logging` is the likeliest
+  import any module here will ever grow. A mint takes no arguments because it
+  reads the world; a log takes what it is logging, and that is the whole of the
+  distinction the rule now draws.
 
 **And the guard is aimed at something.**
-:meth:`TestNothingDownstreamOfInfoReachesTheAgent.test_the_guard_sees_the_channel_it_guards`
-pins which modules carry the channel and how many sites each has. That is this
-file's own failure mode one level down: a refactor that renames the channel
+:meth:`TestNothingDownstreamOfInfoReachesTheAgent.test_the_guard_sees_the_info_it_guards`
+pins which modules carry privileged truth and how many sites each has. That is this
+file's own failure mode one level down: a refactor that renames `info`
 leaves the analyser finding nothing to taint, reporting no violations, and
 guarding nothing — passing all the while. A guard aimed at nothing does not
 fail; it stops guarding.
@@ -125,16 +152,16 @@ from patchworks.graph import build_graph
 #: noise and switched off.
 PACKAGE = Path(__file__).resolve().parents[1] / "src" / "patchworks"
 
-#: The one place a value off the `info` channel is permitted to land, by the
+#: The one place a value off `info` is permitted to land, by the
 #: name of the thing constructed. :class:`~patchworks.agent.TickOutcome` is the
 #: record `tick()` returns, and its own docstring says what it is for —
 #: "Logging and instrumentation only; no cell reads it" — so `info` arriving
-#: there is the channel landing where the spec puts it rather than escaping.
+#: there is privileged truth landing where the spec puts it rather than escaping.
 #:
 #: A construction named here **launders**: what comes out of it is not tainted,
 #: which is why `act()` returning a `TickOutcome` does not make every caller of
 #: `tick()` a suspect. Reading the field back — `outcome.info` — taints again,
-#: so the laundering is of the record, not of the channel inside it.
+#: so the laundering is of the record, not of the privileged value inside it.
 #:
 #: Adding a name here is the deliberate, reviewable act this guard exists to
 #: force. It is not a list of safe functions; it is a list of constructions
@@ -143,7 +170,7 @@ PACKAGE = Path(__file__).resolve().parents[1] / "src" / "patchworks"
 #: ordinary-looking name one line before it is written to a stalk.
 PERMITTED_SINKS = frozenset({"TickOutcome"})
 
-#: Where the channel is, and how many sites carry it — module path relative to
+#: Where privileged truth is, and how many sites carry it — module path relative to
 #: :data:`PACKAGE`, against a count of source sites.
 #:
 #: `agent.py` has two: `act()`'s five-tuple unpacking of `env.step`, and
@@ -151,24 +178,59 @@ PERMITTED_SINKS = frozenset({"TickOutcome"})
 #: `self._info()` call in `reset` and the one in `step`. `timescale.py` has
 #: one, the same `reset` unpacking as `run()`, because its sweep arranges the
 #: world for itself. Every other module in the package has none, and that is
-#: asserted too — a new module that starts carrying the channel has to say so
+#: asserted too — a new module that starts carrying privileged truth has to say so
 #: here.
-KNOWN_CHANNEL_SITES = {
+KNOWN_INFO_SITES = {
     "agent.py": 2,
     "sandbox/env.py": 2,
     "timescale.py": 1,
 }
 
-#: How many values `gymnasium.Env.step` returns, and which of them is `info`.
-#: Named rather than typed as `4` where it is used: the position rule rests on
-#: it, and it is a position rather than a name precisely because Gymnasium's
-#: contract is a tuple.
-STEP_ARITY = 5
-STEP_INFO = 4
+#: The two calls that hand the world's answer back, against `(how many values
+#: it returns, which of them is the privileged one)`. Gymnasium's contract, and
+#: the reason the strongest of the three source rules reads a **position**
+#: rather than a name: a rig that renames `info` to `readback` changes nothing
+#: here.
+#:
+#: One map rather than four loose integers, because the seeding pass and the
+#: aim check below both read it, and two copies of a rule that says which slot
+#: is privileged is two places for the answer to drift — which is the failure
+#: the aim check exists to catch.
+WORLD_RETURNS = {"step": (5, 4), "reset": (2, 1)}
 
-#: The same for `reset`, which returns `(observation, info)`.
-RESET_ARITY = 2
-RESET_INFO = 1
+#: Every verb the package uses to *enter* the world, by the attribute called on
+#: something named `env`, `world` or `unwrapped`, checked against the package
+#: by `TestTheWorldIsEnteredThroughTheVerbsTheRuleReads`.
+#:
+#: This is the whitelist that keeps :data:`WORLD_RETURNS` honest, and it is the
+#: answer to the sharpest thing wrong with a position rule: the positions are
+#: Gymnasium's, and an interlocutor is not a `gymnasium.Env`. A language rig
+#: that reaches its world through `self.interlocutor.utter(...)` has a new seam
+#: returning a new tuple, and no rule written today knows which slot of it is
+#: privileged. What this list buys is that such a rig **cannot arrive
+#: silently**: adding the verb is a visible edit here, on the same line as the
+#: reminder that :data:`WORLD_RETURNS` needs its slot.
+#:
+#: `close`, `perturb`, `retarget` and `disturb_arm` are the experimenter's
+#: tools (`03-the-sandbox.md`, the demo surface); `_require_task` and
+#: `_rederive_from_state` are `sandbox/state.py` talking to itself. None of
+#: them returns privileged truth, and each is here because it is called on a
+#: world, not because it is suspected.
+WORLD_VERBS = frozenset(
+    {
+        "step",
+        "reset",
+        "close",
+        "perturb",
+        "retarget",
+        "disturb_arm",
+        "_require_task",
+        "_rederive_from_state",
+    }
+)
+
+#: The names a world goes by in this package, for the check above.
+WORLD_NAMES = frozenset({"env", "world", "unwrapped"})
 
 
 # ==========================================================================
@@ -184,8 +246,8 @@ RESET_INFO = 1
 #   spot only in the sense that reaching it costs a violation first —
 #   `self.readback = info["x"]` writes *through an attribute*, which fails
 #   here — so there is no route to the far side that this guard is silent on.
-#   `test_parking_the_channel_on_self_is_itself_a_violation` holds that down.
-# * **Across a module.** A helper in one module returning the channel to a
+#   `test_parking_privileged_truth_on_self_is_itself_a_violation` holds that down.
+# * **Across a module.** A helper in one module returning privileged truth to a
 #   caller in another is not traced. Inside a module it is: a function whose
 #   `return` carries taint becomes a source, so `self._readback()` taints its
 #   caller. The cross-module case is left because the package has no such
@@ -195,16 +257,16 @@ RESET_INFO = 1
 
 
 def _is_info_name(name: str) -> bool:
-    """Is this identifier the privileged channel, under any leading underscore?
+    """Is this identifier the privileged `info`, under any leading underscore?
 
-    `info`, `_info` and `__info` are one channel; the underscore is this
+    `info`, `_info` and `__info` are one name; the underscore is this
     repository's discard convention (`observation, _info = env.reset(...)`),
     and a discard that is then read is exactly the route this must not miss.
 
     Deliberately an equality after stripping, not a suffix match. A suffix
     match taints `sys.version_info`, and a guard with a false positive in the
     standard library gets narrowed rather than believed. A future rig naming
-    the channel `step_info` escapes *this* rule and is caught by the position
+    it `step_info` escapes *this* rule and is caught by the position
     rule, which is the structural one and does not read names at all.
     """
     return name.lstrip("_") == "info"
@@ -262,9 +324,42 @@ def _parameters(node: ast.AST) -> list[str]:
     return [argument.arg for argument in named]
 
 
+def _privileged_slots(target: ast.expr, value: ast.expr) -> set[str]:
+    """The names a binding off the world's answer puts the privileged value in.
+
+    Empty unless `value` is a call to a verb in :data:`WORLD_RETURNS`. When it
+    is, there are two cases and the difference is precision:
+
+    * **A flat tuple of the declared arity** — `_o, _r, _t, _tr, info = step(a)`,
+      what the package writes. Exactly one name is privileged and the rest are
+      the sensory rim, so exactly one name is tainted. Getting this wrong is
+      not academic: tainting `observation` here makes the guard report the
+      architecture working, which is the one failure a guard does not recover
+      from.
+    * **Any other shape** — `result = step(a)`, `observation, *rest = step(a)`,
+      a nested target. The privileged slot cannot be told from the others, so
+      every name bound is tainted. That is deliberately blunt, and blunt is
+      right: the shapes it fires on are shapes the package does not write, and
+      a rig that starts writing one gets a failure that says *unpack the world's
+      answer flat so this can tell the rim from the readback* rather than
+      silence. `result[4]["coherence"]` reaching a stalk was a real hole before
+      this branch existed.
+    """
+    returns = WORLD_RETURNS.get(_called_attribute(value) or "")
+    if returns is None:
+        return set()
+    arity, privileged = returns
+    names = _flat_names(target)
+    if names is not None and len(names) == arity:
+        return {names[privileged].id}
+    return {
+        inner.id for inner in ast.walk(target) if isinstance(inner, ast.Name)
+    }
+
+
 @dataclass(frozen=True)
 class Violation:
-    """One place a value off the `info` channel leaves."""
+    """One place a value off `info` leaves."""
 
     module: str
     line: int
@@ -276,11 +371,14 @@ class Violation:
 
 @dataclass(frozen=True)
 class Site:
-    """One place a value off the `info` channel is minted."""
+    """One place a value off `info` is minted."""
 
     module: str
     line: int
     how: str
+
+    def __str__(self) -> str:
+        return f"{self.module}:{self.line}: {self.how}"
 
 
 class _Scope:
@@ -305,7 +403,7 @@ class _Scope:
 
 
 class Analysis:
-    """What one module does with the `info` channel.
+    """What one module does with privileged `info`.
 
     Three passes, and the middle one is a fixpoint. First the module is split
     into scopes. Then taint is seeded and propagated until nothing changes —
@@ -318,6 +416,13 @@ class Analysis:
         self.module = module
         self.tree = ast.parse(source)
         self.scopes = self._split(self.tree)
+        #: Every expression sitting in a call's callee position, by identity.
+        #: `logger.info("…")` reads `.info` there and means nothing by it.
+        self.callees = {
+            id(node.func)
+            for node in ast.walk(self.tree)
+            if isinstance(node, ast.Call)
+        }
         self.info_returning: set[str] = set()
         self.violations: list[Violation] = []
         self._resolve()
@@ -351,38 +456,49 @@ class Analysis:
     # -- taint ----------------------------------------------------------------
 
     def _is_source(self, node: ast.AST) -> bool:
-        """Is this expression itself a value off the channel?
+        """Is this expression itself a value off the privileged `info`?
 
         Three shapes, and they are the three the package can write:
 
-        * a call to something named `info` under its underscores —
-          `self._info()`, where the sandbox mints the privileged dict;
-        * an attribute read of `.info` — `outcome.info`, the record's own
-          field, which is where a future reader is likeliest to pick the number
-          up because it is the one that looks like ordinary logging;
-        * a call to a function this module has already been found to return the
-          channel from, which is the transitive case and the reason the
-          taint pass is a fixpoint rather than a walk.
+        * a call to something named `info` under its underscores, **taking no
+          arguments** — `self._info()`, where the sandbox mints the privileged
+          dict. The argument clause is what tells a mint from `logger.info("…")`,
+          and it is not a nicety: `logging` is the likeliest import any module
+          here will ever grow, and a guard that reported the first `logger.info`
+          in the package would be switched off that afternoon. A mint takes
+          nothing because it reads the world; a log takes what it is logging.
+        * an attribute read of `.info` that is **not the callee of a call** —
+          `outcome.info`, the record's own field, which is where a future reader
+          is likeliest to pick the number up because it is the one that looks
+          like ordinary logging. Excluding the callee position is the other half
+          of the `logger.info` fix, and it also stops `self._info()` from
+          counting twice, once as the call and once as the attribute it goes
+          through.
+        * a call to a function this module has already been found to hand the
+          privileged value back from, which is the transitive case and the
+          reason the taint pass is a fixpoint rather than a walk.
         """
         if isinstance(node, ast.Call):
             attribute = _called_attribute(node)
             if attribute is not None and (
-                _is_info_name(attribute) or attribute in self.info_returning
+                (_is_info_name(attribute) and not node.args and not node.keywords)
+                or attribute in self.info_returning
             ):
                 return True
             if isinstance(node.func, ast.Name) and (
-                _is_info_name(node.func.id) or node.func.id in self.info_returning
+                (_is_info_name(node.func.id) and not node.args and not node.keywords)
+                or node.func.id in self.info_returning
             ):
                 return True
         if isinstance(node, ast.Attribute) and _is_info_name(node.attr):
-            return True
+            return id(node) not in self.callees
         return False
 
     def _mentions_taint(self, node: ast.AST, tainted: set[str]) -> bool:
-        """Does this expression read anything downstream of the channel?
+        """Does this expression read anything downstream of privileged truth?
 
         A permitted sink is opaque here: what comes out of `TickOutcome(...)`
-        is a record, not the channel, and treating it otherwise would taint
+        is a record, not privileged truth, and treating it otherwise would taint
         every caller of `tick()` and turn the guard into a report on the CLI.
         """
         if _sink_name(node) in PERMITTED_SINKS:
@@ -410,17 +526,22 @@ class Analysis:
             return [node.target], node.iter
         if isinstance(node, ast.withitem) and node.optional_vars is not None:
             return [node.optional_vars], node.context_expr
+        # The walrus binds like an assignment and hides like an expression, so
+        # `if (c := info["coherence"]) > 0:` used to leave `c` clean and the
+        # stalk write on the next line silent. It is a binding here like any
+        # other, which is the whole fix.
+        if isinstance(node, ast.NamedExpr):
+            return [node.target], node.value
         return [], None
 
     def _seed(self, scope: _Scope) -> None:
-        """Every name a scope binds straight off the channel.
+        """Every name a scope binds straight off the privileged `info`.
 
         Two ways in, and the first is the one that survives a rename:
 
-        1. **Position.** A five-tuple unpacked from anything called `step`, or
-           a two-tuple from anything called `reset`, is Gymnasium's contract,
-           and the `info` slot is a position in it. What the receiving name is
-           called does not matter and must not.
+        1. **Position.** Anything bound from a call to a verb in
+           :data:`WORLD_RETURNS` — the world's answer. What the receiving name
+           is called does not matter and must not.
         2. **Name.** A parameter or a target called `info` under its
            underscores.
         """
@@ -432,13 +553,7 @@ class Analysis:
             if value is None:
                 continue
             for target in targets:
-                names = _flat_names(target)
-                if names is not None:
-                    attribute = _called_attribute(value)
-                    if attribute == "step" and len(names) == STEP_ARITY:
-                        scope.tainted.add(names[STEP_INFO].id)
-                    if attribute == "reset" and len(names) == RESET_ARITY:
-                        scope.tainted.add(names[RESET_INFO].id)
+                scope.tainted.update(_privileged_slots(target, value))
                 for inner in ast.walk(target):
                     if isinstance(inner, ast.Name) and _is_info_name(inner.id):
                         scope.tainted.add(inner.id)
@@ -452,7 +567,7 @@ class Analysis:
         order they run.
 
         **Only a plain binding carries taint.** `self.sheaf.stalks[0] = info`
-        does not make `self` the channel — it makes the stalk the channel, and
+        does not make `self` privileged — it makes the stalk privileged, and
         the write itself is already a violation. Tainting the base name instead
         was measured, on a leak planted in `agent.py`: `self` went tainted, the
         `env.step` unpacking mentioned `self`, and `observation` came back
@@ -476,27 +591,28 @@ class Analysis:
                 return
 
     def _returns_taint(self, scope: _Scope) -> bool:
-        """Does this function hand the channel back *as* its return value?
+        """Does this function hand privileged truth back *as* its return value?
 
-        A container return does not count, and the exclusion is load-bearing
-        rather than a convenience. `PlanarPushSandbox.step` returns a tuple
-        with `info` in it — that is the contract, not a leak — and counting it
-        would make `step` an info-returning function, which taints *every*
-        name in every unpacking of it, `observation` included. The observation
-        is the sensory rim: tainting it makes the guard report the architecture
-        working. The two container shapes that do carry the channel are
-        Gymnasium's, and the position rule reads them by position, which is
-        both narrower and exact.
+        A **tuple or list** return does not count, and the exclusion is
+        load-bearing rather than a convenience. `PlanarPushSandbox.step`
+        returns a tuple with `info` in it — that is the contract, not a leak —
+        and counting it would make `step` an info-returning function, which
+        taints *every* name in every unpacking of it, `observation` included.
+        The observation is the sensory rim: tainting it makes the guard report
+        the architecture working. The one sequence shape that does carry the
+        privileged value is Gymnasium's, and :func:`_privileged_slots` reads it
+        by position, which is both narrower and exact.
 
-        The residue is a helper returning `{"coherence": info["c"]}` to a
-        caller that digs it out again. Recorded rather than closed: it is not a
-        shape the package writes, and the store it would need on the way to a
-        cell is a write through a subscript, which fails here anyway.
+        A **dict** return does count, and that is the difference. Nothing in
+        this package hands the world's answer back as a mapping, so there is no
+        contract to protect — while `return {"coherence": info["c"]}` to a
+        caller that digs it out again is the shape a helper takes when somebody
+        is being tidy about a leak.
         """
         for node in scope.own:
             if not isinstance(node, ast.Return) or node.value is None:
                 continue
-            if isinstance(node.value, (ast.Tuple, ast.List, ast.Dict, ast.Set)):
+            if isinstance(node.value, (ast.Tuple, ast.List)):
                 continue
             if self._mentions_taint(node.value, scope.tainted):
                 return True
@@ -519,40 +635,28 @@ class Analysis:
             if self.info_returning == before:
                 return
 
-    # -- where the channel is -------------------------------------------------
+    # -- where privileged truth is -------------------------------------------------
 
     def _sites(self) -> list[Site]:
-        """Every place the channel is minted, for the aim check.
+        """Every place privileged truth is minted, for the aim check.
 
         Position unpackings and source expressions, and nothing else: a name
-        rule firing on a dataclass field annotation is the channel being
+        rule firing on a dataclass field annotation is privileged truth being
         *declared*, not read off the world, and counting it would make the
         number a fact about how `TickOutcome` is written.
         """
         found: list[Site] = []
-        # `self._info()` is a source twice over — the call, and the attribute
-        # it goes through — and counting both would make the number a fact
-        # about how a call is spelled. The call is the site; the attribute in
-        # its callee position is the same site said again.
-        callees = {id(node.func) for node in ast.walk(self.tree) if isinstance(node, ast.Call)}
         for node in ast.walk(self.tree):
-            if id(node) in callees and isinstance(node, ast.Attribute):
-                continue
             targets, value = self._bindings(node)
             if value is not None:
-                attribute = _called_attribute(value)
+                verb = _called_attribute(value) or ""
                 for target in targets:
-                    names = _flat_names(target)
-                    if names is None:
-                        continue
-                    if (attribute == "step" and len(names) == STEP_ARITY) or (
-                        attribute == "reset" and len(names) == RESET_ARITY
-                    ):
+                    if _privileged_slots(target, value):
                         found.append(
-                            Site(self.module, node.lineno, f"unpacked from `{attribute}`")
+                            Site(self.module, node.lineno, f"bound off `{verb}`")
                         )
             if self._is_source(node) and isinstance(node, (ast.Call, ast.Attribute)):
-                found.append(Site(self.module, node.lineno, "read off the channel"))
+                found.append(Site(self.module, node.lineno, "read off the world"))
         return found
 
     # -- what leaves ----------------------------------------------------------
@@ -642,7 +746,7 @@ def _package_modules() -> list[Path]:
 
 
 class _InfoWasRead(AssertionError):
-    """A tick read the privileged channel."""
+    """A tick read privileged truth."""
 
 
 class _Tripwire:
@@ -667,7 +771,7 @@ class _Tripwire:
     def _trip(self, how: str) -> None:
         self.reads.append(how)
         raise _InfoWasRead(
-            f"the tick read the privileged channel ({how}). "
+            f"the tick read privileged truth ({how}). "
             "`docs/spec/03-the-sandbox.md` puts `info` on the demo surface and "
             "ADR-0025 keeps a scalar about the agent's own output off the "
             "sensory rim; a read from inside a tick is a reward arriving."
@@ -767,48 +871,55 @@ def dome():
     return build_graph()
 
 
+def _started(kind, tripwired, dome):
+    """One agent of `kind`, wired to the tripwired world and arranged.
+
+    The `reset` and the `observe` are the world's last word before the first
+    tick, and they are here rather than in each test because the three ways of
+    spelling them are three chances for one test to be arranging a different
+    world from its neighbour.
+    """
+    agent = kind(tripwired, dome=dome, generator=torch.Generator().manual_seed(0))
+    observation, _info = tripwired.reset(seed=0)
+    agent.observe(observation)
+    return agent
+
+
+@pytest.fixture
+def agent(tripwired, dome):
+    return _started(Agent, tripwired, dome)
+
+
 class TestNothingInTheTickReadsInfo:
     """The runtime half: a real agent, real ticks, an `info` that screams."""
 
     def test_a_whole_run_never_touches_it(self, tripwired, dome):
-        agent = Agent(
+        """`run` arranges the world itself, so this one does not use the fixture."""
+        running = Agent(
             tripwired, dome=dome, generator=torch.Generator().manual_seed(0)
         )
-        for _ in run(agent, TRIPWIRE_TICKS, seed=0):
+        for _ in run(running, TRIPWIRE_TICKS, seed=0):
             pass
         assert tripwired.wire.reads == []
 
-    def test_the_reset_before_the_first_tick_never_touches_it(self, tripwired, dome):
-        agent = Agent(
-            tripwired, dome=dome, generator=torch.Generator().manual_seed(0)
-        )
-        observation, _info = tripwired.reset(seed=0)
-        agent.observe(observation)
+    def test_the_reset_before_the_first_tick_never_touches_it(self, agent, tripwired):
+        assert agent is not None
         assert tripwired.wire.reads == []
 
-    def test_the_outcome_carries_it_out_of_the_tick_unread(self, tripwired, dome):
-        """The channel still *reaches* the demo surface; it is not deleted.
+    def test_the_outcome_carries_it_out_of_the_tick_unread(self, agent, tripwired):
+        """Privileged truth still *reaches* the demo surface; it is not deleted.
 
         A guard that passed because `info` had stopped arriving would be
         guarding an empty pipe, and `03-the-sandbox.md` wants the pipe.
         """
-        agent = Agent(
-            tripwired, dome=dome, generator=torch.Generator().manual_seed(0)
-        )
-        observation, _info = tripwired.reset(seed=0)
-        agent.observe(observation)
         outcome = agent.tick()
         assert outcome.info is tripwired.wire
 
     def test_a_planted_leak_trips_it(self, tripwired, dome):
         """The kill test: the same rig, with a leak in it, fails."""
-        agent = _LeaksInfoIntoAStalk(
-            tripwired, dome=dome, generator=torch.Generator().manual_seed(0)
-        )
-        observation, _info = tripwired.reset(seed=0)
-        agent.observe(observation)
+        leaking = _started(_LeaksInfoIntoAStalk, tripwired, dome)
         with pytest.raises(_InfoWasRead):
-            agent.tick()
+            leaking.tick()
         assert tripwired.wire.reads == ["info['goal_distance']"]
 
     @pytest.mark.parametrize(
@@ -846,28 +957,33 @@ class TestNothingInTheTickReadsInfo:
 class TestNothingDownstreamOfInfoReachesTheAgent:
     """The standing half: `src/patchworks`, read as source, every module."""
 
-    def test_no_module_lets_the_channel_leave(self):
+    def test_no_module_lets_privileged_truth_leave(self):
         leaked: list[Violation] = []
         for path in _package_modules():
             module = path.relative_to(PACKAGE).as_posix()
             leaked.extend(Analysis(path.read_text(encoding="utf-8"), module).violations)
         assert not leaked, "\n".join(str(violation) for violation in leaked)
 
-    def test_the_guard_sees_the_channel_it_guards(self):
-        """The aim check: the analyser is looking at the channel, not past it.
+    def test_the_guard_sees_the_info_it_guards(self):
+        """The aim check: the analyser is looking at `info`, not past it.
 
         Counted rather than merely non-empty, because the failure this catches
-        is a refactor that moves the channel somewhere the source rules do not
+        is a refactor that moves `info` somewhere the source rules do not
         recognise. That leaves nothing tainted, nothing to report, and a green
         guard over an architecture with a reward in it.
         """
-        counted = {}
+        found: list[Site] = []
         for path in _package_modules():
             module = path.relative_to(PACKAGE).as_posix()
-            sites = Analysis(path.read_text(encoding="utf-8"), module).sites
-            if sites:
-                counted[module] = len(sites)
-        assert counted == KNOWN_CHANNEL_SITES
+            found.extend(Analysis(path.read_text(encoding="utf-8"), module).sites)
+        counted: dict[str, int] = {}
+        for site in found:
+            counted[site.module] = counted.get(site.module, 0) + 1
+        # The sites themselves in the message, not just the counts. A count
+        # that has moved is a question — *which* one, and to where — and a
+        # failure that does not answer it sends the reader back to the source
+        # to re-derive what this pass already knew.
+        assert counted == KNOWN_INFO_SITES, "\n".join(str(site) for site in found)
 
     def test_the_permitted_sink_is_the_one_the_spec_names(self):
         """`TickOutcome` is on the list because its docstring earns it.
@@ -875,6 +991,11 @@ class TestNothingDownstreamOfInfoReachesTheAgent:
         Read out of the source rather than asserted from memory: the entry is
         justified by what that class says it is for, and a rewrite that made it
         something a cell reads should not leave the justification standing.
+
+        The constant itself is deliberately *not* restated here. Pinning it
+        would make any legitimate widening fail in two places, and this file
+        already makes widening a visible edit; what wants checking is whether
+        the one entry still deserves to be there.
         """
         source = (PACKAGE / "agent.py").read_text(encoding="utf-8")
         outcome = next(
@@ -882,8 +1003,68 @@ class TestNothingDownstreamOfInfoReachesTheAgent:
             for node in ast.walk(ast.parse(source))
             if isinstance(node, ast.ClassDef) and node.name == "TickOutcome"
         )
-        assert PERMITTED_SINKS == frozenset({"TickOutcome"})
+        assert "TickOutcome" in PERMITTED_SINKS
         assert "no cell reads it" in (ast.get_docstring(outcome) or "")
+
+
+class TestTheWorldIsEnteredThroughTheVerbsTheRuleReads:
+    """The position rule's own precondition, checked rather than assumed.
+
+    :data:`WORLD_RETURNS` knows which slot of a `step` and a `reset` is
+    privileged because Gymnasium says so. It knows nothing about any other way
+    into a world, and an interlocutor is not a `gymnasium.Env` — so the
+    sentence "the half still standing when the interlocutor arrives" is only
+    true while the world is entered through verbs this file has read.
+
+    That is a precondition, and a precondition nobody checks is an assumption.
+    So the verbs are pinned. A language rig reaching its world through
+    `self.interlocutor.utter(...)` fails here, on a line whose message says
+    what it now owes: a slot in :data:`WORLD_RETURNS`, or an argument for why
+    that seam carries no privileged truth.
+    """
+
+    @staticmethod
+    def _base(node: ast.expr) -> str | None:
+        if isinstance(node, ast.Attribute):
+            return node.attr
+        if isinstance(node, ast.Name):
+            return node.id
+        return None
+
+    def _verbs(self) -> dict[str, list[str]]:
+        found: dict[str, list[str]] = {}
+        for path in _package_modules():
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Call):
+                    continue
+                if not isinstance(node.func, ast.Attribute):
+                    continue
+                if self._base(node.func.value) not in WORLD_NAMES:
+                    continue
+                where = f"{path.relative_to(PACKAGE).as_posix()}:{node.lineno}"
+                found.setdefault(node.func.attr, []).append(where)
+        return found
+
+    def test_every_verb_the_package_calls_on_a_world_is_pinned(self):
+        called = self._verbs()
+        unpinned = {verb: where for verb, where in called.items() if verb not in WORLD_VERBS}
+        assert not unpinned, (
+            "a new way into the world. If it returns the world's answer, give it "
+            f"a slot in WORLD_RETURNS; otherwise add it to WORLD_VERBS: {unpinned}"
+        )
+
+    def test_the_two_that_return_the_worlds_answer_are_still_called(self):
+        """The other direction: a pinned verb nobody calls is a stale pin.
+
+        Only the two that carry a privileged slot are asserted present — the
+        rest are the experimenter's tools and may come and go.
+        """
+        called = set(self._verbs())
+        assert set(WORLD_RETURNS) <= called
+
+    def test_every_verb_with_a_privileged_slot_is_one_of_them(self):
+        assert set(WORLD_RETURNS) <= WORLD_VERBS
 
 
 class TestTheAnalyserCatchesALeak:
@@ -917,7 +1098,7 @@ class TestTheAnalyserCatchesALeak:
         )
         assert analysis.violations
 
-    def test_it_catches_the_channel_under_an_innocuous_name(self):
+    def test_it_catches_privileged_truth_under_an_innocuous_name(self):
         """The position rule, doing the work the name rule cannot."""
         analysis = _analyse(
             """
@@ -928,7 +1109,7 @@ class TestTheAnalyserCatchesALeak:
         )
         assert analysis.violations
 
-    def test_it_catches_the_channel_parked_on_an_attribute(self):
+    def test_it_catches_privileged_truth_parked_on_an_attribute(self):
         analysis = _analyse(
             """
             def act(self, command):
@@ -938,7 +1119,7 @@ class TestTheAnalyserCatchesALeak:
         )
         assert analysis.violations
 
-    def test_it_catches_a_helper_that_returns_the_channel(self):
+    def test_it_catches_a_helper_that_returns_privileged_truth(self):
         """The transitive case, and the reason the taint pass is a fixpoint."""
         analysis = _analyse(
             """
@@ -952,7 +1133,7 @@ class TestTheAnalyserCatchesALeak:
         )
         assert analysis.violations
 
-    def test_it_catches_the_channel_carried_through_a_loop(self):
+    def test_it_catches_privileged_truth_carried_through_a_loop(self):
         analysis = _analyse(
             """
             def act(self, command):
@@ -963,13 +1144,68 @@ class TestTheAnalyserCatchesALeak:
         )
         assert analysis.violations
 
-    def test_it_catches_the_channel_used_as_an_index(self):
+    def test_it_catches_the_privileged_value_used_as_an_index(self):
         """A leak with no number in it: *which* stalk is written is the signal."""
         analysis = _analyse(
             """
             def act(self, command):
                 observation, _r, _t, _tr, info = self.env.step(command)
                 self.sheaf.stalks[info["goal_puck"]] = 1.0
+            """
+        )
+        assert analysis.violations
+
+    # -- the four found by review, each of which used to slip past ------------
+    #
+    # Reported against the first version of this file and reproduced before
+    # being fixed, which is #109's rule: confirm each empirically first. They
+    # stay as tests because the rules that close them are exactly the rules a
+    # later simplification would think were redundant.
+
+    def test_it_catches_the_worlds_answer_bound_whole(self):
+        """`result[4]` — no unpacking, so nothing to read a position off."""
+        analysis = _analyse(
+            """
+            def act(self, command):
+                result = self.env.step(command)
+                self.sheaf.stalks[0] += result[4]["coherence"]
+            """
+        )
+        assert analysis.violations
+
+    def test_it_catches_a_starred_unpacking(self):
+        """`observation, *rest = step(...)` — a flat tuple of the wrong arity."""
+        analysis = _analyse(
+            """
+            def act(self, command):
+                observation, *rest = self.env.step(command)
+                self.sheaf.stalks[0] += rest[3]["coherence"]
+            """
+        )
+        assert analysis.violations
+
+    def test_it_catches_a_walrus(self):
+        """A binding that hides inside an expression is still a binding."""
+        analysis = _analyse(
+            """
+            def act(self, command):
+                _o, _r, _t, _tr, info = self.env.step(command)
+                if (coherence := info["coherence"]) > 0:
+                    self.sheaf.stalks[0] = coherence
+            """
+        )
+        assert analysis.violations
+
+    def test_it_catches_a_helper_returning_a_dict_the_caller_digs_into(self):
+        """The tidy leak: wrapped on the way out, unwrapped on the way in."""
+        analysis = _analyse(
+            """
+            def _readback(self, env, action):
+                _o, _r, _t, _tr, info = env.step(action)
+                return {"coherence": info["coherence"]}
+
+            def act(self, command):
+                self.sheaf.stalks[0] = self._readback(self.env, command)["coherence"]
             """
         )
         assert analysis.violations
@@ -1009,7 +1245,7 @@ ANCHOR = "        self.write(observation, applied)"
 
 #: A change to the same function that is not a leak: the clip, made a no-op
 #: multiplication. It moves the code the guard reads without moving the
-#: channel, so a guard that reports it is reporting the diff rather than the
+#: privileged value, so a guard that reports it is reporting the diff rather than the
 #: architecture. `tests/test_perturbation.py`'s control mutation, in miniature.
 CONTROL = (
     "        applied = np.clip(command, self.action_low, self.action_high)",
@@ -1058,7 +1294,7 @@ class TestTheAnalyserPermitsWhatIsPermitted:
     looks like containment and is not.
     """
 
-    def test_the_channel_may_land_in_the_record(self):
+    def test_privileged_truth_may_land_in_the_record(self):
         analysis = _analyse(
             """
             def act(self, command):
@@ -1092,7 +1328,7 @@ class TestTheAnalyserPermitsWhatIsPermitted:
         )
         assert not analysis.violations
 
-    def test_a_discarded_channel_is_not_a_leak(self):
+    def test_a_discarded_info_is_not_a_leak(self):
         analysis = _analyse(
             """
             def run(agent, ticks, seed=None):
@@ -1102,7 +1338,30 @@ class TestTheAnalyserPermitsWhatIsPermitted:
         )
         assert not analysis.violations
 
-    def test_a_module_that_never_meets_the_channel_is_silent(self):
+    def test_logging_is_not_the_privileged_value(self):
+        """The false positive that would have cost the guard its life.
+
+        `logging` is the likeliest import any module here will ever grow, and
+        the first `logger.info(...)` in the package used to register as a site
+        — failing the aim check with a message about the sandbox's privileged
+        truth, pointing at a log line. A guard whose first failure is wrong
+        about what it is guarding does not get investigated; it gets narrowed.
+        """
+        analysis = _analyse(
+            """
+            import logging
+
+            logger = logging.getLogger(__name__)
+
+            def tick(self):
+                logger.info("ticked %s", self.n)
+                logger.info("done")
+            """
+        )
+        assert not analysis.violations
+        assert not analysis.sites
+
+    def test_a_module_that_never_meets_the_privileged_value_is_silent(self):
         analysis = _analyse(
             """
             import sys
@@ -1114,7 +1373,7 @@ class TestTheAnalyserPermitsWhatIsPermitted:
         assert not analysis.violations
         assert not analysis.sites
 
-    def test_parking_the_channel_on_self_is_itself_a_violation(self):
+    def test_parking_privileged_truth_on_self_is_itself_a_violation(self):
         """The documented blind spot is reached only through a violation.
 
         Taint is not followed across a `self` from one method to another. The
