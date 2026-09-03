@@ -277,9 +277,9 @@ files in that directory are and what broke while building them; it does not repe
 | | |
 |---|---|
 | [`docs/spec/`](docs/spec/) | Twelve files, in reading order. The system, completely specified. Start with [the cell and its sheaf](docs/spec/01-cell-and-sheaf.md). |
-| [`docs/adr/`](docs/adr/) | Twenty-eight decisions that needed a reason on the record. |
+| [`docs/adr/`](docs/adr/) | Twenty-nine decisions that needed a reason on the record. |
 | [`docs/research/`](docs/research/) | The citation passes, including the ones that found defects. |
-| [`docs/registers/`](docs/registers/) | Every constant the architecture rests on, typed by where the number came from, and what turning it would cost. Generated from the definition sites, so it cannot disagree with the code. |
+| [`docs/registers/`](docs/registers/) | Every constant the architecture rests on, typed by where the number came from and what turning it would cost — plus every open problem, proposed solution and dismissed solution. Generated from the definition sites and from the issue tracker, so no register can disagree with its source. See [`docs/agents/registers.md`](docs/agents/registers.md). |
 | [`CONTEXT.md`](CONTEXT.md) | The vocabulary. Narrow senses, deliberately. |
 | [`src/patchworks/sandbox/`](src/patchworks/sandbox/) | The world, as a `gymnasium.Env`. |
 | [`src/patchworks/graph.py`](src/patchworks/graph.py) | The dome: construction, the structural masks, and the diagnostics it records. |

@@ -757,3 +757,41 @@ draws from it the way `reset()` there rearranges the world. A roster rather than
 that "the partner is talking about something" costs no machinery the contract would have to describe.
 Topic identity is privileged and lives in `info`.
 _Avoid_: curriculum, prompt bank, knowledge base, corpus, task set
+
+### The record
+
+**Register**:
+A generated projection of where something is argued, which cannot disagree with its source because it
+is rendered from it. Constants project from the `#:` block at their definition site; open problems,
+proposals and dismissals project from GitHub. A register is never edited by hand and never holds an
+argument — it holds a link to where the argument lives.
+_Avoid_: index, catalogue, list, inventory, log
+
+**Open problem**:
+A stateable failure the architecture is expected to have, deliberately unresolved, carrying a cutoff.
+Distinct from a ticket, which is work someone will do: a problem is a known gap nobody is working on,
+on purpose. Admitted only if the failure is one someone could recognise happening.
+_Avoid_: bug, gap, todo, tech debt, known issue
+
+**Cutoff**:
+The point at which an open problem stops being tolerable — the condition under which *not resolving
+emergently* becomes *resolve this now*. Either an event or a measurement against a rig, never a date
+and never a judgement, because it must be checkable by someone who is not its author.
+_Avoid_: deadline, due date, SLA, expiry, trigger (bare)
+
+**Proposal**:
+A solution on the shelf, arguing at least one shape it would answer, binding nothing. May be attached
+to a problem, to several, or to none — an orphan is a first-class proposal, and stating a shape
+describes a symptom rather than binding the proposal to a problem.
+_Avoid_: idea, suggestion, feature request, RFC, design
+
+**Shape**:
+The symptom a proposal answers, stated so that an agent arriving with a problem finds the proposal
+without knowing its name. What an orphaned proposal offers in place of an attached problem.
+_Avoid_: use case, application, motivation, scope
+
+**Dismissal**:
+A solution excluded, and binding on every later agent. Either *refused* — excluded by what the
+project is, reopenable only at ADR level — or *failed*, which must name the rig and the reading that
+killed it, since "we tried it" without a reading is folklore.
+_Avoid_: rejected, wontfix, deprecated, declined, closed
