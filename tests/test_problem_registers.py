@@ -182,6 +182,17 @@ class TestOnlyTwoCutoffFormsAreAdmissibleAndUncutIsTheThird:
         with pytest.raises(registers.MalformedProvenance, match="threshold"):
             registers.read_cutoff("measurement detectability", "#1")
 
+    def test_an_event_carrying_judgement_after_its_issue_is_refused(self):
+        """`event 230 when it feels bad` must not parse as `#230`.
+
+        Taking the first token and dropping the rest would admit the judgement
+        the two-forms rule exists to refuse, and admit it *silently*: the row
+        would render as a clean event cutoff with the unenforceable half of it
+        deleted, which is worse than refusing, because nobody would know.
+        """
+        with pytest.raises(registers.MalformedProvenance, match="one issue"):
+            registers.read_cutoff("event 230 when it feels bad", "#1")
+
     def test_an_event_naming_no_issue_is_refused(self):
         with pytest.raises(registers.MalformedProvenance, match="issue"):
             registers.read_cutoff("event", "#1")
@@ -193,6 +204,15 @@ class TestOnlyTwoCutoffFormsAreAdmissibleAndUncutIsTheThird:
 
 
 class TestAProblemIsReadOffItsIssue:
+    """A half-read problem is worse than none, so it is refused instead.
+
+    Each of the three refusals below is a way a row could render looking like
+    provenance while carrying none: a problem with no failure is the "the
+    disagreement floor might be too high" case the admission rule exists to
+    exclude, and a problem with no cutoff is not the same state as `uncut` --
+    one is a debt someone stated, the other is a field someone forgot.
+    """
+
     def test_the_three_fields_land(self):
         problem = registers.read_problem(issue(number=300, body=PROBLEM))
         assert problem.number == 300
@@ -229,6 +249,16 @@ class TestAProblemIsReadOffItsIssue:
 
 
 class TestAProposalNeedsASourceAndAShape:
+    """The two fields without which a proposal cannot be found or checked.
+
+    **Shape is the index.** An agent arrives at this register holding a symptom,
+    not the name it was going to give its solution, so a proposal with no shape
+    is a row nobody can reach -- which is worse than no row, because it makes
+    the register look fuller than it is. **Source is where the argument lives**,
+    and a proposal whose argument is nowhere is the folklore the whole
+    mechanism exists to keep out.
+    """
+
     def test_a_well_formed_proposal_reads(self):
         found = registers.read_proposal(PROPOSAL, where="#279", url="u", number=279)
         assert found.title == "Relay cells"
@@ -287,6 +317,14 @@ class TestAProposalNeedsASourceAndAShape:
 
 
 class TestStatusAndTheDismissalThatMustNameItsReading:
+    """`@status` is the field that decides which register a row lands in.
+
+    Read it wrong and a binding exclusion advertises itself as a live proposal,
+    which is the loudest way this register could be wrong: an agent would
+    propose the thing the project has already excluded, and the register that
+    was supposed to stop that would be what told them to.
+    """
+
     def test_adopted_names_its_adr(self):
         found = registers.read_proposal(
             block(
@@ -379,6 +417,25 @@ class TestProposalsAreCollectedFromCommentsAsWellAsIssues:
         ]
         assert registers.collect(problems, [], []).proposals == []
 
+    def test_a_comment_that_declared_itself_a_proposal_may_not_omit_its_name(self):
+        """Silence here would be the one failure silence is never allowed.
+
+        A comment carrying `@source` and `@shape` has declared itself
+        provenance. Dropping it for want of `@proposal` would leave a proposal
+        that exists, is invisible in the register, and told nobody -- so the
+        next agent invents it again, which is exactly what the shelf is for.
+        """
+        orphan = block("@source here", "@shape a shape", "@status open")
+        problems = [issue(number=300, body=PROBLEM, comments=[comment(orphan, 300)])]
+        with pytest.raises(registers.MalformedProvenance, match="@proposal"):
+            registers.collect(problems, [], [])
+
+    def test_a_comment_with_a_field_block_of_another_kind_is_still_silent(self):
+        """A rig report is not a malformed proposal (#284 will file these)."""
+        report = block("@rig detectability", "@reading offset fell to 0.18")
+        problems = [issue(number=300, body=PROBLEM, comments=[comment(report, 300)])]
+        assert registers.collect(problems, [], []).proposals == []
+
     def test_a_comment_row_links_to_the_comment_and_not_the_issue(self):
         problems = [issue(number=300, body=PROBLEM, comments=[comment(PROPOSAL, 300)])]
         found = registers.collect(problems, [], [])
@@ -428,6 +485,15 @@ PHANTOM = issue(
     body=block("@failure something", "@cutoff measurement no_such_rig bar < 1"),
 )
 
+#: The rigs these tests pretend `benchmarks/` holds, passed in rather than read
+#: off disk. Reading the real directory would make this file's verdicts depend
+#: on which rigs happen to exist today: deleting `benchmarks/detectability.py`
+#: would redden a test about *rendering*, and adding a `benchmarks/no_such_rig.py`
+#: would quietly stop the phantom-cutoff test from testing anything. A file
+#: whose docstring makes hermeticism its argument should not have a foot on the
+#: filesystem.
+RIGS = frozenset({"detectability", "alignment_read"})
+
 
 class TestUncutSortsFirstAndIsStatedAsADebt:
     """In the voice `@flexibility unknown` uses.
@@ -445,12 +511,12 @@ class TestUncutSortsFirstAndIsStatedAsADebt:
         assert table.index("#301") < table.index("#300")
 
     def test_the_debt_is_stated_and_not_merely_sorted(self):
-        text = registers.render_problems(registers.collect([CUT, UNCUT], [], []))
+        text = registers.render_problems(registers.collect([CUT, UNCUT], [], []), RIGS)
         assert "Uncut" in text
         assert "nobody has said when this stops being tolerable" in text.lower()
 
     def test_with_no_uncut_problems_the_section_says_so(self):
-        text = registers.render_problems(registers.collect([CUT], [], []))
+        text = registers.render_problems(registers.collect([CUT], [], []), RIGS)
         assert "Uncut" in text
 
 
@@ -463,20 +529,30 @@ class TestACutoffNamingARigThatDoesNotExistIsLouderThanUncut:
     """
 
     def test_a_missing_rig_is_named(self):
-        text = registers.render_problems(registers.collect([PHANTOM], [], []))
+        text = registers.render_problems(registers.collect([PHANTOM], [], []), RIGS)
         assert "no_such_rig" in text
         assert "#302" in text.split("## Open problems")[0]
 
     def test_a_rig_that_exists_is_not_flagged(self):
-        text = registers.render_problems(registers.collect([CUT], [], []))
+        text = registers.render_problems(registers.collect([CUT], [], []), RIGS)
         assert "nothing will fire" in text.lower()
         assert "#300" not in text.split("## Open problems")[0]
 
 
 class TestTheThreeFilesRender:
+    """Three files, and each row in exactly one of them.
+
+    The split is not cosmetic. A dismissal binds and a proposal does not, so a
+    dismissed proposal appearing on the shelf would invite exactly the
+    re-proposal the dismissed register exists to prevent -- and *do not
+    re-propose this* has to be reachable without opening every problem ticket,
+    which is the whole reason the dismissals are unioned into a file of their
+    own rather than left where they happened.
+    """
+
     def test_every_file_carries_the_do_not_edit_banner(self):
         found = registers.collect([CUT, UNCUT], [], [])
-        for text in registers.generate(found).values():
+        for text in registers.generate(found, RIGS).values():
             assert "Do not edit by hand" in text
 
     def test_a_dismissed_proposal_leaves_the_shelf_for_the_dismissal_register(self):
@@ -510,7 +586,7 @@ class TestTheThreeFilesRender:
 
     def test_an_empty_tracker_still_renders_three_files(self):
         """Before the seeding pass there are no rows, and that is a real state."""
-        rendered = registers.generate(registers.collect([], [], []))
+        rendered = registers.generate(registers.collect([], [], []), RIGS)
         assert len(rendered) == 3
         for text in rendered.values():
             assert text.endswith("\n")

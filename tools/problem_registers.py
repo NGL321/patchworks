@@ -78,9 +78,16 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 BENCHMARKS = ROOT / "benchmarks"
 OUTPUT = ROOT / "docs" / "registers"
 
-#: The label on each of the three queries, and the register it feeds.
+#: The issue *is* an open problem. Open means unresolved, closed means resolved
+#: with a ground, and both are queried: a closed problem stays in the register.
 PROBLEM_LABEL = "register:problem"
+
+#: The issue *is* an orphaned or multifarious proposal. A proposal specific to
+#: one problem carries no label at all, because it is a comment.
 PROPOSAL_LABEL = "register:proposal"
+
+#: Terminal. Co-occurs with `register:proposal` when a proposal was dismissed,
+#: and stands alone on a dismissal that was never one.
 DISMISSAL_LABEL = "register:dismissal"
 
 #: A cutoff that fired. The rig report adds it (#284); this module only reads
@@ -107,6 +114,14 @@ _FENCE = re.compile(r"^(?:```|~~~)")
 
 #: An issue reference, written `#230` or `230`; both are the same issue.
 _ISSUE = re.compile(r"^#?(?P<number>\d+)$")
+
+#: The keys that make a field block a proposal's. A comment carrying any of them
+#: has declared itself provenance, so a missing `@proposal` is refused rather
+#: than dropped -- a row nobody can reach, that nobody was told about, is the
+#: silent incompleteness this whole mechanism exists to prevent. A comment
+#: carrying none of them (a rig report, a pointer, ordinary discussion) is not a
+#: proposal and is passed over without comment.
+PROPOSAL_KEYS = frozenset({"source", "shape", "answers", "when", "status"})
 
 
 class MalformedProvenance(Exception):
@@ -226,6 +241,14 @@ def read_cutoff(value: str, where: str) -> Cutoff:
         if not rest:
             raise MalformedProvenance(
                 f"{where}: @cutoff event names the issue whose closing fires it"
+            )
+        if len(rest) > 1:
+            # `event 230 when it feels bad` would otherwise parse as `#230` and
+            # discard the judgement in silence -- admitting exactly what the
+            # two-forms rule exists to refuse, while reading as well-formed.
+            raise MalformedProvenance(
+                f"{where}: @cutoff event names one issue and nothing else, got "
+                f"{' '.join(rest)!r}"
             )
         match = _ISSUE.match(rest[0])
         if match is None:
@@ -550,7 +573,16 @@ def collect(
         for entry in payload.get("comments") or []:
             body = entry.get("body") or ""
             fields = field_block(body)
-            if fields is None or "proposal" not in fields:
+            if fields is None:
+                continue
+            if "proposal" not in fields:
+                if PROPOSAL_KEYS & fields.keys():
+                    raise MalformedProvenance(
+                        f"#{number}: a comment carrying "
+                        f"{', '.join('@' + k for k in sorted(PROPOSAL_KEYS & fields.keys()))} "
+                        "has declared itself a proposal and must name one with "
+                        "@proposal; dropping it would leave a row nobody can reach"
+                    )
                 continue
             key = ("comment", entry.get("url") or "")
             if key in seen:
@@ -580,10 +612,18 @@ def collect(
             title=payload.get("title") or "",
         )
         if DISMISSAL_LABEL in _labels(payload) and not found.dismissed:
+            # A dismissal that was never a proposal still uses the proposal
+            # field block -- it is the only one `docs/agents/registers.md`
+            # defines -- and it must state which of the two kinds it is, because
+            # `refused` and `failed` behave differently and `failed` owes a rig
+            # and a reading. Without `@status` the row would default to `open`
+            # and render on the shelf, which is a binding exclusion advertised
+            # as a live proposal: the loudest way this register could be wrong.
             raise MalformedProvenance(
                 f"#{number}: carries `{DISMISSAL_LABEL}`, which is terminal, while "
-                f"@status says {found.status.text!r} — a dismissal binds, so the "
-                "label and the field may not disagree"
+                f"@status says {found.status.text!r} — write `@status dismissed "
+                "refused` or `@status dismissed failed <rig> <reading>` (see "
+                "docs/agents/registers.md, Dismissed solutions)"
             )
         survey.proposals.append(found)
 
@@ -673,7 +713,14 @@ def render_problems(survey: Registers, rigs: frozenset[str] | None = None) -> st
         "showing it.\n"
     )
     if uncut:
-        out.append(_problem_table(uncut))
+        # Named here and tabled once below, rather than tabled twice. A second
+        # copy of the row is a second place the same fact lives, which is the
+        # failure #180 exists to kill -- and it applies to a generated file as
+        # much as to a hand-written one, because a reader who sees a row twice
+        # has to work out whether the two agree.
+        out.append(
+            "\n".join(f"* {p.link} — *{_cell(p.failure)}*" for p in uncut) + "\n"
+        )
     else:
         out.append("None. Every open problem here carries a cutoff.\n")
 
@@ -880,9 +927,11 @@ def _dismissal_table(proposals: list[Proposal]) -> str:
     return "\n".join(rows) + "\n"
 
 
-def generate(survey: Registers) -> dict[pathlib.Path, str]:
+def generate(
+    survey: Registers, rigs: frozenset[str] | None = None
+) -> dict[pathlib.Path, str]:
     return {
-        OUTPUT / "open-problems.md": render_problems(survey),
+        OUTPUT / "open-problems.md": render_problems(survey, rigs),
         OUTPUT / "proposed-solutions.md": render_proposals(survey),
         OUTPUT / "dismissed-solutions.md": render_dismissals(survey),
     }
