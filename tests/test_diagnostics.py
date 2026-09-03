@@ -157,7 +157,7 @@ class TestThePairIsARealPair:
             / "src"
             / "patchworks"
             / "diagnostics.py"
-        ).read_text()
+        ).read_text(encoding="utf-8")
         tree = ast.parse(source)
         public = [
             node
@@ -166,6 +166,12 @@ class TestThePairIsARealPair:
         ]
         assert {node.name for node in public} == {
             "topology_only_h1",
+            # #363's reference level. It returns a per-edge *energy* and never a
+            # bare `energy`, so the loophole check below still binds it; the
+            # name is listed here because this set is a deliberate gate on the
+            # module's public surface and a new one has to be admitted, not
+            # arrive.
+            "topology_only_energy",
             "edge_reading",
             "whole_graph",
             "read",
