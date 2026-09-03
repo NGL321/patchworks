@@ -190,10 +190,14 @@ PROBE = 1.0
 #: definition**: it computes the identical quantity, derived from the machine
 #: rather than typed as a literal (ADR-0018), and the follow-up is one import.
 #:
-#: **Merge order: #387 before this.** When it lands, `EPS_F32` here becomes
-#: `from patchworks.tick import precision_floor` and :func:`readable` calls it
-#: instead of multiplying. Recorded here rather than in a ticket because this is
-#: the line that has to change and this is where someone will be standing.
+#: **#387 did not land first.** Both tickets recorded the order the other way
+#: round and #386 merged first, so this line is live rather than pre-emptive.
+#: When #387 lands, `EPS_F32` here becomes
+#: `from patchworks.tick import precision_floor` and :func:`readable` calls it on
+#: the unperturbed stalk instead of multiplying. Recorded here rather than in a
+#: ticket because this is the line that has to change and this is where someone
+#: will be standing; the same follow-up is stated on #387, because #379 is closed
+#: and a deferral with nobody on the other end is how a thing stays half-built.
 EPS_F32 = float(torch.finfo(torch.float32).eps)
 
 
