@@ -520,23 +520,63 @@ class TestUncutSortsFirstAndIsStatedAsADebt:
         assert "Uncut" in text
 
 
-class TestACutoffNamingARigThatDoesNotExistIsLouderThanUncut:
+class TestACutoffNamingARigWithNoRecordedRunIsLouderThanUncut:
     """`uncut` wearing a disguise, and strictly worse, because it reads as cut.
 
-    A problem whose cutoff names a rig with no script will never fire: there is
-    nothing to run. That state looks watched on the page and is not, which is
-    the one failure `uncut` was made loud to prevent.
+    Two ways a `measurement` cutoff never fires, and the register must show
+    both: the rig has no script, so there is nothing to run at all; or the rig
+    is real and nobody has run it. Either way the row says the problem is being
+    watched and it is not, which is the one failure `uncut` was made loud to
+    prevent -- `uncut` at least reads as a debt, and this does not.
+
+    #284 declines this check in terms — *"do not try to close it here… that is
+    why #279's design makes the register render cutoffs naming a rig with no
+    recorded run as its own loud section"* — so it belongs here.
     """
 
-    def test_a_missing_rig_is_named(self):
+    def loud(self, text):
+        """The part of the register above the main table: the two loud sections."""
+        return text.split("## Open problems")[0]
+
+    def test_a_rig_with_no_script_is_named(self):
         text = registers.render_problems(registers.collect([PHANTOM], [], []), RIGS)
         assert "no_such_rig" in text
-        assert "#302" in text.split("## Open problems")[0]
+        assert "#302" in self.loud(text)
+        assert "nothing to run" in self.loud(text)
 
-    def test_a_rig_that_exists_is_not_flagged(self):
+    def test_a_real_rig_that_has_never_reported_is_named(self):
+        """The case that reads as watched and is the whole point of the section."""
         text = registers.render_problems(registers.collect([CUT], [], []), RIGS)
-        assert "nothing will fire" in text.lower()
-        assert "#300" not in text.split("## Open problems")[0]
+        assert "#300" in self.loud(text)
+        assert "nothing has fired" in self.loud(text)
+
+    def test_a_rig_that_has_reported_clears_the_section(self):
+        """A `@rig` field block on a comment is the run record (#284)."""
+        report = block("@rig detectability", "@reading offset fell to 0.18")
+        reported = issue(
+            number=300, title="Rim-to-core detectability", body=PROBLEM,
+            comments=[comment(report, 300)],
+        )
+        text = registers.render_problems(registers.collect([reported], [], []), RIGS)
+        assert "#300" not in self.loud(text)
+
+    def test_a_crossed_bar_counts_as_a_run(self):
+        """`register:overdue` cannot have been applied without the rig running."""
+        crossed = issue(
+            number=300, title="Rim-to-core detectability", body=PROBLEM,
+            labels=("register:problem", "register:overdue"),
+        )
+        text = registers.render_problems(registers.collect([crossed], [], []), RIGS)
+        assert "#300" not in self.loud(text)
+
+    def test_an_event_cutoff_is_never_in_this_section(self):
+        """It fires by itself; `issues: closed` is already watched."""
+        evented = issue(
+            number=304, title="Waits on an issue",
+            body=block("@failure a thing", "@cutoff event #99"),
+        )
+        text = registers.render_problems(registers.collect([evented], [], []), RIGS)
+        assert "#304" not in self.loud(text)
 
 
 class TestTheThreeFilesRender:

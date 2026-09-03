@@ -25,7 +25,9 @@ Labels, and field blocks. Never prose.
 * **the comments on every `register:problem` issue**, because a proposal
   specific to one problem lives as a comment there rather than as its own issue.
   That is what makes a problem ticket a single place to read, and it is why this
-  cannot be a labels-only query.
+  cannot be a labels-only query. The comments are also where a rig report
+  records a run (#284), which is how the register answers *has anything ever
+  fired against this bar*.
 
 The grammar is `docs/agents/registers.md`, *Field blocks*: a fenced block at the
 top of the body or comment, one `@key value` per line, everything below it prose
@@ -114,6 +116,14 @@ _FENCE = re.compile(r"^(?:```|~~~)")
 
 #: An issue reference, written `#230` or `230`; both are the same issue.
 _ISSUE = re.compile(r"^#?(?P<number>\d+)$")
+
+#: The key a rig report's field block names itself with, on a comment on the
+#: problem whose cutoff it evaluated (#284). This module only **reads** it, to
+#: answer *has anything ever reported against this cutoff* -- the question
+#: #282's second loud section asks and #284 explicitly declines to answer
+#: ("do not try to close it here"). A rig that has never reported leaves the
+#: problem looking watched while nothing fires.
+REPORT_KEY = "rig"
 
 #: The keys that make a field block a proposal's. A comment carrying any of them
 #: has declared itself provenance, so a missing `@proposal` is refused rather
@@ -303,6 +313,10 @@ class Problem:
     cutoff: Cutoff
     discovered: str = ""
     overdue: bool = False
+    #: Every rig that has reported against this problem, read off the `@rig`
+    #: field blocks in its comments. Empty is the state that matters: a
+    #: `measurement` cutoff nothing has ever reported against is the disguise.
+    reports: frozenset[str] = frozenset()
 
     @property
     def resolved(self) -> bool:
@@ -353,11 +367,29 @@ def read_problem(payload: dict) -> Problem:
         cutoff=read_cutoff(_one(fields, "cutoff"), where),
         discovered=_one(fields, "discovered"),
         overdue=OVERDUE_LABEL in _labels(payload),
+        reports=_reports(payload),
     )
 
 
 def _labels(payload: dict) -> set[str]:
     return {entry.get("name", "") for entry in payload.get("labels") or []}
+
+
+def _reports(payload: dict) -> frozenset[str]:
+    """Every rig that has reported against this problem, off its comments.
+
+    The rig report (#284) files on the problem issue; a field block naming
+    `@rig` is that report. Reading it here is what lets the register answer
+    *has anything ever fired against this bar* without a run ledger, which this
+    repository does not have -- rig readings live as prose in ADRs, spec
+    sections and research docs, none of which a projection may parse.
+    """
+    found: set[str] = set()
+    for entry in payload.get("comments") or []:
+        fields = field_block(entry.get("body") or "")
+        if fields and REPORT_KEY in fields:
+            found.update(rig_name(value) for value in fields[REPORT_KEY] if value)
+    return frozenset(found)
 
 
 # ---------------------------------------------------------------------------
@@ -639,24 +671,51 @@ def available_rigs() -> frozenset[str]:
     return frozenset(path.stem for path in BENCHMARKS.glob("*.py"))
 
 
-def unfireable(
-    survey: Registers, rigs: frozenset[str] | None = None
-) -> list[Problem]:
-    """Problems whose `measurement` cutoff names a rig that has no script.
+#: Why a `measurement` cutoff will not fire, in the two states the tracker and
+#: the working tree can tell apart.
+NO_SCRIPT = "names no rig in `benchmarks/`, so there is nothing to run"
+NO_RUN = "has never reported against this problem, so nothing has fired"
 
-    `uncut` wearing a disguise, and strictly worse than `uncut`, because it does
-    not read as a debt: the page says the problem is watched and nothing will
-    ever run. This is the half of #282's second loud section the generator can
-    settle on its own; the other half -- a rig that exists and has never been
-    run against the problem -- waits on the rig report (#284) and is stated as a
-    gap in the rendered file rather than guessed at here.
+
+@dataclass(frozen=True)
+class Unwatched:
+    """A `measurement` cutoff that reads as watched and is not."""
+
+    problem: Problem
+    reason: str
+
+
+def unwatched(
+    survey: Registers, rigs: frozenset[str] | None = None
+) -> list[Unwatched]:
+    """Cutoffs naming a rig with no recorded run — #282's second loud section.
+
+    `uncut` wearing a disguise, and **strictly worse than `uncut`**, because it
+    does not read as a debt: the page says the problem is watched, and nothing
+    will ever fire. Two states, told apart because the fix differs -- one is a
+    cutoff pointing at a rig that does not exist, the other a real rig nobody
+    has run.
+
+    This is the register's job and not the rig report's.
+    [#284](https://github.com/NGL321/patchworks/issues/284) declines it in
+    terms — *"do not try to close it here… that is why #279's design makes the
+    register render cutoffs naming a rig with no recorded run as its own loud
+    section"* — so the failure is made visible here rather than automated away
+    there.
+
+    A crossing counts as a run: `register:overdue` means the bar was crossed,
+    which cannot have happened without the rig running.
     """
     known = available_rigs() if rigs is None else rigs
-    return [
-        p
-        for p in survey.problems
-        if p.cutoff.kind == "measurement" and p.cutoff.rig not in known
-    ]
+    found = []
+    for problem in survey.problems:
+        if problem.cutoff.kind != "measurement":
+            continue
+        if problem.cutoff.rig not in known:
+            found.append(Unwatched(problem, NO_SCRIPT))
+        elif problem.cutoff.rig not in problem.reports and not problem.overdue:
+            found.append(Unwatched(problem, NO_RUN))
+    return found
 
 
 # ---------------------------------------------------------------------------
@@ -687,7 +746,7 @@ def _cell(text: str) -> str:
 def render_problems(survey: Registers, rigs: frozenset[str] | None = None) -> str:
     """`open-problems.md`: the debts first, then what is watched, then the resolved."""
     uncut = [p for p in survey.problems if p.cutoff.kind == "uncut" and not p.resolved]
-    phantom = [p for p in unfireable(survey, rigs) if not p.resolved]
+    phantom = [u for u in unwatched(survey, rigs) if not u.problem.resolved]
     out = [_HEADER, "# The open problems register\n"]
     out.append(
         "**An open problem is a stateable failure the architecture is expected to "
@@ -724,24 +783,38 @@ def render_problems(survey: Registers, rigs: frozenset[str] | None = None) -> st
     else:
         out.append("None. Every open problem here carries a cutoff.\n")
 
-    out.append("\n## Cutoffs that nothing will fire\n")
+    out.append("\n## Cutoffs naming a rig with no recorded run\n")
     out.append(
-        "A `measurement` cutoff naming a rig with no script under `benchmarks/`. "
-        "This is `uncut` wearing a disguise and **strictly worse than `uncut`**, "
-        "because it does not read as a debt: the row says the problem is watched, "
-        "and nothing will ever run.\n"
+        "A `measurement` cutoff that reads as watched and is not. This is `uncut` "
+        "**wearing a disguise, and strictly worse than `uncut`**, because it does "
+        "not read as a debt: the row says the problem is being watched, and nothing "
+        "will ever fire. Two states, separated because the fix differs — a cutoff "
+        "pointing at a rig that does not exist, and a real rig nobody has run.\n"
     )
     if phantom:
         out.append(
             "\n".join(
-                f"* {p.link} names `{p.cutoff.rig}`, which is not a rig in "
-                f"`benchmarks/` — *{_cell(p.failure)}*"
-                for p in phantom
+                f"* {u.problem.link} — `{u.problem.cutoff.rig}` {u.reason}. "
+                f"*{_cell(u.problem.failure)}*"
+                for u in phantom
             )
             + "\n"
         )
     else:
-        out.append("None. Every `measurement` cutoff names a rig that exists.\n")
+        out.append(
+            "None. Every `measurement` cutoff names a rig that exists and has "
+            "reported.\n"
+        )
+    out.append(
+        "\nA run is recorded by a `@rig` field block on a comment on the problem, "
+        "which is what the rig report files "
+        "([#284](https://github.com/NGL321/patchworks/issues/284)), or by "
+        "`register:overdue`, since a bar cannot be crossed without the rig running. "
+        "**Note for #284:** it currently files a comment only on a *crossing*, so a "
+        "rig that runs regularly and never crosses records nothing and will sit in "
+        "this section. Filing the per-problem report line — which #284 already "
+        "specifies printing — would clear that.\n"
+    )
 
     out.append("\n## Open problems\n")
     live = [p for p in survey.problems if not p.resolved]
@@ -787,14 +860,8 @@ def _problem_table(problems: list[Problem]) -> str:
 _PROBLEM_GAPS = """
 ## Stated gaps
 
-Two things this projection cannot reach, named rather than silently omitted.
+One thing this projection cannot reach, named rather than silently omitted.
 
-* **A rig that exists and has never run against the problem.** The section above
-  catches a cutoff naming a rig with *no script*, which the generator can settle
-  by looking. Whether an existing rig has ever been run against a given bar is a
-  question about runs, and runs are recorded by the rig report —
-  [#284](https://github.com/NGL321/patchworks/issues/284). Until that lands, a
-  `measurement` cutoff naming a real rig reads here as watched, and may not be.
 * **The ground a closed problem closed on.** `docs/agents/registers.md` puts the
   ground — dissolved, solved or withdrawn — in a *closing comment*, as prose,
   with no field block of its own. A projection may not restate prose, so the

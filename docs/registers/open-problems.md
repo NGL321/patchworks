@@ -25,11 +25,14 @@ Admitted, and loud. These sort first and are stated as a debt, in the voice `@fl
 None. Every open problem here carries a cutoff.
 
 
-## Cutoffs that nothing will fire
+## Cutoffs naming a rig with no recorded run
 
-A `measurement` cutoff naming a rig with no script under `benchmarks/`. This is `uncut` wearing a disguise and **strictly worse than `uncut`**, because it does not read as a debt: the row says the problem is watched, and nothing will ever run.
+A `measurement` cutoff that reads as watched and is not. This is `uncut` **wearing a disguise, and strictly worse than `uncut`**, because it does not read as a debt: the row says the problem is being watched, and nothing will ever fire. Two states, separated because the fix differs — a cutoff pointing at a rig that does not exist, and a real rig nobody has run.
 
-None. Every `measurement` cutoff names a rig that exists.
+None. Every `measurement` cutoff names a rig that exists and has reported.
+
+
+A run is recorded by a `@rig` field block on a comment on the problem, which is what the rig report files ([#284](https://github.com/NGL321/patchworks/issues/284)), or by `register:overdue`, since a bar cannot be crossed without the rig running. **Note for #284:** it currently files a comment only on a *crossing*, so a rig that runs regularly and never crosses records nothing and will sit in this section. Filing the per-problem report line — which #284 already specifies printing — would clear that.
 
 
 ## Open problems
@@ -46,14 +49,8 @@ None.
 
 ## Stated gaps
 
-Two things this projection cannot reach, named rather than silently omitted.
+One thing this projection cannot reach, named rather than silently omitted.
 
-* **A rig that exists and has never run against the problem.** The section above
-  catches a cutoff naming a rig with *no script*, which the generator can settle
-  by looking. Whether an existing rig has ever been run against a given bar is a
-  question about runs, and runs are recorded by the rig report —
-  [#284](https://github.com/NGL321/patchworks/issues/284). Until that lands, a
-  `measurement` cutoff naming a real rig reads here as watched, and may not be.
 * **The ground a closed problem closed on.** `docs/agents/registers.md` puts the
   ground — dissolved, solved or withdrawn — in a *closing comment*, as prose,
   with no field block of its own. A projection may not restate prose, so the
