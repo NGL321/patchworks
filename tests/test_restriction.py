@@ -9,7 +9,15 @@ import pytest
 import torch
 
 from patchworks.graph import build_graph
-from patchworks.restriction import GAUGE_RHO, RestrictionMaps, pair_index
+from patchworks.restriction import (
+    GAUGE_C,
+    GAUGE_RHO,
+    RestrictionMaps,
+    cell_gauges,
+    gain_denominators,
+    overlap_counts,
+    pair_index,
+)
 
 from conftest import SMALL
 
@@ -151,3 +159,172 @@ def test_the_real_dome_s_maps_are_all_gauge_fixed():
     assert maps.pairs == 2 * len(dome.edges) == 1364
     assert torch.all((norms >= lower - 1e-5) & (norms <= upper + 1e-5))
     assert torch.all(maps.maps[~maps.support] == 0)
+
+
+
+def _turn_the_maps_to_face_one_way(maps: RestrictionMaps) -> None:
+    """The worst arrangement the projection has to survive.
+
+    Every map loaded onto the same node stalk direction is the fully-coherent
+    case the old denominator assumed and the new one refuses to. Nothing the
+    transport rule does reaches this in one step; it is here because a bound
+    that only holds for arrangements the rule happens to produce is not a bound.
+    """
+    with torch.no_grad():
+        maps.maps.mul_(0.2)
+        maps.maps[:, :, 0] += 1.0
+        maps.maps.mul_(maps.support)
+
+
+class TestTheIncoherenceTerm:
+    """ADR-0010, *Incoherence is gauge-fixed too*, and #220's half of it.
+
+    `gain_v` divides by `g_v^2 . c_v`, and what makes that a bound rather than a
+    hope is this: the projection holds the surface to it after every transport
+    step. The tests below are written against the *denominator the gain uses*
+    rather than against a number, because the two being one thing is the whole
+    of the change.
+    """
+
+    def test_the_bound_holds_at_every_cell_that_holds_it(self, dome, maps):
+        _turn_the_maps_to_face_one_way(maps)
+        maps.project()
+        held = maps.gram_peaks()[maps.holding]
+        target = gain_denominators(dome)[maps.holding]
+        assert torch.all(held <= target * (1 + 1e-5))
+
+    def test_the_worst_arrangement_breaks_the_bound_without_the_projection(
+        self, dome, maps
+    ):
+        # Otherwise the test above passes on a surface that never needed it.
+        _turn_the_maps_to_face_one_way(maps)
+        held = maps.gram_peaks()[maps.holding]
+        assert torch.any(held > gain_denominators(dome)[maps.holding])
+
+    def test_the_mask_survives_the_transform(self, dome, maps):
+        # The transform is one shared right-multiply per cell, and a right-
+        # multiply is exactly the operation that could write into a column the
+        # mask closed. It cannot here, because all of a cell's incident maps
+        # share one mask and the transform is supported on it.
+        _turn_the_maps_to_face_one_way(maps)
+        maps.project()
+        assert torch.all(maps.maps[~maps.support] == 0)
+
+    def test_a_pinned_map_is_left_exactly_where_the_gauge_put_it(self, dome, maps):
+        # A boundary cell's maps carry the exact gauge, so there is no scale
+        # freedom for the transform to spend and it does not try. They come out
+        # of the projection at 1, to the last bit the float has.
+        _turn_the_maps_to_face_one_way(maps)
+        maps.project()
+        assert torch.allclose(
+            maps.norms()[maps.pinned],
+            torch.ones(int(maps.pinned.sum())),
+            atol=1e-6,
+        )
+
+    @staticmethod
+    def _energy(dome, maps):
+        """`[cells]`: `sum_e ||F_ev||_F^2`, which is the Gram's trace."""
+        return torch.zeros(len(dome.cells)).index_add_(
+            0, maps.owner, maps.norms().detach() ** 2
+        )
+
+    @staticmethod
+    def _lean_the_maps_one_way(maps, amount):
+        with torch.no_grad():
+            maps.maps[:, :, 0] += amount
+            maps.maps.mul_(maps.support)
+            lower, upper = maps.gauge_bounds
+            norms = maps.norms().clamp_min(1e-12)
+            maps.maps.mul_(
+                (norms.clamp(lower, upper) / norms).unsqueeze(-1).unsqueeze(-1)
+            )
+
+    def test_a_correctable_cell_keeps_all_of_its_energy(self, dome, maps):
+        # `sum_e ||F_ev||_F^2` is the Gram's trace and it is what the band
+        # holds. Where the cell's other directions have room to take the excess,
+        # the step moves it there and the trace does not move at all: this is a
+        # redistribution, not a cap.
+        self._lean_the_maps_one_way(maps, 0.5)
+        before = self._energy(dome, maps)
+        maps.project()
+        held = maps.holding
+        assert torch.all(maps.gram_peaks()[held] <= gain_denominators(dome)[held] * 1.00001)
+        assert torch.allclose(self._energy(dome, maps)[held], before[held], rtol=1e-4)
+
+    def test_the_worst_arrangement_still_keeps_nearly_all_of_it(self, dome, maps):
+        # Turned fully one way there is more excess than headroom, so some is
+        # lost -- but 10% of it, against the 71% a bare cap would take out of
+        # the same cell. That difference is the whole reason for the fill: a cap
+        # would take energy out on every tick and ratchet the maps down onto the
+        # band's lower edge, which is the map collapse the band exists to
+        # prevent, arriving by a different road.
+        _turn_the_maps_to_face_one_way(maps)
+        self._lean_the_maps_one_way(maps, 0.0)
+        before = self._energy(dome, maps)
+        maps.project()
+        held = maps.holding
+        after = self._energy(dome, maps)
+        assert torch.all(after[held] >= before[held] * 0.85)
+
+    def test_a_cell_already_inside_the_bound_is_not_touched(self, maps):
+        # The draw is incoherent enough to start inside, so the projection has
+        # nothing to do and must do nothing: a transform applied every tick to a
+        # surface that does not need it is a slow leak, not a projection.
+        before = maps.maps.detach().clone()
+        maps.project()
+        assert torch.allclose(maps.maps, before, atol=1e-6)
+
+    def test_the_band_still_holds_after_the_transform(self, maps):
+        _turn_the_maps_to_face_one_way(maps)
+        maps.project()
+        lower, upper = maps.gauge_bounds
+        norms = maps.norms()
+        assert torch.all(norms <= upper + 1e-5)
+        assert torch.all(norms >= lower - 1e-5)
+
+    def test_projection_is_idempotent(self, maps):
+        _turn_the_maps_to_face_one_way(maps)
+        maps.project()
+        once = maps.maps.detach().clone()
+        maps.project()
+        assert torch.allclose(maps.maps, once, atol=1e-6)
+
+
+class TestTheDenominatorTheGainDividesBy:
+    def test_the_gauge_is_the_band_inside_and_exactly_one_at_the_boundary(self, dome):
+        gauges = cell_gauges(dome)
+        for cell in dome.cells:
+            assert float(gauges[cell.id]) == (1.0 if cell.is_boundary else GAUGE_RHO)
+
+    def test_the_pigeonhole_floor_is_what_saves_the_drive(self):
+        # The drive carries deg = 8 maps on a stalk of dimension 1. Eight
+        # directions cannot be mutually orthogonal in one dimension, so a bare
+        # global c = 2 there is an unsafe bound and not a loose one -- and the
+        # projection cannot fix it, because the drive's cell is a boundary cell
+        # and its maps are pinned. The floor is what makes the number true.
+        dome = build_graph()
+        counts = overlap_counts(dome)
+        drive = [
+            c.id for c in dome.cells if c.stalk == 1 and dome.degrees[c.id] > GAUGE_C
+        ]
+        assert drive, "no cell with more incident maps than stalk dimensions"
+        for cell_id in drive:
+            assert float(counts[cell_id]) == dome.degrees[cell_id]
+
+    def test_the_outer_min_keeps_it_inside_what_the_band_already_gave(self):
+        dome = build_graph()
+        counts = overlap_counts(dome)
+        for cell in dome.cells:
+            assert float(counts[cell.id]) <= dome.degrees[cell.id]
+
+    def test_the_interior_is_the_global_c_everywhere_on_this_dome(self):
+        dome = build_graph()
+        counts = overlap_counts(dome)
+        interior = [c.id for c in dome.cells if not c.is_boundary]
+        assert {float(counts[i]) for i in interior} == {float(GAUGE_C)}
+
+    def test_the_denominator_is_the_two_terms_multiplied(self, dome):
+        assert torch.allclose(
+            gain_denominators(dome), cell_gauges(dome) ** 2 * overlap_counts(dome)
+        )

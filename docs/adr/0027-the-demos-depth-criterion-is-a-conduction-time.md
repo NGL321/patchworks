@@ -60,7 +60,10 @@ Four properties the swapped clause has and the old one lacked:
 - **The failure is reachable, and it fires today.** `τ` is flat at about one tick graph-wide — 0.91
   at the apex against 0.99 at the rim (`05-timescales.md`, *What the live read says*), no
   depth→timescale gradient and slightly inverted. On this quantity the demo fails now, at every
-  depth.
+  depth. Those figures are read on the chart's **direct** round trip; with the stalk relay
+  included ([#274](https://github.com/NGL321/patchworks/issues/274)) the apex's `τ` is 1.6 to 13.1 ticks
+  against `|loop|` of 14, a ratio of 0.12 to 0.93 — **still short on every seed**, so what fires
+  here is unchanged and only the margin moves.
 - **The floor is derived, not invented.** It is the loop's own length in ticks —
   [#143](https://github.com/NGL321/patchworks/issues/143)'s *"`τ` against the cell's own round
   trip"* — which satisfies the invented-constants rule the way ADR-0021 satisfied it in choosing
@@ -193,7 +196,9 @@ The rule is satisfied, not bent. Left unstated, a reader will think it was forgo
 - **`10` owes its event marker to a second consumer.** The marker was already owed for onset; the
   live `τ̂` read needs the same marker as its `t = 0`.
 - **The demo now fails today, and that is the point.** Reading `τ` flat at about one tick against
-  `|loop|` of 2 at L1 and 14 at the apex, no loop closes anywhere. A pre-registered criterion that
+  `|loop|` of 2 at L1 and 14 at the apex, no loop closes anywhere — and none closes on the
+  corrected operator either, whose apex ratio tops out at 0.93
+  ([#274](https://github.com/NGL321/patchworks/issues/274)). A pre-registered criterion that
   the current architecture fails is what pre-registration is for.
 - **The pre-registration discipline survives intact.** This is a correction made *before* the run —
   the only time it can be made honestly — and it is why the writing was urgent rather than merely

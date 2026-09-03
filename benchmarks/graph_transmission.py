@@ -64,7 +64,13 @@ import numpy as np
 import torch
 
 from patchworks.graph import CellKind, build_graph
-from patchworks.restriction import GAUGE_RHO, RestrictionMaps, pair_index
+from patchworks.restriction import (
+    GAUGE_C,
+    GAUGE_RHO,
+    RestrictionMaps,
+    overlap_counts,
+    pair_index,
+)
 from patchworks.tick import DEFAULT_GAMMA, reconciliation_gain
 
 #: `body`, `d|prediction| / d|evidence|`, from #120's untrained reading on the
@@ -323,7 +329,7 @@ def gauge_section(dome) -> None:
             f"the gauge band, in [1/{GAUGE_RHO ** 2:g}, {GAUGE_RHO ** 2:g}]",
         ),
         ("dilute  1/sqrt(d m)", dilution, "the mask width and m_e, at construction"),
-        ("gain    gamma/max()", gain, "gamma, m_e and degree, at construction"),
+        ("gain    gamma/g^2 c", gain, "gamma and the gauge, at construction"),
         ("body               ", BODY_GAIN, "a frozen random MLP; bounded by nothing"),
     ):
         share = np.log(1.0 / value) / total * 100.0
@@ -337,18 +343,22 @@ def gauge_section(dome) -> None:
         f"{1.0 / hop:.0f}x"
     )
 
-    # Why the sweep below does what it does. `gain_v = gamma / max(sum_e m_e,
-    # rho^2 deg(v))`, and which of the two arms wins is what decides whether
-    # `rho` cancels: on the `rho^2 deg` arm the gain falls as `rho^-2` exactly
-    # as the two map norms rise as `rho^2`, and the hop is flat in `rho`.
+    # Why the sweep below does what it does. `gain_v = gamma / (g_v^2 . c_v)`
+    # (#190), and `rho` enters it only through `g_v`: the gain falls as
+    # `rho^-2` exactly as the two map norms rise as `rho^2`, so the hop is flat
+    # in `rho` at every interior cell rather than at the ones that happened to
+    # land on one arm of a max. The `max` this used to report on is struck --
+    # #182 found its two arms were an exact tie at 142 of 150 cells, which is
+    # what a normalisation looks like when it is mistaken for a bound -- and the
+    # line below reports what replaced it.
     receivers = sorted({r["receiver"] for r in rows})
-    stalk_arm = [
-        c for c in receivers if dome.stalk_sums[c] > GAUGE_RHO**2 * dome.degrees[c]
-    ]
+    counts = overlap_counts(dome)
+    at_c = [c for c in receivers if float(counts[c]) == GAUGE_C]
     print(
-        f"\n  which arm of the gain's `max` is live, over {len(receivers)} receiving cells: "
-        f"{len(stalk_arm)} on `sum_e m_e`, {len(receivers) - len(stalk_arm)} on "
-        f"`rho^2 deg` (ties to the second)"
+        f"\n  the gain's denominator over {len(receivers)} receiving cells: "
+        f"{len(at_c)} at the global c = {GAUGE_C}, "
+        f"{len(receivers) - len(at_c)} raised off it by the pigeonhole floor "
+        f"or held down by deg(v)"
     )
 
     # And the sweep that matters: `rho` is in the numerator through the map

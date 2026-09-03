@@ -276,10 +276,14 @@ that is **meant to be differentiated across the graph**. It is ADR-0005's subjec
 ADR-0028's: persistence in the private features rather than a schedule, and since #138 a per-cell
 time constant living in `K`'s spectrum — **a spectrum of them per cell, not one** (#143).
 **Retention constant** below is the quantity, and **Effective timescale** the measurement of it. The
-graph's retention currently measures flat at about one tick (`05-timescales.md`), which is a finding
-about this build and not a property of the architecture. **The differentiation is no longer placed by
-design**: construction assigns no per-level `τ`, so a depth gradient in retention is learning's to
-produce, and *nothing guarantees it appears* is the standing falsification.
+graph's retention currently measures flat at about one tick on the chart's **direct** round trip,
+and 2.9 to 10.3 ticks with the stalk relay included (`05-timescales.md`, *What the live read
+says*) — **flat under either operator**, and a finding about this build rather than a property of
+the architecture. Narrower still than it reads: both operators were read on a body that took **iid**
+biases, in a run where **nothing was placed** (#276), so the flatness is evidence about neither
+placement nor learning. **The differentiation is no longer placed by design**: construction assigns
+no per-level `τ`, so a depth gradient in retention is learning's to produce, and *nothing guarantees
+it appears* is the standing falsification.
 
 *One clock, heterogeneous retention.* The two are separate objects and the record needs both words.
 _Avoid_: timescale (bare, for this sense), memory, decay rate, persistence (reserve for ADR-0005's
@@ -298,16 +302,32 @@ _Avoid_: `λ` bare (**Realised contraction rate** is a log-rate with the opposit
 see that entry), timescale (bare), decay rate, mode, eigenvalue of the piece, Koopman eigenvalue
 
 **Effective timescale**:
-How slowly a cell's content changes — set by how much private structure it holds (`ker δ`) and by the
-**retention constants of its own `K`**, `τ = −1/ln|λ(K)|`. **Not one number:** a cell holds a
-spectrum of them, so *the* effective timescale of a cell is a loose way of speaking and the direction
-must be said whenever it matters. A property measured from outside, never an input to any computation
-and **never a criterion anything selects on at runtime** — a discipline that has to be kept, since
-`λ(K)` is a constant and readable in principle, where the retired distributional reading made the
-prohibition free by leaving nothing to read. **Nothing places it**: construction assigns no per-level
-`τ`, `a` is global, and the depth gradient is learning's to produce or not (#143).
+How slowly a cell's content changes — set by the **retention constants of its own `K`**,
+`τ = −1/ln|λ(K)|`. **Not by how much private structure it holds** (#271, struck by #276): private
+width is a *relay aperture* and buys no retention — `corr(p_v, Δρ) = −0.019` — the stalk retains nothing
+across a tick (#225), and the instrument slices the chart half of `encode`'s input and cannot see
+private structure at all. See **Private width** below; the two may not re-collide. **Not one
+number:** a cell holds a spectrum of them, so *the* effective timescale of a cell is a loose way
+of speaking and the direction must be said whenever it matters. A property measured from outside,
+never an input to any computation and **never a criterion anything selects on at runtime** — a
+discipline that has to be kept, since `λ(K)` is a constant and readable in principle, where the
+retired distributional reading made the prohibition free by leaving nothing to read. **Nothing
+places it**: construction assigns no per-level `τ`, `a` is global, and the depth gradient is
+learning's to produce or not (#143).
 _Avoid_: clock rate, update rate, level, tier, frequency, central tendency, mean rate (the retired
-distributional reading), the cell's timescale (where a direction is meant)
+distributional reading), the cell's timescale (where a direction is meant), private structure (the
+struck clause — see **Private width**)
+
+**Private width**:
+`p_v = max(0, n − Σ_e m_e)` — the part of a cell's node stalk no incident edge's restriction map
+reads. A **relay aperture**: how much of a cell's decoded prediction returns to its own `encode` next
+tick undisturbed by reconciliation, since `∂evidence/∂chart = (I − g_v Σ_e F_evᵀ F_ev) @ D` is the
+identity exactly on the private block. It is a **transmission** property and belongs to the
+influence predicate — **not** a retention term and not a timescale term (#271): construction grades
+it by depth (0 at the rim, 15 at the apex) and that grading produces no retention gradient, because
+`g_v`'s ADR-0010 bound damps the public block in proportion to its size and the grading cancels itself.
+_Avoid_: private dimension (reserve for the count as a construction parameter), private structure
+(the struck phrase from *Effective timescale*), memory, capacity
 
 **Activation region**:
 One of the finitely many convex regions of chart values on which `encode` is exactly affine. Its
@@ -322,10 +342,13 @@ _Avoid_: linear region, cell, piece (reserve that for the sub-problem), basin
 **Retired as a mechanism** (#143, ADR-0028) and kept only to name what the record used to do. A level
 of the taper was built to hold a range of effective timescales, with bias vectors drawn, measured and
 kept if they landed in the band, adjacent bands overlapping to keep the taper's gradient continuous.
-**It was built and the graph came out flat** — 0.91 at the apex against 0.99 at the rim — because the
-biases are the adapting surface and drift off their bands with nothing re-selecting. **Construction
-now places no per-level `τ` at all**; `a` is global and the gradient is learning's job. Not to be
-confused with the **operator band**, which is live, global, and on `σ_max(K)`.
+**It was specified but never run** (#276): `select()` writes only inside the go/no-go and the tests,
+never into a Sheaf that ticks, so the flat reading — 0.91 at the apex against 0.99 at the rim on the
+direct round trip, and flat under the corrected operator too (`05-timescales.md`) — is a measurement
+of a body that took iid draws, and is not evidence about placement. What retired it is the argument:
+the biases are the adapting surface and would drift off their bands with nothing re-selecting.
+**Construction now places no per-level `τ` at all**; `a` is global and the gradient is learning's
+job. Not to be confused with the **operator band**, which is live, global, and on `σ_max(K)`.
 _Avoid_: using this for anything current, tier, layer rate, timescale level, clock band, per-level
 band (ADR-0015 rejected that as a second timescale mechanism)
 
@@ -355,9 +378,15 @@ never a cell attribute. What the biases set is the distribution these are drawn 
 longer the cell's effective timescale** (#143). That closing identification is retired with the rest
 of the bias mechanism: retention is `K`'s, and this quantity is now the region-dependent half of
 `λ(K · J_encode)`, the *realised chart retention*. It still has a referent, because `encode` is still
-ReLU and its folds are still real.
+ReLU and its folds are still real. **It is the chart's *direct* round trip and not the whole
+recurrence** (#271, #274): `decode` writes the chart onto the node stalk, reconciliation damps it,
+and `encode`'s stalk half returns it next tick, so the full loop is `K (J_chart + J_stalk A_v D)`
+and its `ρ` runs 1.70x to 2.12x the quoted one. **It is also not ADR-0026's `τ̂`** — that is the
+e-fold decay of a paired counterfactual deviation in private features — and the two are two
+instruments, never a stand-in for one another.
 _Avoid_: the cell's spectrum, its Jacobian, decay rate (unqualified), the cell's effective timescale
-(that is `λ(K)`'s job now)
+(that is `λ(K)`'s job now), the chart loop (bare — say *direct* or *full*), `τ̂` (that is the
+conduction ratio's numerator, a different instrument)
 
 **Region dwell**:
 How long a cell stays in one activation region of the shared body before its chart carries it across
