@@ -116,16 +116,15 @@ ground is struck (#276).**
 > a running graph, so it never failed on one**, and the flat reading is evidence about neither the
 > mechanism nor learning.
 
-**The decision is unchanged, because it never needed that ground.** What carries it is the
-argument and the standing rules, none of which depend on the flat reading: the biases *are* the
-adapting surface (ADR-0001), they drift off their bands, and nothing re-selects, because re-
-selection needs a rate to steer toward — the runtime parameter ADR-0005 refuses and this ADR keeps
-refusing. Placing by level a second time buys the same drift and the same cost ADR-0005 already
-books: *"the depth↔timescale correspondence is now built rather than found, so only the
-behavioural claim remains falsifiable."* It also cuts against [ADR-0015](./0015-the-cell-operator-
-band-is-on-the-spectral-norm.md)'s *one global band, not one per level*, and against #127's
-standing *measure the graph, not the shape imposed on it*.
-
+**The decision is unchanged, because it never needed that ground.** What carries it is the argument
+and the standing rules, none of which depend on the flat reading: the biases *are* the adapting
+surface (ADR-0001), they drift off their bands, and nothing re-selects, because re-selection needs a
+rate to steer toward — the runtime parameter ADR-0005 refuses and this ADR keeps refusing. Placing
+by level a second time buys the same drift and the same cost ADR-0005 already books: *"the
+depth↔timescale correspondence is now built rather than found, so only the behavioural claim
+remains falsifiable."* It also cuts against
+[ADR-0015](./0015-the-cell-operator-band-is-on-the-spectral-norm.md)'s *one global band, not one per
+level*, and against #127's standing *measure the graph, not the shape imposed on it*.
 
 **The cost is stated rather than hoped: nothing guarantees the gradient appears.** That is this
 decision's **pre-registered falsification**, and it is the first time the depth↔timescale

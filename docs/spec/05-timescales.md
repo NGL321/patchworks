@@ -616,6 +616,11 @@ the Koopman conversion, and **the second is spent**:
 nothing does.** This is #143's ruling and it replaces *Selected timescales are assigned by level, in
 overlapping bands*, which stood here.
 
+**Placement is not rejected on argument — but it was not rejected on measurement either, and that
+ground is struck (#276).**
+
+> ~~It was built, and it failed on measurement. The construction assigned `τ` bands by level; the
+> run reports **0.91 at the apex against 0.99 at the rim** — no gradient at all.~~
 > *Superseded by [#276](https://github.com/NGL321/patchworks/issues/276): the construction assigned
 > no bands in any run that was measured.* `select()` runs only in `go_no_go` and in the tests, and
 > both rigs that tick take iid draws — see the rig table under *The precondition: region dwell
