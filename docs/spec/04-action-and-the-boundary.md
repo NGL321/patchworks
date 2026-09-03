@@ -488,21 +488,43 @@ This is not free. It converts a planning problem into an **exploration** problem
 has never experienced is not merely unplanned, it is invisible.
 
 Nothing in the PoC deliberately answers that, and that is a position rather than an omission
-([#17](https://github.com/NGL321/patchworks/issues/17)). Early in training the model is poor
-everywhere, so the torques the graph emits are near-arbitrary and the arm visits configurations it
-has no model of; the model then sharpens where it acted. **Exploration here is a consequence of not
-yet having a model, not a mechanism** — which makes it self-extinguishing, and means the dark room is
-not avoided so much as arrived at late. The bet is that late is enough: that discomfort under a
-standing drive keeps the arm moving through the window in which the model is still poor, and that the
-routes worth having get visited inside it.
+([#17](https://github.com/NGL321/patchworks/issues/17)). The account that stood here was that early in
+training the model is poor everywhere, so the torques the graph emits are near-arbitrary and the arm
+visits configurations it has no model of; the model then sharpens where it acted — exploration as a
+consequence of not yet having a model rather than a mechanism, self-extinguishing, the dark room
+arrived at late rather than avoided. **That account is measured false, and it is void**
+([#154](https://github.com/NGL321/patchworks/issues/154)).
 
-The bet is instrumented rather than hoped at. A drive that produces *no* motion at all is
-[ADR-0009](../adr/0009-a-drive-is-a-motor-edge-attached-deep.md)'s *Bootstrapping* exposure and not
-its scalar-width one, and it is this bet failing; the response is the **curiosity drive** held in
-fog, which enters as an ordinary drive boundary cell at the internal rim and needs no new channel and
-no change to anything here. Note what is *not* claimed: this says nothing about whether an agent with
-a converged model will visit a route it has never taken. It will not, and by then it has no term that
-would make it want to. This is the dynamics-exploration argument's limit, stated where it bites —
+**What an untrained agent actually emits is one constant torque.**
+[#120](https://github.com/NGL321/patchworks/issues/120) measured the command sitting at a fixed point
+— sd ≤ 3.5e-6 over hundreds of ticks, and identical to four decimal places across two *different*
+worlds at the same seed — with every joint pinned against its stop and travel over the last 300 ticks
+exactly zero. The untrained emission is a **world-independent constant**. Near-arbitrary is not what
+it does, and **any claim resting on exploratory torques appearing for free is void**, including the
+bet this section used to make: that discomfort under a standing drive keeps the arm moving through the
+window in which the model is still poor.
+
+What the same run does *not* show is a shortage of disagreement — 682 of 682 edges disagree with the
+arm pinned, mean 1.66. **The scarce resource is variety, not disagreement:** new directions in the
+disagreement, not its existence. And on #154's ruling the steady-state account of where variety comes
+from needs **nothing added**. The drive pressures the network to act, action changes the state of the
+world, and so the supply of new directions is never short; there is always room for acting and the
+senses are never constrained. Every link in that is the **outbound** leg — apex to actuator — which is
+exactly what reads zero today (#120: drive → command sensitivity **0**, flat across six decades of
+assertion). So the exploration famine is not a second failure owed its own mechanism. It is the
+**outbound failure the map already owns**, read by
+[#242](https://github.com/NGL321/patchworks/issues/242)'s influence predicate.
+
+That ruling is conditional, and its condition is pre-registered. If #242's outbound clause **passes**
+and the world still does not vary — the arm still locks, or per-edge excitation rank stays below that
+edge's stalk width `m_e` — then the famine is a failure in its own right and a supplier is owed. Until
+that fires, the response stays **gated rather than owed**: the **curiosity drive** held in fog, which
+enters as an ordinary drive boundary cell at the internal rim and needs no new channel and no change
+to anything here. A drive that produces *no* motion at all remains
+[ADR-0009](../adr/0009-a-drive-is-a-motor-edge-attached-deep.md)'s *Bootstrapping* exposure and not its
+scalar-width one. Note what is *not* claimed: this says nothing about whether an agent with a converged
+model will visit a route it has never taken. It will not, and by then it has no term that would make it
+want to. This is the dynamics-exploration argument's limit, stated where it bites —
 [`03-the-sandbox.md`](./03-the-sandbox.md), *Dynamics exploration, not spatial exploration*, covers
 the other half.
 
