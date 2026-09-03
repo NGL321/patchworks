@@ -158,6 +158,18 @@ draw a slow cell* to *will anything make one*** — which is what the falsificat
   [#166](https://github.com/NGL321/patchworks/issues/166), re-wired to block on #143 rather than on
   transmission. If that budget is short, the *available* spread of `τ` is narrower than `K` alone
   suggests, which bears on the slow end.
+
+  > **Corrected by [#166](https://github.com/NGL321/patchworks/issues/166).** What this decision
+  > creates is **not a contest for width**. The budget is not short: twelve dimensions carry both
+  > jobs with room unspent, so the *available* spread of `τ` is not narrowed by the naming job and
+  > the slow end is not squeezed. What it does create is the question of whether the granted spectrum
+  > is ever **realised** — and that is a caveat on **this ADR's own claim**, not a defence the
+  > chart's width needs. Measured on a driven dome, the spectrum is nearly **degenerate**: eleven of
+  > a cell's twelve mean eigenvalue moduli sit inside a band of ~0.13, with only the twelfth
+  > separated, so no mode is specialised as the cell's memory and none as its fast coordinate.
+  > Whether learning breaks the degeneracy is
+  > [#357](https://github.com/NGL321/patchworks/issues/357); the ruling and its numbers are on
+  > [#166's resolution](https://github.com/NGL321/patchworks/issues/166#issuecomment-5520717326).
 - **Compositionality and action selection are declined here, deliberately.** They are properties of
   the graph and of the reconciliation phase. They arrive from hierarchical APC as intuition —
   `T1`/`T2`, micro-steps against macro-steps — and they join memory and credit in the not-bought-here

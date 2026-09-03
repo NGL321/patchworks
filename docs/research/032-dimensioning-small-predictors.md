@@ -40,11 +40,15 @@ Two consequences for this document specifically:
   size trades against delay depth is what licenses a small per-cell `k` in a graph with unit delay on
   every edge. Under the reframe it stops being corroboration and becomes part of the defence.
 
-**What this pass still does not cover** is the chart's *double duty*: `k = 12` must now name the
-piece **and** carry the cell's memory, and a linear recurrence's recoverable short-term memory is
-bounded by its state dimension — the same bound §"`n = 32`" below applies when it caps one cell's
-linearly recoverable memory at 32 delay taps. The headroom argument here covers the naming job alone.
-That gap is its own ticket, blocked on transmission.
+**What this pass did not cover** is the chart's *double duty*: `k = 12` must also carry the cell's
+memory, and the headroom argument here covers the naming job alone. That gap was its own ticket,
+[#166](https://github.com/NGL321/patchworks/issues/166) — and it **closed differently than this pass
+expected**. The headroom argument did not need to be extended to a second job, because there is no
+contest for width: naming and memory are one budget with a trade-off inside it (Dambre et al. 2012,
+Theorem 4, via [#167](https://github.com/NGL321/patchworks/issues/167) §2.2), and measured on a driven
+dome the width is unspent on both counts. What caps the memory is `K`'s **shape**, not `k` — a
+near-normal operator's recoverable sequence memory is ~1 whatever its dimension. See
+[#166's resolution](https://github.com/NGL321/patchworks/issues/166#issuecomment-5520717326).
 
 ## Headline verdict, stated plainly
 
@@ -62,8 +66,8 @@ Three specific results, in order of weight:
   local-chart reading of ADR-0004 has a theorem behind it: an embedding is generic once the
   coordinate count exceeds **twice the box-counting dimension of the attractor**, not the ambient
   state dimension (Duan et al. 2023, quoting the fractal generalisation of Takens; Sauer, Yorke &
-  Casdagli 1991). `k = 12` charts a piece of box-dimension up to ~6 in a world whose whole state is
-  about twenty numbers. That is not tight.
+  Casdagli 1991). `k = 12` charts a piece of box-dimension up to ~6 — a **ceiling**, not the piece's
+  demand — in a world whose whole state is about twenty numbers. That is not tight.
 - **`n = 32` is not challenged, but it is also not defended by reservoir computing.** Read naively,
   RC practice says the opposite of `n = 32` — "use as big a reservoir as you can afford", sizes of
   order 10⁴ commonplace (Lukoševičius 2012). The naive reading does not transfer, because a
@@ -250,12 +254,18 @@ ADR-0007 are already trying to read.
 Applied to the committed numbers, with the sandbox's world state at about twenty numbers
 (`06-graph-topology.md`):
 
-| stalk | dimension | supports a piece of box-dimension up to |
+| stalk | dimension | **capacity**: supports a piece of box-dimension up to |
 |---|---|---|
 | chart `k` | 12 | < 6 |
 | node stalk `n` | 32 | < 16 |
 | interior edge `m` | 4 | < 2 |
 | boundary edge `m` | 8 | < 4 |
+
+Every number in that column is a **capacity — a ceiling on what the stalk could chart, not a demand
+the piece makes on it.** Stated because [#166](https://github.com/NGL321/patchworks/issues/166) read
+`< 6` back as the piece's demand and got a worked example ("twelve coordinates fully spent naming a
+6-dimensional piece") that looks forced. The demand is the paragraph below: *far below 6*, in a world
+of about twenty numbers.
 
 A cell's **piece** — one 4×4 patch, or one deep abstraction over a few pucks — has a box-counting
 dimension far below 6 in a world of about twenty numbers total. `k = 12` is therefore comfortable in
