@@ -190,9 +190,13 @@ author, and "when it becomes a problem" is not a cutoff but the absence of one.
   which the register does not count. Signing it `@rig` would lift the problem out of that loud section
   while nothing whatever was watching it, which is the disguise the section exists to show.
 
-  The hook is one call at the end of a rig's `main` — `benchmarks/sandbox_throughput.py` is the rig
-  that carries it — and it changes nothing about a rig asserting nothing: a crossing is a report and
-  a label, never a failure and never a non-zero exit.
+  The hook is one call at the end of a rig's run, and it changes nothing about a rig asserting
+  nothing: a crossing is a report and a label, never a failure and never a non-zero exit.
+  `benchmarks/detectability.py read` carries it — that is the rig the live register names, and
+  ADR-0026's conduction ratio is the bar — and `benchmarks/sandbox_throughput.py` carries it as the
+  cheap worked example. Both take `--no-file`, which prints the report and touches the tracker not at
+  all: filing records a *run* against a problem, and a read taken on the small dome to check the code
+  works is not one.
 - **`uncut`** — admitted, and loud. The register sorts these first and states them as a debt, in the
   voice `@flexibility unknown` uses: *nobody has said when this stops being tolerable* is a fact, and
   hiding it is worse than showing it.
