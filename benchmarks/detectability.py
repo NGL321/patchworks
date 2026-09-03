@@ -1,28 +1,42 @@
-"""Rim-to-core detectability: the bottleneck ratio, per edge, over trials (#214, #232).
+"""Rim-to-core transmission: ADR-0026's conduction ratio, and ADR-0021's bottleneck.
 
-ADR-0021 fixed the predicate and #214 runs it. Nothing here decides anything —
-the predicate, the amplitude convention, the floor and the bar were all settled
-before this file existed, and this is the read that returns a verdict against
-them::
+**Two predicates, two quantities, and this rig publishes both under their own
+names.** ADR-0026's **conduction ratio** `τ̂_c / |loop(c)|` is #127's operative
+bar; ADR-0021's **bottleneck ratio** is the sufficient per-edge diagnostic it
+demoted but kept. Neither decides anything here — both predicates, the amplitude
+convention, the floor, the bar and the loop enumeration were settled before this
+file computed either, and this is the read that returns a verdict against them::
 
     python benchmarks/detectability.py read
     python benchmarks/detectability.py corners
     python benchmarks/detectability.py linearity
 
-**`read` carries the cutoff hook** (#284). Two open problems cut on this rig —
+**`read` carries the cutoff hook** (#284). Open problems cut on this rig —
 [#325](https://github.com/NGL321/patchworks/issues/325) and
-[#329](https://github.com/NGL321/patchworks/issues/329) — and both write the
-same bar, `conduction ratio >= 1`, because both wait on the same precondition:
-*it needs charts from a graph that transmits*. That is the quantity
-:func:`report` turns into `HOLDS` or `FAILS`, so `read` states the verdict
-against each of them, records the run on the problem, and adds
-`register:overdue` on a crossing. It asserts nothing and its exit code does not
-move; `tools/cutoff_report.py` holds the argument, and the reading it hands over
-is :func:`readings`.
+[#329](https://github.com/NGL321/patchworks/issues/329) both write
+`conduction ratio >= 1`, and
+[#341](https://github.com/NGL321/patchworks/issues/341) writes `outbound
+conduction ratio >= 1` — because they wait on the same precondition: *a graph
+that transmits*. `read` states the verdict against each, records the run on the
+problem, and adds `register:overdue` on a crossing. It asserts nothing and its
+exit code does not move; `tools/cutoff_report.py` holds the argument, and the
+reading it hands over is :func:`readings`.
+
+**What `conduction ratio` names, corrected by
+[#379](https://github.com/NGL321/patchworks/issues/379).** It is **ADR-0026's**
+`τ̂_c / |loop(c)|` — :func:`conducting_path`, a ratio of times — and it is *not*
+ADR-0021's bottleneck ratio, which this module published under that key until
+#379. The two are not close and they fail differently: at #232's best corner the
+bottleneck ratio was short of its bar by **4.4e8x** where the conduction ratio is
+short by roughly **1.1x-8.5x** (#274). Wiring a cutoff to the first while its own
+warrant cites the second is a false FAIL that could hold a problem closed
+indefinitely past the point its real precondition is met — the bystander ADR-0026
+replaced the amplitude bar to be rid of. ADR-0021's ratio is still published,
+under `bottleneck_ratio`; only the name it wore was wrong.
 
 Pass `--no-file` on any read that is not *the* read — a short `--learn`, the
-small dome — because filing records a run against those two problems, and a toy
-reading is not one.
+small dome — because filing records a run against every problem that cuts on
+this rig, and a toy reading is not one.
 
 **`corners` is #232 and it is the one thing here that chose something.** #214
 read one corner of a two-axis space, and #230 found it the corner least
@@ -36,10 +50,26 @@ the **stimulus convention** and nothing else. See :func:`injection` for what
 *collective* was taken to mean, which is this file's only open call, and
 :func:`branch` for what *sustained* was taken to mean.
 
-**The predicate.** `max` over rim-to-apex paths `P`, `min` over edges `e ∈ P`, of
-`[A₀ · Π_{i ≤ e} hop_i] / floor_e ≥ 1`, with `A₀ = 1` and `k = 1`; per trial,
-each trial reduced to the peak ratio at that edge; the bar at the median trial
-with p05/p25/p75/p95 alongside; stated twice, rim→apex and apex→rim.
+**ADR-0026's predicate, the operative bar.** `max` over paths `P`, `min` over
+*cells* `c ∈ P`, of `τ̂_c / |loop(c)| ≥ 1`; per trial, the bar at the median with
+p05/p25/p75/p95 alongside; stated twice, rim→apex and apex→rim. `τ̂_c` is the
+e-fold decay time of the paired deviation **projected onto `c`'s private
+features** (:func:`tau_hat`), and `|loop(c)|` is the tick length of the shortest
+rim-returning cycle through `c`, **enumerated from the mask**
+(:func:`loop_lengths`) rather than quoted. Boundary cells hold no private
+features and carry no `τ̂`, so they bound no path — ADR-0026's own exclusion,
+arrived at from the arithmetic rather than bolted on.
+
+**This is the widest-path shape, not the acceptance form.** ADR-0026 states the
+predicate twice more — inbound as a swept per-stratum count, outbound as a
+universal over L1 and the actuator — and that reading is #99's, not this rig's.
+What is here is the shape both of those clauses reduce a trial with.
+
+**ADR-0021's predicate, the sufficient diagnostic.** `max` over rim-to-apex paths
+`P`, `min` over edges `e ∈ P`, of `[A₀ · Π_{i ≤ e} hop_i] / floor_e ≥ 1`, with
+`A₀ = 1` and `k = 1`; per trial, each trial reduced to the peak ratio at that
+edge; the same median bar and quantiles. Kept, published, and no longer what the
+map is read against.
 
 **The numerator is measured, not chained.** `A₀ · Π_{i ≤ e} hop_i` is *the
 arriving deviation at edge `e`*, and with `A₀ = 1` a unit-norm deviation injected
@@ -87,6 +117,17 @@ order rather than summarising a level.
 measurement reports its own rounding — on the real dome, `2.5e-4` where the
 quantity is `1.1e-9`. `linearity` is the check that separates the two, and it is
 worth running before believing any number here.
+
+**So `τ̂` carries #224's gate** (:func:`readable`). #224 ruled float32's
+granularity the architecture's **noise floor**: a difference smaller than the
+representable granularity at the magnitude the state sits at has not arrived. A
+`τ̂` whose `1/e` crossing sits below `eps_f32 · ‖state‖` is a float64 reading of
+something the float32 build has no signal for, so it is reported **as unreadable
+at runtime precision, alongside the number** rather than dropped — the float64
+`τ̂` stays visible next to the fact that the running architecture has nothing
+there. ADR-0026's amendment carrying that clause is
+[#381](https://github.com/NGL321/patchworks/issues/381)'s, and so is the
+constant's definition site; see :data:`EPS_F32`.
 
 **What the widest path is.** Edge values in hand, the predicate is the classical
 maximum-bottleneck path, computed exactly by a max-min Dijkstra rather than
@@ -138,6 +179,16 @@ HOLD = 400
 #: `1e-2` to `1e1` on the real dome), so nothing is being rescaled from anywhere.
 #: It is a knob only so that the window can be measured.
 PROBE = 1.0
+
+#: float32's granularity: the architecture's arithmetic noise floor (#224).
+#:
+#: Held as the machine's own quantity rather than typed as a literal, per
+#: ADR-0018 — a derived constant is derived where its dependency lives, and the
+#: dependency here is the dtype the architecture runs in. **Its definition site
+#: is #381's**, in a module `tools/constant_registers.py` scans; `benchmarks/`
+#: is not scanned, so this is the read's use of the machine quantity and not a
+#: second definition of it. When #381 lands, this reads from there.
+EPS_F32 = float(torch.finfo(torch.float32).eps)
 
 
 def double_precision(root, depth: int = 0, seen: set[int] | None = None) -> int:
@@ -202,7 +253,12 @@ def double_precision(root, depth: int = 0, seen: set[int] | None = None) -> int:
 
 @dataclass(frozen=True)
 class Trial:
-    """One trial's per-edge peak ratios, and what the widest path did."""
+    """One trial, read against both predicates: ADR-0026's and ADR-0021's.
+
+    The two reductions run over the same fork and the same window — one over
+    cells and times, the other over edges and amplitudes — so the trial carries
+    both verdicts and nothing has to be re-measured to compare them.
+    """
 
     source: tuple[int, ...]
     """Every cell the deviation was injected into: one for #214, a stratum for #232."""
@@ -226,6 +282,30 @@ class Trial:
 
     horizons: tuple[tuple[int, float], ...]
     """`(ticks, bottleneck)`: the same trial read to several horizons."""
+
+    conduction: float
+    """ADR-0026's reading: `min` over the widest path's cells of `τ̂_c / |loop(c)|`."""
+
+    cell: int
+    """The cell that binds the conducting path — what ADR-0026's predicate says fails."""
+
+    walk: tuple[int, ...]
+    """The conducting path's cells, source-first."""
+
+    tau: np.ndarray
+    """`[predicting cells]`: `τ̂_c` in ticks, in `Dome.predicting` row order."""
+
+    censored: np.ndarray
+    """`[predicting cells]` bool: the window ended before the `1/e` crossing."""
+
+    resolved: np.ndarray
+    """`[predicting cells]` bool: #224's gate — the crossing clears float32's floor."""
+
+    private: np.ndarray
+    """`[predicting cells]` bool: the cell has private dimension to hold at all (#385)."""
+
+    conduction_horizons: tuple[tuple[int, float], ...]
+    """`(ticks, conduction)`: `τ̂` is a decay time, so the window is never silent."""
 
 
 def rim(dome: Dome) -> tuple[int, ...]:
@@ -305,6 +385,240 @@ def widest_path(
                 came[other] = edge_id
                 heappush(frontier, (-through, other))
     return 0.0, -1, -1, ()
+
+
+def loop_lengths(dome: Dome) -> dict[int, int]:
+    """`|loop(c)|` for every predicting cell: `2 · d(c, rim)`, off the mask.
+
+    ADR-0026's divisor, **enumerated rather than quoted**, which is that ADR's
+    own instruction: the ladder it prints is `DEFAULT_SPEC`'s reading, and *"any
+    graph change re-derives it, and no session should quote 14 at a dome it has
+    not checked."* A breadth-first sweep from :func:`rim` — the sensorimotor rim,
+    the drive excluded for the reason it is excluded there — gives `d(c, rim)`,
+    and the rim-returning round trip is twice it.
+
+    **A predicting cell the sweep never reaches is absent from the mapping**
+    rather than carried with an infinite loop length. *No loop closing* is
+    ADR-0026's stated falsification, and it should read as one rather than as a
+    very large divisor.
+
+    `|loop(c)| = 2 · level` on the default dome is a fact about that taper and
+    not a licence to index by level (#181): this computes per cell from the
+    graph, and a changed `DomeSpec` gets a different ladder for free.
+    """
+    distance = {cell: 0 for cell in rim(dome)}
+    frontier = list(distance)
+    while frontier:
+        onward = []
+        for cell in frontier:
+            for edge_id in dome.incident[cell]:
+                other = dome.edges[edge_id].other(cell)
+                if other not in distance:
+                    distance[other] = distance[cell] + 1
+                    onward.append(other)
+        frontier = onward
+    return {c: 2 * distance[c] for c in dome.predicting if c in distance}
+
+
+def tau_hat(deviation: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """`τ̂` per cell: peak-to-`1/e` in ticks, ADR-0026's reading taken literally.
+
+    `deviation` is `[ticks, cells]` — the norm of the paired deviation projected
+    onto each cell's private features. Per cell: find the peak tick, then read
+    the ticks from that peak until the deviation first falls to `1/e` of it.
+    Comes back as `(τ̂, censored, peak_at)`.
+
+    **Integer ticks, and no interpolation between samples.** ADR-0026 says *"the
+    ticks from that peak until it falls to `1/e` of peak"*, and the tick is the
+    architecture's own unit — one edge, one tick
+    (`01-cell-and-sheaf.md`, *Unit delay*), which is also what `|loop(c)|` counts,
+    so the ratio is in the same currency top and bottom. Interpolating a crossing
+    between two samples would report a resolution the instrument does not have,
+    and at L1, where `|loop| = 2`, the interpolated digit would be doing the
+    deciding.
+
+    **Censoring is flagged, not filled in.** A deviation that never falls to
+    `1/e` inside the window has a `τ̂` this window cannot read. It comes back as
+    the ticks remaining after the peak — a **lower bound** — with the flag set,
+    so a reading resting on one is visible. A lower bound under-reports `τ̂`, so
+    it can cost a PASS and can never manufacture one; that asymmetry is why the
+    censored value is usable at all.
+
+    **A cell the deviation never reaches gets `τ̂ = 0`**, not a decay time. There
+    is nothing to decay, and `0 / |loop|` is the falsification reading rather
+    than a small pass.
+    """
+    ticks, cells = deviation.shape
+    peak_at = deviation.argmax(axis=0)
+    peak = deviation.max(axis=0)
+    tau = np.zeros(cells, dtype=float)
+    censored = np.zeros(cells, dtype=bool)
+    for cell in range(cells):
+        start = int(peak_at[cell])
+        if not peak[cell] > 0.0:
+            continue
+        below = np.nonzero(deviation[start:, cell] <= peak[cell] / np.e)[0]
+        if below.size:
+            tau[cell] = float(below[0])
+        else:
+            tau[cell] = float(ticks - 1 - start)
+            censored[cell] = True
+    return tau, censored, peak_at
+
+
+def readable(
+    deviation: np.ndarray, state: np.ndarray, tau: np.ndarray, peak_at: np.ndarray
+) -> np.ndarray:
+    """#224's gate: is the `1/e` crossing above float32's granularity?
+
+    `[cells]` bool. The projected deviation at the crossing must stand above
+    `EPS_F32 · ‖state‖` at that cell and tick, where `state` is `[ticks, cells]`
+    of the **unperturbed** branch's node-stalk norm — the magnitude the state
+    actually sits at, which is what fixes the granularity.
+
+    **A False is reported alongside the `τ̂`, never in place of it.** The read is
+    taken in float64 (:func:`double_precision`); a crossing below the float32
+    floor means the number is real but the running architecture has no signal
+    there, and #224's ruling is that this is the architecture's **noise floor**
+    rather than a defect to engineer away. Dropping the reading would hide the
+    pressure that ruling puts on this instrument; printing it beside the `τ̂` is
+    what carries it.
+
+    Nothing here is invented: `EPS_F32` is the machine's and `‖state‖` is read.
+    """
+    ticks = deviation.shape[0]
+    crossing = np.minimum(peak_at + tau.astype(int), ticks - 1)
+    columns = np.arange(deviation.shape[1])
+    return deviation[crossing, columns] > EPS_F32 * state[crossing, columns]
+
+
+def conducting_path(
+    dome: Dome,
+    ratio: dict[int, float],
+    source: int | tuple[int, ...],
+    targets: tuple[int, ...],
+) -> tuple[float, int, int, tuple[int, ...]]:
+    """`max` over paths, `min` over cells: ADR-0026's predicate, cell-indexed.
+
+    :func:`widest_path`'s max-min Dijkstra with the value moved off the edges and
+    onto the cells, which is the whole of the difference between the two
+    predicates' shapes. Same invariant makes the greedy step correct: a path's
+    value cannot rise by extending it.
+
+    `ratio` carries `τ̂_c / |loop(c)|` for every predicting cell. **A cell absent
+    from it is unbounded** — that is the boundary cells, which hold no private
+    features, carry no `τ̂` and are excluded from the outbound universal by
+    ADR-0026 on exactly this ground. They are transited without binding, so a
+    path through one is bounded by the predicting cells at its ends. A predicting
+    cell whose loop never closes is present with `0.0`, which is the
+    falsification and not an absence.
+
+    The **binding cell** comes back with the value, for ADR-0021's reason one
+    level over: the predicate's content is that what fails is a *cell*, and a
+    verdict that could not name it would not be the predicate's verdict. So does
+    the path, in cells, so the descent can be printed.
+    """
+    origins = (source,) if isinstance(source, int) else tuple(source)
+
+    def value_at(cell: int) -> float:
+        return ratio.get(cell, float("inf"))
+
+    best: dict[int, float] = {}
+    binding: dict[int, int] = {}
+    came: dict[int, int] = {}
+    frontier: list[tuple[float, int]] = []
+    for start in origins:
+        best[start] = value_at(start)
+        binding[start] = start if value_at(start) < float("inf") else -1
+        heappush(frontier, (-best[start], start))
+    settled: set[int] = set()
+    reached = tuple(t for t in targets if t not in set(origins))
+    while frontier:
+        value, cell = heappop(frontier)
+        value = -value
+        if cell in settled:
+            continue
+        settled.add(cell)
+        if cell in reached:
+            walk, at = [cell], cell
+            while at in came:
+                at = came[at]
+                walk.append(at)
+            return value, cell, binding[cell], tuple(reversed(walk))
+        for edge_id in dome.incident[cell]:
+            other = dome.edges[edge_id].other(cell)
+            if other in settled:
+                continue
+            through = min(value, value_at(other))
+            if through > best.get(other, -float("inf")):
+                best[other] = through
+                binding[other] = other if value_at(other) <= value else binding[cell]
+                came[other] = cell
+                heappush(frontier, (-through, other))
+    return 0.0, -1, -1, ()
+
+
+def conduction(
+    dome: Dome,
+    quiet: dict[int, torch.Tensor],
+    moved: dict[int, torch.Tensor],
+    source: tuple[int, ...],
+    targets: tuple[int, ...],
+    loops: dict[int, int],
+    window: int | None = None,
+) -> dict:
+    """One trial's conduction reading: `τ̂` per cell, then the widest path.
+
+    `quiet` and `moved` are the two branches' recorded node stalks, `[ticks,
+    stalk]` per cell, and every predicting cell must be in both — the reduction
+    is over the graph's cells and a missing one would silently shorten the `min`.
+
+    **The projection is the masks', not a choice.** `Dome.private_projection` is
+    fixed at construction and invariant under learning, and it keeps exactly the
+    directions reconciliation cannot move (ADR-0026, *How it is read*).
+
+    **A cell with no private dimension reads `τ̂ = 0`, and that is a structural
+    zero rather than a measurement.** `private_dimensions` is `max(0, n - Σ_e
+    m_e)` and it is a gradient (`06-graph-topology.md`); where it is `0` the
+    projection is the zero map, so the deviation has nowhere to be read and no
+    amount of retention can move the number. This is taken **literally**, because
+    ADR-0026's predicate is settled and an exclusion invented here would be a
+    second predicate wearing its name — but it is flagged all the way up to
+    :func:`report`, because a bar pinned by construction is exactly the bystander
+    ADR-0026 replaced the amplitude ratio to be rid of. See
+    [#385](https://github.com/NGL321/patchworks/issues/385), which owns it.
+    """
+    cells = dome.predicting
+    projection = dome.private_projection.to(torch.float64)
+    rows = {cell: row for row, cell in enumerate(cells)}
+    private = np.stack(
+        [
+            ((moved[c] - quiet[c])[:window] * projection[rows[c]])
+            .norm(dim=-1)
+            .numpy()
+            for c in cells
+        ],
+        axis=1,
+    )
+    state = np.stack([quiet[c][:window].norm(dim=-1).numpy() for c in cells], axis=1)
+    tau, censored, peak_at = tau_hat(private)
+    above = readable(private, state, tau, peak_at)
+    ratio = {
+        cell: (tau[rows[cell]] / loops[cell]) if cell in loops else 0.0
+        for cell in cells
+    }
+    value, target, cell, walk = conducting_path(dome, ratio, source, targets)
+    return {
+        "conduction": value,
+        "target": target,
+        "cell": cell,
+        "walk": walk,
+        "tau": tau,
+        "censored": censored,
+        "readable": above,
+        "private": (dome.private_dimensions > 0).numpy(),
+        "ratio": ratio,
+    }
 
 
 def unit(width: int, generator: torch.Generator) -> torch.Tensor:
@@ -438,11 +752,18 @@ def ratios(
     probe: float,
     window: int,
     sustained: dict[int, torch.Tensor] | None = None,
-) -> np.ndarray:
-    """`[ticks, edges]`: the paired ratio at every edge and tick, reported at `A₀ = 1`."""
+    record: tuple[int, ...] = (),
+):
+    """`[ticks, edges]` of paired ratio at `A₀ = 1`, and the recorded node stalks.
+
+    The stalks come back because ADR-0026's reduction needs the perturbed
+    branch's per-cell trace and re-running the branch to get it would be the same
+    arithmetic twice — and worse, a second fork, where the pairing needs one.
+    """
     scaled = tuple((cell, deviation * probe) for cell, deviation in nudge)
-    moved, _ = branch(
-        agent, state, observation, applied, window, scaled, sustained=sustained
+    moved, kept = branch(
+        agent, state, observation, applied, window, scaled,
+        sustained=sustained, record=record,
     )
     numerator = (moved - quiet).norm(dim=-1).numpy() / probe
     denominator = quiet.norm(dim=-1).numpy()
@@ -453,7 +774,7 @@ def ratios(
     ratio = np.where(
         denominator > 0, numerator / np.maximum(denominator, 1e-300), np.inf
     )
-    return np.where(numerator == 0, 0.0, ratio)
+    return np.where(numerator == 0, 0.0, ratio), kept
 
 
 def horizons(window: int) -> tuple[int, ...]:
@@ -490,7 +811,7 @@ def trial(
     coherent: bool = True,
     fork=None,
 ) -> Trial:
-    """One perturbation: fork, inject, difference, reduce to a bottleneck.
+    """One perturbation: fork, inject, difference, reduce against both predicates.
 
     `source` is a cell or a tuple of them; `stimulus` is `impulse` (#214's, the
     deviation added once) or `sustained` (#232's, the source held at a constant
@@ -501,17 +822,28 @@ def trial(
     """
     state = ufp.snapshot(agent.sheaf)
     cells = (source,) if isinstance(source, int) else tuple(source)
+    # Every predicting cell is recorded, because ADR-0026's `min` runs over the
+    # cells of a path and a cell missing from the trace would silently shorten
+    # it — the reduction would then report the widest path *among those
+    # recorded*, which is a different predicate wearing the same name.
+    record = tuple(dict.fromkeys(cells + agent.dome.predicting))
     if fork is None:
         quiet, held = branch(
-            agent, state, observation, applied, window, None, record=cells
+            agent, state, observation, applied, window, None, record=record
         )
     else:
         quiet, held = fork
+    missing = [c for c in agent.dome.predicting if c not in held]
+    if missing:
+        raise ValueError(
+            f"the fork recorded {len(missing)} predicting cells short of the "
+            "graph; ADR-0026's reduction is over all of them"
+        )
     if len(cells) == 1:
         nudge = ((cells[0], unit(agent.dome.cells[cells[0]].stalk, generator)),)
     else:
         nudge = injection(agent.dome, cells, generator, coherent)
-    ratio = ratios(
+    ratio, moved = ratios(
         agent,
         state,
         quiet,
@@ -521,10 +853,13 @@ def trial(
         probe,
         window,
         sustained=held if stimulus == "sustained" else None,
+        record=record,
     )
     ufp.restore(agent.sheaf, state)
     peaks = ratio.max(axis=0)
     value, target, edge, path = widest_path(agent.dome, peaks, cells, targets)
+    loops = loop_lengths(agent.dome)
+    conducted = conduction(agent.dome, held, moved, cells, targets, loops)
     return Trial(
         source=cells,
         kind=agent.dome.cells[cells[0]].kind.value,
@@ -536,6 +871,22 @@ def trial(
         peak_at=ratio.argmax(axis=0),
         horizons=tuple(
             (h, widest_path(agent.dome, ratio[:h].max(axis=0), cells, targets)[0])
+            for h in horizons(window)
+        ),
+        conduction=conducted["conduction"],
+        cell=conducted["cell"],
+        walk=conducted["walk"],
+        tau=conducted["tau"],
+        censored=conducted["censored"],
+        resolved=conducted["readable"],
+        private=conducted["private"],
+        conduction_horizons=tuple(
+            (
+                h,
+                conduction(
+                    agent.dome, held, moved, cells, targets, loops, window=h
+                )["conduction"],
+            )
             for h in horizons(window)
         ),
     )
@@ -670,7 +1021,7 @@ def linearity(
     )
     print("\n  A0         bottleneck at A0=1     median edge ratio")
     for a0 in amplitudes:
-        ratio = ratios(
+        ratio, _ = ratios(
             agent,
             state,
             quiet,
@@ -696,67 +1047,171 @@ def pick(dome: Dome, seed: int, collective: bool) -> tuple[int, ...]:
     return (drawn,) if isinstance(drawn, int) else tuple(drawn)
 
 
+def name_cell(dome: Dome, cell_id: int) -> str:
+    if cell_id < 0:
+        return "none"
+    cell = dome.cells[cell_id]
+    return f"#{cell_id} {cell.kind.value} {cell.index}"
+
+
 def report(dome: Dome, direction: str, outcomes: list[Trial], window: int) -> None:
-    values = np.array([o.bottleneck for o in outcomes])
-    q = quantiles(values)
+    """Both predicates, in their settled order: the operative bar, then the diagnostic.
+
+    ADR-0026's conduction ratio carries the `HOLDS`/`FAILS`, because it is what
+    #127 is read against. ADR-0021's bottleneck ratio is printed under its own
+    name directly below it — kept as the **sufficient** per-edge diagnostic,
+    where a pass is conclusive and a fail is not. Printing them together is what
+    makes the two quantities' different sizes visible in one place, which is the
+    confusion [#379](https://github.com/NGL321/patchworks/issues/379) closed.
+    """
+    conducted = np.array([o.conduction for o in outcomes])
+    q = quantiles(conducted)
     verdict = "HOLDS" if q["median"] >= 1.0 else "FAILS"
-    print(f"== {direction}: rim-to-core detectability {verdict} ==")
+    print(f"== {direction}: rim-core influence {verdict} ==")
+    print("   ADR-0026, the operative bar: conduction ratio = tau_hat / |loop|")
     print(
-        f"   bottleneck ratio over {q['n']} trials — "
+        f"   over {q['n']} trials — "
         f"p05 {q['p05']:.3g}  p25 {q['p25']:.3g}  "
         f"median {q['median']:.3g}  p75 {q['p75']:.3g}  p95 {q['p95']:.3g}"
     )
     if q["median"] > 0:
         print(f"   short of the bar by {1.0 / q['median']:.3g}x at the median")
-    at = np.array([o.peak_at[o.edge] for o in outcomes])
+    middle = outcomes[int(np.argsort(conducted)[len(conducted) // 2])]
+    print(f"   the median trial's binding cell: {name_cell(dome, middle.cell)}")
+    loops = loop_lengths(dome)
+    rows = {cell: row for row, cell in enumerate(dome.predicting)}
+    profile = "  ".join(
+        f"{middle.tau[rows[c]] / loops[c]:.3g}" if c in loops else "-"
+        for c in middle.walk
+        if c in rows
+    )
+    print(f"   its path, cell by cell from the source — {profile}")
+    # A cell with no private dimension has nowhere for `tau_hat` to be read, so
+    # its ratio is `0` by construction and no retention work can move it (#385).
+    # Stated here rather than folded into the number, because a bar pinned by
+    # construction is the bystander ADR-0026 replaced the amplitude ratio to be
+    # rid of, and this rig is what would hide it.
+    empty = [c for c in middle.walk if c in rows and not middle.private[rows[c]]]
+    if empty:
+        print(
+            f"   {len(empty)} of that path's cells hold no private features, so "
+            f"their tau_hat is 0 by construction, not by measurement (#385): "
+            + ", ".join(name_cell(dome, c) for c in empty[:4])
+            + ("  ..." if len(empty) > 4 else "")
+        )
+    # #224's gate and the window, reported next to the number rather than
+    # folded into it: a float64 tau_hat below float32's granularity is a real
+    # number the running architecture has no signal for, and a censored one is a
+    # lower bound. Both can only cost a PASS, and both stay visible.
+    unresolved = np.mean([1.0 - o.resolved.mean() for o in outcomes])
+    censored = np.mean([o.censored.mean() for o in outcomes])
+    binding_unresolved = np.mean(
+        [
+            0.0 if o.cell < 0 else float(not o.resolved[rows[o.cell]])
+            for o in outcomes
+            if o.cell < 0 or o.cell in rows
+        ]
+    )
     print(
-        f"   the binding edge peaks at tick {np.median(at):.0f} "
-        f"(median over trials), in a window of {window}"
+        f"   unreadable at runtime precision: {unresolved:.1%} of cells "
+        f"(#224's gate), and the binding cell in {binding_unresolved:.1%} of trials"
+    )
+    print(
+        f"   tau_hat censored by the window of {window}: {censored:.1%} of cells "
+        "— a lower bound, so it can only cost a pass"
     )
     ladder = "  ".join(
-        f"{h}:{np.median([dict(o.horizons)[h] for o in outcomes]):.3g}"
-        for h, _ in outcomes[0].horizons
+        f"{h}:{np.median([dict(o.conduction_horizons)[h] for o in outcomes]):.3g}"
+        for h, _ in outcomes[0].conduction_horizons
     )
-    print(f"   median bottleneck by horizon (ticks:value) — {ladder}")
+    print(f"   median conduction by horizon (ticks:value) — {ladder}")
     strata = sorted({o.kind for o in outcomes})
     if len(strata) > 1:
         breakdown = "  ".join(
-            f"{k}:{np.median([o.bottleneck for o in outcomes if o.kind == k]):.3g}"
+            f"{k}:{np.median([o.conduction for o in outcomes if o.kind == k]):.3g}"
             for k in strata
         )
         # Never averaged into one number: patch is 256 cells and the other two
         # are three each, so a collective read means something different in each.
         print(f"   median by stratum — {breakdown}")
-    middle = outcomes[int(np.argsort(values)[len(values) // 2])]
-    print(f"   the median trial's binding edge: {name_edge(dome, middle.edge)}")
-    profile = "  ".join(f"{middle.ratios[e]:.3g}" for e in middle.path)
-    print(f"   its path, edge by edge from the source — {profile}")
+
+    values = np.array([o.bottleneck for o in outcomes])
+    b = quantiles(values)
+    print(
+        "   -- ADR-0021, the sufficient per-edge diagnostic: bottleneck ratio "
+        f"{'HOLDS' if b['median'] >= 1.0 else 'FAILS'} "
+        "(a pass is conclusive, a fail is not) --"
+    )
+    print(
+        f"   over {b['n']} trials — "
+        f"p05 {b['p05']:.3g}  p25 {b['p25']:.3g}  "
+        f"median {b['median']:.3g}  p75 {b['p75']:.3g}  p95 {b['p95']:.3g}"
+    )
+    at = np.array([o.peak_at[o.edge] for o in outcomes])
+    print(
+        f"   the binding edge peaks at tick {np.median(at):.0f} "
+        f"(median over trials), in a window of {window}"
+    )
+    amplitude = "  ".join(
+        f"{h}:{np.median([dict(o.horizons)[h] for o in outcomes]):.3g}"
+        for h, _ in outcomes[0].horizons
+    )
+    print(f"   median bottleneck by horizon (ticks:value) — {amplitude}")
+    edge_middle = outcomes[int(np.argsort(values)[len(values) // 2])]
+    print(f"   the median trial's binding edge: {name_edge(dome, edge_middle.edge)}")
+    edges = "  ".join(f"{edge_middle.ratios[e]:.3g}" for e in edge_middle.path)
+    print(f"   its path, edge by edge from the source — {edges}")
     print()
 
 
 def readings(results: dict[str, list[Trial]]) -> dict[str, float]:
     """What this read has to offer a `measurement` cutoff, by name.
 
-    **`conduction_ratio` is the lower of the two directions**, because a graph
-    that transmits one way and not the other does not transmit: the bar #325 and
-    #329 both write, `conduction ratio >= 1`, is the same quantity :func:`report`
-    turns into `HOLDS` or `FAILS`, at the median trial, and taking the minimum
-    is the reading that cannot say *holds* while a direction fails. The two
-    directions are also offered by name, so a cutoff that means one of them can
-    say so.
+    **`conduction_ratio` is ADR-0026's `τ̂_c / |loop(c)|`**, and until
+    [#379](https://github.com/NGL321/patchworks/issues/379) it was ADR-0021's
+    bottleneck ratio wearing that key. #325 and #329 both write `conduction ratio
+    >= 1` and both name ADR-0026/0027 as the warrant, so the key they cut on now
+    carries the quantity their warrant names. The two are eight orders apart and
+    they fail differently, so this was never cosmetic: a cutoff wired to the
+    amplitude ratio waits on a quantity no amount of the work in front of it can
+    move, which is the bystander ADR-0026 exists to have replaced.
+
+    **ADR-0021's ratio is still published, under `bottleneck_ratio`.** ADR-0026
+    kept it as the sufficient per-edge diagnostic and demoted only its role, so
+    dropping it here would lose a reading the record still uses. Any cutoff that
+    means the amplitude quantity can now say so, which it could not before.
+
+    **Both are offered per direction and by side.** `inbound` is rim→apex and
+    `outbound` is apex→rim, ADR-0026's own words for the two clauses;
+    [#341](https://github.com/NGL321/patchworks/issues/341) writes `outbound
+    conduction ratio >= 1` and had no key to land on until now, which is why the
+    register renders it as never having been reported against.
+
+    **The bare key is the lower of the two directions**, because a graph that
+    transmits one way and not the other does not transmit, and taking the minimum
+    is the reading that cannot say *holds* while a direction fails.
     """
-    medians = {
-        direction: float(np.median([o.bottleneck for o in outcomes]))
-        for direction, outcomes in results.items()
-        if outcomes
+    def medians(attribute: str) -> dict[str, float]:
+        return {
+            direction: float(np.median([getattr(o, attribute) for o in outcomes]))
+            for direction, outcomes in results.items()
+            if outcomes
+        }
+
+    quantities = {
+        "conduction_ratio": medians("conduction"),
+        "bottleneck_ratio": medians("bottleneck"),
     }
-    if not medians:
+    if not quantities["conduction_ratio"]:
         return {}
-    found = {
-        f"conduction_ratio_{direction.replace('-', '_')}": value
-        for direction, value in medians.items()
-    }
-    found["conduction_ratio"] = min(medians.values())
+    found: dict[str, float] = {}
+    for name, values in quantities.items():
+        for direction, value in values.items():
+            found[f"{name}_{direction.replace('-', '_')}"] = value
+        found[name] = min(values.values())
+        for side, direction in (("inbound", "rim-to-apex"), ("outbound", "apex-to-rim")):
+            if direction in values:
+                found[f"{side}_{name}"] = values[direction]
     return found
 
 
@@ -800,17 +1255,22 @@ def read(
             )
         print(
             f"  trial {i + 1}/{trials}: "
-            + "  ".join(f"{d} {results[d][-1].bottleneck:.3g}" for d in ends),
+            + "  ".join(
+                f"{d} conduction {results[d][-1].conduction:.3g} "
+                f"(bottleneck {results[d][-1].bottleneck:.3g})"
+                for d in ends
+            ),
             flush=True,
         )
 
     print()
     for direction, outcomes in results.items():
         report(dome, direction, outcomes, window)
-    # The measurement half of the cutoff mechanism (#284). #325 and #329 both
-    # cut on this rig, and both wait on the same thing: a graph that transmits,
+    # The measurement half of the cutoff mechanism (#284). #325, #329 and #341
+    # cut on this rig, and all wait on the same thing: a graph that transmits,
     # which is what this read measures. It states a verdict, files the run, and
-    # asserts nothing.
+    # asserts nothing. What `conduction_ratio` means is ADR-0026's ratio of
+    # times, corrected by #379; see :func:`readings`.
     report_cutoffs("detectability", readings(results), file=file_cutoffs)
 
 
@@ -890,9 +1350,17 @@ def corners(
         touched = tuple(
             sorted({singles[i], outbound[i], *collectives[i]})
         )
+        # Plus every predicting cell: the shared fork is what ADR-0026's
+        # reduction reads, and :func:`trial` refuses a fork that is short of one.
         state = ufp.snapshot(agent.sheaf)
         fork = branch(
-            agent, state, observation, applied, window, None, record=touched
+            agent,
+            state,
+            observation,
+            applied,
+            window,
+            None,
+            record=tuple(dict.fromkeys(touched + agent.dome.predicting)),
         )
         ufp.restore(agent.sheaf, state)
         for label, stimulus, breadth in runs:
@@ -920,7 +1388,7 @@ def corners(
         print(
             f"  trial {i + 1}/{trials}: "
             + "  ".join(
-                f"{label.split('  ')[1]} {results[label][-1].bottleneck:.3g}"
+                f"{label.split('  ')[1]} {results[label][-1].conduction:.3g}"
                 for label, _, _ in runs
                 if label.startswith("rim")
             ),
@@ -934,18 +1402,33 @@ def corners(
 
 
 def table(results: dict[str, list[Trial]], runs) -> None:
-    """The 2x2 the ticket asks for, with the baseline's own corner in place."""
-    print("== the four corners, inbound: median bottleneck ratio ==")
-    print(f"   {'':<24}{'impulse':<16}sustained")
-    for breadth in ("single-source", "collective", CONTRAST):
-        cells = []
-        for stimulus in ("impulse", "sustained"):
-            label = f"rim-to-apex  {stimulus} x {breadth}"
-            if label in results:
-                cells.append(f"{np.median([o.bottleneck for o in results[label]]):.3g}")
-            else:
-                cells.append("-")
-        print(f"   {breadth:<24}{cells[0]:<16}{cells[1]}")
+    """The 2x2 the ticket asks for, with the baseline's own corner in place.
+
+    **Printed twice, once per predicate.** #232's finding is *the size of the gap
+    between corners*, and that is a claim about a quantity: the gap the amplitude
+    ratio shows and the gap the conduction ratio shows are different readings of
+    the same four corners, and #379 is what this file learnt from collapsing two
+    quantities into one name. The bottleneck grid keeps #214's published baseline
+    underneath it, because that baseline is a bottleneck number.
+    """
+    for heading, attribute in (
+        ("median conduction ratio (ADR-0026, the operative bar)", "conduction"),
+        ("median bottleneck ratio (ADR-0021, the diagnostic)", "bottleneck"),
+    ):
+        print(f"== the four corners, inbound: {heading} ==")
+        print(f"   {'':<24}{'impulse':<16}sustained")
+        for breadth in ("single-source", "collective", CONTRAST):
+            cells = []
+            for stimulus in ("impulse", "sustained"):
+                label = f"rim-to-apex  {stimulus} x {breadth}"
+                if label in results:
+                    cells.append(
+                        f"{np.median([getattr(o, attribute) for o in results[label]]):.3g}"
+                    )
+                else:
+                    cells.append("-")
+            print(f"   {breadth:<24}{cells[0]:<16}{cells[1]}")
+        print()
     print(
         "\n   #214's published baseline is impulse x single-source: 8.7e-10 "
         "rim->apex, 1.3e-8 apex->rim."
