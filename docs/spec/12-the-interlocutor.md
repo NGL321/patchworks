@@ -333,9 +333,16 @@ ADR-0005's sense.
   either way.
 - **The coherence number is computed by the interlocutor about the agent's own output**, so it is
   exactly the shape of thing that becomes a reward the moment it is put on the wrong rim. ADR-0025
-  exists to stop that, and the exposure is that the mistake is *cheap to make again* — a future rig
+  exists to stop that, and the exposure was that the mistake is *cheap to make again* — a future rig
   that logs coherence into `info` and then feeds `info` to anything has reintroduced it. `info` is
-  privileged for this reason and not only for tidiness.
+  privileged for this reason and not only for tidiness. **Enforced since
+  [#348](https://github.com/NGL321/patchworks/issues/348)**: `tests/test_info_containment.py` is a
+  standing guard on the channel, in two halves — a tripwire `info` that raises on any read from
+  inside a tick, and a deny-by-default static check over `src/patchworks` that fails when a value
+  off `info` is passed to anything but the one construction the demo surface is allowed to build.
+  What remains open is the residue a guard cannot close: the rig has to *want* the number on the
+  motor rim, and the guard only makes putting it anywhere else a visible edit rather than a silent
+  one.
 - **The topic roster is deferrable and therefore under-argued.** Concrete simple subjects are chosen
   on a babbling-stage argument, not measured; if the roster turns out to be what fails, the formal
   alternative is already named and costs no contract change.

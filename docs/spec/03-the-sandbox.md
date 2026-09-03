@@ -512,7 +512,9 @@ placeholders:
   non-episodic recording would satisfy that and not this.
 - **Privileged truth lives in `info`** — puck poses, goal identity, goal distance, whether the goal
   is satisfied. It is for logging and for the acceptance demo's instrumentation only. Feeding it to
-  the agent defeats the sandbox. *Evaluation* here means the pre-registered readouts of
+  the agent defeats the sandbox, and `tests/test_info_containment.py` is the standing guard that
+  says so in CI rather than in this paragraph ([#348](https://github.com/NGL321/patchworks/issues/348)).
+  *Evaluation* here means the pre-registered readouts of
   [`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md) and nothing else, which fixes `info`'s
   three consumers: goal satisfaction as a **gate** on whether a trial is valid, puck poses to place
   `perturb()` and to compute onset ground truth, and goal identity for `retarget()`. **Goal
