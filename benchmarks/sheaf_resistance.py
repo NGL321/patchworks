@@ -27,10 +27,11 @@ cells*, before it has a referent.
 
     R  =  min { ‖y‖² : δᵀ y = χ }
 
-— the energy of the least-norm unit current that supplies `χ`. One sparse
-least-squares solve per pair returns it, and :func:`control` checks that this
-route reproduces #150's published graph-side table to machine precision on the
-trivial sheaf.
+— the energy of the least-norm unit current that supplies `χ`. `δ` is never
+materialised: `y* = G⁺w` for `G = δδᵀ` and `w = δχ`, and `G` is only
+3,764-square, so it is factored once and every pair after it is two
+matrix-vector products. :func:`control` checks that this route reproduces
+#150's published graph-side table to machine precision on the trivial sheaf.
 
 **The one thing the graph case does not have: `χ` may not be suppliable at all.**
 The graph is connected, so `e_u − e_v` is orthogonal to `ker L` and `R` is always
@@ -83,7 +84,6 @@ import types
 from collections import defaultdict, deque
 
 import numpy as np
-import scipy.sparse as sp
 import torch
 
 from patchworks.graph import CellKind, Dome, build_graph
@@ -99,7 +99,10 @@ EIGEN_FLOOR = 1e-12
 
 #: Below this share of `‖χ‖²`, a residual is the solver's floor rather than a
 #: kernel component. Set from the control run, where the true leak is zero and
-#: the measured one lands ~1e-26.
+#: the measured one lands ~4e-16 — the residual is read as
+#: `yᵀGy − 2wᵀy + ‖χ‖²` rather than by forming `δᵀy`, so it is a difference of
+#: like-sized terms and carries that cancellation. Every leak this file reports
+#: as real is 1e-2 or larger, so the floor sits four orders below anything read.
 LEAK_FLOOR = 1e-12
 
 
@@ -114,13 +117,12 @@ def offsets(sizes) -> tuple[list[int], int]:
     return out, total
 
 
-def edge_gram_inverse(delta) -> np.ndarray:
-    """`(δδᵀ)⁺`, by eigendecomposition with :data:`EIGEN_FLOOR` as the cut.
+def gram_inverse(gram: np.ndarray) -> np.ndarray:
+    """`G⁺`, by eigendecomposition with :data:`EIGEN_FLOOR` as the cut.
 
     Factored out of :attr:`Complex.solver` so a test can drive the same
     arithmetic on a graph whose resistances are known in closed form.
     """
-    gram = (delta @ delta.T).toarray()
     values, vectors = np.linalg.eigh(gram)
     keep = values > values.max() * EIGEN_FLOOR
     inverse = np.zeros_like(values)
@@ -129,36 +131,87 @@ def edge_gram_inverse(delta) -> np.ndarray:
 
 
 class Complex:
-    """`δ` for one surface, plus where each cell's and edge's block lives."""
+    """One surface's `δ`, held as its blocks and its edge-side Gram `G = δδᵀ`.
+
+    **`δ` itself is never materialised**, and it never needs to be. It is
+    `3,764 × 17,104`, but every quantity below lives on the *edge* side, where
+    the dimension is 3,764: the only things asked of `δ` are `G`, the image
+    `w = δχ` of a `χ` supported on two cells, and the norm of the residual
+    `δᵀy − χ` — and that last one expands to `yᵀGy − 2wᵀy + ‖χ‖²`, so it too is
+    a statement about `G` and `w`. That keeps this file on `numpy` alone, which
+    is the whole of the linear algebra `benchmarks/graph_transmission.py` uses
+    for the graph-side half of the same question.
+    """
 
     def __init__(self, dome: Dome, maps: RestrictionMaps) -> None:
         self.dome = dome
         self.cell_at, self.c0 = offsets(c.stalk for c in dome.cells)
         self.edge_at, self.c1 = offsets(e.m for e in dome.edges)
         blocks = maps.maps.detach().double().numpy()
-        self.blocks = {}
-        rows, cols, vals = [], [], []
+        self.blocks, self.signs = {}, {}
         for e in dome.edges:
             for side, cid in enumerate((e.u, e.v)):
-                F = blocks[pair_index(e.id, side)][: e.m, : dome.cells[cid].stalk]
-                self.blocks[(e.id, cid)] = F
-                r, c = np.nonzero(F)
-                rows.append(self.edge_at[e.id] + r)
-                cols.append(self.cell_at[cid] + c)
-                vals.append((1.0 if side == 0 else -1.0) * F[r, c])
-        self.delta = sp.csr_matrix(
-            (np.concatenate(vals), (np.concatenate(rows), np.concatenate(cols))),
-            shape=(self.c1, self.c0),
-        )
-        self.deltaT = self.delta.T.tocsc()
+                self.blocks[(e.id, cid)] = blocks[pair_index(e.id, side)][
+                    : e.m, : dome.cells[cid].stalk
+                ]
+                self.signs[(e.id, cid)] = 1.0 if side == 0 else -1.0
+        self.gram = self._gram(set(range(len(dome.edges))))
         self._solver: np.ndarray | None = None
         self._spectrum: tuple[np.ndarray, np.ndarray] | None = None
+
+    def _gram(self, keep: set[int]) -> np.ndarray:
+        """`G = δδᵀ` over `keep`, assembled a cell at a time.
+
+        Two edges meet in `G` only where they share a cell, and there their
+        block is `s_e s_f F_{e,v} F_{f,v}ᵀ`. So the assembly is a loop over
+        cells and their incident pairs, which is `Σ_v deg(v)²` small products.
+        """
+        gram = np.zeros((self.c1, self.c1))
+        for cell in self.dome.cells:
+            incident = [e for e in self.dome.incident[cell.id] if e in keep]
+            for e in incident:
+                Fe = self.signs[(e, cell.id)] * self.blocks[(e, cell.id)]
+                rows = slice(self.edge_at[e], self.edge_at[e] + self.dome.edges[e].m)
+                for f in incident:
+                    Ff = self.signs[(f, cell.id)] * self.blocks[(f, cell.id)]
+                    cols = slice(
+                        self.edge_at[f], self.edge_at[f] + self.dome.edges[f].m
+                    )
+                    gram[rows, cols] += Fe @ Ff.T
+        return gram
+
+    def restricted(self, keep: set[int]) -> "Complex":
+        """The same maps on a subgraph — every edge outside `keep` deleted."""
+        other = Complex.__new__(Complex)
+        other.dome, other.blocks, other.signs = self.dome, self.blocks, self.signs
+        other.cell_at, other.c0 = self.cell_at, self.c0
+        other.edge_at, other.c1 = self.edge_at, self.c1
+        other.keep = keep
+        other.gram = self._gram(keep)
+        other._solver = other._spectrum = None
+        return other
 
     def chi(self, u: int, a: np.ndarray, v: int, b: np.ndarray) -> np.ndarray:
         x = np.zeros(self.c0)
         x[self.cell_at[u] : self.cell_at[u] + a.size] = a
         x[self.cell_at[v] : self.cell_at[v] + b.size] = -b
         return x
+
+    def image(self, chi: np.ndarray) -> np.ndarray:
+        """`w = δχ`. `χ` is supported on two cells, so this touches their edges."""
+        w = np.zeros(self.c1)
+        for cell in self.dome.cells:
+            block = chi[self.cell_at[cell.id] : self.cell_at[cell.id] + cell.stalk]
+            if not block.any():
+                continue
+            for e in self.dome.incident[cell.id]:
+                if getattr(self, "keep", None) is not None and e not in self.keep:
+                    continue
+                rows = slice(self.edge_at[e], self.edge_at[e] + self.dome.edges[e].m)
+                w[rows] += self.signs[(e, cell.id)] * (
+                    self.blocks[(e, cell.id)] @ block
+                )
+        return w
 
     def regularised(self, chi: np.ndarray, epsilon: float) -> float:
         """`χᵀ(L + εI)⁻¹χ` — the resistance with the kernel damped rather than cut.
@@ -180,10 +233,9 @@ class Complex:
         for :attr:`solver`.
         """
         if self._spectrum is None:
-            gram = (self.delta @ self.deltaT).toarray()
-            self._spectrum = np.linalg.eigh(gram)
+            self._spectrum = np.linalg.eigh(self.gram)
         values, vectors = self._spectrum
-        w = vectors.T @ (self.delta @ chi)
+        w = vectors.T @ self.image(chi)
         return float(chi @ chi - (w**2 / (values + epsilon)).sum()) / epsilon
 
     @property
@@ -206,14 +258,21 @@ class Complex:
         :meth:`tests.test_sheaf_resistance` checks both against the closed forms.
         """
         if self._solver is None:
-            self._solver = edge_gram_inverse(self.delta)
+            self._solver = gram_inverse(self.gram)
         return self._solver
 
     def resistance(self, chi: np.ndarray) -> tuple[float, float]:
-        """`(R, leak)`: the least-norm current's energy, and what it cannot supply."""
-        y = self.solver @ (self.delta @ chi)
-        residual = self.deltaT @ y - chi
-        return float(y @ y), float(residual @ residual) / float(chi @ chi)
+        """`(R, leak)`: the least-norm current's energy, and what it cannot supply.
+
+        `y* = G⁺w`, and the residual's norm never needs `δᵀ`:
+
+            ‖δᵀy − χ‖²  =  yᵀδδᵀy − 2χᵀδᵀy + ‖χ‖²  =  yᵀGy − 2wᵀy + ‖χ‖²
+        """
+        w = self.image(chi)
+        y = self.solver @ w
+        squared = float(chi @ chi)
+        residual = float(y @ (self.gram @ y)) - 2.0 * float(w @ y) + squared
+        return float(y @ y), max(residual, 0.0) / squared
 
     def public_basis(self, cell_id: int) -> np.ndarray:
         """An orthonormal basis of `span_e row(F_{e,v})` — the not-private subspace."""
@@ -391,9 +450,7 @@ def surface_section(cx: Complex, maps: RestrictionMaps) -> None:
         f"  effective rank of the maps (participation ratio): "
         f"median {np.median(ranks):.4f}  min {ranks.min():.4f}  max {ranks.max():.4f}"
     )
-    values = cx._spectrum[0] if cx._spectrum else np.linalg.eigvalsh(
-        (cx.delta @ cx.deltaT).toarray()
-    )
+    values = cx._spectrum[0] if cx._spectrum else np.linalg.eigvalsh(cx.gram)
     positive = values[values > 0]
     print(
         f"  spectrum of delta.deltaT: max {values.max():.4e}  "
@@ -528,18 +585,7 @@ def routes_section(cx: Complex, rows: list[dict], graph_R) -> None:
         "  a BFS tree deleted. Graph-side this must hurt, because the climb loses\n"
         "  its alternatives. What it does sheaf-side is the reading.\n"
     )
-    mask = np.zeros(cx.c1, dtype=bool)
-    for e in keep:
-        mask[cx.edge_at[e] : cx.edge_at[e] + dome.edges[e].m] = True
-    tree = Complex.__new__(Complex)
-    tree.dome, tree.blocks = dome, cx.blocks
-    tree.cell_at, tree.c0, tree.edge_at, tree.c1 = (
-        cx.cell_at, cx.c0, cx.edge_at, cx.c1
-    )
-    tree.delta = cx.delta.multiply(mask[:, None]).tocsr()
-    tree.deltaT = tree.delta.T.tocsc()
-    tree._solver = None
-    tree._spectrum = None
+    tree = cx.restricted(keep)
 
     groups: dict[str, list[dict]] = defaultdict(list)
     for r in rows:

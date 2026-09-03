@@ -32,7 +32,6 @@ import dataclasses
 
 import numpy as np
 import pytest
-import scipy.sparse as sp
 import torch
 
 import graph_transmission as transmission
@@ -93,10 +92,12 @@ class TestTrivialSheafIsTheGraph:
                 cols += [u, v]
                 vals += [1.0, -1.0]
             size = max(max(e) for e in edges) + 1
-            delta = sp.csr_matrix((vals, (rows, cols)), shape=(len(edges), size))
+            delta = np.zeros((len(edges), size))
+            for r, c, v in zip(rows, cols, vals):
+                delta[r, c] += v
             chi = np.zeros(size)
             chi[0], chi[edges[-1][1] if expected == 2.0 else 1] = 1.0, -1.0
-            y = sheaf.edge_gram_inverse(delta) @ (delta @ chi)
+            y = sheaf.gram_inverse(delta @ delta.T) @ (delta @ chi)
             assert float(y @ y) == pytest.approx(expected, abs=1e-9)
 
     def test_a_connected_graph_leaks_nothing(self):
@@ -164,13 +165,7 @@ class TestRegularisedResistance:
         keep = sheaf.spanning_tree(dome, sheaf.apex_cells(dome))
         assert 0 < len(keep) < len(dome.edges)
 
-        mask = np.zeros(cx.c1, dtype=bool)
-        for e in keep:
-            mask[cx.edge_at[e] : cx.edge_at[e] + dome.edges[e].m] = True
-        tree = sheaf.Complex.__new__(sheaf.Complex)
-        tree.delta = cx.delta.multiply(mask[:, None]).tocsr()
-        tree.deltaT = tree.delta.T.tocsc()
-        tree.c0, tree._solver, tree._spectrum = cx.c0, None, None
+        tree = cx.restricted(keep)
 
         rng = np.random.default_rng(0)
         apex = sheaf.apex_cells(dome)[0]

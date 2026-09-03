@@ -65,14 +65,17 @@ dimensions is not formed. Since `L⁺ = δ⁺(δ⁺)ᵀ`,
     R  =  min { ‖y‖² : δᵀ y = χ }
 
 — the energy of the least-norm unit current that supplies `χ`, which is the textbook reading of
-resistance and reduces to it exactly. `C¹` is only 3,764 dimensions, so `y* = (δδᵀ)⁺δχ` is
-factored once and every pair after that is two matrix-vector products.
+resistance and reduces to it exactly. **`δ` is never materialised** — it is `3,764 × 17,104`, but
+everything asked of it lives on the edge side: `y* = G⁺w` for `G = δδᵀ` and `w = δχ`, and even the
+residual norm expands to `yᵀGy − 2wᵀy + ‖χ‖²`. `G` is only 3,764-square, so it is factored once
+and every pair after that is two matrix-vector products. That also keeps this on `numpy` alone,
+which is the whole of the linear algebra `graph_transmission.py` uses for the graph-side half.
 
 **The control.** On the trivial sheaf — one dimension per cell, every map `[1.0]` — this route
 returns #150's published patch-to-apex block, **mean 1.8163 and max 2.0524**, and agrees with the
-dense pseudoinverse to **2.5e-14** over 64 pairs, with a leak of **4.7e-29** where the true value
-is zero. Nothing below is believable without that line, and it is the first thing the script
-prints.
+dense pseudoinverse to **2.5e-14** over 64 pairs, with a leak of **4.4e-16** where the true value
+is zero — four orders below the smallest leak this document reports as real. Nothing below is
+believable without that line, and it is the first thing the script prints.
 
 ### The one thing the graph case does not have
 
