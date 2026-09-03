@@ -201,7 +201,8 @@ had to specify. Deleting the row deletes the evidence.
 `tests/test_cli.py` defends: the suite never reaches it, and CI never checks these three files for
 staleness, because CI cannot ask GitHub anything offline.
 
-Freshness is a workflow's job, mirroring `.github/workflows/constant-provenance.yml`: triggers on
+Freshness is `.github/workflows/problem-registers.yml`'s job, mirroring
+`.github/workflows/constant-provenance.yml`: triggers on
 `issues: [opened, closed, edited, labeled, unlabeled]` and `issue_comment: [created, edited]`, a
 weekly net, and `workflow_dispatch`; it regenerates and commits when the render changes. Its
 concurrency group sets `cancel-in-progress: true` — unlike the provenance workflow's, because a

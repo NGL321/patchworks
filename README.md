@@ -2,7 +2,7 @@
 
 [![status: spec complete](https://img.shields.io/badge/status-spec_complete-2ea44f)](docs/spec/)
 [![agent: built, not transmitting](https://img.shields.io/badge/agent-built,_not_transmitting-orange)](#-try-it-yourself)
-[![decisions: 28 ADRs](https://img.shields.io/badge/decisions-28_ADRs-blue)](docs/adr/)
+[![decisions: 29 ADRs](https://img.shields.io/badge/decisions-29_ADRs-blue)](docs/adr/)
 [![MuJoCo 3.10](https://img.shields.io/badge/MuJoCo-3.10.0-orange)](prototypes/sandbox/)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776ab)](prototypes/sandbox/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
@@ -26,7 +26,7 @@ until it runs.
 it has been asked to put it. No agent drove this frame — it was driven by constant torque.</em></p>
 
 > 🚧 **This is an architecture under measurement, not a working agent.** The design is written
-> down — twelve spec files, twenty-eight decision records — and the build is complete: the sandbox,
+> down — twelve spec files, twenty-nine decision records — and the build is complete: the sandbox,
 > the dome, the tick, both local rules and the demo surface all run, and runs of 100,000 ticks have
 > trained them. What is *not* settled is whether the architecture **transmits**. Read along the
 > channel, rim-to-core influence fails its bar in both directions, and nothing yet guarantees that

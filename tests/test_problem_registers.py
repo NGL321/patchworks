@@ -24,7 +24,10 @@ it: whether prose argues a mechanism is not a thing a parser can decide, and a
 parser that guessed at it would refuse good entries and pass bad ones.
 """
 
+import pathlib
+
 import pytest
+import yaml
 
 import problem_registers as registers
 
@@ -630,3 +633,100 @@ class TestTheThreeFilesRender:
         assert len(rendered) == 3
         for text in rendered.values():
             assert text.endswith("\n")
+
+
+class TestTheWorkflowKeepsTheRegistersFresh:
+    """The networked half, pinned where the hermetic half can reach it (#283).
+
+    Nothing here runs the workflow or asks GitHub anything -- it reads the file
+    as YAML and holds it against what `docs/agents/registers.md`, *Generation*,
+    promises a reader. That promise is the only thing standing between these
+    three files and silent staleness: CI cannot check them for freshness,
+    because CI cannot ask GitHub anything offline, so if the trigger set
+    quietly narrows there is nothing anywhere that goes red. The register just
+    stops being true, and a projection that reads as current and is not is the
+    exact failure this whole mechanism exists to prevent.
+
+    The reader is `tests/test_perturbation.py`'s `_WorkflowLoader`, imported
+    rather than copied: it reads a workflow the way GitHub Actions reads one --
+    a bare `on` is the string and not YAML 1.1's boolean, a duplicate key is
+    refused rather than resolved -- and a second copy of those rules would be a
+    second place that decision lives.
+    """
+
+    ROOT = pathlib.Path(__file__).resolve().parents[1]
+    WORKFLOW = ROOT / ".github" / "workflows" / "problem-registers.yml"
+    PROVENANCE = ROOT / ".github" / "workflows" / "constant-provenance.yml"
+
+    def load(self, path=None):
+        from test_perturbation import _WorkflowLoader
+
+        return yaml.load(
+            (path or self.WORKFLOW).read_text(encoding="utf-8"),
+            Loader=_WorkflowLoader,
+        )
+
+    def steps(self):
+        return [
+            step
+            for job in self.load()["jobs"].values()
+            for step in job["steps"]
+        ]
+
+    def test_every_event_that_can_change_the_render_is_a_trigger(self):
+        """Labels, bodies and comments, because each of the three is read.
+
+        `edited` is in the set because a field block is edited in place far
+        more often than an issue is opened -- `@status` on a proposal is a line
+        a grilling session rewrites -- and the comment events are in it because
+        a proposal specific to one problem *is* a comment on that problem's
+        ticket, which is what makes this not a labels-only query.
+        """
+        triggers = self.load()["on"]
+        assert set(triggers["issues"]["types"]) == {
+            "opened",
+            "closed",
+            "edited",
+            "labeled",
+            "unlabeled",
+        }
+        assert set(triggers["issue_comment"]["types"]) == {"created", "edited"}
+
+    def test_a_weekly_net_and_a_handle_catch_what_the_events_missed(self):
+        """A run lost to a broken workflow or to an empty minute budget."""
+        triggers = self.load()["on"]
+        assert triggers["schedule"], "no weekly net"
+        assert "workflow_dispatch" in triggers
+
+    def test_a_superseded_run_is_cancelled_and_the_provenance_run_is_not(self):
+        """The one place these two workflows deliberately disagree.
+
+        A later reader tidying them into agreement would break one of them, so
+        both halves are asserted here rather than only this file's. This one
+        renders a pure projection, where the newest run subsumes every older
+        one; `constant-provenance.yml` *files issues*, and a cancelled run
+        there is a report nobody ever sees.
+        """
+        assert self.load()["concurrency"]["cancel-in-progress"] is True
+        assert self.load(self.PROVENANCE)["concurrency"]["cancel-in-progress"] is False
+
+    def test_the_job_installs_nothing(self):
+        """It does not import patchworks, so it does not pay for torch.
+
+        The generator reads `gh`'s JSON with the standard library, exactly as
+        `constant_registers.py` reads source with `ast`. An install step here
+        would put a ~2.5 GB dependency set behind a question about issue
+        bodies, and would pay for it on every comment edited in the repository.
+        """
+        for step in self.steps():
+            assert "pip install" not in step.get("run", "")
+
+    def test_it_regenerates_rather_than_reporting(self):
+        """`--check` names staleness; this workflow's whole job is to end it."""
+        runs = "\n".join(step.get("run", "") for step in self.steps())
+        assert "tools/problem_registers.py" in runs
+        assert "--check" not in runs
+
+    def test_it_may_write_the_render_back(self):
+        """A workflow that renders and cannot commit is one that does nothing."""
+        assert self.load()["permissions"]["contents"] == "write"
