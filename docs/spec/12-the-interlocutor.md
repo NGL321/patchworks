@@ -325,12 +325,14 @@ ADR-0005's sense.
   of ticks per second on CPU, the same order as the sandbox, and the token-boundary argument above is
   the reason to expect it. It has not been measured; when it is, it belongs beside `03`'s ~400
   ticks/s.
-- **What clears the tail of the spoken rim** is open —
-  [#169](https://github.com/NGL321/patchworks/issues/169). Everything above describes the rim's
-  contents at a slot; whether an *interior* slot of a shifting buffer is a motor cell in ADR-0003's
-  sense is a question about the buffer, and it is `11`'s to answer, not this document's. Nothing here
-  depends on the outcome: the contents, the alphabet, the floor rule, and the readback are the same
-  either way.
+- **What clears the tail of the spoken rim is settled**, by
+  [#169](https://github.com/NGL321/patchworks/issues/169): a boundary cell's kind is read off its own
+  edge to the world, so an interior slot of a shifting buffer — written by the shift, read by no one —
+  is a **sensory** boundary cell, and the spoken rim is one motor boundary cell plus 127 sensory ones.
+  The write-up is [`11-the-language-graph.md`](./11-the-language-graph.md)'s, *A rim's kind is the
+  slot's, not the rim's*. Nothing here depended on the outcome, as this bullet predicted: the
+  contents, the alphabet, the floor rule and the readback are unchanged, and the spoken cell this
+  document specifies is the head — the motor one.
 - **The coherence number is computed by the interlocutor about the agent's own output**, so it is
   exactly the shape of thing that becomes a reward the moment it is put on the wrong rim. ADR-0025
   exists to stop that, and the exposure was that the mistake is *cheap to make again* — a future rig

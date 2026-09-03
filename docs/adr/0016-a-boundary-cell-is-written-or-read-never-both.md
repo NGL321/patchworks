@@ -43,6 +43,31 @@ sensorimotor loop budget exactly what it says it is, rather than quietly halving
 **No existing graph changes.** The dome already satisfies the ban, which is why it was invisible; the
 ban costs nothing today and forbids a specific future mistake.
 
+**A rim is not the unit this ban applies to.** Amended while writing
+[#169](https://github.com/NGL321/patchworks/issues/169), which ruled on the first rim that has an
+**interior**: the language wedge's spoken buffer, a 128-slot shift register whose head is read by the
+interlocutor and whose tail is written by nothing but the shift
+([`11-the-language-graph.md`](../spec/11-the-language-graph.md), *A rim's kind is the slot's, not the
+rim's*). A boundary cell's kind is read off **that cell's own edge to the world**, so a rim whose
+slots differ in what the world does with them is a rim whose slots differ in kind — and that is not an
+exception to anything here. The ban above is per boundary cell, and such a rim satisfies it trivially:
+a motor head beside a sensory tail puts no cell on both streams. It is
+[ADR-0003](./0003-action-is-prediction-the-world-clears.md)'s *"a cell's role is emergent from which
+boundary cells it happens to be near"* applied where it had never been tested. The spoken rim is
+therefore **one motor boundary cell plus 127 sensory ones**, and the group reading `11` had declared
+is retired there.
+
+**No new ADR was minted for it, deliberately.** A fresh ADR whose Decision restated ADR-0003's own
+consequence would put one statement in two places — the failure
+[#180](https://github.com/NGL321/patchworks/issues/180) exists to kill — and declaring *how rim
+contracts are indexed* would dignify **the rim** as a contract-bearing object, which is exactly what
+the group reading did and what the ruling refuses. The amendment lands here because this ADR's subject
+is the same one seen a step out.
+
+**The dome is untouched by the amendment, and nobody need re-derive that.** Its actuator cell is read
+and written by the world; its sensory rim is written and read by no one. The ruling costs the built
+graph nothing and forbids a specific future mistake — the same shape the ban above already had.
+
 **It composes with the readback requirement** (`04-action-and-the-boundary.md`, *Readback*): a motor
 boundary cell owes a readback of what the world made of its command, and the ban does not touch it —
 the readback is written back onto that same cell, as the dome's actuator stalk of 6 carries three
