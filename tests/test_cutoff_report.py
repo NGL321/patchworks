@@ -116,6 +116,22 @@ class TestTheReaderIsHeldAgainstTheRenderer:
 
     def test_a_register_with_no_problems_watches_nothing(self):
         assert hook.watching(rendered(), "sandbox_throughput") == []
+    def test_a_pipe_in_the_prose_does_not_hide_the_row(self):
+        """`problem_registers._cell` escapes a pipe so the table survives it, so
+        the reader has to split on the unescaped ones. Splitting on every `|`
+        gives the row extra cells, the cutoff lands in the wrong column, and the
+        row is passed over in silence -- the rig stops watching a problem and
+        the register goes on saying it is watched. #335's failure carries a
+        literal `|loop(c)|`, so this is the register as checked in, not a
+        hypothetical."""
+        text = rendered(
+            problem(
+                failure="the projection can only shorten |loop(c)|, "
+                "never lengthen it"
+            )
+        )
+        assert [w.number for w in hook.watching(text, "sandbox_throughput")] == [101]
+
 
 
 # ---------------------------------------------------------------------------

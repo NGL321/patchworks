@@ -276,6 +276,7 @@ class TestBenchmark:
         det.main(
             [
                 "read",
+                "--no-file",
                 "--dome",
                 "small",
                 "--trials",

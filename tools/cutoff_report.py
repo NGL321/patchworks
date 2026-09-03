@@ -198,7 +198,12 @@ def _rows(text: str) -> list[list[str]]:
             continue
         if not inside or not line.strip().startswith("|"):
             continue
-        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        row = line.strip()
+        if row.startswith("|"):
+            row = row[1:]
+        if row.endswith("|") and not row.endswith("\\|"):
+            row = row[:-1]
+        cells = [cell.strip() for cell in re.split(r"(?<!\\)\|", row)]
         if not cells or set("".join(cells)) <= set("- :"):
             continue
         found.append([cell.replace("\\|", "|") for cell in cells])

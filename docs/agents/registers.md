@@ -221,6 +221,13 @@ fire: `uncut` wearing a disguise, and strictly worse than `uncut`, because it do
 debt. An issue with no activity is *listed, not demoted* — the event may be exactly the right
 moment, and the listing exists to make the dormancy visible rather than to judge the cutoff.
 
+Only the first of the three is rendered today. A **measurement with no threshold** never reaches
+the section because `read_cutoff` refuses it at parse, and the **dormant issue** wants a bar for
+how long an open cutoff issue may sit before the register says so — a number ADR-0029 declines to
+let an implementing session invent. Both are owed by
+[#353](https://github.com/NGL321/patchworks/issues/353), and until it lands this paragraph
+describes the design rather than the projection.
+
 ## Closing a problem
 
 A problem closes on a **stated ground**, in a closing comment, of exactly one kind:
