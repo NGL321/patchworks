@@ -11,6 +11,13 @@ Settled in [#242](https://github.com/NGL321/patchworks/issues/242) and written h
 per-edge diagnostic and is no longer what the map is read against; its *What this predicate is for*
 section records the demotion.
 
+**Amended by [#224](https://github.com/NGL321/patchworks/issues/224), written by
+[#381](https://github.com/NGL321/patchworks/issues/381): the reading is gated on the runtime
+precision floor.** The predicate below is untouched; what is added is a **licence** on what a PASS
+claims and a **gate** on when `τ̂` is valid at all, because this ADR's instrument reads a quantity
+float32 cannot represent. Read *The reading is gated on the runtime precision floor* before reading a
+verdict off a `τ̂`.
+
 ADR-0021 asked for this replacement in its own words — *"#242 owes the replacement. It writes the
 falsifiable form of the influence reading, or rules that this ratio stays the bar and says what a
 stage-3 gate then consists of."* #242 wrote the falsifiable form. This ADR is that form.
@@ -104,8 +111,20 @@ It is stated **twice**, and **the two directions do not share a quantifier**:
 - **Outbound — a universal.** Over **L1 predicting cells and the actuator boundary cell**, every one
   of them. Not a max over paths.
 
-**The falsification**, stated as such: **no loop closing on any path**, or **a private-feature
-deviation bit-identical between the two branches** — no counterfactual dependence at all.
+**The falsification**, stated as such: **no loop closing on any path**, or **no counterfactual
+dependence at all — a private-feature deviation that does not clear the runtime precision floor**,
+`eps_f32 · ‖state‖` at the cell (see *The reading is gated on the runtime precision floor*).
+
+> **Amended by [#224](https://github.com/NGL321/patchworks/issues/224).** The second limb read *a
+> private-feature deviation **bit-identical** between the two branches — no counterfactual dependence
+> at all*.
+
+*Superseded by #224.* Bit-identity is the one thing float32 rounding reliably **prevents**: two
+nearly-equal trajectories differ by their own rounding, so as written the limb could not fire in the
+precision the architecture runs in — a falsification clause that is unfalsifiable. The restatement
+names the same absence in a **readable** condition, and it is not a weakening: a deviation below the
+floor *has not arrived* (#224), which is exactly what the struck limb was reaching for. Quoted rather
+than deleted because what changed is the *test*, not the claim.
 
 ### The bar is derived, not invented
 
@@ -261,6 +280,53 @@ reports the paired ratio as `[ticks, edges]`, and already sweeps the horizon lad
 **reduction over quantities it computes**, not a new measurement surface. It is on the default branch
 as of [#239](https://github.com/NGL321/patchworks/issues/239).
 
+### The reading is gated on the runtime precision floor
+
+Added by [#224](https://github.com/NGL321/patchworks/issues/224), which ruled that **float32's
+granularity is the architecture's noise floor** rather than a defect, and found that the ruling lands
+on *this ADR's instrument* rather than on the architecture. **The predicate is untouched** — the bar
+of `1`, the two quantifiers and the loop enumeration all stand. Two clauses are added and one
+Consequence is struck.
+
+**The licence.** `τ̂` is read on the **float64-cast surface**
+([`benchmarks/detectability.py`](../../benchmarks/detectability.py)'s `double_precision`, which is
+instrument-only and says so). **A PASS is therefore a claim about the graph's conduction, and not
+about the float32 build's.** This is a scope on the result rather than a caveat in passing: it is what
+stops a later session reading a float64 PASS as a runtime verdict.
+
+**The gate, and it is the operative half.** `τ̂` is valid for a cell only if the **projected paired
+deviation stays above `eps_f32 · ‖state‖` at the `1/e` crossing** —
+`patchworks.tick.precision_floor`, the one place that quantity is computed. A reading that fails the
+gate is reported **alongside** `τ̂` rather than dropped, so the float64 number stays visible next to
+the fact that a float32 build has no signal there. **Nothing is invented**: `eps_f32` is the machine's,
+held as `torch.finfo(torch.float32).eps` at a definition site in the architecture register rather than
+as a typed literal ([ADR-0018](./0018-a-derived-constant-is-derived-where-its-dependency-lives.md),
+[ADR-0020](./0020-a-repeated-default-is-a-constant-with-a-definition-site.md)), and `‖state‖` is read.
+
+**Corroborated by amplitude-independence, which costs nothing new.** `double_precision` already
+documents the tell — a transported deviation is linear in what was injected, so the reading is flat in
+the amplitude it was measured at, and rounding is not — and `linearity` already runs that ladder for
+the bottleneck ratio. **The same ladder is run for `τ̂`**, reusing an instrument already on the
+default branch and inventing nothing. The gate says whether *this* reading cleared the floor; the
+ladder says whether the quantity is a transported deviation at all — and the two fail in **opposite
+directions**, which is why both are printed. Under rounding the bottleneck column falls like `1/A₀`,
+while `τ̂` *rises*: a deviation decaying into the rounding floor stops decaying, and that is the
+direction that manufactures a PASS on a bar of exactly `1`.
+
+**Why a gate rather than a second architectural bar.** *The arriving deviation must be representable
+in float32* was considered and **ruled out on the image**: it would make a numerical parameter part of
+the transmission budget, and it would buy nine decades of headroom for a single decaying ripple in an
+unsustained fork — precisely the object [`docs/motivating-image.md`](../motivating-image.md) says is
+not what persists. Precision is not the lever, and the requirement stays on retention and on sustained
+structure under continual drive. A **licence-only** amendment with no gate was also rejected: an
+unenforced sentence in *Consequences* is the failure mode
+[#345](https://github.com/NGL321/patchworks/issues/345) names — and it is the failure this very
+section is repairing.
+
+**The cost is accepted with eyes open.** Naming float32 the noise floor puts the pressure on **this
+ADR's instrument**, not on the architecture: the paired counterfactual is a below-the-floor quantity
+by construction. The gate is what carries that pressure rather than hiding it.
+
 ## Consequences
 
 - **This predicate is necessary, not sufficient, and that is why ADR-0021 is kept.** It says the loop
@@ -280,9 +346,29 @@ as of [#239](https://github.com/NGL321/patchworks/issues/239).
   instead, that **redirects the map** rather than deadlocking it.
 - **The gate and the work are now the same quantity.** Stage 2's retention work moves this bar
   directly, which is the property the amplitude reading lacked.
-- **Scale-free, so it touches neither #202's never-settling floor nor
-  [#224](https://github.com/NGL321/patchworks/issues/224)'s float32 problem.** It is a ratio of times,
-  not a ratio against a different quantity in different units.
+- **Scale-free, so #202's never-settling floor does not touch it** — it is a ratio of times, not a
+  ratio against a different quantity in different units. **Float32 does touch it**, and what stood
+  here until [#224](https://github.com/NGL321/patchworks/issues/224) answered:
+
+  > **Scale-free, so it touches neither #202's never-settling floor nor #224's float32 problem.**
+
+  *Superseded by #224.* Scale-freedom of the ratio's **units** says nothing about the representability
+  of its **numerator**. `τ̂` is the e-fold decay of a paired counterfactual deviation, and **rounding
+  does not attenuate; signal does** — a deviation decaying into the rounding floor stops decaying, so
+  float32 biases `τ̂` *upward, without bound*. Under ADR-0021's bar the shortfall was 1e9x and no
+  rounding artifact could fake a pass; under this one it is 1.1x to 8.5x against a derived bar of
+  exactly `1` with **no headroom**, so precision has moved from making a measurement unreadable to
+  being **capable of manufacturing a PASS on the operative bar**. Quoted rather than deleted because
+  the dismissal is what a reader would otherwise re-derive, and the mechanism is the reverse of the
+  one #224 originally feared. What replaces it is *The reading is gated on the runtime precision
+  floor*, above.
+- **A PASS is read on the float64 surface, and the gate is reported with it.** The licence and the
+  gate are the operative half of #224's ruling: `CONTEXT.md` gains the *arithmetic floor* as its own
+  object, `eps_f32` gains a definition site in the architecture register — `patchworks.tick.EPS_F32`,
+  which `benchmarks/detectability.py` **imports rather than redefines** — and the reading that
+  publishes `τ̂` carries the gate per cell
+  ([#379](https://github.com/NGL321/patchworks/issues/379)'s `readable`), with `linearity`'s amplitude
+  ladder run for `τ̂` beside it. Written by [#381](https://github.com/NGL321/patchworks/issues/381).
 - **The predicate reads zero today**, and the shortfall at the apex is **15.4x** as
   published — amended by [#274](https://github.com/NGL321/patchworks/issues/274) to roughly 1.1x to
   8.5x once the stalk relay is included, with the verdict unchanged; see *The shortfall on this
@@ -330,5 +416,12 @@ as of [#239](https://github.com/NGL321/patchworks/issues/239).
   average hides a 256-cell read inside two 3-cell ones, and a context blind to touch would pass.
 - **A sustained clamp as the source.** Rejected: it confounds decay with drive. The impulse is erased
   at the source after one tick (#232, by test), which is what makes the decay clean.
+- **A second architectural bar: the arriving deviation must be representable in float32.** Rejected
+  on the image (#224), and recorded so it is not re-litigated: it would make a numerical parameter
+  part of the transmission budget, for nine decades of headroom on a single decaying ripple in an
+  unsustained fork. The gate above puts the requirement on the *instrument*, which is where #224 ruled
+  the pressure belongs.
+- **A licence with no gate — one sentence in *Consequences*.** Rejected: an unenforced sentence in
+  *Consequences* is exactly what this amendment repairs, which is #345's failure mode.
 - **A separate instrument for *an apex stable enough to conduct it*.** Rejected: `τ̂ ≥ |loop|` at the
   apex already is that claim, and a third reading would be a duplicate with its own drift.

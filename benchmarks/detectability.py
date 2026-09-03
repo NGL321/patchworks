@@ -145,6 +145,7 @@ import torch
 
 from patchworks.agent import Agent
 from patchworks.graph import CellKind, Dome
+from patchworks import tick
 
 _HERE = str(Path(__file__).resolve().parent)
 if _HERE not in sys.path:
@@ -182,13 +183,17 @@ PROBE = 1.0
 
 #: float32's granularity: the architecture's arithmetic noise floor (#224).
 #:
-#: Held as the machine's own quantity rather than typed as a literal, per
-#: ADR-0018 — a derived constant is derived where its dependency lives, and the
-#: dependency here is the dtype the architecture runs in. **Its definition site
-#: is #381's**, in a module `tools/constant_registers.py` scans; `benchmarks/`
-#: is not scanned, so this is the read's use of the machine quantity and not a
-#: second definition of it. When #381 lands, this reads from there.
-EPS_F32 = float(torch.finfo(torch.float32).eps)
+#: **Imported, not defined.** #379 held the machine quantity here with a note
+#: that the definition site was #381's and that this would read from there once
+#: it landed; it has, so this is that read. The site is
+#: :data:`patchworks.tick.EPS_F32` — `torch.finfo(torch.float32).eps`, evaluated
+#: rather than typed per ADR-0018, in a module `tools/constant_registers.py`
+#: scans, which `benchmarks/` is not. Two definitions of one number is ADR-0020's
+#: failure exactly, and it is the one the gate could least afford: the register
+#: row and the reading that gates on it would be free to drift apart.
+#:
+#: The alias is kept so this module's own uses read as they did.
+EPS_F32 = float(tick.EPS_F32)
 
 
 def double_precision(root, depth: int = 0, seen: set[int] | None = None) -> int:
@@ -420,6 +425,15 @@ def loop_lengths(dome: Dome) -> dict[int, int]:
     return {c: 2 * distance[c] for c in dome.predicting if c in distance}
 
 
+#: The relative slack on `τ̂`'s `1/e` comparison, so a sample landing *on* the
+#: threshold counts as having crossed it (#381). Order the double's own
+#: resolution — about 4.5e4 times `eps_f64`, which is nothing this instrument can
+#: resolve and far more than the 1-ULP disagreement it exists to absorb. Private
+#: to this reduction and not a knob: a value large enough to change a `τ̂` would
+#: be interpolating between samples, which ADR-0026 forbids.
+_CROSSING_SLACK = 1e-12
+
+
 def tau_hat(deviation: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """`τ̂` per cell: peak-to-`1/e` in ticks, ADR-0026's reading taken literally.
 
@@ -447,6 +461,27 @@ def tau_hat(deviation: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     **A cell the deviation never reaches gets `τ̂ = 0`**, not a decay time. There
     is nothing to decay, and `0 / |loop|` is the falsification reading rather
     than a small pass.
+
+    **A sample sitting exactly on the threshold has crossed** (#381). The
+    comparison carries :data:`_CROSSING_SLACK`, a relative tolerance of order the
+    double's own resolution, because a sample landing *on* `peak / e` is a 1-ULP
+    question and numpy answers it differently on different hardware: it dispatches
+    `exp` on the runner's SIMD capability, and on an exact exponential — which is
+    what `tests/test_detectability.py` feeds — the two answers differ. The same
+    commit went green on one CI runner and red on another with `τ̂` reading `9`
+    where the decay constant is `8`.
+
+    **It fails in the direction that matters, which is why it is fixed rather
+    than tolerated.** Missing the crossing reads `τ̂` one tick **long**, and long
+    is the direction that manufactures a PASS on a bar of exactly `1` — the same
+    asymmetry #224 ruled on, arriving through the crossing test itself. The
+    censoring branch above is already careful to fail the safe way; this is that
+    care applied to the comparison.
+
+    **It is not interpolation.** ADR-0026's reading stays integer ticks and whole
+    samples: the tolerance decides only what *equality* at a sample means, and it
+    is far below any difference the instrument could resolve. Nothing moves
+    except a boundary case that was previously decided by rounding.
     """
     ticks, cells = deviation.shape
     peak_at = deviation.argmax(axis=0)
@@ -457,7 +492,8 @@ def tau_hat(deviation: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         start = int(peak_at[cell])
         if not peak[cell] > 0.0:
             continue
-        below = np.nonzero(deviation[start:, cell] <= peak[cell] / np.e)[0]
+        threshold = (peak[cell] / np.e) * (1.0 + _CROSSING_SLACK)
+        below = np.nonzero(deviation[start:, cell] <= threshold)[0]
         if below.size:
             tau[cell] = float(below[0])
         else:
@@ -993,6 +1029,22 @@ def linearity(
     decaying, so it explores more of `encode`'s nonlinearity and has no claim on
     the flat window #214 measured on a pulse. `--stimulus` and `--collective`
     pick the corner, and the linear window is a property of the corner.
+
+    **The ladder runs for `τ̂` too, and that is #224's corroboration** (ADR-0026,
+    *The reading is gated on the runtime precision floor*). `τ̂` is a decay
+    *time*, so a transported deviation's is flat in the amplitude it was injected
+    at — halving `A₀` halves the whole trace and moves neither the peak tick nor
+    the `1/e` crossing. **Rounding is not flat, and it fails upward**: a deviation
+    decaying into the rounding floor stops decaying, so `τ̂` climbs as `A₀` falls,
+    which is the direction that manufactures a PASS on a bar of exactly `1`. That
+    makes the two columns complementary rather than redundant — the bottleneck
+    column falls like `1/A₀` under rounding, the conduction column *rises*.
+
+    The gate (:func:`readable`) is printed beside them as the fraction of cells
+    whose crossing clears `EPS_F32 · ‖state‖`. It answers a different question
+    from the ladder: the gate is per cell and per reading, the ladder is a
+    property of the whole column, and a column that only goes flat once the
+    resolved fraction collapses is reporting arithmetic either way.
     """
     env, agent = prepared(name, split, seed, learn)
     observation, _info = env.reset(seed=seed * 1000)
@@ -1001,8 +1053,12 @@ def linearity(
     hold_still(agent, observation, applied, hold)
     state = ufp.snapshot(agent.sheaf)
     cells = pick(agent.dome, seed, collective)
+    # Every predicting cell, not just the source: `conduction` reduces over the
+    # cells of a path, and a missing one would shorten the `min` — the same
+    # requirement `trial` records for.
+    record = tuple(dict.fromkeys(cells + agent.dome.predicting))
     quiet, held = branch(
-        agent, state, observation, applied, window, None, record=cells
+        agent, state, observation, applied, window, None, record=record
     )
 
     twice, _ = branch(agent, state, observation, applied, window, None)
@@ -1019,9 +1075,13 @@ def linearity(
         f"corner: {stimulus} x {'collective' if collective else 'single-source'}; "
         f"injected into {len(cells)} {kind} cell(s)"
     )
-    print("\n  A0         bottleneck at A0=1     median edge ratio")
+    loops = loop_lengths(agent.dome)
+    print(
+        "\n  A0         bottleneck at A0=1     median edge ratio     "
+        "conduction     median tau_hat   resolved"
+    )
     for a0 in amplitudes:
-        ratio, _ = ratios(
+        ratio, moved = ratios(
             agent,
             state,
             quiet,
@@ -1031,11 +1091,17 @@ def linearity(
             a0,
             window,
             sustained=held if stimulus == "sustained" else None,
+            record=record,
         )
         peaks = ratio.max(axis=0)
         value, _target, _edge, _path = widest_path(agent.dome, peaks, cells, targets)
         finite = peaks[np.isfinite(peaks)]
-        print(f"  {a0:<10.3g} {value:<22.5g} {np.median(finite):.5g}")
+        read = conduction(agent.dome, held, moved, cells, targets, loops)
+        print(
+            f"  {a0:<10.3g} {value:<22.5g} {np.median(finite):<21.5g} "
+            f"{read['conduction']:<14.5g} {np.median(read['tau']):<16.5g} "
+            f"{read['readable'].mean():.1%}"
+        )
     ufp.restore(agent.sheaf, state)
 
 
