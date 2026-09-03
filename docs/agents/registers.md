@@ -197,9 +197,25 @@ author, and "when it becomes a problem" is not a cutoff but the absence of one.
   voice `@flexibility unknown` uses: *nobody has said when this stops being tolerable* is a fact, and
   hiding it is worse than showing it.
 
-The register carries a second loud section: **cutoffs naming a rig with no recorded run.** That is
-the state where a problem looks cut but nothing will ever fire — `uncut` wearing a disguise, and
-strictly worse than `uncut`, because it does not read as a debt.
+**An `event` cutoff must name an issue that is open at mint time.** Three shapes are refused, and the
+first session to drain the candidate queue produced all three:
+
+- **A closed issue.** Read literally the cutoff has already fired and the problem mints `overdue` on
+  day one; read as intended it can never fire, because the issue closed for an unrelated reason. One
+  candidate cut on the ticket that *built* the cell body, meaning to cut on a later relaxation of it.
+- **A class rather than an issue.** *"The first ticket that reads a result off this split"* names a
+  shape no query resolves. Minting a placeholder ticket to cut on manufactures the event, which is
+  the disguise this section exists to expose.
+- **A map.** A wayfinding map closes at its whole destination, far later than the moment a problem
+  discovered inside it stops being tolerable. Where the map's stage already has a measured bar —
+  transmission has one, in ADR-0026's conduction ratio — the bar is the cutoff and the map is not.
+
+The register carries a second loud section: **cutoffs naming a firing condition nothing will reach.**
+Three kinds sit in it — a **rig with no recorded run**, an **issue with no activity**, and a
+**measurement with no threshold**. Each is the state where a problem looks cut but nothing will ever
+fire: `uncut` wearing a disguise, and strictly worse than `uncut`, because it does not read as a
+debt. An issue with no activity is *listed, not demoted* — the event may be exactly the right
+moment, and the listing exists to make the dormancy visible rather than to judge the cutoff.
 
 ## Closing a problem
 
