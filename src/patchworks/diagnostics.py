@@ -365,6 +365,19 @@ class Reading:
         object.__setattr__(self, "condition", Condition(self.condition))
 
 
+def _generic_block(
+    rows: int, columns: int, generator: torch.Generator
+) -> torch.Tensor:
+    """One generic dense map of a given shape: iid Gaussian, full rank almost surely.
+
+    The single definition of what *generic* means in this module, shared by
+    :func:`topology_only_h1` and :func:`topology_only_energy` so the two cannot
+    drift into throwing away different things. Float64, because both callers
+    read in double.
+    """
+    return torch.empty(rows, columns, dtype=torch.float64).normal_(generator=generator)
+
+
 def topology_only_h1(dome: Dome, *, generator: torch.Generator | None = None) -> int:
     """`dim H¹` from the graph alone: the baseline `06-graph-topology.md` requires.
 
@@ -406,9 +419,7 @@ def topology_only_h1(dome: Dome, *, generator: torch.Generator | None = None) ->
     for edge in dome.edges:
         for side, cell_id in enumerate((edge.u, edge.v)):
             if cell_id in row:
-                block = torch.empty(edge.m, n, dtype=torch.float64).normal_(
-                    generator=generator
-                )
+                block = _generic_block(edge.m, n, generator)
                 column = row[cell_id] * n
                 delta[at : at + edge.m, column : column + n] += _SIGN[side] * block
         at += edge.m
@@ -425,9 +436,11 @@ def topology_only_h1(dome: Dome, *, generator: torch.Generator | None = None) ->
 #: gives one sample of `‖F_u x_u − F_v x_v‖²` and the per-edge spread across
 #: draws is of the same order as the value. Eight is set by that: the standard
 #: error of a mean falls as `1/√draws`, so eight puts the level's own noise
-#: comfortably below the factor-of-two differences a reference level is read at,
-#: and the whole thing is a batched product over edge endpoints costing
-#: milliseconds.
+#: comfortably below the factor-of-two differences a reference level is read at.
+#: It is a Python loop over edge endpoints rather than a batched product -- the
+#: blocks have per-cell widths and do not stack -- and at 682 edges that is
+#: about a hundred milliseconds a draw, which is nothing against the hold the
+#: reading is taken after.
 TOPOLOGY_ENERGY_DRAWS = 8
 
 
@@ -446,13 +459,23 @@ def topology_only_energy(
     this rule gets a reference level without inventing one* — and stood the
     level in at `0.05`, because no run had produced it. This produces it.
 
-    **Same complex, same throwing-away.** Generic dense maps of each edge's and
-    cell's shapes: what is kept from the built graph is its edges, its `m_e`,
-    its stalk widths and its **scale**; what is discarded is every reason a real
-    map has for transmitting fewer directions than its shape allows. The
-    question it answers is *how much would this configuration disagree if the
-    maps were generic and full rank* — so a residual no larger than it is
-    disagreement the graph's own shape produces whatever any map does.
+    **Same throwing-away, over a wider complex.** Generic dense maps of each
+    edge's and cell's shapes: what is kept from the built graph is its edges,
+    its `m_e`, its stalk widths and its **scale**; what is discarded is every
+    reason a real map has for transmitting fewer directions than its shape
+    allows. The question it answers is *how much would this configuration
+    disagree if the maps were generic and full rank* — so a residual no larger
+    than it is disagreement the graph's own shape produces whatever any map
+    does.
+
+    **It is not over the same subcomplex as :func:`topology_only_h1`, and that
+    is deliberate.** The baseline runs over the predicting-cell subcomplex, for
+    the reason :class:`WholeGraphReading` gives — including boundary cells
+    *swamps* a dimension count. A per-edge energy has no such problem: nothing
+    is being summed across cells, and a boundary-incident edge's disagreement is
+    exactly as real as an interior one's and is read against exactly its own
+    level. Restricting here would leave every boundary edge with no reference at
+    all, which is the hole that ruled out the null-space minimum below.
 
     **Scale is kept, and that is not a detail.**
     [ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md) gauge-fixes
@@ -492,9 +515,7 @@ def topology_only_energy(
             ends = []
             for cell_id in (edge.u, edge.v):
                 width = dome.cells[cell_id].stalk
-                block = torch.empty(edge.m, width, dtype=torch.float64).normal_(
-                    generator=generator
-                )
+                block = _generic_block(edge.m, width, generator)
                 # ADR-0010's gauge, as the scale of the generic draw. A map at
                 # unit Frobenius norm is what a pinned map is exactly and what
                 # every other map is within `ρ` of.

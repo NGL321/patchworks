@@ -25,6 +25,25 @@ One per-edge Dirichlet energy goes in and five numbers come out, summing back to
 it. The order is the ADR's and the order is load-bearing: each stage books what
 it can explain and hands the remainder on.
 
+**Read the order off ADR-0004 and not off the enumerations**, which disagree
+with each other and with themselves: #333's `@failure` says *`colspan(D)` first,
+then curvature, self-intersection and the lag floor*, #363's *To resolve* says
+*lag, curvature, self-intersection and `colspan(D)`*, and both are lists of four
+causes rather than a sequence. The ADR states a procedure. `colspan(D)` is
+explicitly first — *"**Read this one first.** Ruling it out costs one projection
+and restores the three-cause procedure above"*. Self-intersection is next
+because the ADR makes it a **construction** check, decided before anything runs:
+*"a build satisfying the criterion may drop this cause from the reading and
+disambiguate the remaining two by quiescent hold"*. That sentence also fixes the
+last two: the hold is what separates lag from curvature, so lag is booked by the
+hold and curvature takes what stands.
+
+That last pair is the one worth being explicit about, because reversing it looks
+harmless and is not. On a negatively curved edge, part of the disagreement still
+drains when the world stops — lag is on every edge, not only on straight ones —
+and booking the whole remainder to curvature would attribute drained lag to
+curvature, which is the single confusion ADR-0007's hold exists to prevent.
+
 1. **`colspan(D)` — read first, and it costs one projection.** Freezing `decode`
    ([ADR-0014](../docs/adr/0014-the-linear-readout-is-gauge-fixed.md)) confines
    every cell's prediction to `im(D)`, *the same* `k`-dimensional subspace in
@@ -101,10 +120,10 @@ topology explains.
 
 | metric | what it is |
 |---|---|
-| `residue_over_topology` | the headline. Σ standing residue over Σ topology-only level, on the surviving edges, **minimised over the sweep** |
-| `residue_over_topology_opening` | the same ratio before any learning — #156's trap 4, so a crossing can be checked against a baseline rather than asserted |
-| `surviving_edges` | how many edges reached stage 5 |
-| `gauge_share` | the fraction of total energy stage 1 booked, in excess of chance. #325's quantity, not #333's |
+| `residue_over_topology` | the headline. Σ standing residue over Σ topology-only level, on the surviving edges, **minimised over the sweep**. Absent when any condition could not evaluate it, so the run files `@unevaluated` rather than a CLEAR that never divided |
+| `residue_over_topology_opening` | the same ratio before any learning — #156's trap 4, so a reading can be checked against a baseline rather than asserted. Assembled in :func:`read` rather than in :func:`readings`, which reports one sweep |
+| `surviving_edges` | edges that reached stage 5 *and* stood above the reference there, minimised over the sweep |
+| `gauge_share` | the fraction of total energy stage 1 booked, in excess of chance, minimised over the sweep. #325's quantity, not #333's |
 
 ## The sweep, and why the minimum
 
@@ -301,20 +320,25 @@ def gauge_reading(sheaf, projector: torch.Tensor):
     return inside, share
 
 
-def per_edge_energy(sheaf, stalks: torch.Tensor) -> torch.Tensor:
-    """`[edges]`: `‖F_u x_u − F_v x_v‖²` on the stalk buffer handed in.
+def per_edge_energy(sheaf) -> torch.Tensor:
+    """`[edges]`: `‖F_u x_u − F_v x_v‖²` on the sheaf's node stalks as they now stand.
 
-    :meth:`patchworks.diagnostics.Diagnostics.edge_reading` computes this on the
-    sheaf's own stalks and hands it over paired with effective rank, which is
-    the right shape for the instrument it belongs to and the wrong one here:
-    this rig needs the *same* quantity on a **counterfactual** configuration —
-    the gauge-projected one — and the pairing rule exists to stop a caller
-    reading half an instrument, not to stop one asking what the energy would be
-    somewhere else. Nothing here is a diagnostic reading; it is arithmetic on a
-    hypothetical, and it is never recorded as a reading.
+    :meth:`patchworks.diagnostics.Diagnostics.edge_reading` computes the same
+    quantity and hands it over **paired with per-edge effective rank**, which is
+    the right shape for the instrument it belongs to: one reading cannot tell
+    collapse from a draining lag floor, and the pairing is what stops a run
+    being diagnosed from half an instrument.
+
+    This rig takes the energy alone and takes it here, because going through
+    that method would record a :class:`~patchworks.diagnostics.Reading` on every
+    stage of a waterfall that reads the same configuration twice a condition.
+    Nothing here is a diagnostic reading and nothing here is recorded as one —
+    the effective-rank half is not being dropped *from a reading*, it is that
+    this is not one. Where the pair is what a run wants, `edge_reading` remains
+    the only route to it.
     """
     with torch.no_grad():
-        outgoing = sheaf.maps.restrict(stalks[sheaf.layout.pair_positions])
+        outgoing = sheaf.maps.restrict(sheaf.stalks[sheaf.layout.pair_positions])
         ends = outgoing.reshape(-1, 2, sheaf.maps.edge_width)
         return (ends[:, 0] - ends[:, 1]).pow(2).sum(-1).double()
 
@@ -389,7 +413,10 @@ class Attribution:
     """The per-edge Dirichlet energy the waterfall starts from, driven."""
 
     gauge: np.ndarray
-    """Stage 1: the share whose direction is `colspan(D)`, in excess of chance."""
+    """Stage 1: the share of the residual the gauge **forbids correcting** — the
+    part of the pulled-back residual lying *outside* `colspan(D)`, in excess of
+    chance. Outside and not inside: a cell's stalk can only move within
+    `im(D)`, so it is the orthogonal part that is the unfixable one."""
 
     self_intersection: np.ndarray
     """Stage 2: the whole remainder, on edges too narrow to embed their piece."""
@@ -431,23 +458,43 @@ class Attribution:
     books nothing is only legible as a ruling-out if the reader can see the
     number it was compared against."""
 
-    def ratio(self) -> float:
-        """The headline at this configuration: residue against reference, over the survivors.
+    def ratio(self) -> float | None:
+        """The headline at this condition: residue against reference, over the survivors.
 
         Summed over the surviving edges rather than averaged per edge, so one
         edge carrying a large residue is not diluted by a thousand carrying
         none — the failure is *per edge* and ADR-0004 says so.
 
-        Zero when nothing survived, which is the honest reading and not a
-        missing one: every edge's disagreement was booked to a named cause, and
-        that is what #333 not happening looks like.
+        **Three outcomes, and two of them are not the same number.**
+        `docs/agents/registers.md` is explicit that *a run that could not
+        evaluate the bar is not a run* and is filed under `@unevaluated`, which
+        the register does not count — because a cutoff nothing can fire on is
+        the second loud section's disguise.
+
+        * **`0.0` — nothing survived.** Every edge's disagreement was booked to
+          a named cause. A real reading, and what #333 *not* happening looks
+          like.
+        * **A ratio — survivors, and a reference to divide by.**
+        * **`None` — survivors, and the reference summed to nothing.** The bar
+          cannot be evaluated. Returning `0.0` here would file a CLEAR verdict
+          off a division that never happened, which is exactly the failure the
+          first build of this rig hit from the other side: the surviving edges
+          were the ones whose reference was zero, and the headline came back
+          `4.8e+25`.
+
+        **Self-ratio, so the configuration cancels.** Numerator and denominator
+        are both energies on the *same* configuration and both quadratic in the
+        node stalks, so a configuration that shrinks or grows as a whole moves
+        neither the ratio nor the bar. That is the property a reference level
+        computed from the run's own configuration buys, and a construction-only
+        denominator would not have it.
         """
         keep = self.surviving
         if not keep.any():
             return 0.0
         below = float(self.reference[keep].sum())
         if below <= 0.0:
-            return 0.0
+            return None
         return float(self.residue[keep].sum() / below)
 
 
@@ -463,7 +510,7 @@ def attribute(
 ) -> Attribution:
     """Run the waterfall. Pure arithmetic on six `[edges]` arrays, and the seam the tests hold.
 
-    `total` is the driven per-edge energy; `gauge` is :func:`gauge_share`'s
+    `total` is the driven per-edge energy; `gauge` is :func:`gauge_reading`'s
     excess-over-chance fraction; `held` is the driven-scale energy re-read at the
     end of the quiescent hold, already net of its own gauge share; `curvature` is
     balanced Forman curvature; `reference` is the topology-only level;
@@ -480,8 +527,7 @@ def attribute(
     itself. :func:`clamps` prints how often it fired, because a stage that books
     nothing and a stage that could not be computed must not read the same.
 
-    Stage 1 needs no clamp: :func:`gauge_share` is a fraction in `[0, 1]` by
-    construction, being a projection of a vector into orthogonal complements.
+    Stage 1 needs no clamp, for the reason :func:`gauge_reading` gives.
     """
     gauge_energy = gauge * total
     remaining = total - gauge_energy
@@ -493,7 +539,12 @@ def attribute(
     # What drained across the hold is lag; what stood is not. `held` is already
     # net of its own gauge share, so this compares like with like -- reading the
     # drain against the unbooked total would book stage 1's share twice.
-    grew = held > remaining
+    #
+    # `grew` is fixed against the edges live *here*, at stage 3, and not against
+    # the ones still live after stage 4. Masking it later would drop every
+    # negatively-curved edge the clamp fired on out of the count -- the exact
+    # swallowing `clamps` exists to prevent.
+    grew = live & (held > remaining)
     standing = np.where(live, np.minimum(remaining, np.maximum(0.0, held)), 0.0)
     lag = np.where(live, remaining - standing, 0.0)
 
@@ -525,7 +576,7 @@ def attribute(
         residue=residue,
         surviving=surviving,
         standing=standing,
-        grew=grew & live,
+        grew=grew,
         alignment=np.zeros_like(total) if alignment is None else alignment,
     )
 
@@ -589,7 +640,7 @@ def sample(agent, ticks: int, keep: int, seed: int):
 def configuration(
     agent, seed: int, drive: int, hold: int, projector, curvature, keep: int
 ) -> Attribution:
-    """One arm of the sweep: rearrange the world, drive it, hold it still, attribute.
+    """One condition of the sweep: rearrange the world, drive it, hold it still, attribute.
 
     The order is ADR-0007's protocol and nothing here reorders it. The drive
     segment is what gives the lag floor something to be a lag behind; the hold
@@ -605,11 +656,11 @@ def configuration(
     """
     cloud, outcome = sample(agent, drive, keep, seed)
     sheaf = agent.sheaf
-    total = per_edge_energy(sheaf, sheaf.stalks).numpy()
+    total = per_edge_energy(sheaf).numpy()
     alignment, gauge = (t.numpy() for t in gauge_reading(sheaf, projector))
 
     hold_still(agent, outcome.observation, outcome.applied, hold)
-    held_total = per_edge_energy(sheaf, sheaf.stalks).numpy()
+    held_total = per_edge_energy(sheaf).numpy()
     held = held_total * (1.0 - gauge_reading(sheaf, projector)[1].numpy())
     reference = topology_only_energy(sheaf).numpy()
 
@@ -623,69 +674,97 @@ def configuration(
     )
 
 
-def readings(arms: list[Attribution]) -> dict[str, float]:
+def readings(conditions: list[Attribution]) -> dict[str, float]:
     """What `tools/cutoff_report.py` reads a `<metric>` from.
 
     The headline is the **minimum** across the sweep, for the reason this
-    module's docstring gives: the part standing at every configuration is the
-    only part *persistent* covers.
+    module's docstring gives: the part standing at every condition is the only
+    part *persistent* covers.
+
+    **`residue_over_topology` is omitted when any condition could not evaluate
+    it**, rather than being reported as a zero. `cutoff_report` states a metric
+    this run did not report and files the run under `@unevaluated`, which the
+    register does not count — and that is the right outcome, because *a run
+    that could not evaluate the bar is not a run* (`docs/agents/registers.md`).
+    Reporting a `0.0` instead would sign a CLEAR verdict off a division that
+    never happened, and lift #333 out of the loud section while nothing was
+    watching it.
     """
-    ratios = [arm.ratio() for arm in arms]
-    return {
-        "residue_over_topology": float(min(ratios)) if ratios else 0.0,
-        "surviving_edges": float(min(int(a.surviving.sum()) for a in arms))
-        if arms
-        else 0.0,
+    if not conditions:
+        return {}
+    ratios = [condition.ratio() for condition in conditions]
+    measured: dict[str, float] = {
+        "surviving_edges": float(min(int(c.surviving.sum()) for c in conditions)),
         "gauge_share": float(
             min(
-                (a.gauge.sum() / a.total.sum()) if a.total.sum() > 0 else 0.0
-                for a in arms
+                (c.gauge.sum() / c.total.sum()) if c.total.sum() > 0 else 0.0
+                for c in conditions
             )
-        )
-        if arms
-        else 0.0,
+        ),
     }
+    if all(ratio is not None for ratio in ratios):
+        measured["residue_over_topology"] = float(min(ratios))
+    return measured
 
 
-def show(arms: list[Attribution], label: str, chance: float) -> None:
+def show(conditions: list[Attribution], label: str, chance: float) -> None:
     """The waterfall, as a table, with the sweep's spread beside every number."""
-    print(f"\n### the waterfall, {label} — {len(arms)} configurations\n")
-    total = np.array([a.total.sum() for a in arms])
+    print(f"\n### the waterfall, {label} — {len(conditions)} configurations\n")
+    total = np.array([a.total.sum() for a in conditions])
     print(f"  {'stage':>22} {'share of total':>16} {'across the sweep':>26}")
     for name, values in (
-        ("1. colspan(D)", [a.gauge.sum() for a in arms]),
-        ("2. self-intersection", [a.self_intersection.sum() for a in arms]),
-        ("3. lag floor", [a.lag.sum() for a in arms]),
-        ("4. curvature", [a.curvature.sum() for a in arms]),
-        ("   topology-only level", [a.reference.sum() for a in arms]),
-        ("5. residue", [a.residue.sum() for a in arms]),
+        ("1. colspan(D)", [a.gauge.sum() for a in conditions]),
+        ("2. self-intersection", [a.self_intersection.sum() for a in conditions]),
+        ("3. lag floor", [a.lag.sum() for a in conditions]),
+        ("4. curvature", [a.curvature.sum() for a in conditions]),
+        ("   topology-only level", [a.reference.sum() for a in conditions]),
+        ("5. residue", [a.residue.sum() for a in conditions]),
     ):
         shares = np.array(values) / np.where(total > 0, total, 1.0)
         print(
             f"  {name:>22} {shares.mean():15.4f}  "
             f"{shares.min():11.4f} to {shares.max():.4f}"
         )
-    alive = [a.alignment > 0 for a in arms]
-    aligned = [float(a.alignment[k].mean()) for a, k in zip(arms, alive)]
+    # Guarded against an empty selection: `alignment` defaults to zeros when
+    # `attribute` is called without it, and `.mean()` of nothing is `nan`. A
+    # report that printed `nan` for a stage's headline would be worse than one
+    # that said it had no reading.
+    aligned = [
+        float(a.alignment[a.alignment > 0].mean())
+        for a in conditions
+        if (a.alignment > 0).any()
+    ]
     print()
-    print(
-        f"  stage 1's raw reading: {min(aligned):.4f} to {max(aligned):.4f} of the "
-        f"pulled-back residual lies in colspan(D), against a chance level of "
-        f"{chance:.4f}"
-    )
-    counts = [int(a.surviving.sum()) for a in arms]
-    edges = len(arms[0].total)
+    if aligned:
+        print(
+            f"  stage 1's raw reading: {min(aligned):.4f} to {max(aligned):.4f} of "
+            f"the pulled-back residual lies in colspan(D), against a chance level "
+            f"of {chance:.4f}"
+        )
+    else:
+        print("  stage 1 had no reading: no edge's residual pulled back non-zero")
+    counts = [int(a.surviving.sum()) for a in conditions]
+    edges = len(conditions[0].total)
     print(
         f"\n  edges reaching stage 5: {min(counts)} to {max(counts)} of {edges}"
     )
-    ratios = [a.ratio() for a in arms]
-    print(
-        f"  residue / topology-only level: {min(ratios):.4g} to {max(ratios):.4g}"
-        f"   (the headline is the minimum)"
-    )
+    ratios = [a.ratio() for a in conditions]
+    known = [r for r in ratios if r is not None]
+    if len(known) < len(ratios):
+        print(
+            f"  residue / topology-only level: {len(ratios) - len(known)} of "
+            f"{len(ratios)} conditions could not evaluate it -- survivors with "
+            f"a reference of zero. The metric is withheld, so the run files "
+            f"@unevaluated."
+        )
+    else:
+        print(
+            f"  residue / topology-only level: {min(known):.4g} to "
+            f"{max(known):.4g}   (the headline is the minimum)"
+        )
 
 
-def clamps(arms: list[Attribution]) -> None:
+def clamps(conditions: list[Attribution]) -> None:
     """How often :func:`attribute`'s one clamp fired, across the sweep.
 
     Printed rather than swallowed. A hold that leaves most edges disagreeing
@@ -694,9 +773,9 @@ def clamps(arms: list[Attribution]) -> None:
     — not because there was no lag. A decomposition that hid that inside a `max`
     would let a reader take an empty lag row for a finding.
     """
-    grew = [int(a.grew.sum()) for a in arms]
-    live = [int((a.standing > 0).sum()) for a in arms]
-    edges = len(arms[0].total)
+    grew = [int(a.grew.sum()) for a in conditions]
+    live = [int((a.standing > 0).sum()) for a in conditions]
+    edges = len(conditions[0].total)
     print()
     print(
         f"  the hold left {min(grew)} to {max(grew)} edges of {edges} "
@@ -710,7 +789,7 @@ def read(
     split: str,
     seed: int,
     learn: int,
-    arms: int,
+    conditions: int,
     drive: int,
     hold: int,
     keep: int,
@@ -743,21 +822,22 @@ def read(
 
     def sweep(label: str) -> list[Attribution]:
         out = []
-        for i in range(arms):
+        for i in range(conditions):
             out.append(
                 configuration(
                     agent, seed * 1000 + i, drive, hold, projector, curvature, keep
                 )
             )
+            ratio = out[-1].ratio()
             print(
-                f"  {label} configuration {i + 1}/{arms}: "
+                f"  {label} configuration {i + 1}/{conditions}: "
                 f"{int(out[-1].surviving.sum())} edges to stage 5, "
-                f"ratio {out[-1].ratio():.4g}",
+                f"ratio {'unevaluated' if ratio is None else f'{ratio:.4g}'}",
                 flush=True,
             )
         return out
 
-    print(f"\nopening sweep, before any learning ({arms} configurations)...", flush=True)
+    print(f"\nopening sweep, before any learning ({conditions} configurations)...", flush=True)
     opening = sweep("opening")
 
     print(f"\ntraining {learn} ticks with both rules...", flush=True)
@@ -770,9 +850,16 @@ def read(
     clamps(trained)
 
     measured = readings(trained)
-    measured["residue_over_topology_opening"] = readings(opening)[
-        "residue_over_topology"
-    ]
+    # The opening sweep's headline, under its own name. #156's trap 4 has a
+    # second shape on this rig: `surviving_edges = 0` reads the same whether the
+    # graph carries no residue or the procedure computes nothing, and the
+    # opening reading is what tells them apart. Absent, like the trained one,
+    # when the opening sweep could not evaluate its own bar.
+    opening_reading = readings(opening)
+    if "residue_over_topology" in opening_reading:
+        measured["residue_over_topology_opening"] = opening_reading[
+            "residue_over_topology"
+        ]
     print("\n### what the register reads\n")
     for key in sorted(measured):
         print(f"  {key:>34} {measured[key]:.6g}")

@@ -100,7 +100,7 @@ class TestTheGaugeProjector:
         for half in (inside, share):
             assert bool(((half >= 0.0) & (half <= 1.0)).all())
 
-    def test_a_pull_lying_wholly_outside_the_gauge_books_the_whole_edge(self):
+    def test_a_pull_lying_wholly_outside_the_gauge_books_the_whole_edge(self, sheaf):
         """The saturating case: nothing of the correction is inside `colspan(D)`.
 
         Held on :func:`excess_over_chance` rather than on a built sheaf, because
@@ -109,7 +109,7 @@ class TestTheGaugeProjector:
         is the arithmetic that turns the observed fraction into the share, and
         it is the part a reader has to be able to check.
         """
-        chance = 1.0 - 12 / 32
+        chance = 1.0 - ea.chance_alignment(sheaf.dome.shape)
         assert ea.excess_over_chance(1.0, chance) == pytest.approx(1.0)
         assert ea.excess_over_chance(chance, chance) == 0.0
         assert ea.excess_over_chance(0.0, chance) == 0.0
@@ -299,7 +299,10 @@ class TestTheReadings:
             min(a.ratio() for a in arms)
         )
 
-    def test_every_metric_the_docstring_names_is_reported(self):
+    def test_readings_reports_every_metric_it_owns(self):
+        """The three `readings` owns. `residue_over_topology_opening` is the
+        fourth in the module's table and is assembled in :func:`read`, because
+        it is a second sweep's headline and `readings` reports one sweep."""
         total, gauge, held, curvature, reference, embedded = TestTheWaterfall.case()
         got = ea.readings([ea.attribute(total, gauge, held, curvature, reference, embedded)])
         assert set(got) == {
@@ -307,6 +310,31 @@ class TestTheReadings:
             "surviving_edges",
             "gauge_share",
         }
+
+    def test_a_condition_that_could_not_evaluate_withholds_the_headline(self):
+        """`@unevaluated`, not a CLEAR off a division that never happened.
+
+        `docs/agents/registers.md`: *a run that could not evaluate the bar is
+        not a run.* Reporting `0.0` here would lift #333 out of the register's
+        second loud section while nothing whatever was watching it.
+        """
+        total, gauge, held, curvature, reference, embedded = TestTheWaterfall.case()
+        got = ea.attribute(
+            total, gauge, held, curvature, np.zeros_like(reference), embedded
+        )
+        assert got.surviving.any()
+        assert got.ratio() is None
+        assert "residue_over_topology" not in ea.readings([got])
+        assert "surviving_edges" in ea.readings([got])
+
+    def test_no_survivors_is_a_reading_of_zero_and_not_a_withholding(self):
+        """The other zero, and it is a real one: every edge's disagreement was
+        booked to a named cause, which is what #333 not happening looks like."""
+        total, gauge, held, curvature, reference, embedded = TestTheWaterfall.case()
+        got = ea.attribute(total, gauge, held, curvature, reference * 100.0, embedded)
+        assert not got.surviving.any()
+        assert got.ratio() == 0.0
+        assert ea.readings([got])["residue_over_topology"] == 0.0
 
 
 class TestBenchmark:
