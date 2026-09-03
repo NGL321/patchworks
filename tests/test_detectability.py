@@ -200,20 +200,42 @@ class TestTauHat:
     """Peak-to-`1/e` in ticks, and the two readings that are not measurements."""
 
     def test_an_exponential_reads_its_own_e_fold_time(self):
-        """`exp(-t/8)` crosses `1/e` at `t = 8`, and the sample there is the read."""
+        """`exp(-t/8.5)` crosses `1/e` at `t = 8.5`, so the first sample below is 9.
+
+        **The time constant is deliberately not an integer.** With `exp(-t/8)`
+        the sample at `t = 8` sits *exactly* on `peak/e`, and whether
+        `np.exp(-1.0) <= 1.0/np.e` holds is a one-ULP accident that differs
+        between numpy builds — it passed locally and failed on CI. The
+        instrument reads whole ticks, so a crossing placed between samples is
+        the case it actually has an opinion about; the boundary itself is
+        pinned separately below, constructed so the equality is exact.
+        """
         ticks = np.arange(64.0)
-        decay = np.exp(-ticks / 8.0)[:, None]
+        decay = np.exp(-ticks / 8.5)[:, None]
         tau, censored, peak_at = det.tau_hat(decay)
         assert peak_at[0] == 0
-        assert tau[0] == 8.0
+        assert tau[0] == 9.0
+        assert not censored[0]
+
+    def test_a_sample_exactly_on_the_threshold_counts_as_the_crossing(self):
+        """The `<=` in the reading, pinned without a floating-point accident.
+
+        Built so the equality is exact by construction rather than by an
+        identity numpy has to reproduce: the peak is `1.0`, so `peak/np.e` is
+        bit-identical to the value stored at index 2 whatever the build.
+        """
+        exact = np.array([1.0, 0.5, 1.0 / np.e, 0.1])[:, None]
+        tau, censored, peak_at = det.tau_hat(exact)
+        assert peak_at[0] == 0
+        assert tau[0] == 2.0
         assert not censored[0]
 
     def test_the_peak_is_found_before_the_decay_is_read(self):
         """`τ̂` is measured from the peak, not from the fork."""
-        rise = np.concatenate([np.zeros(5), np.exp(-np.arange(59.0) / 4.0)])[:, None]
+        rise = np.concatenate([np.zeros(5), np.exp(-np.arange(59.0) / 4.5)])[:, None]
         tau, _censored, peak_at = det.tau_hat(rise)
         assert peak_at[0] == 5
-        assert tau[0] == 4.0
+        assert tau[0] == 5.0
 
     def test_a_window_that_ends_first_is_censored_and_flagged(self):
         """A lower bound, and it says so: it can cost a pass, never manufacture one."""
