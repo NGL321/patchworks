@@ -21,7 +21,13 @@ import torch
 from patchworks import tick
 from patchworks.body import CellBiases, CellBody
 from patchworks.graph import EdgeKind, build_graph
-from patchworks.restriction import GAUGE_RHO, RestrictionMaps, pair_index
+from patchworks.restriction import (
+    GAUGE_C,
+    GAUGE_RHO,
+    RestrictionMaps,
+    gain_denominators,
+    pair_index,
+)
 from patchworks.tick import (
     DEFAULT_GAMMA,
     Sheaf,
@@ -244,23 +250,54 @@ class TestOneStepNotASolve:
 
 class TestReconciliationGain:
     def test_the_formula(self, dome):
+        # `gain_v = gamma / (g_v^2 . c_v)`, spelled out here rather than read
+        # from the helper the gain calls, so that the two have to agree.
         gain = reconciliation_gain(dome)
         for cell in dome.cells:
-            bound = max(
-                dome.stalk_sums[cell.id], GAUGE_RHO**2 * dome.degrees[cell.id]
+            gauge = 1.0 if cell.is_boundary else GAUGE_RHO
+            degree = dome.degrees[cell.id]
+            overlap = min(degree, max(GAUGE_C, -(-degree // cell.stalk)))
+            assert float(gain[cell.id]) == pytest.approx(
+                DEFAULT_GAMMA / (gauge**2 * overlap)
             )
-            assert float(gain[cell.id]) == pytest.approx(DEFAULT_GAMMA / bound)
+
+    def test_the_struck_terms_are_gone(self, dome):
+        # `sum_e m_e`, `rho^2 . deg(v)` and the max over them were all struck by
+        # #190. The first two are still readable off the dome, so the test that
+        # they no longer set the gain is worth writing.
+        gain = reconciliation_gain(dome)
+        superseded = {
+            cell.id: max(dome.stalk_sums[cell.id], GAUGE_RHO**2 * dome.degrees[cell.id])
+            for cell in dome.cells
+        }
+        assert all(
+            float(gain[cell_id]) != pytest.approx(DEFAULT_GAMMA / bound)
+            for cell_id, bound in superseded.items()
+        )
 
     def test_one_global_gamma_and_nothing_else_per_cell(self, dome):
         # The only per-cell quantity in the gain is a denominator read straight
         # off the built graph. Multiply it back out and every cell returns the
         # same number: there is nowhere for a per-cell knob to hide.
         gain = reconciliation_gain(dome)
-        bounds = torch.maximum(
-            torch.tensor(dome.stalk_sums, dtype=torch.float32),
-            GAUGE_RHO**2 * torch.tensor(dome.degrees, dtype=torch.float32),
+        assert torch.allclose(
+            gain * gain_denominators(dome), torch.full_like(gain, DEFAULT_GAMMA)
         )
-        assert torch.allclose(gain * bounds, torch.full_like(gain, DEFAULT_GAMMA))
+
+    def test_the_interior_takes_one_step_and_the_boundary_another(self, dome):
+        # #190's real content, and the property that replaced the depth
+        # grading: every predicting cell on this dome takes the *same* step,
+        # whatever its degree or its incident mask width, because `c_v` is the
+        # global `c` at all of them. The boundary cells are the other case, and
+        # what separates them is `g_v`, not anything about their arrangement.
+        gain = reconciliation_gain(dome)
+        interior = torch.tensor([c.id for c in dome.cells if not c.is_boundary])
+        assert len(set(gain[interior].tolist())) == 1
+        assert float(gain[interior][0]) == pytest.approx(
+            DEFAULT_GAMMA / (GAUGE_RHO**2 * GAUGE_C)
+        )
+        boundary = torch.tensor([c.id for c in dome.cells if c.is_boundary])
+        assert float(gain[boundary].min()) > float(gain[interior][0])
 
     def test_the_gain_is_not_graded_by_depth(self):
         # A gain deliberately graded by depth would be the per-cell clock
@@ -282,9 +319,12 @@ class TestReconciliationGain:
         for key in spanning:
             assert len(by_structure[key]) == 1
 
-    def test_the_max_is_what_stops_a_larger_rho_loosening_the_bound(self, dome):
-        # Written as the max so that a later change to rho cannot silently
-        # loosen it below the eigenvalue it is bounding.
+    def test_a_wider_band_tightens_the_gain_rather_than_loosening_it(self, dome):
+        # The `max` that used to carry this is struck (#190), so the property is
+        # asserted directly instead: `g_v` is the band a map is *held* to, so
+        # widening the band can only make the bound larger and the step smaller.
+        # A change to rho that loosened the gain would put the bound below the
+        # eigenvalue it exists to dominate.
         wide = reconciliation_gain(dome, rho=4.0)
         assert torch.all(wide <= reconciliation_gain(dome) + 1e-9)
         assert not torch.equal(wide, reconciliation_gain(dome))
@@ -299,11 +339,13 @@ class TestReconciliationGain:
             reconciliation_gain(dome, gamma=0.5), reconciliation_gain(dome) * 0.5
         )
 
-    def test_the_drive_edges_make_the_apex_slacker_rather_than_tighter(self, dome):
-        # An extra incident edge lowers gain_v. The spec puts it at about 6% at
-        # the real sizes and declines to lean on it; what is asserted here is
-        # only the direction, which is what would flip if the drive were ever
-        # given the gain to make itself heard with.
+    def test_the_drive_edges_cost_the_apex_nothing(self, dome):
+        # This asserted the opposite until #190: an extra incident edge used to
+        # lower `gain_v` through `deg(v)`, so the drive paid for itself at the
+        # cell it drives. `c_v` counts overlap and not degree, and at the apex
+        # it is the global `c` with the drive edges or without them, so the cost
+        # is now exactly zero. What the old test guarded -- the drive buying
+        # itself gain -- is guarded harder: the gain does not move at all.
         gain = reconciliation_gain(dome)
         apex_level = max(c.index.level for c in dome.cells if not c.is_boundary)
         driven = [
@@ -317,11 +359,10 @@ class TestReconciliationGain:
                 if dome.edges[e].kind is EdgeKind.DRIVE
             ]
             assert drive_edges
-            without = max(
-                dome.stalk_sums[cell_id] - sum(e.m for e in drive_edges),
-                GAUGE_RHO**2 * (dome.degrees[cell_id] - len(drive_edges)),
-            )
-            assert float(gain[cell_id]) < DEFAULT_GAMMA / without
+            undriven = dome.degrees[cell_id] - len(drive_edges)
+            stalk = dome.cells[cell_id].stalk
+            without = GAUGE_RHO**2 * min(undriven, max(GAUGE_C, -(-undriven // stalk)))
+            assert float(gain[cell_id]) == pytest.approx(DEFAULT_GAMMA / without)
 
 
 class TestPrivateFeatures:
@@ -471,23 +512,17 @@ class TestTheRealDome:
         assert sheaf.ticks == 100
 
     def test_the_gain_at_the_real_sizes(self):
+        # The apex used to take a larger step than the rim, because `sum_e m_e`
+        # fell with depth. #190 struck that term, and #182 had already found it
+        # was a tie at 142 of 150 cells, so what the real dome shows now is one
+        # interior step -- `1 / (2^2 . 2)` -- from level 1 to the apex.
         dome = build_graph()
         gain = reconciliation_gain(dome)
-        # At rho = 2 and the vertical edges' m = 4 the two terms of the max are
-        # equal for an interior cell of degree 8; the apex, whose incident mask
-        # width falls with depth, takes the larger step.
-        apex_level = max(c.index.level for c in dome.cells if not c.is_boundary)
-        apex = [
-            c.id
-            for c in dome.cells
-            if c.index.level == apex_level and not c.is_boundary
-        ]
-        rim = [
-            c.id
-            for c in dome.cells
-            if not c.is_boundary and c.index.level == 1
-        ]
-        assert min(float(gain[i]) for i in apex) > max(float(gain[i]) for i in rim)
+        interior = [c.id for c in dome.cells if not c.is_boundary]
+        levels = {dome.cells[i].index.level for i in interior}
+        assert len(levels) > 1, "one level only; the test proves nothing"
+        assert len({round(float(gain[i]), 9) for i in interior}) == 1
+        assert float(gain[interior[0]]) == pytest.approx(1.0 / (GAUGE_RHO**2 * GAUGE_C))
 
 
 class TestASurfaceBuiltForAnotherGraph:

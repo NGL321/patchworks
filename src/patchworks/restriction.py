@@ -40,7 +40,16 @@ import torch
 
 from .graph import Dome
 
-__all__ = ["GAUGE_C", "GAUGE_RHO", "INITIAL_NORM", "RestrictionMaps", "pair_index"]
+__all__ = [
+    "GAUGE_C",
+    "GAUGE_RHO",
+    "INITIAL_NORM",
+    "RestrictionMaps",
+    "cell_gauges",
+    "gain_denominators",
+    "overlap_counts",
+    "pair_index",
+]
 
 #: @type stipulated
 #: @flexibility measured: 2 -> 16 buys 1.008x on the apex floor (#150)
@@ -61,11 +70,11 @@ GAUGE_RHO = 2.0
 #: rather than the fully-coherent `deg(v)` (`docs/spec/02-tick-semantics.md`,
 #: *Reconciliation gain*; ruled by #190).
 #:
-#: **Declared, not yet enforced.** :meth:`RestrictionMaps.project` restores the
-#: mask and the norm band and does not yet hold the top singular directions
-#: apart, so nothing may divide by this constant until it does --
-#: :func:`patchworks.tick.reconciliation_gain` still forms the superseded
-#: denominator for exactly that reason. Both land together; see #220.
+#: **Enforced by the projection, which is what lets the gain divide by it**
+#: (#220). :meth:`RestrictionMaps.project` restores the mask, then the norm
+#: band, then caps each holding cell's Gram spectrum at `g_v^2 . c_v`, so
+#: :func:`patchworks.tick.reconciliation_gain` divides by a bound that is true
+#: of the surface at every tick rather than one hoped for.
 GAUGE_C = 2
 
 #: @type chosen
@@ -78,6 +87,65 @@ GAUGE_C = 2
 #: it; the transport rule's own dynamics grow the larger end into `ρ` from
 #: there (`docs/spec/01-cell-and-sheaf.md`, *Scale is gauge-fixed*).
 INITIAL_NORM = 1.0
+
+
+def cell_gauges(dome: Dome, *, rho: float = GAUGE_RHO) -> torch.Tensor:
+    """`[cells]`: `g_v`, the gauge each cell's own maps are held to.
+
+    `rho` at a predicting cell, whose maps carry the band, and exactly 1 at a
+    boundary cell, whose maps carry the exact gauge (ADR-0010). The test is who
+    holds the map, not what the edge connects — the same test
+    :class:`RestrictionMaps` applies when it decides which maps are pinned.
+    """
+    return torch.tensor(
+        [1.0 if cell.is_boundary else rho for cell in dome.cells], dtype=torch.float32
+    )
+
+
+def overlap_counts(dome: Dome, *, c: int = GAUGE_C) -> torch.Tensor:
+    """`[cells]`: `c_v = min(deg(v), max(c, ceil(deg(v) / n_v)))`.
+
+    The effective overlap count the gain divides by, with both of its clamps
+    (`docs/adr/0010-restriction-map-scale-is-gauge-fixed.md`, *The floor is not
+    optional, and the drive cell is why*). The **pigeonhole floor** is a fact
+    about dimension: `deg(v)` directions in an `n_v`-dimensional stalk cannot be
+    spread further than `deg(v) / n_v` apart, so a bare global `c` is an unsafe
+    bound at the drive, which carries 8 maps on a stalk of dimension 1. The
+    outer `min` keeps the result inside the bound the band alone already gave.
+
+    **Where `c_v < deg(v)` at a boundary cell, nothing enforces it.**
+    :meth:`RestrictionMaps.project` reaches only the maps with scale freedom to
+    spend, which is the predicting cells'. On this dome that is one cell, the
+    actuator, and it is measured rather than constructed; the note on
+    :meth:`RestrictionMaps._push_apart` carries the reading and #228 carries the
+    question.
+    """
+    return torch.tensor(
+        [
+            float(min(deg, max(c, -(-deg // cell.stalk))))
+            for cell, deg in zip(dome.cells, dome.degrees, strict=True)
+        ],
+        dtype=torch.float32,
+    )
+
+
+def gain_denominators(
+    dome: Dome, *, rho: float = GAUGE_RHO, c: int = GAUGE_C
+) -> torch.Tensor:
+    """`[cells]`: `g_v^2 . c_v`, the bound on `lambda_max(sum_e F_ev^T F_ev)`.
+
+    The reconciliation gain's denominator, ruled by
+    [#190](https://github.com/NGL321/patchworks/issues/190) and published at
+    `docs/spec/02-tick-semantics.md`, *Reconciliation gain*. **One definition,
+    three readers**: the gain itself
+    (:func:`patchworks.tick.reconciliation_gain`), the fold-margin nomination
+    that divides by it (:func:`patchworks.bias_selection.fold_margin_check`),
+    and the projection that makes it true
+    (:meth:`RestrictionMaps.project`). A second implementation would let the
+    bound the surface is held to drift away from the bound the gain assumes,
+    and the whole of #220 is that those two are one thing.
+    """
+    return cell_gauges(dome, rho=rho) ** 2 * overlap_counts(dome, c=c)
 
 
 def pair_index(edge_id: int, side: int) -> int:
@@ -134,6 +202,38 @@ class RestrictionMaps(torch.nn.Module):
         self.register_buffer("owner", owner)
         self.register_buffer("pinned", pinned)
 
+        # What the incoherence term needs, read off the built graph once. A
+        # pinned map is out of the projection's reach -- the exact gauge leaves
+        # no freedom to spend -- so the cells that hold the term are exactly
+        # the predicting ones, and their pairs are exactly the unpinned ones.
+        holding = torch.tensor(
+            [not cell.is_boundary for cell in dome.cells], device=device
+        )
+        exposed = torch.zeros(
+            (len(dome.cells), self.stalk_width), dtype=torch.float32, device=device
+        )
+        exposed.index_add_(0, owner, support.any(dim=1).to(torch.float32))
+        column_mask = exposed > 0
+        hold_rows = torch.full((len(dome.cells),), -1, dtype=torch.long, device=device)
+        hold_rows[holding] = torch.arange(
+            int(holding.sum()), dtype=torch.long, device=device
+        )
+        # The mask is a prefix of the node stalk, shared by all of a cell's
+        # incident maps, so the whole incoherence step fits in the leading
+        # block and the padding never reaches an eigendecomposition.
+        held_columns = column_mask[holding].any(dim=0)
+        width = int(held_columns.nonzero().max()) + 1 if bool(held_columns.any()) else 0
+
+        self.register_buffer("holding", holding)
+        self.register_buffer("holding_cells", holding.nonzero().squeeze(-1))
+        self.register_buffer("hold_rows", hold_rows)
+        self.register_buffer("hold_pairs", (~pinned).nonzero().squeeze(-1))
+        self.register_buffer("column_mask", column_mask)
+        self.register_buffer(
+            "overlap_target", gain_denominators(dome, rho=rho).to(device)
+        )
+        self.hold_width = width
+
         draw = torch.empty(
             (self.pairs, self.edge_width, self.stalk_width), device=device, dtype=dtype
         ).normal_(0.0, 1.0, generator=generator)
@@ -165,18 +265,160 @@ class RestrictionMaps(torch.nn.Module):
 
     @torch.no_grad()
     def project(self) -> None:
-        """Restore the mask and the gauge, in place. Runs after a transport step.
+        """Restore the mask, the gauge and the incoherence, in place.
 
-        Both together rather than separately: a step that walked a weight out
-        of the mask and a step that grew a map past `ρ` are the same kind of
-        event — the surface leaving the shape construction gave it — and
-        neither is ever wanted.
+        Runs after a transport step. All three together rather than separately:
+        a step that walked a weight out of the mask, a step that grew a map past
+        `ρ`, and a step that turned a cell's incident maps to face the same way
+        are the same kind of event — the surface leaving the shape construction
+        gave it — and none of them is ever wanted.
+
+        **The order is load-bearing.** The mask first, because the two later
+        steps read norms and Gram blocks that a stray weight would pollute; the
+        band next, because the incoherence target `g_v² · c_v` is stated against
+        the banded gauge; the incoherence cap last, because it is the one whose
+        guarantee the others could undo. What follows it may only shrink a map,
+        and shrinking a map can only shrink the Gram it contributes to, so the
+        cap holds at exit.
         """
         self.maps.mul_(self.support)
         lower, upper = self.gauge_bounds
         norms = self.norms().clamp_min(1e-12)
         scale = norms.clamp(lower, upper) / norms
         self.maps.mul_(scale.unsqueeze(-1).unsqueeze(-1))
+        self._push_apart()
+        # The band's upper edge, once more and downward only. Water-filling
+        # moves energy between a cell's directions, so a map that was inside the
+        # band can come out of it above; shrinking it back is the one correction
+        # that cannot cost the incoherence cap, because a smaller map
+        # contributes a smaller Gram. The lower edge is not re-applied for the
+        # mirror-image reason, and it is restored above, before the step that
+        # can move it.
+        over = (self.norms() / upper).clamp_min(1.0)
+        self.maps.div_(over.unsqueeze(-1).unsqueeze(-1))
+
+    @torch.no_grad()
+    def _push_apart(self) -> None:
+        """Cap each holding cell's Gram spectrum at `g_v² · c_v`, in place.
+
+        ADR-0010's *Incoherence is gauge-fixed too*. The gain divides by a bound
+        on `λ_max(Σ_e F_evᵀF_ev)`, and the band alone only supports the
+        fully-coherent `g_v² · deg(v)`. This is what makes the smaller number
+        true: one shared right-transform per cell, applied to every map that
+        cell holds, chosen so the summed Gram's largest eigenvalue lands on the
+        target.
+
+        **It redistributes rather than shrinks.** The excess above the target is
+        water-filled back onto the cell's under-loaded directions, so the trace
+        — which is `Σ_e ‖F_ev‖_F²`, the thing the band holds — is preserved
+        wherever there is headroom to preserve it into. A cap alone would take
+        energy out of the surface on every tick and ratchet the maps down onto
+        the band's lower edge, which is the same map collapse the band exists to
+        prevent, arriving by a different road. Where the headroom will not take
+        the whole excess the step falls back to the bare cap: conservative, and
+        the bound holds either way.
+
+        **The transform cannot re-open the mask, and that is why it is one
+        transform per cell rather than one per map.** All of a cell's incident
+        maps share the same structural mask, a prefix of its node stalk
+        (:meth:`patchworks.graph.Dome.restriction_mask`), so a right-transform
+        supported on that prefix leaves every masked column zero. A per-map
+        transform would have no such common support.
+
+        **Pinned maps are untouched, deliberately.** A boundary cell's maps
+        carry the exact gauge, so there is no scale freedom for a transform to
+        spend; the only norm-preserving right-transform is orthogonal, and an
+        orthogonal one leaves the spectrum exactly where it found it. Those
+        cells get their correction from `g_v = 1` instead, which is
+        :func:`cell_gauges`' business and not this one.
+
+        **And that leaves exactly one cell on this dome whose target is held by
+        measurement rather than by construction: the actuator.** Every other
+        boundary cell has `deg(v) = 1` or, at the drive, a pigeonhole floor that
+        raises `c_v` to `deg(v)`, and at `c_v = deg(v)` the exact gauge makes
+        `Σ_e ‖F‖_F² = deg(v)` an equality and the bound true unaided. The
+        actuator carries `deg = 3` on a stalk of 6, so `c_v` is the global `c`
+        of 2 while nothing pushes its three maps apart; the fully-coherent
+        arrangement would put `λ_max` at 3. Measured, it is **1.0164 at
+        construction and 1.0029 after 5,000 taught ticks, against a target of
+        2.0** — it holds with 1.97x to spare and does not drift toward coherence
+        over a run, so nothing here is unsafe today. It is recorded rather than
+        quietly corrected because the correction would be a change to a ruled
+        denominator (#190) and this is a build, not a ruling; :meth:`gram_peaks`
+        is what reads it. See #228.
+        """
+        if self.hold_pairs.numel() == 0 or self.hold_width == 0:
+            return
+        width = self.hold_width
+        tiny = torch.finfo(self.maps.dtype).tiny
+
+        held = self.maps.index_select(0, self.hold_pairs)[:, :, :width]
+        grams = torch.zeros(
+            (len(self.dome.cells), width, width),
+            dtype=self.maps.dtype,
+            device=self.maps.device,
+        )
+        grams.index_add_(
+            0,
+            self.owner.index_select(0, self.hold_pairs),
+            held.transpose(1, 2) @ held,
+        )
+        eigenvalues, directions = torch.linalg.eigh(
+            grams.index_select(0, self.holding_cells)
+        )
+
+        target = self.overlap_target.index_select(0, self.holding_cells).unsqueeze(-1)
+        peak = eigenvalues.amax(dim=-1, keepdim=True)
+        capped = torch.minimum(eigenvalues, target)
+        excess = (eigenvalues - capped).sum(dim=-1, keepdim=True)
+        # A direction the cell's maps do not load at all cannot be filled into:
+        # scaling zero leaves zero, whatever the scale. The threshold is
+        # relative to the cell's own peak so it means the same thing at every
+        # cell, whatever the maps' magnitudes.
+        live = eigenvalues > peak * 1e-9
+        headroom = (target - capped) * live
+        total = headroom.sum(dim=-1, keepdim=True)
+        share = torch.where(
+            total > 0,
+            (excess / total.clamp_min(tiny)).clamp(max=1.0),
+            torch.zeros_like(total),
+        )
+        filled = capped + headroom * share
+        scale = torch.where(
+            live,
+            (filled / eigenvalues.clamp_min(tiny)).sqrt(),
+            torch.ones_like(eigenvalues),
+        )
+        # A cell already inside the bound is left exactly alone, rather than
+        # multiplied by a numerical approximation of the identity every tick.
+        scale = torch.where(peak > target, scale, torch.ones_like(scale))
+
+        transform = directions @ (scale.unsqueeze(-1) * directions.transpose(1, 2))
+        transform = transform * self.column_mask.index_select(0, self.holding_cells)[
+            :, :width
+        ].unsqueeze(1)
+        rows = self.hold_rows.index_select(
+            0, self.owner.index_select(0, self.hold_pairs)
+        )
+        self.maps[self.hold_pairs, :, :width] = torch.bmm(
+            held, transform.index_select(0, rows)
+        )
+
+    def gram_peaks(self) -> torch.Tensor:
+        """`[cells]`: `λ_max(Σ_{e∈v} F_evᵀF_ev)`, the quantity the gain bounds.
+
+        Reporting, not runtime — the tick never calls it. It exists so a test
+        and a benchmark can read the bound the projection is supposed to hold,
+        against the denominator :func:`gain_denominators` hands the gain, and so
+        the two can be compared at a boundary cell as well as an interior one.
+        """
+        grams = torch.zeros(
+            (len(self.dome.cells), self.stalk_width, self.stalk_width),
+            dtype=self.maps.dtype,
+            device=self.maps.device,
+        )
+        grams.index_add_(0, self.owner, self.maps.transpose(1, 2) @ self.maps)
+        return torch.linalg.eigvalsh(grams).amax(dim=-1)
 
     # -- what the message-passing phase runs -------------------------------
 

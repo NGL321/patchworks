@@ -60,7 +60,7 @@ import torch
 
 from .body import CellBiases, CellBody, CellOperators
 from .graph import Dome
-from .restriction import GAUGE_RHO, RestrictionMaps, pair_index
+from .restriction import GAUGE_RHO, RestrictionMaps, gain_denominators, pair_index
 
 __all__ = [
     "DEFAULT_GAMMA",
@@ -245,52 +245,52 @@ def _checked_gamma(gamma: object) -> float:
 def reconciliation_gain(
     dome: Dome, *, gamma: float = DEFAULT_GAMMA, rho: float = GAUGE_RHO
 ) -> torch.Tensor:
-    """`[cells]`: `gain_v = γ / max(Σ_{e∋v} m_e, ρ² · deg(v))` — **superseded**.
+    """`[cells]`: `gain_v = γ / (g_v² · c_v)`, ruled by #190 and published by `02`.
 
     The denominator bounds the largest eigenvalue of the cell's local Laplacian
-    block provably rather than by proxy: ADR-0010 bounds every incident
-    restriction map by `‖F‖_F ≤ ρ`, so
-    `λ_max(Σ_e F_evᵀF_ev) ≤ Σ_e ‖F_ev‖_F² ≤ ρ² · deg(v)`.
+    block, `λ_max(Σ_{e∋v} F_evᵀF_ev)`, and it is a bound **made good by
+    construction** rather than by proxy. Two constants, both ADR-0010's:
 
-    **What this still forms is not what the spec says.**
-    [#190](https://github.com/NGL321/patchworks/issues/190) ruled the denominator
-    and `docs/spec/02-tick-semantics.md` now publishes it: `γ / (g_v² · c_v)`,
-    with `g_v = ρ` at a predicting cell and `1` at a boundary cell's pinned maps,
-    and `c_v = min(deg(v), max(c, ⌈deg(v)/n_v⌉))`. `Σ_e m_e`, `ρ² · deg(v)` and
-    the `max` are all struck — the first was never shown to bound anything, the
-    second is the fully-coherent case, and the `max` guarded a proxy that is
-    gone.
+    * `g_v`, the gauge that cell's own maps are held to — `ρ` at a predicting
+      cell, whose maps carry the band, and exactly **1** at a boundary cell,
+      whose maps carry the exact gauge. This is the correction #189 found by
+      looking: one denominator had been applied to both, leaving the boundary
+      cells loose by a permanent 8x, worst at the actuator the acceptance demo
+      reads.
+    * `c_v = min(deg(v), max(c, ⌈deg(v)/n_v⌉))`, the **effective overlap count**.
+      `Σ_e ‖F_ev‖_F² ≤ g_v² · deg(v)` is the fully-coherent case and it is not
+      the case the surface is in: measured, the overlap runs 1.75–2.42 against a
+      `deg` of 5 to 8 (#182). What makes the smaller number safe rather than
+      merely observed is
+      :meth:`patchworks.restriction.RestrictionMaps.project`, which caps each
+      holding cell's Gram spectrum at exactly this denominator after every
+      transport step. **The two land together and neither is a release alone**
+      (#220): the term without the swap is inert, the swap without the term
+      ships an unsafe bound.
 
-    **The swap waits on the projection, deliberately, and #220 lands both.**
-    The ruled denominator is a bound *made good by construction*:
-    :meth:`patchworks.restriction.RestrictionMaps.project` has to hold each
-    cell's incident maps' top singular directions apart to `GAUGE_C` before
-    anything may divide by it. Today it restores the mask and the norm band and
-    no more, so swapping this function alone would ship an **unsafe** bound
-    rather than a loose one — worst at the drive, where eight maps share a
-    one-dimensional stalk and only the pigeonhole floor separates `c` from
-    `deg`. What ships meanwhile is conservative: this denominator is larger than
-    the ruled one at every cell, so the step is too small everywhere and stable
-    everywhere.
+    `Σ_e m_e`, `ρ² · deg(v)` and the `max` over them are all **struck** (#190).
+    The first was never shown to bound anything — it is a normalisation, and at
+    `ρ = 2` and the vertical edges' `m = 4` it tied with the second at 142 of
+    150 cells (#182). The second is the fully-coherent case. The `max` guarded a
+    proxy that is gone.
 
-    The old equalisation defence is **struck** and not replaced (#189, #190).
+    The old equalisation defence is struck and not replaced (#189, #190).
     Measured as `gain_v · λ_max` it spread 3.57x across the taper at
     initialisation, graded by depth and largest at the apex, so `Σ_e m_e` never
-    removed the degree artifact it was kept for. ADR-0005 is untouched: the
-    depth-invariance gloss was `02`'s attribution rather than that ADR's claim.
-    What stays true of this function's shape is the part worth keeping — one
-    global `γ` over a denominator read straight off the built graph, with
-    nothing per-cell to set.
+    removed the degree artifact it was kept for. **`gain_v` is now uniform
+    across the interior** — every predicting cell on this dome takes `γ / (ρ²·c)`
+    — which is what makes the shape worth keeping: one global `γ` over a
+    denominator read straight off the built graph, with nothing per-cell to set.
+    ADR-0005 is untouched: the depth-invariance gloss was `02`'s attribution
+    rather than that ADR's claim.
 
-    Boundary cells are included on the same formula. Their maps carry the
-    tighter exact gauge, `Σ_e ‖F‖_F² = deg(v)`, so `ρ² · deg(v)` is a valid
-    bound for them too — looser by a **permanent 8x**, since an exact gauge is
-    an equality rather than a band the transport rule grows into.
+    The denominator itself is :func:`patchworks.restriction.gain_denominators`,
+    which the projection and the fold-margin nomination read too. One
+    definition, because a second one could drift from the bound the surface is
+    actually held to.
     """
     gamma = _checked_gamma(gamma)
-    stalk_sums = torch.tensor(dome.stalk_sums, dtype=torch.float32)
-    degrees = torch.tensor(dome.degrees, dtype=torch.float32)
-    return gamma / torch.maximum(stalk_sums, rho * rho * degrees)
+    return gamma / gain_denominators(dome, rho=rho)
 
 
 def assert_no_tape(**tensors: torch.Tensor) -> None:
