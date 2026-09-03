@@ -653,7 +653,9 @@ ruled on here.
 **This is also why spread and stability were never two knobs.** Both arms are the same function of
 region dwell. Where dwell is short, the spread averages away — the same cells whose per-region `τ`
 spans 7.7× realise a ratio of 1.7–3.5 — and expansive regions are harmless because nothing sits in
-them. Where dwell is long, the cell has a genuine timescale *and* a cell parked in an expansive
+them. (**The 7.7× here is the stand-in's, and is withdrawn as a number about the body** —
+`docs/research/027-regional-jacobian-spectra.md`'s amendment, [#349](https://github.com/NGL321/patchworks/issues/349).
+The dwell argument this paragraph makes does not rest on its magnitude and is untouched.) Where dwell is long, the cell has a genuine timescale *and* a cell parked in an expansive
 region genuinely diverges. The fold margin is therefore doing a third job, alongside the two named
 above: it is what makes an expansive region dangerous.
 
