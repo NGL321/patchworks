@@ -162,6 +162,35 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
   second drive to *be* — it is real for an internal-rim faculty later. (3) **A learned drive vector at
   `k ≈ 16`**, the attested width, at the cost of the one-cell-one-drive reading. The rungs are ordered
   by price, and only (3) changes the design's shape.
+
+  **The ramp is a fourth axis, and it is declined.**
+  [#137](https://github.com/NGL321/patchworks/issues/137) asked whether the asserted scalar should stay
+  constant or ramp under a ceiling, on this exposure's own premise that a scalar drive may prove too
+  weak. It should not, and the ladder above is not missing a rung.
+  [#183](https://github.com/NGL321/patchworks/issues/183) measured the axis: the drive **reaches the
+  apex** at 0.100 per hop, settled from 30k to 100k ticks, a `1 -> 10` assertion landing **0.90** on an
+  apex stalk. The assertion scales that deposit **linearly**, so a ramp buys **apex-local pressure and
+  nothing else** — merely making the rim displacement representable in float32 would need the assertion
+  scaled ~5.2e3. And it cannot reach this exposure's own trigger: an **undifferentiated apex** is a
+  failure of *direction*, and with `m_e = 1` there is no direction to choose, so scaling moves all eight
+  apex stalks in the same proportions and differentiates nothing. Coherent fan-out was measured at
+  0.94x for the same reason. Width remains the axis with leverage, which is
+  [#188](https://github.com/NGL321/patchworks/issues/188).
+
+  This is *Strength is not a new axis* above, restated where a reader will actually reach for it. It has
+  a second job: **the ramp is the wrong answer to *Bootstrapping* below.** A drive edge that is noise
+  early in training, with the arm not moving, is the one moment where cranking the assertion up looks
+  like the fix. It is not — no motion at all is *Bootstrapping* and not this exposure, its answer is a
+  **curiosity drive**, and that is a fog item rather than a rung. The constant stays at `1.0`, typed as
+  **chosen** in the constants register with #183's linearity as its stated flexibility. No ceiling is
+  derived and none is derivable today: `gamma x floor <` fold margin is under audit
+  ([#158](https://github.com/NGL321/patchworks/issues/158),
+  [#160](https://github.com/NGL321/patchworks/issues/160),
+  [#178](https://github.com/NGL321/patchworks/issues/178),
+  [#181](https://github.com/NGL321/patchworks/issues/181)), the drive's hop is a dimensionless gain
+  against a margin that is a magnitude, and
+  [#138](https://github.com/NGL321/patchworks/issues/138) retired folds as a mechanism. A constant needs
+  no ceiling; nothing varies for one to bound.
 - **A derived account of curiosity is forfeited — inside the graph.** Expected free energy's epistemic
   term is what makes long-horizon agents intrinsically novelty-seeking, and Seth, Millidge, Buckley &
   Tschantz (2020) insist it "arise[s] naturally out of the mathematical formalism, instead of being

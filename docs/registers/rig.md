@@ -57,7 +57,7 @@ construction has to answer it as much as one bound at import.
 | `DEFAULT_DRAWS` | `4096` | chosen | unknown; #42's rig drew 20,000 at a frozen operating point, and each draw here costs a whole trajectory | here | — | `src/patchworks/bias_selection.py` |
 | `DEFAULT_DRIVE_CORRELATION` | `8.0` | chosen | the arm the dwell measurement is most sensitive to; benchmarks/timescale_selection.py sweeps it rather than trusting it | docs/spec/05-timescales.md | — | `src/patchworks/bias_selection.py` |
 | `DEFAULT_EVERY` | `10` | chosen | free: the pair reading is ~3 ms on the real dome, so the number is set by how finely the fall is worth resolving rather than by cost | docs/adr/0010-restriction-map-scale-is-gauge-fixed.md | — | `src/patchworks/diagnostics.py` |
-| `DEFAULT_OVERLAP` | `0.5` | chosen | unknown | docs/spec/05-timescales.md, The taper's timescale gradient is a gradient in means | — | `src/patchworks/bias_selection.py` |
+| `DEFAULT_OVERLAP` | `0.5` | chosen | unknown | docs/spec/05-timescales.md, The gradient is learning's job | — | `src/patchworks/bias_selection.py` |
 | `DEFAULT_SCALE_STEPS` | `12` | chosen | unknown | here | — | `src/patchworks/bias_selection.py` |
 | `DEFAULT_TICKS` | `64` | chosen | unknown, and this register's flagship unknown: #178 found a rig tick count silently deciding a result | here | — | `src/patchworks/bias_selection.py` |
 | `DEFAULT_WHOLE_GRAPH_EVERY` | `100` | chosen | bounded by cost: one reading is a 3764x3764 eigendecomposition, ~16 s on the real dome | here | — | `src/patchworks/diagnostics.py` |

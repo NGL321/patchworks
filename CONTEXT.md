@@ -153,6 +153,49 @@ two directions do not share a gain. Detectability rather than magnitude because 
 settles: the perturbation must be distinguishable from what stands on the edge, not clear a wall.
 _Avoid_: transmission target, reachability, the ~0.37 per hop (retired), sufficiency (bare)
 
+**Conduction ratio**:
+A cell's measured retention time over the tick length of the shortest cycle through it that reaches
+the rim and returns — `τ̂_c / |loop(c)|`, dimensionless because both halves are in ticks. The
+numerator is the e-fold decay time of the paired counterfactual deviation restricted to the cell's
+private features; the denominator is a **construction-time** quantity, computed from the mask by
+enumeration and never inherited from a hop count (ADR-0026). It is `2 · d(c, rim)` — 14 at the apex of
+the default dome, where it was checked rather than assumed. Scale-free in time, so it touches neither
+the never-settling floor nor float32.
+_Avoid_: margin (`fold margin` is a distance to a boundary; this is a ratio), retention (bare), gain,
+timescale ratio
+
+**Loop length**:
+`|loop(c)|`: the tick length of the shortest cycle through a cell that reaches the sensorimotor rim
+and returns — the conduction ratio's denominator, and the cell's **own round trip**, which is what a
+retention time has to beat. A **construction-time** quantity: enumerated from the mask by breadth-
+first sweep, `2 · d(c, rim)`, and **never inherited from a hop count** (ADR-0026). It moves with
+`DomeSpec` and is recomputed rather than quoted — 14 at the apex of the default dome, where it was
+checked rather than assumed. That it coincides with `2 · level` there is a fact about the current
+taper's wiring and not a licence to index by level. **Computed nowhere in the tree today**; #99 owes
+it.
+_Avoid_: round trip (bare), cycle length, depth, hop count, `2 · level`
+
+**Rim-core influence**:
+The predicate over the conduction ratio, and **the map's operative bar**: over paths, the max of the
+min conduction ratio along a path is at least 1 — the cell still holds what it sent by the time the
+answer gets back. Stated twice, and the two directions **do not share a quantifier**: inbound is a
+swept single-source **count**, the fraction of rim cells whose loop closes, per stratum and never
+averaged across strata, with the bar that every stratum's reaching set is non-empty; outbound is a
+**universal** over L1 predicting cells and the actuator boundary cell. **Necessary, not sufficient**:
+it says the loop can close, not that anything distinguishable travels it. Distinct from **rim-to-core
+detectability**, ADR-0021's predicate over the bottleneck ratio, which is retained as the *sufficient*
+diagnostic and is no longer the bar.
+_Avoid_: transmission, detectability (that is ADR-0021's), reach
+
+**Collectively**:
+Of the rim's influence on the apex: **counted, not summed**. The word was doing two jobs — *many,
+counted* and *coherently summed* — and #232 measured the summed sense empty: the collective corner's
+2.7x is the predicate's `max` over 256 candidate entry points rather than coherence, the incoherent
+contrast reads level with it, and the missing `√K = 16x` says a rim-coherent injection sums as a
+random walk downstream. The counted sense is the one the destination means, and the retired one may
+not walk back in.
+_Avoid_: coherent, aggregated, pooled, summed
+
 **Compression**:
 The lossy, nonlinear, cell-private map from node stalk into chart, performed inside `encode`.
 The counterpart to restriction, which is lossy, linear and shared. Naming both by what they
@@ -229,25 +272,62 @@ a phase shift and the wrong ratio), clock rate, update rate, tick rate, schedule
 
 **Retention**:
 How much of what a cell held it keeps — the other half of what *timescale* used to name, and the half
-that is **differentiated across the graph by design**. It is ADR-0005's subject: persistence in the
-private features rather than a schedule, and since #138 a per-cell time constant living in `K`'s
-spectrum. **Effective timescale** below is the measurement of it. The graph's retention currently
-measures flat at about one tick (`05-timescales.md`), which is a finding about this build and not a
-property of the architecture.
+that is **meant to be differentiated across the graph**. It is ADR-0005's subject and now
+ADR-0028's: persistence in the private features rather than a schedule, and since #138 a per-cell
+time constant living in `K`'s spectrum — **a spectrum of them per cell, not one** (#143).
+**Retention constant** below is the quantity, and **Effective timescale** the measurement of it. The
+graph's retention currently measures flat at about one tick on the chart's **direct** round trip,
+and 2.9 to 10.3 ticks with the stalk relay included (`05-timescales.md`, *What the live read
+says*) — **flat under either operator**, and a finding about this build rather than a property of
+the architecture. Narrower still than it reads: both operators were read on a body that took **iid**
+biases, in a run where **nothing was placed** (#276), so the flatness is evidence about neither
+placement nor learning. **The differentiation is no longer placed by design**: construction assigns
+no per-level `τ`, so a depth gradient in retention is learning's to produce, and *nothing guarantees
+it appears* is the standing falsification.
 
 *One clock, heterogeneous retention.* The two are separate objects and the record needs both words.
 _Avoid_: timescale (bare, for this sense), memory, decay rate, persistence (reserve for ADR-0005's
 mechanism), level, tier
 
+**Retention constant**:
+`λ(K)`, an eigenvalue magnitude of a cell's own learned operator, and the quantity *effective
+timescale* is now read off: `τ = −1/ln|λ(K)|`. **A cell has up to `k` of them at once, one per
+eigen-direction** — it can commit in some chart directions while staying reactive in others — so it
+has a **spectrum** and not a rate (ADR-0028). Healthy **near 1**: `λ(K) = 0.99` is `τ ≈ 99.5`, a slow
+cell, comfortably inside the operator band. **A slow eigenvalue is a memory policy, never a mode of
+the piece's physics** (ADR-0023). Distinguish `λ(K)`, the operator's retention and the published
+quantity, from `λ(K · J_encode)`, the realised chart retention, which is region-dependent and
+per-tick.
+_Avoid_: `λ` bare (**Realised contraction rate** is a log-rate with the opposite health direction —
+see that entry), timescale (bare), decay rate, mode, eigenvalue of the piece, Koopman eigenvalue
+
 **Effective timescale**:
-How slowly a cell's content changes — set by how much private structure it holds and by the
-*distribution* of regional spectra its biases select, not by any one of them. A mean rate rather
-than a fixed one, and well defined only while the cell's region dwell is long against it. A property
-measured from outside, never an input to any computation and **never a criterion anything selects on
-at runtime** — though it is exactly the criterion the body's construction selects biases against,
-once, before the graph runs. Under the distributional reading there is no constant for a running
-cell to read even in principle.
-_Avoid_: clock rate, update rate, level, tier, frequency
+How slowly a cell's content changes — set by the **retention constants of its own `K`**,
+`τ = −1/ln|λ(K)|`. **Not by how much private structure it holds** (#271, struck by #276): private
+width is a *relay aperture* and buys no retention — `corr(p_v, Δρ) = −0.019` — the stalk retains nothing
+across a tick (#225), and the instrument slices the chart half of `encode`'s input and cannot see
+private structure at all. See **Private width** below; the two may not re-collide. **Not one
+number:** a cell holds a spectrum of them, so *the* effective timescale of a cell is a loose way
+of speaking and the direction must be said whenever it matters. A property measured from outside,
+never an input to any computation and **never a criterion anything selects on at runtime** — a
+discipline that has to be kept, since `λ(K)` is a constant and readable in principle, where the
+retired distributional reading made the prohibition free by leaving nothing to read. **Nothing
+places it**: construction assigns no per-level `τ`, `a` is global, and the depth gradient is
+learning's to produce or not (#143).
+_Avoid_: clock rate, update rate, level, tier, frequency, central tendency, mean rate (the retired
+distributional reading), the cell's timescale (where a direction is meant), private structure (the
+struck clause — see **Private width**)
+
+**Private width**:
+`p_v = max(0, n − Σ_e m_e)` — the part of a cell's node stalk no incident edge's restriction map
+reads. A **relay aperture**: how much of a cell's decoded prediction returns to its own `encode` next
+tick undisturbed by reconciliation, since `∂evidence/∂chart = (I − g_v Σ_e F_evᵀ F_ev) @ D` is the
+identity exactly on the private block. It is a **transmission** property and belongs to the
+influence predicate — **not** a retention term and not a timescale term (#271): construction grades
+it by depth (0 at the rim, 15 at the apex) and that grading produces no retention gradient, because
+`g_v`'s ADR-0010 bound damps the public block in proportion to its size and the grading cancels itself.
+_Avoid_: private dimension (reserve for the count as a construction parameter), private structure
+(the struck phrase from *Effective timescale*), memory, capacity
 
 **Activation region**:
 One of the finitely many convex regions of chart values on which `encode` is exactly affine. Its
@@ -259,12 +339,18 @@ folds no longer bound `γ` and no longer carry timescale, which lives in `K`'s s
 _Avoid_: linear region, cell, piece (reserve that for the sub-problem), basin
 
 **Timescale band**:
-The range of effective timescales a level of the taper is built to hold. Cells are placed in one by
-construction — bias vectors are drawn, measured, and kept if they land in the band — and adjacent
-levels' bands **overlap**, so the taper's gradient is continuous and separates levels only as
-distributions. A band is where a cell started, not a property it has: nothing stores it, nothing
-re-selects, and the biases drift off it as they adapt.
-_Avoid_: tier, layer rate, timescale level, clock band
+**Retired as a mechanism** (#143, ADR-0028) and kept only to name what the record used to do. A level
+of the taper was built to hold a range of effective timescales, with bias vectors drawn, measured and
+kept if they landed in the band, adjacent bands overlapping to keep the taper's gradient continuous.
+**It was specified but never run** (#276): `select()` writes only inside the go/no-go and the tests,
+never into a Sheaf that ticks, so the flat reading — 0.91 at the apex against 0.99 at the rim on the
+direct round trip, and flat under the corrected operator too (`05-timescales.md`) — is a measurement
+of a body that took iid draws, and is not evidence about placement. What retired it is the argument:
+the biases are the adapting surface and would drift off their bands with nothing re-selecting.
+**Construction now places no per-level `τ` at all**; `a` is global and the gradient is learning's
+job. Not to be confused with the **operator band**, which is live, global, and on `σ_max(K)`.
+_Avoid_: using this for anything current, tier, layer rate, timescale level, clock band, per-level
+band (ADR-0015 rejected that as a second timescale mechanism)
 
 **Realised contraction rate**:
 `λ`, the rate at which a cell's private content actually decays along the trajectory it walks —
@@ -272,21 +358,46 @@ averaged over every activation region it visits, not read off any one of them. T
 a cell is unstable when `λ ≥ 0`, which is not the same as occupying a region whose spectral radius
 exceeds one. `max ρ < 1` over the regions a cell can reach is a *sufficient* condition for `λ < 0`,
 cheap enough to check before training and far stronger than necessary.
+
+**`λ` bare is ambiguous and the two senses have opposite health directions.** This entry is a
+**log-rate**: unstable at `λ ≥ 0`, healthy negative. A **retention constant** — `λ(K)`,
+`λ(K · J_encode)`, always written with its operator — is an **eigenvalue magnitude**: healthy near 1,
+so `0.99` is a slow cell here and a violently divergent one under this entry's reading. They are
+related by `τ = −1/ln|λ_retention|` and by nothing else. **`λ(K · J_encode)`, *realised chart
+retention*, is not this object** despite the near-homonym: it is a magnitude on one tick's realised
+recurrence, where this is a log-rate averaged along a trajectory. Read the qualifier, never the bare
+letter (#143, #227).
 _Avoid_: stability margin, spectral radius (for this object), Lyapunov exponent (unless the
-long-run limit is meant literally)
+long-run limit is meant literally), `λ` unqualified, retention constant (the opposite convention),
+realised chart retention (that is `λ(K · J_encode)`)
 
 **Regional spectrum**:
 The spectrum of the local Jacobian of whichever activation region of the shared body a cell occupies
 on a given tick. A per-tick quantity, re-drawn whenever the cell's chart carries it across a fold —
-never a cell attribute. What the biases set is the distribution these are drawn from, which is the
-cell's effective timescale.
-_Avoid_: the cell's spectrum, its Jacobian, decay rate (unqualified)
+never a cell attribute. What the biases set is the distribution these are drawn from — **which is no
+longer the cell's effective timescale** (#143). That closing identification is retired with the rest
+of the bias mechanism: retention is `K`'s, and this quantity is now the region-dependent half of
+`λ(K · J_encode)`, the *realised chart retention*. It still has a referent, because `encode` is still
+ReLU and its folds are still real. **It is the chart's *direct* round trip and not the whole
+recurrence** (#271, #274): `decode` writes the chart onto the node stalk, reconciliation damps it,
+and `encode`'s stalk half returns it next tick, so the full loop is `K (J_chart + J_stalk A_v D)`
+and its `ρ` runs 1.70x to 2.12x the quoted one. **It is also not ADR-0026's `τ̂`** — that is the
+e-fold decay of a paired counterfactual deviation in private features — and the two are two
+instruments, never a stand-in for one another.
+_Avoid_: the cell's spectrum, its Jacobian, decay rate (unqualified), the cell's effective timescale
+(that is `λ(K)`'s job now), the chart loop (bare — say *direct* or *full*), `τ̂` (that is the
+conduction ratio's numerator, a different instrument)
 
 **Region dwell**:
 How long a cell stays in one activation region of the shared body before its chart carries it across
-a fold. The timescale mechanism holds only where the residency expresses **at least one e-fold of the
-region's own decay** — `dwell > τ`; where dwell is short, a cell still decays at some average rate,
-but by averaging over unrelated regions rather than by the mechanism the spec claims. Nominated at
+a fold. **Demoted by #143 from existence to fidelity**: it used to gate whether a cell's `τ` was a
+well-defined object at all, since the rate was a property of the region; under `λ(K)` the operator is
+one matrix that does not reset at a fold, so `τ` is defined regardless and dwell gates only how
+**faithfully** that rate is realised — the gap between `λ(K)` and `λ(K · J_encode)`. The bar below
+stands unrepealed while [#226](https://github.com/NGL321/patchworks/issues/226) rules on whether it
+survives the demotion. The residency must express **at least one e-fold of the region's own decay** —
+`dwell > τ`; where dwell is short, a cell realises an average over unrelated regions rather than the
+rate its operator holds. Nominated at
 construction by the fold margin, measured at runtime on a driven trajectory — and since #160 the
 runtime measurement is **the verdict**, the construction reading a nomination
 (`patchworks.tick.FoldRead`, ADR-0019). Since #208 the verdict is the **median cell's** `dwell/τ > 1`,
@@ -578,14 +689,23 @@ The single live interaction the proof of concept is judged by: a human disturbs 
 and the agent recovers at the appropriate level of its hierarchy. One named protocol with fixed
 pass and fail conditions, settled before the run — not a category of demonstration. **Evaluation**
 is not a broader thing that contains it: the two are coextensive. The demo's pre-registered readouts
-are the whole of what "evaluation" names here, and nothing aggregates a score over runs.
-_Avoid_: the demo (bare), benchmark, test run, showcase
+are the whole of what "evaluation" names here, and nothing aggregates a score over runs. Passing is
+**one closure and one ordering**: per event, the event's loop closes — the **conduction ratio** holds
+along some path from its injection site, read over L1 predicting cells, single-source rather than
+swept — and the two hands' onset-latency IQRs do not overlap (ADR-0028). The between-event depth
+ordering is **reported, not claimed on**: both its ends are supplied by the injection site, and every
+event modifies information at every level it passes through, so what differs is the deepest level
+each one reaches.
+_Avoid_: the demo (bare), benchmark, test run, showcase, depth ordering (retired as a claim)
 
 **Onset latency**:
 Ticks from a disturbance to the first corrective torque. The demo's temporal measure, chosen
 because it is a property of the graph — how far a correction had to travel before acting — where a
-settling or decay time would be a property of the body's mechanics. Reported per event; a
-difference in onset is what "recovered at a different level" means in time rather than in hops.
+settling or decay time would be a property of the body's mechanics. Reported per event. **A pass
+establishes that a correction travelled a longer path, not that a hierarchy produced it** — every
+edge costs one tick, so an onset ordering is a restatement of hop count; the hierarchy claim rests on
+the conduction ratio. Distinct from `τ̂`, which is also a decay time but on private features *inside
+the graph*, where no joint can supply it.
 _Avoid_: reaction time, settling time, response time, recovery time, latency (bare)
 
 **Trial**:
@@ -627,3 +747,42 @@ meanings of depth are kept apart deliberately, and neither region borrows the ot
 *dome*, built by the same construction rule and differing in the number of axes its rim is indexed
 on; abandonable on the same terms.
 _Avoid_: stack, dilated stack, pyramid, temporal hierarchy, the language dome
+
+**Interlocutor**:
+The language domain's world: a small local language model that talks to the agent and, crucially,
+**responds because the agent spoke**. Not a data source and not a teacher — it holds an agenda, never
+remarks on the babble, and supplies no instruction, so what it gives the agent is a world to act on
+rather than a target to match. It is the entire compute cost of the domain, which is why it is small
+and local. The counterpart of the *arm and arena* together, not of either alone.
+_Avoid_: teacher, oracle, environment model, partner model, LLM (bare), corpus
+
+**Floor**:
+Which party currently holds the right to speak. Half-duplex, so exactly one does. Not a lock the rig
+enforces on the agent — the agent emits every tick regardless — but a property of the world that
+decides whether what it emits is **taken up**. **An idle run yields the floor**, so falling silent is
+how the agent is heard, which is what makes silence an action rather than padding.
+_Avoid_: turn, lock, mutex, speaking rights, channel
+
+**Uptake**:
+Whether a character the agent emitted was actually taken up by the interlocutor, reported back on the
+spoken rim as a flag. The language rim's **refusal**: the analogue of the arm's torque clip, and what
+makes the motor edge carry real disagreement rather than an echo. A character emitted while the
+interlocutor holds the floor is not taken up, tick after tick, and that is the world declining a
+command rather than a failure of the rig.
+_Avoid_: acceptance, acknowledgement, delivery, success flag
+
+**Coherence readback**:
+The interlocutor's next-character surprisal, normalised by the entropy of its own next-character
+distribution — carried as a component of the **spoken** rim's readback, never on a sensory cell and
+never as the drive's asserted value. It is what the world made of the agent's command, so it is a
+readback in exactly the sense efference copy is; a scalar that arrives after the agent acts and
+evaluates what it did would otherwise be a reward under another name.
+_Avoid_: coherence reward, coherence score, fluency signal, likelihood (bare), feedback
+
+**Topic roster**:
+The fixed set of concrete simple subjects the interlocutor talks about, with a sampler that draws one
+per conversation — the language domain's counterpart of the sandbox's task sampler, and `reset()`
+draws from it the way `reset()` there rearranges the world. A roster rather than a knowledge base, so
+that "the partner is talking about something" costs no machinery the contract would have to describe.
+Topic identity is privileged and lives in `info`.
+_Avoid_: curriculum, prompt bank, knowledge base, corpus, task set

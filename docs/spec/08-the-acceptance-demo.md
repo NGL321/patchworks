@@ -15,7 +15,10 @@ being it, and it tests the architecture without being part of it.
 
 ## The run
 
-**Three events, one unbroken run, ascending in depth.** The agent is mid-task; nothing is reset
+**Three events, one unbroken run, ascending in the depth each one reaches.** That ascent is the
+run's shape and its narrative; it is **reported and not claimed on** — see *Pass and fail*, below,
+for why an ordering supplied by the injection site cannot test the graph. The agent is mid-task;
+nothing is reset
 between events, because there is nothing to reset — physics time is monotonic and there are no
 episodes ([`03-the-sandbox.md`](./03-the-sandbox.md), *The Gymnasium contract, made continual*).
 
@@ -40,10 +43,37 @@ Two quantities, both live, neither of them behaviour. How they are *displayed* �
 and how each of the near-misses below is told apart on screen — belongs to
 [`10-the-demo-surface.md`](./10-the-demo-surface.md).
 
-**Depth.** [`05-timescales.md`](./05-timescales.md)'s private-component readout: `‖Δ(private
-component)‖` per cell against hop distance from the sensorimotor rim, displayed during each event.
+**Depth.** The **conduction ratio**, per cell: the e-fold decay time `τ̂_c` of the paired
+private-feature deviation, over `|loop(c)|` — the tick length of the shortest cycle through `c` that
+reaches the rim and returns. Both halves are in ticks, so the ratio is dimensionless. The quantity,
+its derivation and `|loop(c)|`'s enumeration on the default dome are
+[ADR-0026](../adr/0026-rim-core-influence-is-a-conduction-ratio.md)'s and are not restated here; what
+this file fixes is what the *demo* does with them, which is
+[ADR-0027](../adr/0027-the-demos-depth-criterion-is-a-conduction-time.md)'s.
+
 Behaviour alone is not accepted as evidence and never has been — a purely reflexive controller
 produces the same footage.
+
+This **replaces** `05-timescales.md`'s `‖Δ(private component)‖`-against-hop-distance reading as the
+depth *criterion*. The amplitude picture is kept on the demo surface, because a scatter is what a
+viewer can read; it is no longer what passing means. The reason is registered below under *The
+graph's own attenuation with depth*, and it is that the old clause could not fail.
+
+**The population is L1 predicting cells, and the partition is forced rather than chosen.** A boundary
+cell is not masked (`graph.py:660`) — its stalk is world-shaped rather than `n`-shaped — so it has no
+`H⁰` and cannot carry a conduction ratio at all. The demo therefore cannot re-borrow ADR-0026's
+outbound universal verbatim, which includes the actuator. But the demo already reads the actuator:
+that is what onset latency *is*, and ADR-0026 calls it *"the acceptance demo's own instrument."* So
+the depth measure runs over **L1 predicting cells** and the **actuator is read by onset latency**.
+The two halves partition the graph with no overlap and no gap, and **this is why the demo has two
+measures and not one**.
+
+**Two senses of "decay time", and they must not be confused.** *Onset latency*, below, is guarded
+*never as settling or decay time* — that guard is aimed at the **body's mechanics**, at
+[`03-the-sandbox.md`](./03-the-sandbox.md)'s 17.9x ladder in passive joint decay. `τ̂_c` is a decay
+time on **private features inside the graph**, which no joint can supply, and the ladder is
+deliberately built not to align with the graph's levels. The misalignment guard, built for the old
+clause, earns its keep a second time here. The guard on onset latency is untouched.
 
 **Onset latency.** Ticks from the event to the **first corrective torque**. Not settling time, and
 this is the load-bearing distinction in the whole protocol.
@@ -62,7 +92,7 @@ under the constraint that they must not align with the graph's levels. A demo th
 and calling it a hierarchy. Onset cannot be supplied by the joint's mechanics, so it cannot be
 confused for them.
 
-## The nudge's impulse is not sized, and that is an open question
+## The nudge's impulse is not sized, and #214 has since closed the question it left
 
 `disturb_arm(joint, impulse)` leaves the impulse a **free parameter**, deliberately — this file fixes
 a protocol, not a magnitude, and onset latency is behavioural and reports nothing about how large the
@@ -73,28 +103,67 @@ convention for the rim perturbation and **created one rather than adopting this 
 unit-norm deviation on the L1 boundary stalk, `A₀ = 1`. It refused to weld a claim about the graph to
 a demo parameter, because doing so re-opens the sufficiency verdict every time the parameter moves.
 
-The residue lands here, and it is a real question with no answer yet: **is the impulse this demo
-actually fires large enough for the disturbance to be detectable where the demo claims it acts?**
-ADR-0021's pre-registered arithmetic gives the shape of the answer — at ~0.2 per hop, each 5x of rim
-amplitude buys roughly one more hop — but the number that matters is measured, not assumed, and the
-measurement is [#214](https://github.com/NGL321/patchworks/issues/214)'s. Until it is read, no
-statement in this file about where a disturbance reaches is doing more than naming the level the
-*interface* addressed.
+The residue lands here, and it was a real question: **is the impulse this demo actually fires large
+enough for the disturbance to be detectable where the demo claims it acts?** ADR-0021's
+pre-registered arithmetic gave the shape of the answer — at ~0.2 per hop, each 5x of rim amplitude
+buys roughly one more hop — and the number that matters was always going to be measured.
 
-Nothing in the protocol changes on this account. The event stays as specified, and the pass and fail
-conditions below are unaffected — they are orderings, and an ordering does not depend on the
-impulse's absolute size.
+**[#214](https://github.com/NGL321/patchworks/issues/214) has since delivered, and the answer is
+no.** Read along the channel in float64, both directions fail: rim→apex at a median bottleneck ratio
+of **8.7e-10**, apex→rim at **1.3e-8**, with the hops graded **9x-240x**. The shortfall is 1.15e9x,
+so no impulse this arena can deliver closes it — *each 5x buys one hop* prices the fix at more rim
+amplitude than the world has. **On the amplitude reading, the disturbance does not arrive where the
+demo claimed it acted, at any impulse.**
+
+What that settles and what it does not:
+
+- **It settles the free parameter as a non-question for this protocol.** There is no size at which
+  the old depth clause becomes an honest test, which is one of the reasons the criterion above is no
+  longer an amplitude.
+- **The pass conditions below are unaffected by impulse size, and now for a stronger reason than
+  before.** They were orderings, and an ordering does not depend on absolute size. The depth clause
+  is now a **ratio of times**, which is scale-free outright: `τ̂_c / |loop(c)|` has no amplitude in
+  it. The impulse must still be large enough to produce a deviation the paired fork can see at all —
+  the falsification named in ADR-0026 is a deviation *bit-identical* between branches — and above
+  that floor it does not enter the criterion.
+- **The event stays exactly as specified.** Nothing in the protocol changes on this account.
 
 ## Pass and fail, pre-registered
 
 Fixed **before** the live run, so that no result is narrated after the fact.
 
-**Passing is two orderings.**
+**Passing is one closure and one ordering.**
 
-- **Depth ordering.** For each event, the private-component trace falls with hop distance, and the
-  three events order: the arm nudge shallowest, the puck teleport intermediate, the retarget deepest.
+- **Depth: the event's loop closes.** For each event, `τ̂_c / |loop(c)| ≥ 1` along **some path from
+  that event's injection site** — read **inbound** for the arm nudge (entering at proprioception and
+  touch) and the puck teleport (entering at vision), **outbound** for the retarget, which is injected
+  at the drive boundary cell attached to the apex. **Single-source, not a sweep**: the demo pokes the
+  sources a human actually pokes, and ADR-0026's swept per-stratum read stays where it lives, on
+  [`benchmarks/detectability.py`](../../benchmarks/detectability.py). Reported as the **median over
+  the 40 paired trials**, with p05 / p25 / p75 / p95 alongside — ADR-0021's precedent and
+  [#202](https://github.com/NGL321/patchworks/issues/202)'s reason for it.
 - **Latency ordering.** `perturb` and `retarget` onset latencies have **non-overlapping interquartile
   ranges** over the 40 paired trials specified in *The repeated runs*, below.
+
+**What a latency PASS establishes, and what it does not.** A PASS here establishes that **a
+correction travelled a longer path, not that a hierarchy produced it** — on this graph every edge
+costs one tick, so an onset ordering is a restatement of hop count (see *Unit edge delay*, below).
+**The hierarchy claim rests on the depth clause.** Onset latency remains the temporal measure and the
+settling-time distinction is untouched; only the reading of a pass is corrected.
+
+**The between-event ordering is reported, not claimed on.** The file previously ordered the three
+events *arm nudge shallowest, puck teleport intermediate, retarget deepest* and made it load-bearing.
+That clause leaves the pass condition on two grounds, the second the stronger. **Both ends are
+supplied by the injection site** — `retarget()` writes the drive boundary cell at the apex,
+`disturb_arm` enters at the somatomotor rim — so neither needs the graph to do anything, in a world of
+any depth; that is *What this demo does not show*, below, applied to the clause that was resting on
+it. And **the ordering was never accurate as a description**: the events do not differ in *which*
+level they address, because there is information modification at every level each one passes through.
+What differs is the **deepest level each one reaches**. Under the conduction reading that is a
+measured quantity rather than a stipulated one — **how deep an event reaches is the length of the
+path along which the ratio holds** — so it is reported, and it is the same observation with the graph
+put back in it. The precedent is in this file already: the arm nudge's onset is reported and not
+claimed on, for the reason given below.
 
 The latency claim is confined to the two hands, and the confinement is deliberate on two counts.
 It is what [#30](https://github.com/NGL321/patchworks/issues/30) handed down. And the arm nudge's
@@ -103,19 +172,45 @@ shallow rung cannot be attacked as a mechanical artefact. That guard has since e
 ladder measurement did come back wide, at 17.9x
 ([#60](https://github.com/NGL321/patchworks/issues/60)).
 
-Nothing sharper than non-overlapping IQRs is claimed, because nothing sharper is available. A cell's
-timescale is a distribution and the taper's gradient is a gradient in **means**, with adjacent depths
-overlapping per tick ([#41](https://github.com/NGL321/patchworks/issues/41)). A ratio threshold would
-be a number invented before anything was trained. So: **the live run demonstrates, the repeated runs
-establish.**
+**On the latency half, nothing sharper than non-overlapping IQRs is claimed**, because nothing
+sharper is available. A cell's timescale is a distribution and the taper's gradient is a gradient in
+**means**, with adjacent depths overlapping per tick
+([#41](https://github.com/NGL321/patchworks/issues/41)). A ratio threshold there would be a number
+invented before anything was trained. So: **the live run demonstrates, the repeated runs establish.**
+
+**And the depth half does carry a threshold, which is admissible for a reason worth stating.** The
+sentence above is about the latency ordering and about **invented** constants. The depth bar is `1`,
+and `1` is the loop's own length in ticks — the cell still holds what it sent by the time the answer
+gets back, and nothing more. It is **derived**, in the way ADR-0021 derived `k = 1` and in the way
+[#142](https://github.com/NGL321/patchworks/issues/142)'s inherited ~0.37/hop was **not**, which is
+why that one was struck. There is no multiplier and no safety factor. Stated here because, left
+unsaid, a reader arriving at a threshold two paragraphs after a refusal of thresholds will think the
+rule was forgotten.
 
 **Failing.**
 
-- **Wrong depth is a failure**, including the case where every recovery looks perfect. If the traces
-  are flat across hop distance — deep private state swinging as far as the rim — the mechanism is not
-  working, and that is visible in the moment.
+- **A loop that does not close is a failure**, including the case where every recovery looks
+  perfect. If no path from the event's injection site holds `τ̂_c / |loop(c)| ≥ 1`, the graph does not
+  hold what it sent long enough for the answer to get back, and no amount of convincing footage
+  changes that. **This is the criterion that fails today, and it fails on every reading of `τ` the
+  record holds.** On the chart's **direct** round trip `τ` is flat at about one tick graph-wide —
+  0.91 at the apex against 0.99 at the rim, no depth→timescale gradient and slightly inverted. With
+  the stalk relay included ([#274](https://github.com/NGL321/patchworks/issues/274), nine driven seeds) the
+  apex's `τ` is **1.6 to 13.1 ticks** and the inversion is *larger*, the apex decaying faster than
+  the rim rather than slower.
+  Against `|loop|` of 2 at L1 and 14 at the apex, that is a ratio of **0.12 to 0.93 at the apex** —
+  short on every seed, which is why the criterion's verdict is unchanged and only its magnitude
+  moves. Both figures are read on `05`'s regional `τ` and **neither is `τ̂_c`**, the paired
+  counterfactual decay this criterion is actually written over; they are stand-ins, the corrected
+  one is the better stand-in, and #99 owes the real instrument
+  ([`05-timescales.md`](./05-timescales.md), *What the live read says*). Pre-registering a condition
+  the architecture currently fails is the point of pre-registering it.
+- **A private-feature deviation bit-identical between the paired branches is a failure**, and the
+  starkest one: no counterfactual dependence at all, so there is nothing to time. ADR-0026 names this
+  as the falsification and it is inherited here unchanged.
 - **Overlapping latency IQRs is a failure**, for the same reason: the demo has not shown two levels,
-  whatever the footage looks like.
+  whatever the footage looks like. This half can still fail cleanly — nothing transmitting means no
+  corrective torque, both hands record the ceiling, the IQRs overlap.
 
 Three near-misses are named in advance, because each of them produces convincing footage:
 
@@ -130,6 +225,41 @@ Three near-misses are named in advance, because each of them produces convincing
   the demo** — the scalar valence channel is what failed. Labelled as such wherever it is reported,
   and it has its own ladder of responses in
   [ADR-0009](../adr/0009-a-drive-is-a-motor-edge-attached-deep.md).
+
+## Confounds, registered in advance
+
+A confound is not a near-miss. A near-miss is behaviour that *looks* like a pass; a confound is a
+mechanism that would **supply** a pass without the architecture doing the work. Registered here so
+that a reader can check the criteria above against them rather than take the criteria on trust.
+
+- **The graph's own attenuation with depth.** The largest one, and until now this file had no entry
+  for it. `‖Δ(private component)‖` falls with hop distance whether or not anything is being retained,
+  because the channel attenuates: [#214](https://github.com/NGL321/patchworks/issues/214) measured
+  **8.7e-10** rim→apex with hops graded **9x-240x**, so a graph transmitting nothing renders as one
+  bright rim row above a flat baseline. **That made the old depth clause unfailable**, and it is why
+  the criterion now reads a time. The principle was already this spec's own —
+  [`10-the-demo-surface.md`](./10-the-demo-surface.md) refuses to drive the trail from
+  `‖Δ private‖` because *"that would make the display's decay and the claim the display tests the
+  same number, so the panel could never contradict the thesis."* #214 made the graph's attenuation
+  and the claim the same number; only the application was missing, because this file and `05` predate
+  the measurement. **The conduction ratio is immune**: attenuation is an amplitude and `τ̂ / |loop|`
+  is a ratio of times, so shrinking the deviation does not lengthen its decay.
+- **Unit edge delay.** Every edge costs exactly one tick
+  ([`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md), *Unit delay*), so on this graph **an onset
+  ordering is a restatement of hop count**, and no guard separates hierarchy from delay — because
+  delay *is* hop count here. **There is no fix available on this graph**, which is why this is an
+  entry and not a repair: it is the reason a latency PASS is read as *a correction travelled a longer
+  path* and not as *a hierarchy produced it*.
+- **The body's timescale ladder.** `03`'s arm carries a 17.9x spread in passive joint decay
+  ([#60](https://github.com/NGL321/patchworks/issues/60)), which a recovery time read off a joint
+  would report as a hierarchy. Guarded twice over: the ladder is deliberately built **not to align
+  with the graph's levels**, and neither measure is a body quantity — onset is *before* the mechanics
+  act, and `τ̂_c` is on private features inside the graph, which no joint can supply.
+- **Behaviour alone.** A purely reflexive controller produces the same footage. Refused as evidence
+  throughout, which is why neither measured quantity is behavioural.
+- **Agent drift across the sample.** Weights never freeze, so an agent sampled for one hand and then
+  the other is not the same agent, and the drift could manufacture the very latency ordering being
+  claimed. Guarded by the pairing at each snapshot; see *The repeated runs*.
 
 ## The repeated runs
 
@@ -193,7 +323,7 @@ fixed window, the trial records the ceiling. Failures leave the distribution now
 
 **Nothing here is aggregated into a score.** Goal satisfaction gates whether a trial is valid and
 that is its whole job; no success rate is computed, over splits or otherwise. The map rules degree
-of success out of scope, and the two orderings above are the entire result.
+of success out of scope, and the loop closure and the latency ordering above are the entire result.
 
 ## One secondary run
 

@@ -1,6 +1,34 @@
 # ADR-0005: Timescale is persistence in the private features, not a schedule
 
-**Status:** accepted
+**Status:** superseded by
+[ADR-0028](./0028-a-cell-holds-a-spectrum-of-retention-constants.md)
+
+> **Superseded by [#143](https://github.com/NGL321/patchworks/issues/143), written as ADR-0028 by
+> [#227](https://github.com/NGL321/patchworks/issues/227). Superseded, not edited, and left standing
+> in full.** The reasoning that got from *not a schedule* to *persistence* is worth keeping legible;
+> amending it in place would overwrite the argument and keep only its conclusion. Read this ADR for
+> how the choice was reached and ADR-0028 for what is in force.
+>
+> **What changed is the source of the persistence, and nothing above it.** *A cell is slow because its
+> content persists, not because it updates rarely* survives intact, as does the uniform execution
+> clock, the runtime prohibition on reading a timescale, the location of slow content in `ker δ`, and
+> the clock divisor as instrument and fallback. What is retired is the **mechanism** underneath:
+> persistence supplied by *bias translation*, read off the regional spectra of a frozen
+> piecewise-linear map, with a cell's rate the central tendency of the distribution its biases select
+> and the spread placed by level at construction.
+>
+> **In its place:** a cell's retention lives in the spectrum of its own learned `K`, so a cell has a
+> **spectrum** of retention constants rather than one rate; `a` stays global and the depth gradient is
+> **learning's job**, placed nowhere, with *nothing guarantees the gradient appears* as ADR-0028's
+> pre-registered falsification. Two amendments recorded below are consequently spent: the #41
+> distributional reading of the regional spectrum, and the construction-time placement of `τ` by level
+> in overlapping bands. **Region dwell is demoted rather than dropped** — it gated whether `τ` was
+> *well-defined*, and under `λ(K)` it gates only how *faithfully* the operator's rate is realised;
+> whether the `dwell > τ` bar survives that demotion is
+> [#226](https://github.com/NGL321/patchworks/issues/226) and is open.
+>
+> The #138 amendment below is what lifted the foreclosure this ADR rejected per-cell time constants
+> on. It named no successor, deliberately. ADR-0028 is that successor.
 
 ## Context
 

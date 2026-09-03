@@ -1,0 +1,46 @@
+
+full dome, split 'train', seed 0: 30000 ticks with both rules on
+  drive assertion 1, nudge 0.001
+
+  the drive's own hop, into 8 apex cells (m = 1, scalar stalk, no direction to choose):
+    gain per apex cell: mean 0.1000  min 0.0999  max 0.1000
+    a 1 -> 10.0 step therefore lands 0.9002 on the best apex cell's stalk
+
+  chained down the taper from that apex cell, renormalised at every hop.
+  `carried` is the direction the drive actually deposits; `best` is the sender's
+  own top singular direction (#142's ceiling); `iso` is a randn nudge (#120's
+  reading). `hop` is body x carried.
+  hop        L      body    carried       best        iso        hop         cum
+    0  drive->7         -     0.1000     0.1000     0.1000     0.1000   1.000e-01
+    1     7->6    0.5658     0.0069     0.1518     0.0383     0.0039   3.896e-04
+    2     6->5    1.2649     0.0368     0.1664     0.0176     0.0465   1.811e-05
+    3     5->4    0.4740     0.0087     0.1664     0.0089     0.0041   7.442e-08
+    4     4->3    0.7149     0.0265     0.1667     0.0117     0.0190   1.411e-09
+    5     3->2    0.4007     0.0162     0.1252     0.0312     0.0065   9.163e-12
+    6     2->1    1.0991     0.0151     0.0833     0.0026     0.0166   1.521e-13
+    7     1->0    0.5778     0.0122     0.0007     0.0085     0.0071   1.072e-15
+
+  per-hop mean: carried 0.0148, isotropic 0.0110, ceiling 0.0909
+  reading along the channel is worth 1.35x the isotropic reading, per hop;
+  the channel is 16.3% of what perfect cross-edge alignment would give.
+
+  cumulative, drive to the rim: carried 1.072e-15, isotropic 2.946e-16
+  a 1 -> 10.0 assertion therefore displaces the far end by 9.652e-15,
+  against float32's ~1e-6 floor on node stalks of order 1-10: BELOW it.
+  levels the assertion is *readable* at in float32: 3 below the apex.
+  levels it has a non-zero gain to: 7 — every one measured, none zero.
+
+  the same descent carrying the whole level at once, which is the shape the drive
+  actually has: 8 edges driven with one sign at one instant. `iso` randomises each
+  cell's direction while keeping its magnitude, so the ratio is coherence alone.
+  hop          L       gain        iso    worth         cum
+    0   drive->7     0.2828     0.2828     1.00x   2.828e-01
+    1       7->6     0.0175     0.0175     1.00x   4.938e-03
+    2       6->5     0.0246     0.0359     0.69x   1.216e-04
+    3       5->4     0.0223     0.0221     1.01x   2.707e-06
+    4       4->3     0.0221     0.0217     1.02x   5.992e-08
+    5       3->2     0.0160     0.0155     1.03x   9.588e-10
+    6       2->1     0.0147     0.0207     0.71x   1.413e-11
+
+  per-hop mean, coherent: 0.0195 against 0.0222 incoherent — coherence is worth 0.88x per hop.
+  cumulative drive-to-rim, coherent: 1.413e-11; a 1 -> 10.0 step displaces the rim by 1.271e-10.
