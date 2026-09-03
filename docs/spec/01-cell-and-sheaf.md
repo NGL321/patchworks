@@ -801,6 +801,24 @@ Recorded, not pre-emptively solved.
   ([`07-local-learning-rule.md`](./07-local-learning-rule.md)), settled but for the stability question
   it carries forward as its own open ticket.
 
+  **The word *early* has already been spent, and that is recorded here rather than quietly dropped.**
+  *Before anything depends on the body holding* was passed some time ago: every stage-2 reading was
+  taken on the shared frozen body — [#214](https://github.com/NGL321/patchworks/issues/214)'s
+  transmission verdict, [#274](https://github.com/NGL321/patchworks/issues/274)'s driven read of the
+  chart loop, [#237](https://github.com/NGL321/patchworks/issues/237)'s resistance read — and every
+  ruling drawn from them inherits the bet. The test cannot be made early again; what it can still be
+  is **cheap**, and it stops being cheap the moment a demo depends on it too.
+  [#98](https://github.com/NGL321/patchworks/issues/98) holds it and now carries a written schedule
+  rather than a silence: it is ordered **before** the acceptance demo and no longer behind
+  [#97](https://github.com/NGL321/patchworks/issues/97)'s continual run, because what it needs is a
+  rig that trains both rules over cells at both ends of the graph, and #274's harness is already that
+  rig. It stays outside the agent loop by [#78](https://github.com/NGL321/patchworks/issues/78)'s
+  mechanism — no `ready-for-agent` label — so a person dispatches it, deliberately.
+
+  **A negative result moves the design down one rung of *Flex priority* below; it does not falsify
+  the thesis.** The freeze and the sharing are the ladder's top rung. What is load-bearing is the
+  graph, the sheaf, and a predictive component in each cell.
+
 - **Flex priority.** Fixed parameters, ordered by willingness to see them become hyperparameters, so
   later pressure hits the most flexible first. Read it as the constraint ladder: each rung loosens how
   rigid the constraint on a small network is, and none of them abandons constraint.
