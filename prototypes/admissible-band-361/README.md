@@ -23,11 +23,18 @@ table by level.
 ## The three files
 
 - **`loops.py`** — `|loop(c)|` per predicting cell, enumerated from the built graph.
-  [#270](https://github.com/NGL321/patchworks/issues/270) recorded that *"`|loop(c)|` is
-  computed nowhere in the tree today"* and specified its shape on
-  [#99](https://github.com/NGL321/patchworks/issues/99): a breadth-first sweep over the
-  built mask, moving with `DomeSpec`, never quoted from a level. This is that sweep. It
-  stays a prototype — #99 still owns landing it in `src/`.
+  **The round trip already has a home and this is not it:**
+  [#351](https://github.com/NGL321/patchworks/issues/351) built
+  `benchmarks/loop_length.py`, which computes `2 · d(c, rim)` with the same rim and
+  carries #343's cutoff hook. It is unmerged — it rides
+  [PR #365](https://github.com/NGL321/patchworks/pull/365) — so `loops.py` **prefers that
+  rig when it is importable** and falls back to an equivalent sweep until then;
+  `check_against_loop_length` compares them whenever both exist. Read against the branch,
+  the two agree **cell for cell** on `DEFAULT_SPEC`.
+
+  What `loops.py` adds is the reading #351's rig deliberately declines — its own words,
+  *"leaves the other to the ADR that checked it"* — the **vertex-disjoint genuine cycle**,
+  which ADR-0026 checked at the apex alone and this reads at all 150 cells.
 - **`read.py`** — one run per seed. Builds the `real` dome through
   `benchmarks/untrained_fixed_point.build`, runs `teaching` with both rules on, and at
   #206's checkpoint ladder reads `FoldRead.dwell` (the cumulative estimator #208 fixed)
@@ -51,11 +58,11 @@ parallel. Seeds 42–44 additionally to 100,000.
 
 ## 1. `|loop(c)|`, enumerated
 
-`loops.py` reproduces **ADR-0026's published ladder exactly** — 414 cells, 682 edges, a
-sensorimotor rim of 263 (256 patch, 3 proprioceptive, 3 touch, 1 actuator), the drive cell
-at its own distance 8, and `|loop(c)| = 2 · d(c, rim)` running 2 at L1 to **14 at the
-apex**. #242's inherited 14 survives enumeration against the real mask, now from code
-rather than from a round number.
+`loops.py` reproduces **ADR-0026's published ladder exactly**, and agrees with #351's rig
+cell for cell — 414 cells, 682 edges, a sensorimotor rim of 263 (256 patch, 3
+proprioceptive, 3 touch, 1 actuator), the drive cell at its own distance 8, and
+`|loop(c)| = 2 · d(c, rim)` running 2 at L1 to **14 at the apex**. #242's inherited 14
+survives enumeration against the real mask, now from code rather than from a round number.
 
 Two things the enumeration adds to what ADR-0026 checked:
 
@@ -166,11 +173,12 @@ nine seeds — roughly a third, on every seed.
   `dwell > tau`. The corrected number is a better stand-in and is still a stand-in.
   [#99](https://github.com/NGL321/patchworks/issues/99) owes the real reading.
 - **A fixed seed does not fix the run.** Two independent runs at seed 42 agree exactly to
-  tick 5,000 and diverge after: at tick 20,000 they give median `dwell/tau` of **1.528 and
-  1.382**, empty band 50 and 50, conducting cells 87 and 94. That within-seed spread is
-  ~10%, against a between-seed spread of ~5x, so the seed term dominates — but a single run
-  is not a point either. Consistent with #195's four runs at one seed giving four different
-  binding cells.
+  tick 5,000 and diverge after. At the reported horizon of 30,000 they give median
+  `dwell/tau` of **2.165 and 1.958**, empty band **39 and 39**, licensed 104 and 103,
+  conducting cells 85 and 79. The within-seed spread is ~10% on the ratio and zero on the
+  empty-band count, against a between-seed spread of ~5x, so the seed term dominates — but
+  a single run is not a point either. Consistent with #195's four runs at one seed giving
+  four different binding cells.
 - **The horizon is a choice, and the empty band moves with it.** Dwell is cumulative, so
   the empty-band count falls monotonically on every seed as the run lengthens (seed 47:
   59 → 2 between ticks 100 and 30,000). A count quoted without its horizon says nothing.

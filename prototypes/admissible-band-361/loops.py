@@ -4,9 +4,32 @@
 `|loop(apex)| = 14` as **not verified** -- taken as *7 hops out and 7 back* from
 #230's seven-hop figure rather than enumerated on the graph.
 [ADR-0026](../../docs/adr/0026-rim-core-influence-is-a-conduction-ratio.md)
-specified the enumeration and published its ladder; this is that enumeration as
-**code**, so a session pairing `|loop(c)|` against a per-cell reading does not
-re-key an ADR table by level.
+specified the enumeration and published its ladder, so a session pairing
+`|loop(c)|` against a per-cell reading does not re-key an ADR table by level.
+
+**The round trip already has a home, and this is not it.**
+[#351](https://github.com/NGL321/patchworks/issues/351) built
+`benchmarks/loop_length.py`, which computes `2 * d(c, rim)` with the same rim and
+carries #343's cutoff hook. It is the rig that should own the quantity. It is not
+on `main` yet -- it rides [PR #365](https://github.com/NGL321/patchworks/pull/365)
+-- so :func:`loop_lengths` **prefers it when it is importable** and falls back to
+an equivalent sweep here when it is not.
+:func:`check_against_loop_length` compares the two whenever both exist, so the
+duplication is caught rather than left to drift. Read cell for cell on
+`DEFAULT_SPEC`, the two agree exactly.
+
+**What this file adds is the reading #351's rig deliberately declines** -- its
+own words: *"This computes the round trip, states which reading it is, and leaves
+the other to the ADR that checked it."* ADR-0026 checked the genuine cycle **at
+the apex alone**; :func:`disjoint_cycle_lengths` reads it at all 150 cells.
+
+- :func:`loop_lengths` -- `2 * d(c, rim)`, the **round trip**, where the outbound
+  and return paths may retrace each other. ADR-0026's reading.
+- :func:`disjoint_cycle_lengths` -- the shortest **genuine cycle** through `c`
+  that reaches the rim and returns, outbound and return sharing no vertex but
+  `c` itself. Solved exactly as a min-cost flow of two units out of `c` into the
+  rim, with every vertex capacity 1 (`c` itself 2) so the two paths are
+  vertex-disjoint by construction.
 
 **Per cell, never per level.** A loop is a property of the graph; a level is a
 property of the shape imposed on it ([#181](https://github.com/NGL321/patchworks/issues/181)).
@@ -14,16 +37,6 @@ That `|loop(c)| = 2 * level` on `DEFAULT_SPEC` is a coincidence of the current
 taper, and :func:`check_against_adr_0026` asserts the coincidence rather than
 assuming it -- on a changed `DomeSpec` the assertion is expected to fail and the
 per-cell numbers are still right.
-
-Two readings, because ADR-0026 records both and says they agree on this dome:
-
-- :func:`loop_lengths` -- `2 * d(c, rim)`, the **round trip**, where the outbound
-  and return paths may retrace each other.
-- :func:`disjoint_cycle_lengths` -- the shortest **genuine cycle** through `c`
-  that reaches the rim and returns, outbound and return sharing no vertex but
-  `c` itself. Solved exactly as a min-cost flow of two units out of `c` into the
-  rim, with every vertex capacity 1 (`c` itself 2) so the two paths are
-  vertex-disjoint by construction.
 
 The **drive boundary cell is not part of the rim**: it sits at the internal rim,
 attached to the apex, and ADR-0026 excludes it explicitly.
@@ -36,9 +49,17 @@ Usage::
 from __future__ import annotations
 
 import heapq
+import sys
 from collections import deque
+from pathlib import Path
 
 from patchworks.graph import DEFAULT_SPEC, CellKind, Dome, DomeSpec, build_graph
+
+_REPO = Path(__file__).resolve().parents[2]
+_TOOLS = str(_REPO / "tools")
+if _TOOLS not in sys.path:
+    # #351's rig imports `cutoff_report` from `tools/`.
+    sys.path.append(_TOOLS)
 
 #: The sensorimotor rim. `DRIVE` is deliberately absent -- ADR-0026: *"The drive
 #: boundary cell is not part of the rim for this purpose."*
@@ -91,8 +112,37 @@ def distance_to_rim(dome: Dome) -> list[int]:
     return distance
 
 
+def _loop_length_rig():
+    """#351's `benchmarks/loop_length.py`, or `None` while PR #365 is unmerged."""
+    source = _REPO / "benchmarks" / "loop_length.py"
+    if not source.exists():
+        return None
+    import importlib.util  # noqa: PLC0415
+
+    spec = importlib.util.spec_from_file_location("patchworks_loop_length", source)
+    module = importlib.util.module_from_spec(spec)
+    # Registered before execution: the rig defines a frozen dataclass, and
+    # `dataclasses` resolves annotations through `sys.modules`.
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def loop_lengths(dome: Dome) -> dict[int, int]:
-    """`{predicting cell id: |loop(c)|}` as `2 * d(c, rim)`, the round trip."""
+    """`{predicting cell id: |loop(c)|}` as `2 * d(c, rim)`, the round trip.
+
+    Delegates to #351's `benchmarks/loop_length.py` when that rig is in the tree,
+    so there is one implementation of the quantity rather than two; falls back to
+    the equivalent sweep below while PR #365 is unmerged.
+    """
+    rig = _loop_length_rig()
+    if rig is not None:
+        return dict(rig.loops(dome).lengths)
+    return _loop_lengths_here(dome)
+
+
+def _loop_lengths_here(dome: Dome) -> dict[int, int]:
+    """The fallback sweep, kept identical in meaning to #351's."""
     distance = distance_to_rim(dome)
     lengths = {}
     for cell_id in dome.predicting:
@@ -100,6 +150,27 @@ def loop_lengths(dome: Dome) -> dict[int, int]:
             raise ValueError(f"cell {cell_id} never reaches the sensorimotor rim")
         lengths[cell_id] = 2 * distance[cell_id]
     return lengths
+
+
+def check_against_loop_length(dome: Dome) -> dict[str, object]:
+    """Do this file's sweep and #351's rig give the same `|loop(c)|`?
+
+    Runs only when `benchmarks/loop_length.py` is in the tree. Reported rather
+    than asserted, so a session reading this before PR #365 merges sees
+    `available: False` instead of a failure it cannot act on.
+    """
+    rig = _loop_length_rig()
+    if rig is None:
+        return {"available": False}
+    theirs = dict(rig.loops(dome).lengths)
+    mine = _loop_lengths_here(dome)
+    return {
+        "available": True,
+        "same_cells": set(mine) == set(theirs),
+        "all_agree": set(mine) == set(theirs)
+        and all(mine[c] == theirs[c] for c in mine),
+        "cells": len(mine),
+    }
 
 
 def _min_cost_two_paths(
@@ -247,6 +318,18 @@ def main(spec: DomeSpec = DEFAULT_SPEC) -> None:
         f"\n  d(c, rim) exact within a level: {check['one_length_per_level']}; "
         f"reproduces ADR-0026's ladder: {check['matches_adr_0026_ladder']}"
     )
+    against = check_against_loop_length(dome)
+    if against["available"]:
+        print(
+            f"  Agrees with #351's benchmarks/loop_length.py at all "
+            f"{against['cells']} cells: {against['all_agree']}"
+        )
+    else:
+        print(
+            "  benchmarks/loop_length.py is not in the tree (PR #365 unmerged), "
+            "so the\n  round trip is read by the fallback sweep here. Verified "
+            "equal to that rig\n  cell for cell against the branch on 2026-09-03."
+        )
     unclosed = [c for c, v in cycles.items() if v is None]
     print(
         f"  Cells with no genuine rim-returning cycle: {len(unclosed)}"
