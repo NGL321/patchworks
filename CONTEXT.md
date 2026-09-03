@@ -160,20 +160,26 @@ numerator is the e-fold decay time of the paired counterfactual deviation restri
 private features; the denominator is a **construction-time** quantity, computed from the mask by
 enumeration and never inherited from a hop count (ADR-0026). It is `2 · d(c, rim)` — 14 at the apex of
 the default dome, where it was checked rather than assumed. Scale-free in time, so it touches neither
-the never-settling floor nor float32.
+the never-settling floor nor float32. The denominator is the **graph's** round trip and not the
+command-to-consequence loop the predicate is justified by; where the two differ the ratio is read
+against the shorter one (#368).
 _Avoid_: margin (`fold margin` is a distance to a boundary; this is a ratio), retention (bare), gain,
 timescale ratio
 
 **Loop length**:
 `|loop(c)|`: the tick length of the shortest cycle through a cell that reaches the sensorimotor rim
-and returns — the conduction ratio's denominator, and the cell's **own round trip**, which is what a
-retention time has to beat. A **construction-time** quantity: enumerated from the mask by breadth-
-first sweep, `2 · d(c, rim)`, and **never inherited from a hop count** (ADR-0026). It moves with
-`DomeSpec` and is recomputed rather than quoted — 14 at the apex of the default dome, where it was
-checked rather than assumed. That it coincides with `2 · level` there is a fact about the current
-taper's wiring and not a licence to index by level. **Computed nowhere in the tree today**; #99 owes
-it.
-_Avoid_: round trip (bare), cycle length, depth, hop count, `2 · level`
+and returns — the conduction ratio's denominator. A **construction-time** quantity: enumerated from
+the mask by breadth-first sweep, `2 · d(c, rim)` with the rim taken **as a set**, and **never
+inherited from a hop count** (ADR-0026). It moves with `DomeSpec` and is recomputed rather than
+quoted — 14 at the apex of the default dome, where it was checked rather than assumed. That it
+coincides with `2 · level` there is a fact about the current taper's wiring and not a licence to
+index by level. Computed by `benchmarks/loop_length.py`. **It is not the command-to-consequence
+loop**: this one turns around at the rim's inner face and never leaves the graph, while the round
+trip a retention time actually has to beat leaves through the actuator, crosses the world, and
+re-enters at a *different* boundary cell under ADR-0016's ban — `world_loop(c)`, longer at every cell
+(#368).
+_Avoid_: round trip (bare), cycle length, depth, hop count, `2 · level`, the command-to-consequence
+loop, the loop a retention time has to beat
 
 **Rim-core influence**:
 The predicate over the conduction ratio, and **the map's operative bar**: over paths, the max of the
