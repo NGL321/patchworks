@@ -56,6 +56,13 @@ from pathlib import Path
 import numpy as np
 import torch
 
+# The per-tick work is 150 cells of 12x12 and 32-wide stalks -- far too small for
+# intra-op parallelism to pay, and this rig is expected to run alongside other
+# sessions' benchmarks on the same box, where one process per core each spawning
+# a full thread pool thrashes. Measured 25x slower under contention at the
+# default. Pinned before torch is asked to do anything.
+torch.set_num_threads(1)
+
 _BENCH = str(Path(__file__).resolve().parents[2] / "benchmarks")
 if _BENCH not in sys.path:
     sys.path.append(_BENCH)
