@@ -151,7 +151,7 @@ wrong reason, and a remembered result about Rao's cross-map transfer turned out 
 paper at all. Each is a closed ticket with the correction in it.
 
 It has also turned up two things nobody appears to have done. Getting timescale separation out of
-*persistence alone* — no schedule, no gate, no rate parameter per unit — is, as far as twenty-three
+*persistence alone* — no schedule, no gate, no rate parameter per unit — is, as far as twenty-four
 citation passes can tell, without precedent. And engineering a network's Jacobian spectra to be
 **wide** cuts against a literature that spends its time trying to make them narrow.
 
