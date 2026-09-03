@@ -272,30 +272,48 @@ a phase shift and the wrong ratio), clock rate, update rate, tick rate, schedule
 
 **Retention**:
 How much of what a cell held it keeps — the other half of what *timescale* used to name, and the half
-that is **differentiated across the graph by design**. It is ADR-0005's subject: persistence in the
-private features rather than a schedule, and since #138 a per-cell time constant living in `K`'s
-spectrum. **Effective timescale** below is the measurement of it. The graph's retention currently
-measures flat at about one tick (`05-timescales.md`), which is a finding about this build and not a
-property of the architecture — and a narrower finding than it reads: flat **in runs where nothing was
-placed** (#276). The banded placement `05-timescales.md` calls the mechanism has never written into a
-running Sheaf, so the flat reading is not evidence about what the mechanism, or learning, produces.
+that is **meant to be differentiated across the graph**. It is ADR-0005's subject and now
+ADR-0028's: persistence in the private features rather than a schedule, and since #138 a per-cell
+time constant living in `K`'s spectrum — **a spectrum of them per cell, not one** (#143).
+**Retention constant** below is the quantity, and **Effective timescale** the measurement of it. The
+graph's retention currently measures flat at about one tick (`05-timescales.md`), which is a finding
+about this build and not a property of the architecture — and a narrower one than it reads: measured
+on a body that took **iid** biases, in a run where **nothing was placed** (#276), so it is evidence
+about neither placement nor learning. **The differentiation is no longer placed by
+design**: construction assigns no per-level `τ`, so a depth gradient in retention is learning's to
+produce, and *nothing guarantees it appears* is the standing falsification.
 
 *One clock, heterogeneous retention.* The two are separate objects and the record needs both words.
 _Avoid_: timescale (bare, for this sense), memory, decay rate, persistence (reserve for ADR-0005's
 mechanism), level, tier
 
+**Retention constant**:
+`λ(K)`, an eigenvalue magnitude of a cell's own learned operator, and the quantity *effective
+timescale* is now read off: `τ = −1/ln|λ(K)|`. **A cell has up to `k` of them at once, one per
+eigen-direction** — it can commit in some chart directions while staying reactive in others — so it
+has a **spectrum** and not a rate (ADR-0028). Healthy **near 1**: `λ(K) = 0.99` is `τ ≈ 99.5`, a slow
+cell, comfortably inside the operator band. **A slow eigenvalue is a memory policy, never a mode of
+the piece's physics** (ADR-0023). Distinguish `λ(K)`, the operator's retention and the published
+quantity, from `λ(K · J_encode)`, the realised chart retention, which is region-dependent and
+per-tick.
+_Avoid_: `λ` bare (**Realised contraction rate** is a log-rate with the opposite health direction —
+see that entry), timescale (bare), decay rate, mode, eigenvalue of the piece, Koopman eigenvalue
+
 **Effective timescale**:
-How slowly a cell's content changes — set by the *distribution* of regional spectra its biases
-select, not by any one of them. **Not by how much private structure it holds** (#271, struck by
-#276): private width is a *relay aperture* and buys no retention, `corr(p_v, Δρ) = −0.019`, and the
-instrument that measures effective timescale slices the chart half of `encode`'s input and cannot see
-private structure at all. See **Private width** below; the two may not re-collide. A mean rate rather
-than a fixed one, and well defined only while the cell's region dwell is long against it. A property
-measured from outside, never an input to any computation and **never a criterion anything selects on
-at runtime** — though it is exactly the criterion the body's construction selects biases against,
-once, before the graph runs. Under the distributional reading there is no constant for a running
-cell to read even in principle.
-_Avoid_: clock rate, update rate, level, tier, frequency
+How slowly a cell's content changes — set by the **retention constants of its own `K`**,
+`τ = −1/ln|λ(K)|`. **Not by how much private structure it holds** (#271, struck by #276): private
+width is a *relay aperture* and buys no retention — `corr(p_v, Δρ) = −0.019` — the stalk retains
+nothing across a tick (#225), and the instrument slices the chart half of `encode`'s input and cannot
+see private structure at all. See **Private width** below; the two may not re-collide. **Not one
+number:** a cell holds a spectrum of them, so *the* effective timescale of a cell is a loose way of speaking and the direction
+must be said whenever it matters. A property measured from outside, never an input to any computation
+and **never a criterion anything selects on at runtime** — a discipline that has to be kept, since
+`λ(K)` is a constant and readable in principle, where the retired distributional reading made the
+prohibition free by leaving nothing to read. **Nothing places it**: construction assigns no per-level
+`τ`, `a` is global, and the depth gradient is learning's to produce or not (#143).
+_Avoid_: clock rate, update rate, level, tier, frequency, central tendency, mean rate (the retired
+distributional reading), the cell's timescale (where a direction is meant), private structure (the
+struck clause — see **Private width**)
 
 **Private width**:
 `p_v = max(0, n − Σ_e m_e)` — the part of a cell's node stalk no incident edge's restriction map
@@ -318,12 +336,17 @@ folds no longer bound `γ` and no longer carry timescale, which lives in `K`'s s
 _Avoid_: linear region, cell, piece (reserve that for the sub-problem), basin
 
 **Timescale band**:
-The range of effective timescales a level of the taper is built to hold. Cells are placed in one by
-construction — bias vectors are drawn, measured, and kept if they land in the band — and adjacent
-levels' bands **overlap**, so the taper's gradient is continuous and separates levels only as
-distributions. A band is where a cell started, not a property it has: nothing stores it, nothing
-re-selects, and the biases drift off it as they adapt.
-_Avoid_: tier, layer rate, timescale level, clock band
+**Retired as a mechanism** (#143, ADR-0028) and kept only to name what the record used to do. A level
+of the taper was built to hold a range of effective timescales, with bias vectors drawn, measured and
+kept if they landed in the band, adjacent bands overlapping to keep the taper's gradient continuous.
+**It was specified but never run** (#276): `select()` writes only inside the go/no-go and the tests,
+never into a Sheaf that ticks, so the flat 0.91/0.99 reading is a measurement of a body that took iid
+draws and is not evidence about placement. What retired it is the argument — the biases are the
+adapting surface and would drift off their bands with nothing re-selecting. **Construction
+now places no per-level `τ` at all**; `a` is global and the gradient is learning's job. Not to be
+confused with the **operator band**, which is live, global, and on `σ_max(K)`.
+_Avoid_: using this for anything current, tier, layer rate, timescale level, clock band, per-level
+band (ADR-0015 rejected that as a second timescale mechanism)
 
 **Realised contraction rate**:
 `λ`, the rate at which a cell's private content actually decays along the trajectory it walks —
@@ -331,21 +354,40 @@ averaged over every activation region it visits, not read off any one of them. T
 a cell is unstable when `λ ≥ 0`, which is not the same as occupying a region whose spectral radius
 exceeds one. `max ρ < 1` over the regions a cell can reach is a *sufficient* condition for `λ < 0`,
 cheap enough to check before training and far stronger than necessary.
+
+**`λ` bare is ambiguous and the two senses have opposite health directions.** This entry is a
+**log-rate**: unstable at `λ ≥ 0`, healthy negative. A **retention constant** — `λ(K)`,
+`λ(K · J_encode)`, always written with its operator — is an **eigenvalue magnitude**: healthy near 1,
+so `0.99` is a slow cell here and a violently divergent one under this entry's reading. They are
+related by `τ = −1/ln|λ_retention|` and by nothing else. **`λ(K · J_encode)`, *realised chart
+retention*, is not this object** despite the near-homonym: it is a magnitude on one tick's realised
+recurrence, where this is a log-rate averaged along a trajectory. Read the qualifier, never the bare
+letter (#143, #227).
 _Avoid_: stability margin, spectral radius (for this object), Lyapunov exponent (unless the
-long-run limit is meant literally)
+long-run limit is meant literally), `λ` unqualified, retention constant (the opposite convention),
+realised chart retention (that is `λ(K · J_encode)`)
 
 **Regional spectrum**:
 The spectrum of the local Jacobian of whichever activation region of the shared body a cell occupies
 on a given tick. A per-tick quantity, re-drawn whenever the cell's chart carries it across a fold —
-never a cell attribute. What the biases set is the distribution these are drawn from, which is the
-cell's effective timescale.
-_Avoid_: the cell's spectrum, its Jacobian, decay rate (unqualified)
+never a cell attribute. What the biases set is the distribution these are drawn from — **which is no
+longer the cell's effective timescale** (#143). That closing identification is retired with the rest
+of the bias mechanism: retention is `K`'s, and this quantity is now the region-dependent half of
+`λ(K · J_encode)`, the *realised chart retention*. It still has a referent, because `encode` is still
+ReLU and its folds are still real.
+_Avoid_: the cell's spectrum, its Jacobian, decay rate (unqualified), the cell's effective timescale
+(that is `λ(K)`'s job now)
 
 **Region dwell**:
 How long a cell stays in one activation region of the shared body before its chart carries it across
-a fold. The timescale mechanism holds only where the residency expresses **at least one e-fold of the
-region's own decay** — `dwell > τ`; where dwell is short, a cell still decays at some average rate,
-but by averaging over unrelated regions rather than by the mechanism the spec claims. Nominated at
+a fold. **Demoted by #143 from existence to fidelity**: it used to gate whether a cell's `τ` was a
+well-defined object at all, since the rate was a property of the region; under `λ(K)` the operator is
+one matrix that does not reset at a fold, so `τ` is defined regardless and dwell gates only how
+**faithfully** that rate is realised — the gap between `λ(K)` and `λ(K · J_encode)`. The bar below
+stands unrepealed while [#226](https://github.com/NGL321/patchworks/issues/226) rules on whether it
+survives the demotion. The residency must express **at least one e-fold of the region's own decay** —
+`dwell > τ`; where dwell is short, a cell realises an average over unrelated regions rather than the
+rate its operator holds. Nominated at
 construction by the fold margin, measured at runtime on a driven trajectory — and since #160 the
 runtime measurement is **the verdict**, the construction reading a nomination
 (`patchworks.tick.FoldRead`, ADR-0019). Since #208 the verdict is the **median cell's** `dwell/τ > 1`,
@@ -640,7 +682,7 @@ is not a broader thing that contains it: the two are coextensive. The demo's pre
 are the whole of what "evaluation" names here, and nothing aggregates a score over runs. Passing is
 **one closure and one ordering**: per event, the event's loop closes — the **conduction ratio** holds
 along some path from its injection site, read over L1 predicting cells, single-source rather than
-swept — and the two hands' onset-latency IQRs do not overlap (ADR-0027). The between-event depth
+swept — and the two hands' onset-latency IQRs do not overlap (ADR-0028). The between-event depth
 ordering is **reported, not claimed on**: both its ends are supplied by the injection site, and every
 event modifies information at every level it passes through, so what differs is the deepest level
 each one reaches.
