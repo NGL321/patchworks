@@ -181,7 +181,8 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
   a second job: **the ramp is the wrong answer to *Bootstrapping* below.** A drive edge that is noise
   early in training, with the arm not moving, is the one moment where cranking the assertion up looks
   like the fix. It is not — no motion at all is *Bootstrapping* and not this exposure, its answer is a
-  **curiosity drive**, and that is a fog item rather than a rung. The constant stays at `1.0`, typed as
+  **curiosity drive** (gated rather than owed, per *Bootstrapping* below), and that is a fog item
+  rather than a rung. The constant stays at `1.0`, typed as
   **chosen** in the constants register with #183's linearity as its stated flexibility. No ceiling is
   derived and none is derivable today: `gamma x floor <` fold margin is under audit
   ([#158](https://github.com/NGL321/patchworks/issues/158),
@@ -209,14 +210,35 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
   pays and the architecture accepts everywhere else, but the drive edge is the one place where paying
   it delays the behaviour the demo exists to show.
 
-  This exposure carries a second job it was not filed with. The PoC's whole account of exploration is
-  that an unconverged model emits near-arbitrary torques and sharpens where it acted
-  (`04-action-and-the-boundary.md`, *Route selection*), so the window in which the drive edge is noise
-  is the *same* window that account depends on: the agent has to keep moving through it. **No motion
-  at all is therefore both failures at once**, and only one response addresses it — a **curiosity
-  drive**, an ordinary drive boundary cell at the internal rim, which is the fog item and not a rung
-  on the ladder above. Widening the task drive does not reach it, and neither does attaching it more
-  widely.
+  This exposure carries a second job it was not filed with, and the account it leaned on for that job
+  is gone. It read: the PoC's whole account of exploration is that an unconverged model emits
+  near-arbitrary torques and sharpens where it acted, so the window in which the drive edge is noise is
+  the *same* window that account depends on. **That account is measured false.**
+  [#120](https://github.com/NGL321/patchworks/issues/120) found the untrained emission to be **one
+  world-independent constant** — sd ≤ 3.5e-6, identical to four decimal places across two different
+  worlds at the same seed — and `04-action-and-the-boundary.md`, *Route selection* now carries that
+  measurement in the account's place ([#154](https://github.com/NGL321/patchworks/issues/154)).
+
+  **The exposure is not retracted by that; it is sharpened.** The window in which the drive edge is
+  noise is still the window in which the agent has to keep moving, and untrained the agent does not
+  move at all — which the old account merely predicted against and #120 has now observed.
+
+  What #154 changes is the **standing of the response**. *Only one response addresses it — a curiosity
+  drive*, an ordinary drive boundary cell at the internal rim, which is the fog item and not a rung on
+  the ladder above; widening the task drive does not reach it, and neither does attaching it more
+  widely. That stands, but **conditionally**. #154 rules that nothing must be added, conditional on the
+  **outbound clause** of [#242](https://github.com/NGL321/patchworks/issues/242)'s influence predicate:
+  the drive pressures action, action varies the world, and the supply of new directions is never short
+  — but every link in that is the outbound leg, apex to actuator, which is what reads zero today. The
+  excitation famine is therefore the outbound failure the map already owns. This exposure was right
+  that the two must not be **conflated**, and the finding is not that they are the same failure but
+  that they are **one failure and its symptom**.
+
+  So the curiosity drive is **gated rather than owed**, and its gate is #154's pre-registered
+  falsification: #242's outbound clause **passes** and the world still does not vary — the arm still
+  locks, or per-edge excitation rank (the participation ratio read on the disagreement time-series)
+  stays below that edge's stalk width `m_e`. Until that fires, this exposure names its response without
+  claiming it is due.
 - **Hallucinating satisfaction.** A core cell can reduce disagreement by *believing* the task is met
   rather than by acting — the failure GLean documents for goal-conditioned forward models
   (`docs/research/018-sandbox-citations.md`). Under a drive edge it is bounded rather than eliminated:

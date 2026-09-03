@@ -171,6 +171,16 @@ facts the enumeration settles, neither of which was safe to assume:
   **14 ticks**, each reaching two distinct rim cells by vertex-disjoint seven-hop paths. The round
   trip and the true cycle agree, so the predicate does not turn on which reading is meant.
 
+  **That check was made at the apex alone, and
+  [#361](https://github.com/NGL321/patchworks/issues/361) has since extended it to all 150 core
+  cells.** The genuine cycle is **longer** than the round trip at 17 cells — 3 at L1, 2 at L2, 12 at
+  L3, by one tick each — and **shorter at none**. A shorter genuine cycle anywhere would put that
+  cell's true loop *below* what `2 · d(c, rim)` claims and weaken the bar; none exists, so the round
+  trip is the **conservative** reading at every cell rather than only where this ADR checked. The
+  ladder above is also corroborated cell for cell against `benchmarks/loop_length.py`
+  ([#351](https://github.com/NGL321/patchworks/issues/351)), which computes the same round trip
+  independently — two implementations agreeing, not one quantity computed twice.
+
 **`|loop(c)| = 2 · level` is a fact about this graph's wiring and not a licence to index by level.**
 The quantity is computed per cell from the graph; that it coincides with twice the construction
 layout's level on the default dome is a coincidence of the current taper, and
@@ -296,11 +306,12 @@ as a typed literal ([ADR-0018](./0018-a-derived-constant-is-derived-where-its-de
 **Corroborated by amplitude-independence, which costs nothing new.** `double_precision` already
 documents the tell — a transported deviation is linear in what was injected, so the reading is flat in
 the amplitude it was measured at, and rounding is not — and `linearity` already runs that ladder for
-the bottleneck ratio. **The same ladder is required of `τ̂`**, which reuses an instrument already on
-the default branch and invents nothing. The gate says whether *this* reading cleared the floor; the
-ladder says whether the quantity is a transported deviation at all. `τ̂` has no implementation on the
-default branch yet — ADR-0026 promised the reduction and it was never written — so the ladder lands
-with the reduction, on [#379](https://github.com/NGL321/patchworks/issues/379), which owns both.
+the bottleneck ratio. **The same ladder is run for `τ̂`**, reusing an instrument already on the
+default branch and inventing nothing. The gate says whether *this* reading cleared the floor; the
+ladder says whether the quantity is a transported deviation at all — and the two fail in **opposite
+directions**, which is why both are printed. Under rounding the bottleneck column falls like `1/A₀`,
+while `τ̂` *rises*: a deviation decaying into the rounding floor stops decaying, and that is the
+direction that manufactures a PASS on a bar of exactly `1`.
 
 **Why a gate rather than a second architectural bar.** *The arriving deviation must be representable
 in float32* was considered and **ruled out on the image**: it would make a numerical parameter part of
@@ -353,13 +364,27 @@ by construction. The gate is what carries that pressure rather than hiding it.
   floor*, above.
 - **A PASS is read on the float64 surface, and the gate is reported with it.** The licence and the
   gate are the operative half of #224's ruling: `CONTEXT.md` gains the *arithmetic floor* as its own
-  object, `eps_f32` gains a definition site in the architecture register, and
-  [#379](https://github.com/NGL321/patchworks/issues/379) carries the gate into the reading that
-  publishes `τ̂` — written by [#381](https://github.com/NGL321/patchworks/issues/381).
-- **The reading is zero everywhere today**, and the shortfall at the apex is **15.4x** as
+  object, `eps_f32` gains a definition site in the architecture register — `patchworks.tick.EPS_F32`,
+  which `benchmarks/detectability.py` **imports rather than redefines** — and the reading that
+  publishes `τ̂` carries the gate per cell
+  ([#379](https://github.com/NGL321/patchworks/issues/379)'s `readable`), with `linearity`'s amplitude
+  ladder run for `τ̂` beside it. Written by [#381](https://github.com/NGL321/patchworks/issues/381).
+- **The predicate reads zero today**, and the shortfall at the apex is **15.4x** as
   published — amended by [#274](https://github.com/NGL321/patchworks/issues/274) to roughly 1.1x to
   8.5x once the stalk relay is included, with the verdict unchanged; see *The shortfall on this
   bar* above.
+
+  *This bullet used to read **the reading is zero everywhere today**, and as a per-cell claim that is
+  wrong.* It compares every cell against the **apex's** `|loop| = 14`. Against each cell's **own**
+  `|loop(c)|`, [#361](https://github.com/NGL321/patchworks/issues/361) reads **40 to 85 of 150**
+  cells clearing `τ_c ≥ |loop(c)|` across nine seeds, because `|loop| = 2` at L1 where 33 to 56 of 70
+  clear. **The predicate's value is untouched, and this is not a PASS**: it is `max` over paths of
+  `min` over a path's cells, every rim-to-apex path contains an apex cell, and at the apex **0 to 1
+  of 8** clear on any seed (apex median `τ_full` 1.66 to 5.83 against `|loop| = 14`). The bar is
+  short exactly where this ADR says it is; what is corrected is the sentence. Note also that the
+  operator correction moves the two readings in **opposite** directions — chart-only, conduction
+  clears at 0–1 of 150 and the licence at 146–150; on the full loop, conduction at 40–85 and the
+  licence at 104–149 — so #274 makes conduction *easier* and the licence *harder*.
 - **`CONTEXT.md` gains *conduction ratio* and *rim-core influence*, and a gloss on *collectively* as
   counted, not summed.**
 - **`|loop(c)|` is a construction-time quantity that moves with `DomeSpec`.** The ladder above is

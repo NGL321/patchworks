@@ -341,9 +341,12 @@ claimed within, or the spectral reading is not measuring the cell's behaviour.
 architectural bars. It is **one architectural bar** (#242, on the measured `τ̂`) **plus the condition
 under which the cheap proxy may be substituted into it**. Its consequence has no `τ` in it at all —
 **`dwell_c > |loop(c)|`**, two graph quantities — which is what makes it readable today, independent
-of the operator controversy that moved every number in this section. Enumerating `|loop(c)|` from the
-mask and pairing it with dwell across seeds is
-[#361](https://github.com/NGL321/patchworks/issues/361).
+of the operator controversy that moved every number in this section.
+[#361](https://github.com/NGL321/patchworks/issues/361) has since enumerated `|loop(c)|` from the
+mask and paired it with dwell across seeds; its reading is *What the live read says today* below. The
+enumeration **reproduces ADR-0026's ladder exactly** — 414 cells, 682 edges, `|loop(c)| = 2 · d(c,
+rim)` from 2 at L1 to 14 at the apex — and agrees cell for cell with `benchmarks/loop_length.py`,
+which computes the same round trip independently.
 
 **The verdict is the median cell's `dwell/τ > 1`.** Not a per-cell extremum:
 [#195](https://github.com/NGL321/patchworks/issues/195) ran four times at one seed and got four
@@ -441,21 +444,35 @@ A breach invalidates the **instrument**, not the design — see *What a breach m
 coupling itself is still missing and is filed as an open problem,
 [#344](https://github.com/NGL321/patchworks/issues/344).
 
-**What the live read says today, and why the gate is live rather than latent** (#226, pairing #274's
-per-cell `τ_full` against #206's `final_cumulative_dwell` on
-`prototypes/live-fold-read-206/206-per-tick.npz`; same seed, split, dome and horizon, `cell_ids`
-identical, and #274's rig reproduces the chart-only `τ` to 1e-5 — a like-for-like swap of the
-operator and nothing else).
+**What the live read says today, and why the gate is live rather than latent** (#361, with **both
+quantities off the same run** — twelve runs on
+[`prototypes/admissible-band-361/`](../../prototypes/admissible-band-361/), seeds 42–50 to 30,000
+ticks and seeds 42–44 to 100,000, dwell as `FoldRead.dwell` and `τ_full` off `driven-rho-274`'s
+`read.py` imported by path, so the join is what is new and not the instrument).
 
-| reading | median `dwell/τ` | clears `dwell > τ` |
+**#226's pairing is superseded rather than amended.** It held dwell at seed 42's while `τ` varied,
+pairing #274's per-cell `τ_full` against #206's `final_cumulative_dwell` from a *different run*. #361
+reproduced that pairing bit for bit before replacing it — 9.487 chart-only and 1.997 full loop, at
+147/150 and 93/150 — so the swap is like-for-like and what moves below is the pairing, not a rig
+difference. The like-for-like row is same seed, same horizon, same dome and split, changing only that
+both quantities come from one run:
+
+| seed 42 at 100,000 ticks | #226's mismatched pairing | same-run (#361) |
 |---|---|---|
-| the chart-only figure this section used to publish | **9.49** | **147 / 150** |
-| corrected, on the full loop | **2.00** | **93 / 150** |
+| median `dwell/τ` | 1.997 | **3.923** |
+| clears `dwell > τ` | 93 / 150 | **131 / 150** |
+| empty admissible band | 38 / 150 | **20 / 150** |
 
-**57 of 150 cells fail the licence today.** The gate is not a guillotine waiting on a slow apex to
-arrive: it is **live now, with about a 2x margin at the median**, and the cells that breach it are
-cells whose spectral `τ` may not be quoted. Per level — reported as a diagnostic only, never as an
-index for the bar, per #127's standing *measure the graph, not the shape imposed on it*:
+**The mismatched pairing was pessimistic by about 2x on both.** For scale, the chart-only figure this
+section used to publish was a median of **9.49** clearing **147 / 150**: the operator correction
+still tightens the licence, by less than the record said.
+
+**19 of 150 cells fail the licence on that run.** The gate is not a guillotine waiting on a slow apex
+to arrive: it is **live now, with about a 4x margin at the median**, and the cells that breach it are
+cells whose spectral `τ` may not be quoted. Per level — read on #226's superseded pairing and **not
+re-read same-run**, so what is carried here is the shape rather than the counts — and reported as a
+diagnostic only, never as an index for the bar, per #127's standing *measure the graph, not the shape
+imposed on it*:
 
 | level | n | median dwell | median `τ_full` | median ratio | clear |
 |---|---|---|---|---|---|
@@ -467,17 +484,48 @@ index for the bar, per #127's standing *measure the graph, not the shape imposed
 | L6 | 10 | 6.5 | 4.68 | **0.63** | 4/10 |
 | L7 (apex) | 8 | 33.1 | 2.84 | 11.62 | **8/8** |
 
-**The verdict is seed-sensitive, and that is stated as sensitivity rather than as measurement.**
-Pairing seed-42 dwell against each of #274's nine seeds' `τ_full`, the median ratio runs **0.861 to
-3.468** — seed 46 fails outright. Dwell is held at one seed's while `τ` varies, and six of those
-seeds are 2,000-tick reads. A single-seed verdict is exactly the defect #208 §3 exists to kill, which
-is why #361 exists.
+**The verdict is seed-sensitive, and read same-run no seed fails.** Over #274's nine seeds at 30,000
+ticks the median ratio runs **2.165 to 10.984**, and over three seeds at 100,000 ticks **3.923 to
+13.315**. **Every seed clears the bar at the median**, and the licence clears at **104 to 149 of
+150**. The band that stood here — *0.861 to 3.468, seed 46 failing outright* — was the mismatched
+pairing talking: read same-run, **seed 46 gives 2.459**. It ran low for a reason rather than by luck.
+Seed 42's dwell is the **lowest of the nine** (8.06 against 9.67–25.53), so holding dwell at that
+seed pinned the numerator at the worst seed's value against every seed's denominator. A single-seed
+verdict is exactly the defect #208 §3 exists to kill, which is why #361 existed; every figure here is
+a **range over seeds**, never a median from one run.
 
-**Against the 14-tick target rather than against the retired 100.** `τ_full ≥ 14` at **34 of 150**
-and **0 of 8** at the apex — the conduction shortfall #242 already reports. `dwell > 14` at **59 of
-150**, apex **7 of 8**. So the apex's admissible band `|loop| ≤ τ < dwell` is **non-empty at 7 of its
-8 cells** — dwell of 33.1 against a loop of 14 clears by **2.36x** — while its `τ` sits far below the
+**The consequence with no `τ` in it — the empty admissible band — has its first reading, and the
+count is not the finding.** Per seed the band `|loop(c)| ≤ τ_c < dwell_c` is empty at **2 to 39 of
+150** cells at 30,000 ticks and **7 to 20 of 150** at 100,000. But **0 of 150 cells have an empty
+band on every seed**, at either horizon — 77 have one on at least one seed at 30,000 and 28 at
+100,000, and none on all. **No cell's band is structurally empty.** An empty band is a property of
+the *run* and not of the wiring, which makes it a thing learning can move rather than a thing the
+taper forecloses; that is the statement to carry, and it is stronger than the count. The whole chain
+`|loop(c)| ≤ τ_c < dwell_c` held at both ends reads **32 to 56 of 150** cells, on every seed.
+
+**Against the 14-tick target rather than against the retired 100, and against each cell's own loop
+rather than against the apex's.** `τ_full ≥ 14` at **34 of 150** and **0 of 8** at the apex — the
+conduction shortfall #242 already reports. *That count holds every cell against the **apex's**
+`|loop| = 14`, which is the right comparison for ADR-0026's predicate and the wrong one for a
+per-cell reading.* Against each cell's **own** `|loop(c)|`, **40 to 85 of 150** clear across #361's
+nine seeds, because `|loop| = 2` at L1 where 33 to 56 of 70 clear. **The predicate's value is
+untouched**: it is `max` over paths of `min` over a path's cells, every rim-to-apex path contains an
+apex cell, and at the apex **0 to 1 of 8** clear on any seed. The bar is still short, exactly where
+the record says — what is corrected is the sentence, not the verdict. `dwell > 14` at **59 of 150**,
+apex **7 of 8**. So the apex's admissible band `|loop| ≤ τ < dwell` is **non-empty at 7 of its 8
+cells** — dwell of 33.1 against a loop of 14 clears by **2.36x** — while its `τ` sits far below the
 band's floor. *That is a reading of measured numbers, not a revival of the margin claim #190 struck.*
+
+**The operator correction moves the two readings in opposite directions, and this section published
+only the half that tightens.** Ranges over #361's nine seeds at 30,000 ticks:
+
+| | chart-only | full loop |
+|---|---|---|
+| licensed (`dwell > τ`) | 146–150 / 150 | 104–149 / 150 |
+| conducts (`τ` at least the cell's own loop) | **0–1** / 150 | 40–85 / 150 |
+
+#274's correction makes the licence **harder** and conduction **easier**. Reporting only the first is
+what let the corrected reading stand as an unrelieved loss.
 
 > **The `τ ≥ 100` this paragraph used to be read against was never this section's target, and the
 > line asserting it was an error.** The derivation is fixed under *What this requires elsewhere* (3)
@@ -490,13 +538,30 @@ band's floor. *That is a reading of measured numbers, not a revival of the margi
 > of [#345](https://github.com/NGL321/patchworks/issues/345) and the first of that sub-shape.
 > **Corroboration, recorded as corroboration and not as derivation:** #242 derives `|loop(apex)| = 14`
 > from seven hops out and back, independently of the demo. Two routes to one number is evidence;
-> collapsing them would manufacture a constant, and #242 flags its own 14 as not verified pending
-> enumeration from the mask (#361).
+> collapsing them would manufacture a constant. #242 flagged its own 14 as not verified pending
+> enumeration from the mask; **#361 has since enumerated it and the 14 survives** — against the real
+> mask, from two independent implementations, agreeing cell for cell.
 
 **`τ_full` falls monotonically across the run** — 17.29 → 4.69 over 100k ticks on seed 42, matching
 #274's `ρ` falling on all nine seeds. **Learning is making cells faster.** Handed to
 [#335](https://github.com/NGL321/patchworks/issues/335), whose one-sided band projection predicts
-exactly that; it is a positive reading, not a diagnosis, since other causes are live.
+exactly that; it is a positive reading, not a diagnosis, since other causes are live. #361 sees the
+same fall across all twelve of its runs.
+
+**Two caveats bind on every figure in this section that is quoted from a single run** (#361, and both
+were sharpened by its long runs rather than assumed).
+
+- **A fixed seed does not fix the run, and the spread grows with the horizon.** Two independent runs
+  at seed 42 agree exactly to tick 5,000 and diverge after. At 100,000 ticks #361's rig reads seed
+  42's median dwell at **12.92**, where **#206's own run** — same seed, split, dome and horizon —
+  left **9.71** in `206-per-tick.npz`: a ~33% spread on the quantity this section quotes. **A single
+  run is not a point**, and it is least a point where the record quotes it. Consistent with #195's
+  four runs at one seed giving four different binding cells.
+- **`dwell > |loop|` is not a bar a long run eventually passes.** Dwell is `ticks / (1 + crossings)`
+  and the crossing rate settles, so the median **flattens** rather than growing — seed 42 goes 3.7 at
+  5,000 ticks to 12.9 at 100,000, a 3.5x rise over a 20x longer run. It is a bar a long run can
+  **fail**, which is what makes the licence a live gate rather than a formality discharged by
+  patience.
 
 **What a breach means, and why ADR-0005 loses its clause.** ADR-0005 says *timescale is persistence,
 not a schedule*. **No dwell reading falsifies that.** What would is retention achieved and conduction
@@ -559,8 +624,12 @@ allowed at all**, and promoting it to an architectural verdict is how it would b
 >   the per-cell `τ_full` arrays at every checkpoint, and
 >   [#226](https://github.com/NGL321/patchworks/issues/226) has since paired them with #206's dwell
 >   without re-running anything: the median falls from **9.49 to 2.00** and the count clearing
->   `dwell > τ` from **147 of 150 to 93**. The recomputed reading and its seed sensitivity are under
->   *What the live read says today*; there is no guillotine, the gate is simply live.
+>   `dwell > τ` from **147 of 150 to 93**. *Those two corrected figures have since been superseded
+>   by* [#361](https://github.com/NGL321/patchworks/issues/361), *which read both quantities off the
+>   same run and gets **3.923** and **131 of 150** at the same seed and horizon — the pairing above
+>   was pessimistic by about 2x. The fall is real and smaller than this bullet says.* The recomputed
+>   reading and its seed sensitivity are under *What the live read says today*; there is no
+>   guillotine, the gate is simply live.
 >
 > Rig, per-run JSON, and the two checks that pin it to this instrument and to the run:
 > [`prototypes/driven-rho-274/`](../../prototypes/driven-rho-274/).
@@ -590,8 +659,10 @@ still flatness in a run where nothing was placed.
 produces the gradient — therefore stands **unchecked**: no run has carried a placed gradient for
 learning to preserve or destroy. The `dwell/τ` numbers are a ratio of two measured quantities — and
 **one of them has since moved**, which is the note's last bullet;
-[#226](https://github.com/NGL321/patchworks/issues/226) settled it at a median of **2.00** on the
-corrected operator, and none of that bears on this paragraph either way.
+[#226](https://github.com/NGL321/patchworks/issues/226) settled it at a median of 2.00 on the
+corrected operator, since read same-run by
+[#361](https://github.com/NGL321/patchworks/issues/361) at **3.923**, and none of that bears on this
+paragraph either way.
 
 **Those counts were read on the post-conversion body.** The Koopman conversion merged as
 [PR #161](https://github.com/NGL321/patchworks/pull/161), commit `cd52077`, on 2026-08-29 — before
