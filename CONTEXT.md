@@ -795,3 +795,11 @@ A solution excluded, and binding on every later agent. Either *refused* — excl
 project is, reopenable only at ADR level — or *failed*, which must name the rig and the reading that
 killed it, since "we tried it" without a reading is folklore.
 _Avoid_: rejected, wontfix, deprecated, declined, closed
+
+**Wayfinding ticket**:
+A step on a route to a destination — a decision to settle before someone can go and do the thing —
+held as a child of a map and closed when the way past it is clear. Distinct from a register entry,
+which holds standing knowledge rather than progression. The same issue queue serves both functions,
+which is why the distinction has to be stated: an open problem takes no map parent, because a known
+failure the architecture is expected to have is not a step on anyone's route.
+_Avoid_: task, story, epic, milestone, backlog item
