@@ -99,14 +99,31 @@ def check_gain_convention(agent) -> tuple[float, float]:
 
 
 def regional_tau(agent) -> np.ndarray:
-    """`[predicting cells]`: `tau = -1/ln rho(K @ J_encode)` in the region it is in.
+    """`[predicting cells]`: `tau = -1/ln rho(K @ J_chart)` in the region it is in.
 
-    The chart's own round trip, the same object
+    The chart's **direct** round trip, the same object
     :func:`patchworks.bias_selection.measure` reads on the construction sweep --
     `encode`'s Jacobian restricted to the chart half of its input, then the
     cell's own `K`. Read off the body's own forward path, re-run on the pair the
     last inference phase actually read (`prior_charts`, `prior_evidence`), so a
     swapped body cannot leave this measuring one that is not running.
+
+    **It is one of two routes from `chart(t)` to `chart(t+1)`, and this rig
+    reports only this one** (#271, #274). `decode` writes `D chart + b` into the
+    node stalk, message passing damps it by `A_v = I - g_v Sum_e F_ev^T F_ev`,
+    and `encode`'s stalk half returns it next tick, so the full recurrence is
+    `K (J_chart + J_stalk A_v D)`. Unlike the construction sweep this rig *can*
+    reach `sheaf.maps` and `sheaf.gain`, so the omission here is not a
+    limitation -- it is simply that this rig predates the finding.
+
+    **The side-by-side reading is `prototypes/driven-rho-274/read.py`**, which
+    reports both radii per cell on the same driven build and pins itself to this
+    function: its `check_chart_only_matches_206` runs *this* code on the same
+    live state and agrees to ~1e-5, so the two rigs differ in the relay term and
+    in nothing else. This one is left as it ran, because `206-read.json` beside
+    it is what it produced and a rig edited after its run is no longer the rig
+    that ran. Read the two together; do not quote this `tau` as the loop's.
+    Driven, over nine seeds, the full loop's `rho` is 1.70x to 2.12x this one.
     """
     sheaf = agent.sheaf
     body = sheaf.body

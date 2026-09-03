@@ -38,7 +38,10 @@ This ADR needed none:
   is that round trip, and nothing else.
 - **[`05-timescales.md`](../spec/05-timescales.md) gives the reading today** (*What the live read
   says*): `τ` is **flat at about one tick graph-wide — 0.91 at the apex against 0.99 at the rim**,
-  with no depth→timescale gradient at all, and slightly *inverted*.
+  with no depth→timescale gradient at all, and slightly *inverted*. **Read on the chart's *direct*
+  round trip**; with the stalk relay included the apex is 1.6 to 13.1 ticks and the inversion is
+  larger ([#274](https://github.com/NGL321/patchworks/issues/274)). Flat under either operator,
+  which is what this bullet needs; the magnitude is amended under *The shortfall* below.
 - **#232 measured that diagnosis directly** rather than inferring it: the horizon ladder is flat from
   32 to 512 and the binding edge peaks at **tick 18** — the stimulus persisted and the arriving
   deviation did not grow.
@@ -49,6 +52,26 @@ read a magnitude where the destination names a loop. #143 further records that `
 `τ ≈ 99.5`, **inside [ADR-0015](./0015-the-cell-operator-band-is-on-the-spectral-norm.md)'s band** —
 so the bar is reachable by the parameterisation that already exists. This is the first time the map
 has had a visible route rather than a deficit.
+
+> **Amended by [#274](https://github.com/NGL321/patchworks/issues/274): the 15.4x is reading the
+> wrong operator.** That 0.91 is `05`'s chart-only `τ` — the chart's *direct* round trip, with the
+> relay through `decode`, the node stalk and reconciliation's damped aperture omitted. Read on the
+> full loop over nine driven seeds the apex's `τ` is **1.64 to 13.09 ticks**, so the apex conduction
+> ratio is **0.12x to 0.93x** and the shortfall is roughly **1.1x to 8.5x**, median across seeds
+> ~3.8x rather than 15.4x. **This ADR's decision is untouched**: the predicate is
+> `τ̂_c / |loop(c)| ≥ 1` either way and the reading is short on every seed. Only the published
+> magnitude moves, and the figure above is kept as read rather than rescaled, on #206's precedent
+> for `01`'s recorded margins.
+>
+> Two fences travel with the amendment, and they matter more than the number. **The defendable
+> claim is that 15.4x is reading the wrong operator, not that 3.8x is the shortfall** — the
+> corrected reading is a *range* where the old one was a point, and `τ = −1/ln ρ` diverges as
+> `ρ → 1`, so the seed spread is the honest object. And **neither number is this ADR's `τ̂`**: the
+> quantity below is the e-fold decay of a **paired counterfactual deviation in private features**,
+> where `05`'s regional `τ` is `−1/ln ρ` of a per-cell linearised loop that ignores the graph
+> coupling and holds neighbours' `y_e` exogenous. They are two instruments, the record has been
+> using one as a stand-in for the other, and it should stop; the corrected number is a better
+> stand-in and is still a stand-in. #99 owes the real reading.
 
 ## Decision
 
@@ -250,7 +273,10 @@ as of [#239](https://github.com/NGL321/patchworks/issues/239).
 - **Scale-free, so it touches neither #202's never-settling floor nor
   [#224](https://github.com/NGL321/patchworks/issues/224)'s float32 problem.** It is a ratio of times,
   not a ratio against a different quantity in different units.
-- **The reading is zero everywhere today**, and the shortfall at the apex is **15.4x**.
+- **The reading is zero everywhere today**, and the shortfall at the apex is **15.4x** as
+  published — amended by [#274](https://github.com/NGL321/patchworks/issues/274) to roughly 1.1x to
+  8.5x once the stalk relay is included, with the verdict unchanged; see *The shortfall on this
+  bar* above.
 - **`CONTEXT.md` gains *conduction ratio* and *rim-core influence*, and a gloss on *collectively* as
   counted, not summed.**
 - **`|loop(c)|` is a construction-time quantity that moves with `DomeSpec`.** The ladder above is

@@ -276,10 +276,12 @@ that is **meant to be differentiated across the graph**. It is ADR-0005's subjec
 ADR-0028's: persistence in the private features rather than a schedule, and since #138 a per-cell
 time constant living in `K`'s spectrum — **a spectrum of them per cell, not one** (#143).
 **Retention constant** below is the quantity, and **Effective timescale** the measurement of it. The
-graph's retention currently measures flat at about one tick (`05-timescales.md`), which is a finding
-about this build and not a property of the architecture. **The differentiation is no longer placed by
-design**: construction assigns no per-level `τ`, so a depth gradient in retention is learning's to
-produce, and *nothing guarantees it appears* is the standing falsification.
+graph's retention currently measures flat at about one tick on the chart's **direct** round trip,
+and 2.9 to 10.3 ticks with the stalk relay included (`05-timescales.md`, *What the live read
+says*) — **flat under either operator**, and a finding about this build rather than a property of
+the architecture. **The differentiation is no longer placed by design**: construction assigns no
+per-level `τ`, so a depth gradient in retention is learning's to produce, and *nothing guarantees
+it appears* is the standing falsification.
 
 *One clock, heterogeneous retention.* The two are separate objects and the record needs both words.
 _Avoid_: timescale (bare, for this sense), memory, decay rate, persistence (reserve for ADR-0005's
@@ -322,7 +324,8 @@ _Avoid_: linear region, cell, piece (reserve that for the sub-problem), basin
 **Retired as a mechanism** (#143, ADR-0028) and kept only to name what the record used to do. A level
 of the taper was built to hold a range of effective timescales, with bias vectors drawn, measured and
 kept if they landed in the band, adjacent bands overlapping to keep the taper's gradient continuous.
-**It was built and the graph came out flat** — 0.91 at the apex against 0.99 at the rim — because the
+**It was built and the graph came out flat** — 0.91 at the apex against 0.99 at the rim on the
+direct round trip, and flat under the corrected operator too (`05-timescales.md`) — because the
 biases are the adapting surface and drift off their bands with nothing re-selecting. **Construction
 now places no per-level `τ` at all**; `a` is global and the gradient is learning's job. Not to be
 confused with the **operator band**, which is live, global, and on `σ_max(K)`.
@@ -355,9 +358,15 @@ never a cell attribute. What the biases set is the distribution these are drawn 
 longer the cell's effective timescale** (#143). That closing identification is retired with the rest
 of the bias mechanism: retention is `K`'s, and this quantity is now the region-dependent half of
 `λ(K · J_encode)`, the *realised chart retention*. It still has a referent, because `encode` is still
-ReLU and its folds are still real.
+ReLU and its folds are still real. **It is the chart's *direct* round trip and not the whole
+recurrence** (#271, #274): `decode` writes the chart onto the node stalk, reconciliation damps it,
+and `encode`'s stalk half returns it next tick, so the full loop is `K (J_chart + J_stalk A_v D)`
+and its `ρ` runs 1.70x to 2.12x the quoted one. **It is also not ADR-0026's `τ̂`** — that is the
+e-fold decay of a paired counterfactual deviation in private features — and the two are two
+instruments, never a stand-in for one another.
 _Avoid_: the cell's spectrum, its Jacobian, decay rate (unqualified), the cell's effective timescale
-(that is `λ(K)`'s job now)
+(that is `λ(K)`'s job now), the chart loop (bare — say *direct* or *full*), `τ̂` (that is the
+conduction ratio's numerator, a different instrument)
 
 **Region dwell**:
 How long a cell stays in one activation region of the shared body before its chart carries it across
