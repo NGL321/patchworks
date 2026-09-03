@@ -128,23 +128,33 @@ DEFAULT_GAMMA = 1.0
 #: (`CONTEXT.md`, *Arithmetic floor*).
 EPS_F32 = torch.finfo(torch.float32).eps
 
-#: @provisional 379
-#: @flexibility unknown, and it is a reading rather than a knob: no run has ever published `eps_f32 * ||state||` at a cell, so the row is a debt against the first read that does
+#: @type measured
+#: @flexibility not a knob and not a constant of the architecture: it is a reading, and it moves with the state it is read at, so the row records what the record has published rather than a value anything is set to
 #: @warrant docs/adr/0026-rim-core-influence-is-a-conduction-ratio.md, The reading is gated on the runtime precision floor
 #: The floor magnitude at the cell being read — `eps_f32 * ||state||`, the
 #: smallest difference float32 resolves at the magnitude that state sits at.
 #:
 #: **A definition site so the first read files a value here rather than leaving
-#: it in a comment** (#224's rider, written by #381). The quantity has no value
-#: in the record today: `None` is that absence stated, and the debt is #379's,
-#: which carries ADR-0026's gate into the `tau_hat` reading and is the first
-#: thing that will have a number. When it does, this becomes a `measured` row
-#: with the value and the run that read it.
+#: it in a comment** (#224's rider, written by #381). The debt was #379's and
+#: **#379 has now paid it.** `benchmarks/detectability.py`'s `read` on the
+#: trained full dome — `--dome full --learn 30000 --trials 24 --window 64
+#: --hold 400` — publishes `eps_f32 * ||state||` at the cells `tau_hat` is read
+#: at, and it came back **4.89e-07**: median over a trial's cells, and p05 = p95
+#: = the median across all 24 trials, identical in both directions to three
+#: significant figures. The implied `||state||` is ~4.11.
+#:
+#: **Read the tightness as unexplained rather than as a law.** The 400-tick
+#: held-world hold settles the graph before the fork, so the state's magnitude at
+#: the median cell is evidently set by the gauge rather than by the pose — but no
+#: ticket has checked that, and this row records the reading and not the reason.
+#: The same read is not otherwise reproducible run to run (#379): amplitude
+#: figures moved between two runs of the identical command while this quantity
+#: did not, which is why it is quotable and they are flagged as draws.
 #:
 #: It is a *scale*, not a constant of the architecture: it moves with the state
 #: it is read at, which is why :func:`precision_floor` computes it per read and
 #: this row records only what the record has published.
-PRECISION_FLOOR: float | None = None
+PRECISION_FLOOR: float | None = 4.89e-07
 
 
 def precision_floor(state: torch.Tensor) -> float:

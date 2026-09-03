@@ -309,6 +309,9 @@ class Trial:
     private: np.ndarray
     """`[predicting cells]` bool: the cell has private dimension to hold at all (#385)."""
 
+    floor: float
+    """`eps_f32 · ‖state‖` at the median cell: what `tick.PRECISION_FLOOR` records."""
+
     conduction_horizons: tuple[tuple[int, float], ...]
     """`(ticks, conduction)`: `τ̂` is a decay time, so the window is never silent."""
 
@@ -653,6 +656,7 @@ def conduction(
         "censored": censored,
         "readable": above,
         "private": (dome.private_dimensions > 0).numpy(),
+        "floor": float(np.median(EPS_F32 * state.max(axis=0))),
         "ratio": ratio,
     }
 
@@ -916,6 +920,7 @@ def trial(
         censored=conducted["censored"],
         resolved=conducted["readable"],
         private=conducted["private"],
+        floor=conducted["floor"],
         conduction_horizons=tuple(
             (
                 h,
@@ -1185,6 +1190,16 @@ def report(dome: Dome, direction: str, outcomes: list[Trial], window: int) -> No
     print(
         f"   tau_hat censored by the window of {window}: {censored:.1%} of cells "
         "— a lower bound, so it can only cost a pass"
+    )
+    # The floor's *magnitude*, which `tick.PRECISION_FLOOR` records. It is a
+    # scale rather than a constant — it moves with the state it is read at — so
+    # what is published is the median over a trial's cells with the spread
+    # across trials, and never one number pretending to be fixed.
+    floors = np.array([o.floor for o in outcomes])
+    print(
+        f"   the runtime precision floor at these cells: median {np.median(floors):.3g} "
+        f"(p05 {np.quantile(floors, 0.05):.3g}, p95 {np.quantile(floors, 0.95):.3g}), "
+        f"eps_f32 = {EPS_F32:.3g}"
     )
     ladder = "  ".join(
         f"{h}:{np.median([dict(o.conduction_horizons)[h] for o in outcomes]):.3g}"
