@@ -24,7 +24,10 @@ it: whether prose argues a mechanism is not a thing a parser can decide, and a
 parser that guessed at it would refuse good entries and pass bad ones.
 """
 
+import pathlib
+
 import pytest
+import yaml
 
 import problem_registers as registers
 
@@ -630,3 +633,142 @@ class TestTheThreeFilesRender:
         assert len(rendered) == 3
         for text in rendered.values():
             assert text.endswith("\n")
+
+
+class TestTheWorkflowKeepsTheRegistersFresh:
+    """The networked half, pinned where the hermetic half can reach it (#283).
+
+    Nothing here runs the workflow or asks GitHub anything -- it reads the file
+    as YAML and holds it to its shape. **Why each choice is what it is stays in
+    the workflow's own header**, which is the definition site; what is here is
+    the assertion, because a rationale copied into a test is a second place the
+    decision lives.
+
+    The class exists because nothing else can fail. CI cannot check these three
+    files for freshness -- it cannot ask GitHub anything offline -- so if the
+    trigger set quietly narrows, or the guard loses an arm, or `issues: read`
+    is dropped from the permissions whitelist, nothing anywhere goes red. The
+    register simply stops being true, and a projection that reads as current
+    and is not is the exact failure this whole mechanism exists to prevent.
+
+    The reader is `tests/test_perturbation.py`'s `_WorkflowLoader`, imported
+    rather than copied: it reads a workflow the way GitHub Actions reads one --
+    a bare `on` is the string and not YAML 1.1's boolean, a duplicate key is
+    refused rather than resolved -- and a second copy of those rules would be a
+    second place that decision lives.
+    """
+
+    ROOT = pathlib.Path(__file__).resolve().parents[1]
+    WORKFLOW = ROOT / ".github" / "workflows" / "problem-registers.yml"
+    PROVENANCE = ROOT / ".github" / "workflows" / "constant-provenance.yml"
+
+    def load(self, path=None):
+        from test_perturbation import _WorkflowLoader
+
+        return yaml.load(
+            (path or self.WORKFLOW).read_text(encoding="utf-8"),
+            Loader=_WorkflowLoader,
+        )
+
+    def steps(self):
+        return [
+            step
+            for job in self.load()["jobs"].values()
+            for step in job["steps"]
+        ]
+
+    def test_every_event_that_can_change_the_render_is_a_trigger(self):
+        """Labels, bodies and comments, because each of the three is read.
+
+        The workflow's own header argues the set; this holds it. Each event
+        here has a partner that would be useless without it -- `closed`
+        without `reopened` is a one-way door into the resolved section, and
+        `created` without `deleted` renders a proposal that no longer exists.
+        """
+        triggers = self.load()["on"]
+        assert set(triggers["issues"]["types"]) == {
+            "opened",
+            "closed",
+            "reopened",
+            "edited",
+            "labeled",
+            "unlabeled",
+        }
+        assert set(triggers["issue_comment"]["types"]) == {
+            "created",
+            "edited",
+            "deleted",
+        }
+
+    def test_an_issue_leaving_a_register_still_reaches_the_job(self):
+        """The `if:` guard's second arm, which reads as redundant and is not.
+
+        The guard skips the traffic that cannot move a row, and its first arm
+        asks whether the issue carries a `register:` label. On `unlabeled` the
+        payload no longer carries the label that was just removed, so that arm
+        alone drops the event -- and an issue *leaving* a register is a change
+        the render must see. The second arm reads `github.event.label`, which
+        `unlabeled` does carry. Nothing else in the repository would notice if
+        a tidier deleted it: the register would simply keep rendering a row for
+        an issue that is no longer in the query.
+        """
+        guard = self.load()["jobs"]["render"]["if"]
+        assert "github.event.issue.labels" in guard
+        assert "github.event.label.name" in guard
+        for event in ("schedule", "workflow_dispatch"):
+            assert event in guard, f"{event} would be filtered out by the guard"
+
+    def test_a_weekly_net_and_a_handle_catch_what_the_events_missed(self):
+        """A run lost to a broken workflow or to an empty minute budget."""
+        triggers = self.load()["on"]
+        assert triggers["schedule"], "no weekly net"
+        assert "workflow_dispatch" in triggers
+
+    def test_a_superseded_run_is_cancelled_and_the_provenance_run_is_not(self):
+        """The one place these two workflows deliberately disagree.
+
+        A later reader tidying them into agreement would break one of them, so
+        both halves are asserted here rather than only this file's. This one
+        renders a pure projection, where the newest run subsumes every older
+        one; `constant-provenance.yml` *files issues*, and a cancelled run
+        there is a report nobody ever sees.
+        """
+        assert self.load()["concurrency"]["cancel-in-progress"] is True
+        assert self.load(self.PROVENANCE)["concurrency"]["cancel-in-progress"] is False
+
+    def test_the_job_installs_nothing(self):
+        """It does not import patchworks, so it does not pay for torch.
+
+        The generator reads `gh`'s JSON with the standard library, exactly as
+        `constant_registers.py` reads source with `ast`. An install step here
+        would put a ~2.5 GB dependency set behind a question about issue
+        bodies, and would pay for it on every comment edited on a register
+        ticket.
+
+        Both halves of a step are read, because an install is as easily an
+        action as a shell line -- the argument `TestBothChecksRunInCI` makes
+        for pinning `uses:` alongside `run:` in `ci.yml`.
+        """
+        permitted = {"actions/checkout@v4", "actions/setup-python@v5"}
+        for step in self.steps():
+            assert "pip install" not in step.get("run", "")
+            if "uses" in step:
+                assert step["uses"] in permitted
+
+    def test_it_regenerates_rather_than_reporting(self):
+        """`--check` names staleness; this workflow's whole job is to end it."""
+        runs = "\n".join(step.get("run", "") for step in self.steps())
+        assert "tools/problem_registers.py" in runs
+        assert "--check" not in runs
+
+    def test_it_may_write_the_render_back_and_may_read_the_tracker(self):
+        """Both, or the job fails at one end or the other.
+
+        `permissions:` is a whitelist -- naming any key drops every key not
+        named to `none` -- so `issues: read` is load-bearing and not decorative:
+        without it the `gh issue list` the generator shells fails, and without
+        `contents: write` the render is computed and thrown away.
+        """
+        permissions = self.load()["permissions"]
+        assert permissions["contents"] == "write"
+        assert permissions["issues"] == "read"
