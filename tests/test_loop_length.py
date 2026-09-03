@@ -102,6 +102,54 @@ class TestTheSplit:
         assert all(cell not in ends for cell, ends in neighbours.items())
 
 
+class TestTheWorldLoop:
+    """#368: the loop ADR-0026 argues for, out through the world and back elsewhere."""
+
+    @pytest.mark.parametrize("spec", [DEFAULT_SPEC, SMALL], ids=["default", "small"])
+    def test_the_excess_is_at_least_the_world_tick_at_every_cell(self, spec):
+        """`d(c, rim) <= min(d(c, a), d(c, p))`, because both are in the rim.
+
+        The floor is closed-form and holds on any dome carrying an actuator and
+        a proprioceptor, which is why it is checked on both and cell by cell
+        rather than on the fleet maximum alone.
+        """
+        dome = build_graph(spec)
+        gaps = loop_length.excesses(dome)
+        assert gaps
+        assert min(gaps.values()) >= loop_length.WORLD_TICK
+
+    @pytest.mark.parametrize("spec", [DEFAULT_SPEC, SMALL], ids=["default", "small"])
+    def test_the_world_tick_shifts_every_cell_by_itself_and_nothing_else(self, spec):
+        """`w` enters once, additively. A `w` that moved the `min` would be a bug."""
+        dome = build_graph(spec)
+        at_zero = loop_length.excesses(dome, world_tick=0)
+        assert loop_length.excesses(dome) == {
+            c: gap + loop_length.WORLD_TICK for c, gap in at_zero.items()
+        }
+
+    def test_the_ban_is_enforced_the_answer_returns_at_another_cell(self):
+        """`a != p`. One actuator and `joints` proprioceptors, so the pairs are real."""
+        dome = build_graph(DEFAULT_SPEC)
+        found = loop_length.world_loops(dome)
+        assert len(found.actuators) == 1
+        assert len(found.proprioceptors) == DEFAULT_SPEC.joints
+        assert not set(found.actuators) & set(found.proprioceptors)
+        assert found.unreachable == ()
+        assert len(found.lengths) == len(dome.predicting) == 150
+
+    def test_the_reading_the_cutoff_reads(self):
+        """#368's bar is `world_loop_excess >= 1`; the default dome reads 13."""
+        found = loop_length.readings(DEFAULT_SPEC)
+        assert found["world_loop_excess"] == 13.0
+        assert found["world_loop_excess_w0"] == 12.0
+
+    def test_the_other_two_readings_do_not_move(self):
+        """#369's instruction in terms: `ladder`'s and `split`'s readings stay put."""
+        found = loop_length.readings(DEFAULT_SPEC)
+        assert found["loop_split_cost"] == 0.0
+        assert found["loop_apex"] == found["loop_apex_fused"] == 14.0
+
+
 class TestTheScriptRuns:
     """A smoke test on the same footing as the other rigs' (`--no-file` throughout)."""
 
@@ -112,3 +160,7 @@ class TestTheScriptRuns:
     def test_split_runs_without_touching_the_tracker(self, capsys):
         assert loop_length.main(["split", "--no-file"]) == 0
         assert "written-or-read split" in capsys.readouterr().out
+
+    def test_world_runs_without_touching_the_tracker(self, capsys):
+        assert loop_length.main(["world", "--no-file"]) == 0
+        assert "the loop it argues for" in capsys.readouterr().out
