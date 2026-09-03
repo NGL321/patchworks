@@ -192,11 +192,19 @@ rule was forgotten.
 - **A loop that does not close is a failure**, including the case where every recovery looks
   perfect. If no path from the event's injection site holds `τ̂_c / |loop(c)| ≥ 1`, the graph does not
   hold what it sent long enough for the answer to get back, and no amount of convincing footage
-  changes that. **This is the criterion that fails today**: `τ` is flat at about one tick graph-wide
-  — 0.91 at the apex against 0.99 at the rim, no depth→timescale gradient and slightly inverted
-  ([`05-timescales.md`](./05-timescales.md), *What the live read says*) — against `|loop|` of 2 at L1
-  and 14 at the apex. Pre-registering a condition the architecture currently fails is the point of
-  pre-registering it.
+  changes that. **This is the criterion that fails today, and it fails on every reading of `τ` the
+  record holds.** On the chart's **direct** round trip `τ` is flat at about one tick graph-wide —
+  0.91 at the apex against 0.99 at the rim, no depth→timescale gradient and slightly inverted. With
+  the stalk relay included ([#274](https://github.com/NGL321/patchworks/issues/274), nine driven seeds) the
+  apex's `τ` is **1.6 to 13.1 ticks** and the inversion is *larger*, the apex decaying faster than
+  the rim rather than slower.
+  Against `|loop|` of 2 at L1 and 14 at the apex, that is a ratio of **0.12 to 0.93 at the apex** —
+  short on every seed, which is why the criterion's verdict is unchanged and only its magnitude
+  moves. Both figures are read on `05`'s regional `τ` and **neither is `τ̂_c`**, the paired
+  counterfactual decay this criterion is actually written over; they are stand-ins, the corrected
+  one is the better stand-in, and #99 owes the real instrument
+  ([`05-timescales.md`](./05-timescales.md), *What the live read says*). Pre-registering a condition
+  the architecture currently fails is the point of pre-registering it.
 - **A private-feature deviation bit-identical between the paired branches is a failure**, and the
   starkest one: no counterfactual dependence at all, so there is nothing to time. ADR-0026 names this
   as the falsification and it is inherited here unchanged.

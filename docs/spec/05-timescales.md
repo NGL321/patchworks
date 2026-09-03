@@ -366,14 +366,63 @@ falsification is not this one; it is *the gradient does not appear*, below.
 **What the live read says today, and why the gate is not slack** (#208, on
 `prototypes/live-fold-read-206/206-per-tick.npz`). At the horizon the median cell sits at
 `dwell/τ = 9.49` and 147 of 150 cells clear `dwell > τ`; at tick 100 the median sat at 0.96. The graph
-**fails the condition at the start and earns it over the run.** It clears comfortably because `τ` is
-**flat at about one tick graph-wide** — 0.91 at the apex against 0.99 at the rim, no depth→timescale
-gradient in `τ` at all — not because the placement is healthy. Against this section's own target of
+**fails the condition at the start and earns it over the run.** It clears comfortably because `τ`
+**on the chart's direct round trip** is **flat at about one tick graph-wide** — 0.91 at the apex
+against 0.99 at the rim, no depth→timescale gradient in `τ` at all — not because the placement is
+healthy. Against this section's own target of
 `τ ≥ 100` ticks the apex's dwell of 33 gives `dwell/τ ≈ 0.33`: **at the target band the gate fails
 outright**, and it fails at the level where the slow cells are meant to live. That is a reading of
 these two measured numbers, not a revival of the margin claim #190 struck — it is the *dwell* gate at
 a `τ` the run has not reached, not `gain_v` falling with depth. The gate is not slack; it is a
 guillotine that has not dropped because the thing it cuts has not arrived.
+
+> **Those `τ` were read on the chart's *direct* round trip, which is one of two routes from
+> `chart(t)` to `chart(t+1)`.** `decode` writes `D chart + b` onto the node stalk, reconciliation
+> damps what is there by `A_v = I − g_v Σ_{e∋v} F_ev^T F_ev`, and `encode`'s stalk half returns it
+> to the chart on the next tick. The instrument — `bias_selection.measure`, which the #202 and #206
+> rigs re-run live — slices `encode`'s Jacobian to the chart half and so drops that relay.
+> [#271](https://github.com/NGL321/patchworks/issues/271) found the omission structurally;
+> [#274](https://github.com/NGL321/patchworks/issues/274) measured it on a driven rig, nine seeds on the
+> `real` dome, and verified the algebra against the stalk the run actually left behind — agreement
+> to float32 precision at tick 1.
+>
+> **The full-loop reading alongside:** `ρ` is **1.70x to 2.12x** the chart-only value, and the
+> median predicting cell's `τ` is **2.9 to 10.3 ticks** rather than about one. It is quotable **only
+> as a range.** `τ = −1/ln ρ` diverges as `ρ → 1`, so the seed spread in `ρ` — 0.708 to 0.908 —
+> becomes that whole spread in `τ`, and a median lifted from one run is exactly the error this
+> correction repairs.
+>
+> **The figures above are kept as measured rather than rescaled**, on #206's precedent for `01`'s
+> recorded margins: a rescale would publish a number nobody ran. What the corrected operator does
+> and does not move:
+>
+> - **The graph still contracts, so nothing here is falsified.** `ρ_full` at the median predicting
+>   cell is 0.708 to 0.908 on all nine seeds, so *What "stable" means here* stands and
+>   [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md)'s falsification clause is not
+>   reached. A **minority** is expansive — 0 to 33 of 150, and how large depends on the seed far
+>   more than on the drive — where the chart-only reading reports **0 of 150 on every seed**. Those
+>   cells exist only under the corrected operator, and no instrument this document quotes can see
+>   them.
+> - **The flatness stands, and so does what this section concludes from it.** The relay's
+>   contribution is flat across the graph on a driven run: the correlation between a cell's private
+>   width and its lift in `ρ` runs −0.107 to +0.047 over nine seeds, with the *smallest* lift at the
+>   apex. Private width is a relay aperture and not a retention gradient (#271), so *The gradient is
+>   learning's job* below reads the same way under either operator.
+> - **The inversion is larger, not smaller.** On the direct route the apex is 0.91 against a rim of
+>   0.99. Under the corrected operator the apex carries the **lowest** `ρ_full` of any level on all
+>   three long runs — 0.702 / 0.549 / 0.531 against a rim at 0.816 / 0.691 / 0.744 — so the apex
+>   decays **1.6x to 2.1x faster** than the rim. Stated as an apex-versus-rim reading of per-cell
+>   values, with [#181](https://github.com/NGL321/patchworks/issues/181) intact: level is a reporting axis
+>   here and nothing is concluded from it.
+> - **`dwell/τ = 9.49` is a ratio of two measured quantities and one of them has moved.** With `τ`
+>   three to ten times larger the ratio falls by the same factor, and the guillotine is nearer the
+>   neck than the figure above says. It is deliberately **not** recomputed here: what `dwell > τ` is
+>   a ratio *of* is [#226](https://github.com/NGL321/patchworks/issues/226)'s question, and #274 left the
+>   per-cell `τ_full` arrays at every checkpoint so that ticket can pair them with #206's dwell
+>   without re-running anything.
+>
+> Rig, per-run JSON, and the two checks that pin it to this instrument and to the run:
+> [`prototypes/driven-rho-274/`](../../prototypes/driven-rho-274/).
 
 **Whether `τ ≈ 1 tick` is what construction meant to place was #143's question, and it is now
 answered: construction is not what places it (ADR-0028).** But **the flat reading is not the
@@ -393,10 +442,14 @@ depth-ordered placement, runs only where nothing runs afterwards:
 
 **`select()` has never written into a Sheaf that runs.** So the flat `τ` is a flat measurement of a
 gradient **nobody placed**, and it is evidence about neither the placement mechanism nor learning.
+**The correction above does not rescue it as evidence either**: the relay's lift is flat across the
+graph too, so there is no placed gradient to see under *either* operator, and flatness under both is
+still flatness in a run where nothing was placed.
 [#143](https://github.com/NGL321/patchworks/issues/143)'s claim — that nothing guarantees learning
 produces the gradient — therefore stands **unchecked**: no run has carried a placed gradient for
-learning to preserve or destroy. The `dwell/τ` numbers above are unaffected; they are a ratio of two
-measured quantities and say what they said.
+learning to preserve or destroy. The `dwell/τ` numbers are a ratio of two measured quantities — and
+**one of them has since moved**, which is the note's last bullet and
+[#226](https://github.com/NGL321/patchworks/issues/226)'s to settle.
 
 **Those counts were read on the post-conversion body.** The Koopman conversion merged as
 [PR #161](https://github.com/NGL321/patchworks/pull/161), commit `cd52077`, on 2026-08-29 — before
@@ -441,6 +494,17 @@ through them can diverge, whatever the dwell — so it is a **sufficient** condi
 computable from the frozen body before anything is trained, and far stronger than necessary. It is
 what the *construction* checks; `λ` is what the go/no-go *measures*, once there is a trajectory to
 measure on.
+
+**Both counts above are of the direct round trip, and the corrected operator has cells they cannot
+see.** [#274](https://github.com/NGL321/patchworks/issues/274) reads `ρ` of the full loop — the direct route
+plus the stalk relay, per the note under *What the live read says* — and finds **0 to 33 of 150**
+predicting cells expansive at
+the horizon, seed-dependent, where the chart-only reading reports **0 of 150 on every seed**. This
+section is not thereby overturned: `ρ ≥ 1` in some region is not instability, which is its whole
+point, and the median cell contracts on all nine seeds. But `λ` has **never been measured on the
+full loop**, so the sufficient condition is currently checked on an operator that is not the
+recurrence, and *none divergent* is a statement about the direct route. What that costs is not
+ruled on here.
 
 **This is also why spread and stability were never two knobs.** Both arms are the same function of
 region dwell. Where dwell is short, the spread averages away — the same cells whose per-region `τ`
@@ -499,11 +563,13 @@ the Koopman conversion, and **the second is spent**:
    than deleted.** The rig drew candidate bias vectors, measured the timescale each produced, and
    kept a set covering the target band. **It worked as specified — inside the go/no-go, which is the
    only place it ever ran** (#276). `select()` never wrote into a Sheaf that ticks, so the flat
-   0.91/0.99 reading is *not* this part's evidence and the part is not spent on measurement. What
-   spends it is the argument that survives without one: the biases are the adapting surface and
-   would drift off their bands with nothing re-selecting, and re-selection needs the runtime rate
-   ADR-0005 and ADR-0028 both refuse. The part is left visible because *The gradient is learning's
-   job* rules against placing by level, not because placing by level was measured and failed. What the sweep established stays true of
+   reading — 0.91 at the apex against 0.99 at the rim on the direct round trip, and flat under the
+   corrected operator too (see the note under *What the live read says*) — is *not* this part's
+   evidence, and the part is not spent on measurement. What spends it is the argument that survives
+   without one: the biases are the adapting surface and would drift off their bands with nothing
+   re-selecting, and re-selection needs the runtime rate ADR-0005 and ADR-0028 both refuse. The part
+   is left visible because *The gradient is learning's job* rules against placing by level, not
+   because placing by level was measured and failed. What the sweep established stays true of
    the body and is now read as reachability rather than as placement — taken *as drawn*, 400 cells
    span a `τ` ratio of 4.5; the reachable span across 20,000 draws is 16×, containing bias vectors
    whose regional `τ` is ≥ 100 ticks with `ρ` under one.
@@ -550,16 +616,13 @@ the Koopman conversion, and **the second is spent**:
 nothing does.** This is #143's ruling and it replaces *Selected timescales are assigned by level, in
 overlapping bands*, which stood here.
 
-**Placement is not rejected on argument — but it was not rejected on measurement either, and
-that ground is struck (#276).**
-
-> ~~It was built, and it failed on measurement. The construction assigned `τ` bands by level; the
-> run reports **0.91 at the apex against 0.99 at the rim** — no gradient at all.~~
 > *Superseded by [#276](https://github.com/NGL321/patchworks/issues/276): the construction assigned
 > no bands in any run that was measured.* `select()` runs only in `go_no_go` and in the tests, and
 > both rigs that tick take iid draws — see the rig table under *The precondition: region dwell
-> against `τ`*. **The placement was never built into a
-> running graph, so it never failed on one.**
+> against `τ`*. **The placement was never built into a running graph, so it never failed on one.**
+> The corrected operator does not restore the ground: its lift is flat across the graph too (see the
+> note under *What the live read says*), so both operators read flat on a body where nothing was
+> placed.
 
 **The retirement stands on the grounds that do not depend on that measurement**, and they carry it
 without help: the biases *are* the adapting surface

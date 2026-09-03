@@ -442,6 +442,11 @@ class Measurement:
         would be the tail. This is the quantity the biases select and the bands
         are read against — and it is the *distribution's* centre, not a rate the
         cell has.
+
+        It is a `tau` of the **direct** round trip, per :func:`measure`, so it
+        under-states a graphed cell's retention by the relay factor #274
+        measured (1.70x to 2.12x in `rho`). Quoted as *the* timescale it is the
+        omission #271 found; quoted as the direct route's, it is exact.
         """
         return self.tau[:, TAU_QUANTILES.index(0.5)]
 
@@ -558,11 +563,38 @@ def measure(
 ) -> Measurement:
     """Measure every candidate over a driven trajectory, in one batched run.
 
-    The measured object is the **chart's own round trip**,
-    `d chart_{t+1} / d chart_t` through `encode` then `K` — what has to fail to
-    contract for a cell to hold state. `decode` reads the chart out onto the
-    node stalk and is not on that loop, so it is neither differentiated nor read
-    for a fold margin.
+    The measured object is the chart's **direct** round trip,
+    `d chart_{t+1} / d chart_t` through `encode`'s chart half then `K`. For a
+    cell in a graph that is **one of two routes and not the whole recurrence**
+    ([#271](https://github.com/NGL321/patchworks/issues/271),
+    [#274](https://github.com/NGL321/patchworks/issues/274)): `decode` writes
+    `D chart + b` into the node stalk, message passing damps what is there, and
+    `encode`'s stalk half returns it to the chart on the next tick. So `decode`
+    *is* on the loop, by the relay, and this measures the direct route alone.
+    It is still not read for a fold margin, and that is untouched — `decode` is
+    linear and has no folds.
+
+    **The relay is absent because it is not computable here, which is a
+    limitation rather than an oversight, and #274 ruled it stays one.** The
+    omitted term is `K J_stalk A_v D` with
+    `A_v = I - g_v Σ_{e∋v} F_ev^T F_ev` — the aperture reconciliation leaves
+    open. `g_v` and the restriction maps are properties of a cell's **place in
+    a graph**, built by :class:`patchworks.tick.RestrictionMaps` and
+    :func:`patchworks.tick.reconciliation_gain` *after* this sweep has run and
+    *from* the biases it is choosing. There is no graph at this point in the
+    build, and this function's candidate axis is candidate **biases**, not
+    cells, so there is no `A_v` to read. The full loop is read where a graph
+    exists: `prototypes/driven-rho-274/`, which reports both radii per cell and
+    checks its chart-only half against this instrument to ~1e-5.
+
+    **What the omission is worth, so a caller can price what this returns.** On
+    the driven `real` dome over nine seeds the full loop's `rho` runs **1.70x
+    to 2.12x** this one, so the `tau` here is an **under**-estimate of retention
+    by roughly that factor; and it reports **0 of 150** cells expansive on every
+    seed where the full loop reports **0 to 33**. Selection stays well defined —
+    every candidate is ranked by the same instrument, and `contained` is a
+    statement about the direct route that remains true of it — but the band this
+    places `tau` into is the direct route's band and not the loop's.
 
     **The recurrence is `K @ J_encode`** since #138, and at construction
     `K = a.I` exactly, so this measures a scaled version of what it measured
@@ -619,9 +651,11 @@ def measure(
             if t < burn_in:
                 continue
 
-            # The chart's own round trip: `encode`'s Jacobian restricted to the
-            # chart half of its input, then the cell's `K`. The node stalk half
-            # is where this tick's evidence entered and is not part of the loop.
+            # The chart's *direct* round trip: `encode`'s Jacobian restricted
+            # to the chart half of its input, then the cell's `K`. The stalk
+            # half is dropped because the relay through it is not computable
+            # here -- no graph, no `A_v` -- and not because it is off the loop.
+            # For a predicting cell it is on the loop; see the docstring, #274.
             through_encode = _map_jacobian(
                 body.encode_hidden_weight, body.encode_output_weight, encode_active
             )[:, :, : shape.k]
