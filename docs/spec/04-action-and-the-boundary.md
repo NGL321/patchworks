@@ -461,9 +461,18 @@ Two questions travel together under "long-horizon planning" and separate cleanly
 
 **Horizon as duration** is a measurable quantity, not a hope. Plan depth is graph depth and
 deliberation time is ticks; how long a deep cell holds a commitment is the decay rate of its private
-component, and [#27](https://github.com/NGL321/patchworks/issues/27) measured a 7.7× spread in
-effective time constant across 150 cells. Too short a horizon is a body-construction defect with a
-knob, not an architectural gap.
+component. What sets that rate is a cell's **learned operator** `K`
+([ADR-0028](../adr/0028-a-cell-holds-a-spectrum-of-retention-constants.md)), and measured on driven
+runs of the built graph `ρ(K)` spreads `τ` by **9–18×** across 150 cells, at a median of 19–26 ticks
+(`prototypes/regional-spectra/converted_spread.py`, [#349](https://github.com/NGL321/patchworks/issues/349)).
+
+> **Corrected by #349.** This paragraph quoted #27's **7.7×** as the operative figure. That number was
+> measured on a **stand-in** body, under the bias mechanism ADR-0028 retired, and it is withdrawn:
+> `docs/research/027-regional-jacobian-spectra.md`'s amendment has the re-run. The correction is not
+> only to the number but to its source — duration is now bought by a learned per-cell operator, so
+> **too short a horizon is no longer a body-construction defect with a knob.** Whether learning
+> produces the gradient is ADR-0028's own pre-registered falsification, and it is
+> [#357](https://github.com/NGL321/patchworks/issues/357) that watches it.
 
 **Horizon as detour** — can the agent execute something that gets worse before it gets better? —
 dissolves rather than resolves. The drive asserts *satisfied* and supplies no direction; direction

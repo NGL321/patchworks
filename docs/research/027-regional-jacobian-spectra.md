@@ -20,6 +20,84 @@ Terms used here are defined in [`CONTEXT.md`](../../CONTEXT.md).
 > reported in §6 and are load-bearing for the verdict. They are a *pilot on a stand-in body*, not a
 > measurement of the body — see §6's caveats before quoting them.
 
+## Amendment, 2026-09-03: the mechanism this pass measured is retired, and the numbers are re-run
+
+Added on the resolution of [#349](https://github.com/NGL321/patchworks/issues/349), which was opened
+because this document's own caveat — *"the body is a **stand-in** … This establishes the shape of the
+answer and the sensitivity of the rig, not the body's number"* — was never discharged, while its
+**7.7×** was quoted onward as operative headroom. `docs/research/032` already carried a Koopman-era
+amendment; this one carried none.
+
+**Everything below §6 is a measurement of a mechanism the design no longer uses.** The Koopman
+conversion ([#138](https://github.com/NGL321/patchworks/issues/138)) made `step` a **linear `K`**, and
+[ADR-0028](../adr/0028-a-cell-holds-a-spectrum-of-retention-constants.md) moved timescale onto
+`λ(K)`. This pass measured the spectral radius of a *regional* Jacobian of a piecewise-linear ReLU
+`step` — and a linear `K` **has one region globally**. The object §6 sweeps does not exist in the
+converted design, so `spread_pilot.py` cannot be re-pointed at the body; it can only be replaced.
+
+**The re-run was nonetheless possible, and it was done.**
+`prototypes/regional-spectra/converted_spread.py` (#349) is the replacement. What ADR-0028 split into
+three separately named quantities is measured in **this document's own spread statistic** — `τ` p95/p05
+with `τ = −1/ln ρ`, over the cells admitting a finite `τ`, alongside `sd(log₁₀ ρ)` — so the comparison
+against 7.7× is like-for-like rather than a change of units. The two realised readings come from
+[#274](https://github.com/NGL321/patchworks/issues/274)'s nine driven seeds
+(`prototypes/driven-rho-274/`); `ρ(K)` is read off driven runs here, because #274 did not record it.
+
+| quantity (ADR-0028's rows) | `τ` p95/p05, across seeds | `τ` median | `sd(log₁₀ ρ)` | expansive |
+|---|---|---|---|---|
+| `ρ(K)` — the **operator's retention**, per-cell, learned | **9.0–18.0** (med 10.3) | 19–26 ticks | 0.023–0.073 | 0/150 |
+| `ρ(K · J_chart)` — the **realised chart retention** (#206's object) | **1.8–2.8** (med 2.1) | 1.0–1.3 ticks | 0.077–0.107 | 0/150 |
+| `ρ(K · (J_chart + relay))` — the **full chart loop** (#274's correction) | **9.6–49.6** (med 12.9) | 2.9–7.6 ticks | 0.063–0.089 | 0–33/150 |
+
+`ρ(K)` at 5 seeds × 2,000 ticks; the realised readings at 9 seeds, one to 100,000 ticks.
+
+**Four things follow, and the first is the one that matters for anyone quoting this document.**
+
+1. **7.7× is not a number about the body, and there is no single successor to it.** It fragments by
+   which of the three quantities is meant. The nearest object to what §6 actually measured — the
+   *realised* per-tick retention of the chart, region included — reads about **2×**, not 7.7×: the
+   stand-in overstated the realised spread by roughly a factor of four. **Any citation of 7.7× as
+   headroom, reachable spread, or "what the body gives" is withdrawn.**
+2. **The headroom claim survives, but at the operator and not at the region.** `ρ(K)` spreads
+   9–18×, which brackets 7.7× — so a spread of that order is real in the converted design. It is a
+   property of a *learned per-cell operator*, which is precisely what this pass's §7 said the bias
+   mechanism could not deliver, and what ADR-0028's *Attributability* consequence books.
+3. **§6's headline — "spread and stability are the same knob" — is a fact about the bias mechanism
+   and does not transfer.** Every configuration here with a usable ratio put 5–39% of cells past
+   `ρ ≥ 1`; `ρ(K)` shows **no expansive cell at any seed**, because
+   [ADR-0015](../adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md)'s band on `σ_max(K)`
+   bounds the radius for free. The conflict §7.3 recorded is dissolved by the conversion rather than
+   resolved by a construction choice. (It was already once reframed, on the stand-in, by
+   [#42](https://github.com/NGL321/patchworks/issues/42) — see below.)
+4. **The retention the bias mechanism could not reach is now reached.** §6's `τ` medians sat under
+   two ticks; `ρ(K)` gives 19–26. ADR-0028 stated the bar — *"at the measured `τ ≈ 1` tick an
+   assertion cannot stand at all"* — and this is the measurement that it clears.
+
+**Reconciling [#42](https://github.com/NGL321/patchworks/issues/42)'s 4.5× and 16× against this
+document's 7.7×: they measure different things, and all three are now superseded.** #42 ran
+`selection_sweep.py` on **the same stand-in body**, so its numbers are not a re-run of anything here.
+It changed two things: the population (400 candidate bias draws, not 150 occupied cells) and the
+construction (**draw-then-select** — 4.5× as drawn, 16× after selecting a covering set). So 7.7×,
+4.5× and 16× are one stand-in read three ways, not three readings of the body. **The construction
+that produced 16× is itself retired:** ADR-0028 leaves the gradient to learning and places no `τ`,
+and [#276](https://github.com/NGL321/patchworks/issues/276) found `bias_selection.select()` was never
+invoked in any graph that ran. Nothing downstream should cite 4.5× or 16× either.
+
+**One internal inconsistency in §6, recorded rather than silently fixed.** Its `ρ` p05/med/p95 of
+`0.32 / 0.57 / 0.98` and `τ` of `0.86 / 1.76 / 5.49` are **not the same population**:
+`spread_pilot.py` takes `τ` over `rho[rho < 1.0]` and its `ρ` quantiles over every cell. `−1/ln(0.98)`
+is 49.5, not 5.49 — the `τ` p95 is the 95th percentile of the *contracting* cells. The figures are
+each correct and the pairing is misleading. The re-run keeps the same convention deliberately, and
+`tests/test_converted_spread.py` pins it, so the comparison is not a change of population dressed as
+a change of body.
+
+**What is *not* withdrawn.** §1–§5's citation work stands entirely — it is about the literature, not
+about the body, and #167 and ADR-0028 both build on it. §7.4's argument against reporting `ρ` alone
+survives the conversion and is if anything strengthened by the `ρ(K)`-versus-realised gap in the
+table above. And **ADR-0028's citation of this pass for the *attributability* argument is a different
+use and survives**: that argument needs only §6's finding that bias and operating point were
+statistically indistinguishable, which is a true statement about the mechanism that was replaced.
+
 ## The question, restated
 
 One shared frozen piecewise-linear cell body. Weights fix fold *directions*; per-cell biases fix fold
@@ -250,6 +328,10 @@ depth, not its activation. The biases are iid Gaussian, not biases a cell would 
 one-step Jacobian, not a simulated trajectory. **This establishes the shape of the answer and the
 sensitivity of the rig, not the body's number.**
 
+> **Discharged by the amendment above (#349).** The re-run against the converted body was
+> done, and no number in this section is the body's. The nearest successor to the spread swept
+> here reads **~2×**, not 7.7×; see the amendment's table for all three of ADR-0028's quantities.
+
 **Spread exists. It is not a spike.** In every non-degenerate configuration the across-cell `ρ` spans
 a factor of 2–8, and `τ = −1/ln ρ` a factor of 3–46. At `widths=[64,64], σ_w²=1.7`: `ρ` p05/med/p95 =
 0.32 / 0.57 / 0.98, `τ` = 0.86 / 1.76 / 5.49 ticks.
@@ -368,8 +450,12 @@ alone.**
 
 ### Measurements to run
 
-- Re-run `spread_pilot.py` against the body once its widths, depth and activation are fixed. The
-  pilot's numbers are a stand-in (§6 caveats) and should not be quoted as the body's.
+- ~~Re-run `spread_pilot.py` against the body once its widths, depth and activation are fixed. The
+  pilot's numbers are a stand-in (§6 caveats) and should not be quoted as the body's.~~
+  **Done, by replacement rather than re-pointing (#349).** The Koopman conversion left this rig
+  without its object — a linear `K` has one region — so
+  `prototypes/regional-spectra/converted_spread.py` measures ADR-0028's three quantities in this
+  document's own statistic instead. See the amendment at the top.
 - Add a **fold-margin** column to the same sweep — `min |z(x) − b_z| / ‖∇z(x)‖` (Hanin & Rolnick,
   verified) — and check it against `γ × floor` per cell across the taper, as #28 and #9 both asked.
   One sweep answers both tickets; the apparatus is already written.
