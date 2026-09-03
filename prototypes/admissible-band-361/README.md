@@ -26,11 +26,13 @@ table by level.
   **The round trip already has a home and this is not it:**
   [#351](https://github.com/NGL321/patchworks/issues/351) built
   `benchmarks/loop_length.py`, which computes `2 · d(c, rim)` with the same rim and
-  carries #343's cutoff hook. It is unmerged — it rides
-  [PR #365](https://github.com/NGL321/patchworks/pull/365) — so `loops.py` **prefers that
-  rig when it is importable** and falls back to an equivalent sweep until then;
-  `check_against_loop_length` compares them whenever both exist. Read against the branch,
-  the two agree **cell for cell** on `DEFAULT_SPEC`.
+  carries #343's cutoff hook. It landed on `main` in
+  [PR #365](https://github.com/NGL321/patchworks/pull/365) **part-way through this ticket's
+  own sweep**, which is why the sweep was written against a tree that did not have it. So
+  `loops.py` **delegates to that rig**, keeping an equivalent sweep only as a fallback, and
+  `check_against_loop_length` compares them. They agree **cell for cell** on
+  `DEFAULT_SPEC` — the ladder is corroborated from two independent implementations rather
+  than merely computed twice.
 
   What `loops.py` adds is the reading #351's rig deliberately declines — its own words,
   *"leaves the other to the ADR that checked it"* — the **vertex-disjoint genuine cycle**,

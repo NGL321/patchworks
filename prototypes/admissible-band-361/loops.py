@@ -10,13 +10,15 @@ specified the enumeration and published its ladder, so a session pairing
 **The round trip already has a home, and this is not it.**
 [#351](https://github.com/NGL321/patchworks/issues/351) built
 `benchmarks/loop_length.py`, which computes `2 * d(c, rim)` with the same rim and
-carries #343's cutoff hook. It is the rig that should own the quantity. It is not
-on `main` yet -- it rides [PR #365](https://github.com/NGL321/patchworks/pull/365)
--- so :func:`loop_lengths` **prefers it when it is importable** and falls back to
-an equivalent sweep here when it is not.
-:func:`check_against_loop_length` compares the two whenever both exist, so the
-duplication is caught rather than left to drift. Read cell for cell on
-`DEFAULT_SPEC`, the two agree exactly.
+carries #343's cutoff hook. It is the rig that owns the quantity, and it is on
+`main` -- [PR #365](https://github.com/NGL321/patchworks/pull/365) merged on
+2026-09-03, part-way through this ticket's own sweep, which is why the sweep was
+written against a tree that did not have it. :func:`loop_lengths` therefore
+**delegates to it**, keeping an equivalent sweep only as a fallback for a tree
+without it. :func:`check_against_loop_length` compares the two whenever both
+exist, so the duplication cannot drift; read cell for cell on `DEFAULT_SPEC`,
+they agree exactly, which makes the ladder corroborated from two independent
+implementations rather than merely computed twice.
 
 **What this file adds is the reading #351's rig deliberately declines** -- its
 own words: *"This computes the round trip, states which reading it is, and leaves
@@ -113,7 +115,7 @@ def distance_to_rim(dome: Dome) -> list[int]:
 
 
 def _loop_length_rig():
-    """#351's `benchmarks/loop_length.py`, or `None` while PR #365 is unmerged."""
+    """#351's `benchmarks/loop_length.py`, or `None` in a tree without it."""
     source = _REPO / "benchmarks" / "loop_length.py"
     if not source.exists():
         return None
@@ -132,8 +134,8 @@ def loop_lengths(dome: Dome) -> dict[int, int]:
     """`{predicting cell id: |loop(c)|}` as `2 * d(c, rim)`, the round trip.
 
     Delegates to #351's `benchmarks/loop_length.py` when that rig is in the tree,
-    so there is one implementation of the quantity rather than two; falls back to
-    the equivalent sweep below while PR #365 is unmerged.
+    so there is one implementation of the quantity rather than two; the sweep
+    below is the fallback for a tree without it.
     """
     rig = _loop_length_rig()
     if rig is not None:
@@ -156,7 +158,7 @@ def check_against_loop_length(dome: Dome) -> dict[str, object]:
     """Do this file's sweep and #351's rig give the same `|loop(c)|`?
 
     Runs only when `benchmarks/loop_length.py` is in the tree. Reported rather
-    than asserted, so a session reading this before PR #365 merges sees
+    than asserted, so a session on a tree without that rig sees
     `available: False` instead of a failure it cannot act on.
     """
     rig = _loop_length_rig()
@@ -326,9 +328,9 @@ def main(spec: DomeSpec = DEFAULT_SPEC) -> None:
         )
     else:
         print(
-            "  benchmarks/loop_length.py is not in the tree (PR #365 unmerged), "
-            "so the\n  round trip is read by the fallback sweep here. Verified "
-            "equal to that rig\n  cell for cell against the branch on 2026-09-03."
+            "  benchmarks/loop_length.py is not in this tree, so the round trip "
+            "is read by\n  the fallback sweep here. It was verified equal to that "
+            "rig cell for cell."
         )
     unclosed = [c for c, v in cycles.items() if v is None]
     print(
