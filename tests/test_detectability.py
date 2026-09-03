@@ -328,6 +328,7 @@ class TestTheTwoQuantitiesAreNotOneKey:
             censored=empty.astype(bool),
             resolved=empty.astype(bool),
             private=empty.astype(bool),
+            floor=0.0,
             conduction_horizons=(),
         )
 
