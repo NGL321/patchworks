@@ -171,6 +171,23 @@ author, and "when it becomes a problem" is not a cutoff but the absence of one.
   measurement cutoff is evaluated **by the rig report**: when a rig runs, its report states, for each
   problem cutting on it, whether the bar was crossed. Crossing files a comment on the problem issue
   and adds `register:overdue`.
+
+  The threshold is written **`<metric> <comparator> <number>`** — `ticks_per_second < 300`,
+  `offset <= 0.2` — and states the condition under which the problem stops being tolerable, so the
+  bar is crossed exactly when the comparison holds. `<metric>` is a name the rig reports; each rig
+  carrying the hook says which names it offers. `tools/problem_registers.py` does not enforce this,
+  because a projection evaluates nothing; `tools/cutoff_report.py` does, and a threshold it cannot
+  read is **stated in the rig's report** rather than skipped, because a cutoff nothing can fire on is
+  the register's second loud section wearing a plainer disguise.
+
+  **Every evaluated run is recorded**, not only a crossing: the comment carries a `@rig` field block,
+  which is how the register answers *has anything ever fired against this bar*. A rig that ran
+  regularly and recorded nothing until it crossed would sit in *cutoffs naming a rig with no recorded
+  run* the whole time it was in fact being watched.
+
+  The hook is one call at the end of a rig's `main` — `benchmarks/sandbox_throughput.py` is the rig
+  that carries it — and it changes nothing about a rig asserting nothing: a crossing is a report and
+  a label, never a failure and never a non-zero exit.
 - **`uncut`** — admitted, and loud. The register sorts these first and states them as a debt, in the
   voice `@flexibility unknown` uses: *nobody has said when this stops being tolerable* is a fact, and
   hiding it is worse than showing it.

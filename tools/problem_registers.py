@@ -808,12 +808,13 @@ def render_problems(survey: Registers, rigs: frozenset[str] | None = None) -> st
     out.append(
         "\nA run is recorded by a `@rig` field block on a comment on the problem, "
         "which is what the rig report files "
-        "([#284](https://github.com/NGL321/patchworks/issues/284)), or by "
-        "`register:overdue`, since a bar cannot be crossed without the rig running. "
-        "**Note for #284:** it currently files a comment only on a *crossing*, so a "
-        "rig that runs regularly and never crosses records nothing and will sit in "
-        "this section. Filing the per-problem report line — which #284 already "
-        "specifies printing — would clear that.\n"
+        "([#284](https://github.com/NGL321/patchworks/issues/284), "
+        "`tools/cutoff_report.py`), or by `register:overdue`, since a bar cannot be "
+        "crossed without the rig running. The report files **every evaluated run** "
+        "and not only a crossing, so a rig that runs regularly and never crosses "
+        "leaves this section rather than sitting in it. A row here therefore means "
+        "one of two things and not a third: the rig has genuinely not run, or it has "
+        "not been given the hook.\n"
     )
 
     out.append("\n## Open problems\n")
@@ -1027,6 +1028,11 @@ def fetch(label: str) -> list[dict]:
         ],
         capture_output=True,
         text=True,
+        # Named rather than left to the locale: `gh` returns UTF-8, and on
+        # Windows the default is cp1252, which cannot decode an em dash. The
+        # register's own prose is full of them, so the generator would die on
+        # the first issue that quoted the design it projects.
+        encoding="utf-8",
         cwd=ROOT,
     )
     if finished.returncode != 0:

@@ -32,7 +32,7 @@ A `measurement` cutoff that reads as watched and is not. This is `uncut` **weari
 None. Every `measurement` cutoff names a rig that exists and has reported.
 
 
-A run is recorded by a `@rig` field block on a comment on the problem, which is what the rig report files ([#284](https://github.com/NGL321/patchworks/issues/284)), or by `register:overdue`, since a bar cannot be crossed without the rig running. **Note for #284:** it currently files a comment only on a *crossing*, so a rig that runs regularly and never crosses records nothing and will sit in this section. Filing the per-problem report line — which #284 already specifies printing — would clear that.
+A run is recorded by a `@rig` field block on a comment on the problem, which is what the rig report files ([#284](https://github.com/NGL321/patchworks/issues/284), `tools/cutoff_report.py`), or by `register:overdue`, since a bar cannot be crossed without the rig running. The report files **every evaluated run** and not only a crossing, so a rig that runs regularly and never crosses leaves this section rather than sitting in it. A row here therefore means one of two things and not a third: the rig has genuinely not run, or it has not been given the hook.
 
 
 ## Open problems

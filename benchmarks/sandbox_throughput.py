@@ -18,13 +18,27 @@ The render is the GL stack's, not MuJoCo's alone: on the development laptop it
 is CGL, and in CI `MUJOCO_GL=osmesa` makes it software. Those are different
 machines by the same argument as above, so the two rows are reported side by
 side rather than reduced to a ratio anything is compared against.
+
+**It carries the cutoff hook** (#284). After the rows, it states for every open
+problem whose `@cutoff measurement` names this rig whether the bar was crossed,
+and records the run on the problem — `tools/cutoff_report.py`, and
+`docs/agents/registers.md`, *Cutoffs*. That is the only way a measurement cutoff
+can fire, because a rig is the only thing that takes the reading and rigs do not
+run in CI. It changes nothing about the paragraph above: the report is printed
+and filed, nothing is asserted, and a crossing does not make this script exit
+non-zero. `--no-file` prints the same report and touches the tracker not at all.
+
+The metrics a bar may name are :func:`readings`' keys.
 """
 
 from __future__ import annotations
 
+import argparse
 import math
 import os
+import pathlib
 import statistics
+import sys
 import time
 
 import numpy as np
@@ -34,6 +48,11 @@ import numpy as np
 # only because the machine is named the same way in each.
 from body_forward import cpu_name
 from patchworks.sandbox import PlanarPushSandbox
+
+# The cutoff hook lives in `tools/` and not here, because it shells `gh` and a
+# network tool belongs on the far side of the line `tests/test_cli.py` defends.
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "tools"))
+from cutoff_report import report as report_cutoffs  # noqa: E402
 
 TICKS = 300
 WARMUP = 20
@@ -70,7 +89,36 @@ def report(label: str, samples: list[float]) -> None:
     )
 
 
-def main() -> None:
+def readings(drawn: list[float], plain: list[float]) -> dict[str, float]:
+    """What this run has to offer a `measurement` cutoff, by name.
+
+    The keys are the vocabulary a `@cutoff measurement sandbox_throughput …`
+    may write a bar against, and they are stated here rather than derived from
+    the printed lines: a cutoff naming a metric this rig does not report is a
+    thing the report says out loud (`tools/cutoff_report.py`), and it can only
+    say it against a named set.
+    """
+    rendered = statistics.median(drawn)
+    blanked = statistics.median(plain)
+    return {
+        "ticks_per_second": 1e3 / rendered,
+        "ticks_per_second_blanked": 1e3 / blanked,
+        "step_ms": rendered,
+        "step_ms_blanked": blanked,
+        "camera_ms": rendered - blanked,
+    }
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument(
+        "--no-file",
+        dest="file",
+        action="store_false",
+        help="print the cutoff report and file nothing on the tracker",
+    )
+    arguments = parser.parse_args(argv)
+
     print(f"{cpu_name()}, MUJOCO_GL={os.environ.get('MUJOCO_GL', '(default)')}\n")
     drawn = time_steps(True)
     plain = time_steps(False)
@@ -83,6 +131,11 @@ def main() -> None:
         f"\nthe camera pass is {camera:.3f} ms, "
         f"{camera / statistics.median(plain):.1f}x the physics beside it."
     )
+    # The measurement half of the cutoff mechanism (#284). It states a verdict
+    # per open problem cutting on this rig, files the run on the problem, and
+    # asserts nothing -- a crossing is a report and a label, and this function
+    # still returns the same way it did before the bar was crossed.
+    report_cutoffs("sandbox_throughput", readings(drawn, plain), file=arguments.file)
 
 
 if __name__ == "__main__":
