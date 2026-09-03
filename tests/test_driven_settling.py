@@ -29,13 +29,14 @@ from conftest import SMALL
 from patchworks.graph import build_graph
 
 
-def result(opening, closing, ranks, taus=None, cells=None):
+def result(opening, closing, ranks, taus=None, cells=None, first=None):
     return {
         "seed": 0,
         "counted": 1,
         "opening": np.asarray(opening, dtype=float),
         "closing": np.asarray(closing, dtype=float),
         "ranks": np.asarray(ranks, dtype=float),
+        "first_ranks": np.asarray(first if first is not None else ranks, dtype=float),
         "transmitting": 2 * len(opening),
         "taus": taus or [],
         "cells": cells or [],
@@ -67,6 +68,27 @@ class TestTheDrain:
             result([1.0], [0.5], [[1.0, 3.0]]), edge_width=4
         )
         assert found["rank"] == pytest.approx(2.0)
+
+    def test_the_opening_rank_is_read_on_the_same_population(self):
+        """A crossing is only a *slide* if the fleet was somewhere else to begin with."""
+        found = driven_settling.drain(
+            result(
+                [1.0, 1.0],
+                [0.5, 2.0],
+                [[1.0, 1.0], [4.0, 4.0]],
+                first=[[3.6, 3.6], [3.6, 3.6]],
+            ),
+            edge_width=4,
+        )
+        assert found["was"] == pytest.approx(3.6)
+        assert found["rank"] == pytest.approx(1.0)
+
+    def test_a_fleet_that_started_where_it_ended_has_slid_nowhere(self):
+        """#156's fourth trap: the bar must not read a starting point as a slide."""
+        found = driven_settling.drain(
+            result([1.0], [0.5], [[1.2, 1.2]], first=[[1.2, 1.2]]), edge_width=4
+        )
+        assert found["rank"] == found["was"]
 
     def test_a_whole_fleet_of_rank_one_maps_crosses_the_bar(self):
         found = driven_settling.drain(

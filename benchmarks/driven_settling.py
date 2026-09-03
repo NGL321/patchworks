@@ -29,6 +29,14 @@ one, and the rank is read on the maps of those edges. **If no edge drains the
 reading is `m`**, the largest value the ratio can take — the failure absent reads
 maximally healthy, and never as a low number nobody looked at.
 
+**A crossing is only a slide if the fleet was somewhere else to begin with**, so
+the same population's rank in the *opening* window is reported beside it and
+offered as `draining_effective_rank_opening`. #156's fourth trap is a bar that
+fires on the architecture working, and a fleet already near rank-1 when the run
+began has not slid anywhere; a verdict whose baseline lives in someone's shell
+history is a verdict nobody can check. On `DEFAULT_SPEC` the maps are drawn at a
+median effective rank of about 3.6, so there is real distance to fall.
+
 **#91's float32 note needs no answer here**, and that is worth saying rather than
 rediscovering: the instrument already takes the ratio on the unit-normalised map
 in float64, precisely so that a scale-invariant quantity cannot come back `inf`
@@ -160,6 +168,7 @@ def measure(spec: DomeSpec, split: str, seed: int, ticks: int) -> dict[str, obje
     opening: list[np.ndarray] = []
     closing: list[np.ndarray] = []
     ranks: np.ndarray | None = None
+    first: np.ndarray | None = None
     transmitting = 0
     taus: list[list[float]] = []
     try:
@@ -174,7 +183,16 @@ def measure(spec: DomeSpec, split: str, seed: int, ticks: int) -> dict[str, obje
             # gives, so "energy fell" is a statement about the run rather than
             # about the constructor's zeros draining.
             if span <= index < 2 * span:
-                opening.append(diagnostics.edge_reading().energy.detach().numpy())
+                reading = diagnostics.edge_reading()
+                opening.append(reading.energy.detach().numpy())
+                # The rank in the *opening* window is what makes a crossing
+                # readable. #156's fourth trap is a bar firing on the
+                # architecture working, and a fleet that was already near
+                # rank-1 when the run began has not slid anywhere. Carried by
+                # the rig rather than computed on the side, because a verdict
+                # whose baseline lives in someone's shell history is a verdict
+                # nobody can check.
+                first = reading.effective_rank.detach().to(torch.float64).numpy()
             if index >= ticks - span:
                 reading = diagnostics.edge_reading()
                 closing.append(reading.energy.detach().numpy())
@@ -188,7 +206,7 @@ def measure(spec: DomeSpec, split: str, seed: int, ticks: int) -> dict[str, obje
                 )
     finally:
         env.close()
-    if not opening or not closing or ranks is None:
+    if not opening or not closing or ranks is None or first is None:
         return {"seed": seed, "counted": 0}
     return {
         "seed": seed,
@@ -196,6 +214,7 @@ def measure(spec: DomeSpec, split: str, seed: int, ticks: int) -> dict[str, obje
         "opening": np.median(np.stack(opening), axis=0),
         "closing": np.median(np.stack(closing), axis=0),
         "ranks": ranks,
+        "first_ranks": first,
         "transmitting": transmitting,
         "taus": taus,
         "cells": list(agent.dome.predicting),
@@ -213,13 +232,21 @@ def drain(result: dict[str, object], edge_width: int) -> dict[str, float]:
     opening = np.asarray(result["opening"])
     closing = np.asarray(result["closing"])
     ranks = np.asarray(result["ranks"])
+    was = np.asarray(result.get("first_ranks", ranks))
     draining = closing < opening
     share = float(draining.mean()) if draining.size else 0.0
     if not draining.any():
         # The failure absent reads maximally healthy, never as a low number
         # nobody looked at. `m` is the largest the participation ratio can take.
-        return {"rank": float(edge_width), "share": share}
-    return {"rank": float(np.median(ranks[draining].reshape(-1))), "share": share}
+        return {"rank": float(edge_width), "was": float(edge_width), "share": share}
+    return {
+        "rank": float(np.median(ranks[draining].reshape(-1))),
+        # The same population's rank in the opening window: a crossing is only
+        # a *slide* if this is higher, and #156's fourth trap is a bar that
+        # fires on a fleet which was already there when the run began.
+        "was": float(np.median(was[draining].reshape(-1))),
+        "share": share,
+    }
 
 
 def wander(result: dict[str, object], loops: dict[int, int]) -> dict[str, float]:
@@ -253,6 +280,7 @@ def readings(
         return {}
     return {
         "draining_effective_rank": float(np.median([d["rank"] for d in drains])),
+        "draining_effective_rank_opening": float(np.median([d["was"] for d in drains])),
         "draining_edge_share": float(np.median([d["share"] for d in drains])),
         "tau_wander_over_loop": float(np.median([w["ratio"] for w in wanders])),
     }
