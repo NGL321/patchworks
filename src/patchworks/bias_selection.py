@@ -83,8 +83,14 @@ actually happens. The falsification duty that travelled with that verdict was
 ADR-0005's and has **moved with the mechanism**: measured dwell no longer kills
 anything, because #143 demoted dwell from gating whether `tau` exists to gating
 how faithfully the operator's rate is realised — `K` does not reset at a fold.
-Whether the `dwell > tau` bar survives the demotion is #226, and it is open, so
-the bar is unrepealed here. The live margin-against-offset comparison keeps its
+The bar **survives the demotion and changes rank** (#226): `dwell > tau` is the
+**licence for the cheap spectral instrument** rather than a bar on the design, so
+it is reported alongside every `tau` this module publishes and never asserted, and
+ADR-0005's falsification clause is retired. The `tau` it licenses is the slowest
+of the cell's retention constants read off the **full loop**
+`rho(K @ (J_chart + J_stalk @ A_v @ D))`, not the chart half (#271, #274). This
+module's go/no-go gains **no arm** for it: dwell is a property of a run and
+construction cannot read it. The live margin-against-offset comparison keeps its
 job unchanged: attributing a cell that left its region to reconciliation rather
 than to its own dynamics.
 

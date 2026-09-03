@@ -23,9 +23,11 @@
 > pre-registered falsification. Two amendments recorded below are consequently spent: the #41
 > distributional reading of the regional spectrum, and the construction-time placement of `τ` by level
 > in overlapping bands. **Region dwell is demoted rather than dropped** — it gated whether `τ` was
-> *well-defined*, and under `λ(K)` it gates only how *faithfully* the operator's rate is realised;
-> whether the `dwell > τ` bar survives that demotion is
-> [#226](https://github.com/NGL321/patchworks/issues/226) and is open.
+> *well-defined*, and under `λ(K)` it gates only how *faithfully* the operator's rate is realised.
+> **The `dwell > τ` bar survives that demotion and its rank changes**
+> ([#226](https://github.com/NGL321/patchworks/issues/226)): it is the **licence for the cheap
+> spectral instrument**, not a bar on the architecture, and **this ADR's falsification clause is
+> retired** with it. See the amendment under *Consequences*.
 >
 > The #138 amendment below is what lifted the foreclosure this ADR rejected per-cell time constants
 > on. It named no successor, deliberately. ADR-0028 is that successor.
@@ -153,17 +155,52 @@ capability depends on timescale at all — and thereby becomes an already-valida
   `DEFAULT_SAFETY_FACTOR` transplanted onto a duration it was never derived for. `05-timescales.md`
   carries the derivation.
 
-  **A collapse of median `dwell/τ` below 1 falsifies the claim that placing biases is *sufficient* to
-  buy a timescale.** Not the placement — the biases would have done exactly what they were asked. Not
-  the `K` band. Not persistence-by-regional-spectrum as a concept. It falsifies **sufficiency**,
-  because `τ` is placed by the biases while dwell is set by how fast the graph's chatter walks the
-  operating point across creases, and nothing couples the two: `corr(log τ, log dwell) = −0.110` in
-  the live run, against #42's construction-time `corr(log ρ, log margin) = −0.006`. The mechanism has
-  an **unenforced precondition**. `05-timescales.md` books that decoupling as a win — selecting a cell
-  slow costs it no region definition, so the body's width trade is paid once — and only ever wrote the
-  favourable direction; the other direction is that **selecting a cell slow buys it no residency to be
-  slow in**. Individual cells below the floor falsify neither claim and are a placement finding owned
-  by [#205](https://github.com/NGL321/patchworks/issues/205).
+  *Amended by [#226](https://github.com/NGL321/patchworks/issues/226) on the referent, and on what
+  the bar is a bar on.* The bar stays, with the same derived `1`, and two things about it change.
+
+  **The referent is re-pointed and the number is unchanged.** `dwell > τ` is one e-fold of **the
+  operator's own retention** rather than of the region's: `exp(−D/τ)` is the fraction of the cell's
+  retained content that decays while the observables hold still. The arithmetic never depended on `τ`
+  being the region's, and it is cleaner under `λ(K)`, not weaker. Two things are now stated that
+  previously read as open: `τ` is **the slowest of the cell's twelve retention constants** — already
+  what `read.py` computes, `eigvals(...).abs().amax()` — read off the **full loop**
+  `ρ(K · (J_chart + J_stalk · A_v · D))` and not the chart half
+  ([#271](https://github.com/NGL321/patchworks/issues/271),
+  [#274](https://github.com/NGL321/patchworks/issues/274)).
+
+  **`dwell > τ` is a validity condition on the spectral instrument, not an architectural bar.** There
+  are two instruments for retention: the cheap `τ = −1/ln ρ`, available at construction, and
+  [#242](https://github.com/NGL321/patchworks/issues/242)'s measured `τ̂`, available only from a run.
+  `encode` is piecewise linear, so realised retention over `N` ticks is a product of `N` operators
+  `K · J_encode(region_t)`; the cheap reading stands in for the expensive one only while that operator
+  holds still, and dwell is how long it holds still. So the bar is **published wherever the spectral
+  `τ` is published**, and is **reported, never asserted**, in #206's language. It composes with #242
+  as `|loop(c)| ≤ τ_c < dwell_c` — **one architectural bar (#242, on `τ̂`) plus the licence for the
+  proxy**, not two bars — whose `τ`-free consequence, `dwell_c > |loop(c)|`, is what is readable
+  today.
+
+  ~~**A collapse of median `dwell/τ` below 1 falsifies the claim that placing biases is *sufficient*
+  to buy a timescale.**~~ ***Retired by #226. This ADR's falsification clause is withdrawn, not
+  re-pointed.*** Two independent reasons. **Placement stopped being the mechanism** at
+  [#143](https://github.com/NGL321/patchworks/issues/143), which moved retention onto `λ(K)`, and
+  [#276](https://github.com/NGL321/patchworks/issues/276) found `select()` never ran in any Sheaf that
+  ticks — so there was no sufficiency-of-placement claim left for a dwell reading to falsify. And more
+  fundamentally: **no dwell reading falsifies *timescale is persistence, not a schedule*.** What would
+  is retention achieved and conduction still absent — `τ̂` raised to the loop and the rim still not
+  reaching the core — and that experiment lives on #242's measured quantity, in
+  [ADR-0026](./0026-rim-core-influence-is-a-conduction-ratio.md), not here. A breach invalidates the
+  **instrument**, not the design.
+
+  **What survives the retirement is the observation, and it is filed as a problem rather than as a
+  falsifier.** `τ` and dwell are measurably independent — `corr(log τ, log dwell) = −0.110` in the
+  live run against #42's construction-time `corr(log ρ, log margin) = −0.006` — so the mechanism has
+  an **unenforced precondition**: `05-timescales.md` books the decoupling as a win, having written
+  only the favourable direction, while the other direction is that **selecting a cell slow buys it no
+  residency to be slow in**. That is [#344](https://github.com/NGL321/patchworks/issues/344). It is
+  **live today rather than latent**: on the corrected operator the median `dwell/τ` is **2.00** and
+  **57 of 150** cells fail the licence, where the chart-only reading published 9.49 and 3. Individual
+  cells below the floor are a placement finding owned by
+  [#205](https://github.com/NGL321/patchworks/issues/205).
 - **The biases become over-subscribed** — three geometrically distinct jobs on one per-cell vector,
   the third being to preserve private directions through a frozen `encode`. First concrete argument
   for pulling per-cell adapters off the flex ladder early.

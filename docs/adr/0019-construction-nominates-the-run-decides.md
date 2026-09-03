@@ -228,7 +228,13 @@ earned over the run**. *(Those are the **windowed** estimator, over a trailing w
 25,000 across the checkpoint table. [#208](https://github.com/NGL321/patchworks/issues/208) states
 dwell as the **cumulative** mean residency to the horizon, on which the same run reads 0.96 at tick
 100 and a median of 9.49 at the horizon — the same shape, and the shape is all this paragraph rests
-on. The 131 of 150 above is likewise windowed; cumulative gives 125.)* The original argument was
+on. The 131 of 150 above is likewise windowed; cumulative gives 125.)* *(Every figure in this
+paragraph is the **chart-only** `τ`, superseded in magnitude by
+[#274](https://github.com/NGL321/patchworks/issues/274) and
+[#226](https://github.com/NGL321/patchworks/issues/226): on the corrected full-loop operator the
+cumulative median at the horizon is **2.00**, not 9.49. **The early checkpoints have not been re-read
+under that operator**, so whether the fail-early-earn-it-back shape survives the swap is unmeasured;
+nothing here is re-asserted on the corrected reading.)* The original argument was
 sound — during the transient the offset is model-error dominated, and **a cell whose region flips at tick 2,000 has no slow content to protect**,
 its `H⁰` holding nothing worth keeping — and it was attached to the wrong reading. It is kept here as
 the reason the early breaches cost nothing, with no count resting on it.
