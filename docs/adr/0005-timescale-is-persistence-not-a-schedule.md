@@ -197,10 +197,15 @@ capability depends on timescale at all — and thereby becomes an already-valida
   an **unenforced precondition**: `05-timescales.md` books the decoupling as a win, having written
   only the favourable direction, while the other direction is that **selecting a cell slow buys it no
   residency to be slow in**. That is [#344](https://github.com/NGL321/patchworks/issues/344). It is
-  **live today rather than latent**: on the corrected operator the median `dwell/τ` is **2.00** and
-  **57 of 150** cells fail the licence, where the chart-only reading published 9.49 and 3. Individual
-  cells below the floor are a placement finding owned by
-  [#205](https://github.com/NGL321/patchworks/issues/205).
+  **live today rather than latent**: on the corrected operator, with dwell and `τ` read **off the
+  same run** ([#361](https://github.com/NGL321/patchworks/issues/361), seed 42 at 100,000 ticks), the
+  median `dwell/τ` is **3.923** and **19 of 150** cells fail the licence, where the chart-only
+  reading published 9.49 and 3. *The 2.00 and 57 of 150 that stood here were #226's mismatched
+  pairing — seed-42 dwell against another run's `τ` — and were pessimistic by about 2x; #361
+  supersedes them rather than amending them.* Across nine seeds at 30,000 ticks the median runs
+  **2.165 to 10.984** and **every seed clears the bar at the median**, so the licence is breached at
+  cells rather than in the aggregate. Individual cells below the floor are a placement finding owned
+  by [#205](https://github.com/NGL321/patchworks/issues/205).
 - **The biases become over-subscribed** — three geometrically distinct jobs on one per-cell vector,
   the third being to preserve private directions through a frozen `encode`. First concrete argument
   for pulling per-cell adapters off the flex ladder early.

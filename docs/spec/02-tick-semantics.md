@@ -328,7 +328,10 @@ above is unchanged in shape, and the pass condition it clears is `dwell > τ` on
 not the `2.6 τ` count. The estimator is named because leaving it unstated let one measurement
 circulate as three different numbers. *And every figure in these two paragraphs is the **chart-only**
 `τ` (#274, [#226](https://github.com/NGL321/patchworks/issues/226)): the corrected cumulative median
-at the horizon is **2.00** and **93 of 150** clear `dwell > τ`. **The early checkpoints have not been
+at the horizon is **3.923** and **131 of 150** clear `dwell > τ` —
+[#361](https://github.com/NGL321/patchworks/issues/361)'s same-run reading at this seed and horizon,
+superseding #226's 2.00 at 93 of 150, which paired dwell and `τ` off two different runs and was
+pessimistic by about 2x. **The early checkpoints have not been
 re-read under the corrected operator**, so the fail-early-earn-it-back shape is unmeasured there and
 is not re-asserted. `dwell > τ` is also no longer a pass condition on the design — since #226 it is
 the **licence for the spectral instrument**, reported and never asserted.*
