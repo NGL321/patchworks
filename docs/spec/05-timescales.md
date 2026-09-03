@@ -425,12 +425,30 @@ guillotine that has not dropped because the thing it cuts has not arrived.
 > [`prototypes/driven-rho-274/`](../../prototypes/driven-rho-274/).
 
 **Whether `τ ≈ 1 tick` is what construction meant to place was #143's question, and it is now
-answered: construction is not what places it.** The flat reading — 0.91 at the apex against 0.99 at
-the rim on the direct round trip, after a construction that assigned `τ` bands by level — is the
-measurement the placement mechanism failed on, and it is why the gradient is handed to learning
-below. **That survives the correction noted above**: the relay's lift is flat across the graph too,
-so no placed gradient is visible under either operator. The `dwell/τ` numbers are a ratio of two
-measured quantities — and **one of them has since moved**, which is the note's last bullet and
+answered: construction is not what places it (ADR-0028).** But **the flat reading is not the
+measurement that answered it** (#271, #276), and that is the one correction to the ruling below.
+Every number in the paragraph above was read on a body whose biases were **drawn iid**:
+`Sheaf.__init__` (`tick.py:557`) defaults to `CellBiases(...)`, and
+`benchmarks/untrained_fixed_point.build()` — the harness behind #206 and #208, and therefore behind
+this reading — constructs its `Agent` with no biases argument. `bias_selection.select()`, the banded
+depth-ordered placement, runs only where nothing runs afterwards:
+
+| rig | applies `select()`? |
+|---|---|
+| `bias_selection.go_no_go` — the construction-time body check below | **yes**, and reports on it |
+| `tests/test_bias_selection.py` | **yes**, against fixtures |
+| `Sheaf.__init__` (`tick.py:557`) — every running graph | **no**; defaults to `CellBiases(...)`, drawn iid |
+| `benchmarks/untrained_fixed_point.build()` — the #206/#208 rig behind `τ` above | **no**; passes no biases |
+
+**`select()` has never written into a Sheaf that runs.** So the flat `τ` is a flat measurement of a
+gradient **nobody placed**, and it is evidence about neither the placement mechanism nor learning.
+**The correction above does not rescue it as evidence either**: the relay's lift is flat across the
+graph too, so there is no placed gradient to see under *either* operator, and flatness under both is
+still flatness in a run where nothing was placed.
+[#143](https://github.com/NGL321/patchworks/issues/143)'s claim — that nothing guarantees learning
+produces the gradient — therefore stands **unchecked**: no run has carried a placed gradient for
+learning to preserve or destroy. The `dwell/τ` numbers are a ratio of two measured quantities — and
+**one of them has since moved**, which is the note's last bullet and
 [#226](https://github.com/NGL321/patchworks/issues/226)'s to settle.
 
 **Those counts were read on the post-conversion body.** The Koopman conversion merged as
@@ -543,13 +561,15 @@ the Koopman conversion, and **the second is spent**:
    negative with margin.
 2. **~~The spread is imposed by selection, not by drawing.~~ Spent by #143, and kept struck rather
    than deleted.** The rig drew candidate bias vectors, measured the timescale each produced, and
-   kept a set covering the target band. **It worked as specified and the graph came out flat
-   anyway** — 0.91 at the apex against 0.99 at the rim on the direct round trip, and flat under the
-   corrected operator too (see the note under *What the live read says*) — because the biases are
-   the adapting surface
-   and drift off their bands with nothing re-selecting. That measurement is why *The gradient is
-   learning's job* rules the way it does, so the part is left visible: **placement is rejected on
-   evidence, not on argument, and this is the evidence.** What the sweep established stays true of
+   kept a set covering the target band. **It worked as specified — inside the go/no-go, which is the
+   only place it ever ran** (#276). `select()` never wrote into a Sheaf that ticks, so the flat
+   reading — 0.91 at the apex against 0.99 at the rim on the direct round trip, and flat under the
+   corrected operator too (see the note under *What the live read says*) — is *not* this part's
+   evidence, and the part is not spent on measurement. What spends it is the argument that survives
+   without one: the biases are the adapting surface and would drift off their bands with nothing
+   re-selecting, and re-selection needs the runtime rate ADR-0005 and ADR-0028 both refuse. The part
+   is left visible because *The gradient is learning's job* rules against placing by level, not
+   because placing by level was measured and failed. What the sweep established stays true of
    the body and is now read as reachability rather than as placement — taken *as drawn*, 400 cells
    span a `τ` ratio of 4.5; the reachable span across 20,000 draws is 16×, containing bias vectors
    whose regional `τ` is ≥ 100 ticks with `ρ` under one.
@@ -596,10 +616,21 @@ the Koopman conversion, and **the second is spent**:
 nothing does.** This is #143's ruling and it replaces *Selected timescales are assigned by level, in
 overlapping bands*, which stood here.
 
-**Placement is not rejected on argument. It was built, and it failed on measurement.** The
-construction assigned `τ` bands by level; the run reports **0.91 at the apex against 0.99 at the
-rim** — no gradient at all, and none under the corrected operator either, whose lift is flat across
-the graph (see the note under *What the live read says*). The biases *are* the adapting surface
+**Placement is not rejected on argument — but it was not rejected on measurement either, and that
+ground is struck (#276).**
+
+> ~~It was built, and it failed on measurement. The construction assigned `τ` bands by level; the
+> run reports **0.91 at the apex against 0.99 at the rim** — no gradient at all.~~
+> *Superseded by [#276](https://github.com/NGL321/patchworks/issues/276): the construction assigned
+> no bands in any run that was measured.* `select()` runs only in `go_no_go` and in the tests, and
+> both rigs that tick take iid draws — see the rig table under *The precondition: region dwell
+> against `τ`*. **The placement was never built into a running graph, so it never failed on one.**
+> The corrected operator does not restore the ground: its lift is flat across the graph too (see the
+> note under *What the live read says*), so both operators read flat on a body where nothing was
+> placed.
+
+**The retirement stands on the grounds that do not depend on that measurement**, and they carry it
+without help: the biases *are* the adapting surface
 ([ADR-0001](../adr/0001-continual-learning-applies-to-the-adapting-surface.md)), they drift off their
 bands, and **nothing re-selects** — deliberately, because re-selection needs a rate to steer toward,
 which is exactly the runtime parameter ADR-0005 refused and ADR-0028 keeps refusing. Placing by level
