@@ -117,17 +117,19 @@ _ISSUE_CELL = re.compile(r"^\[#(?P<number>\d+)\]\((?P<url>[^)]+)\)$")
 #: which is the admission the two-forms rule exists to refuse.
 _BAR = re.compile(
     r"^(?P<metric>[A-Za-z_]\w*)\s*"
-    r"(?P<comparator><=|>=|==|!=|<|>)\s*"
+    r"(?P<comparator><=|>=|<|>)\s*"
     r"(?P<value>[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)$"
 )
 
+#: The four comparators, and not `==` or `!=`. A cutoff is a *direction* a
+#: reading may go far enough in; equality on a measured float is a bar nothing
+#: ever lands on, and its negation is one that is crossed on the first run
+#: whatever the reading. Both would read as cutoffs and neither would be one.
 _COMPARE = {
     "<": lambda a, b: a < b,
     "<=": lambda a, b: a <= b,
     ">": lambda a, b: a > b,
     ">=": lambda a, b: a >= b,
-    "==": lambda a, b: a == b,
-    "!=": lambda a, b: a != b,
 }
 
 #: What a filed comment says its verdict was, so the next run can read it back
@@ -136,11 +138,23 @@ _COMPARE = {
 #: a run and must never be collected as a proposal.
 VERDICT_KEY = "verdict"
 
+#: What a run that could **not** evaluate the cutoff names itself with, instead
+#: of `@rig`. The distinction is load-bearing and it is the one thing #284
+#: refuses to paper over: `problem_registers._reports` collects every `@rig`
+#: block, and `unwatched()` drops a problem out of *cutoffs naming a rig with no
+#: recorded run* as soon as one appears. A run that read an unreadable bar, or
+#: found no such metric, has fired nothing -- recording it as a run would take
+#: the row out of the loud section and leave the problem reading as watched,
+#: which is the disguise that section exists to show. So the report is filed,
+#: because only the run can see the gap, and it is filed under a key the
+#: register does not count.
+UNEVALUATED_KEY = "unevaluated"
+
+#: The three verdicts, in the one spelling that goes into a comment, a stamp and
+#: a report line alike. Three and not two: *nothing could be checked* and *the
+#: bar held* are opposite states for a reader, and a `None` collapsed into
+#: `False` would file a clean bill of health for a cutoff nothing evaluated.
 _WORD = {True: "crossed", False: "clear", None: "not-evaluated"}
-
-
-class Unreadable(Exception):
-    """The register could not be read. Reported, never raised past :func:`report`."""
 
 
 # ---------------------------------------------------------------------------
@@ -314,6 +328,15 @@ def judge(watch: Watch, readings: dict[str, float]) -> Verdict:
 # ---------------------------------------------------------------------------
 
 
+def _stamp(rig: str, word: str) -> str:
+    """The one place the stamp's shape is known.
+
+    Written by :func:`stamp` and read back by :func:`last_verdict`, so the two
+    cannot drift into disagreeing about what "the same verdict again" means.
+    """
+    return f"{rig}:{word}"
+
+
 def stamp(verdict: Verdict) -> str:
     """What this run would leave on record: the rig and its verdict, not the number.
 
@@ -321,7 +344,7 @@ def stamp(verdict: Verdict) -> str:
     reading would file a comment on every run of every rig, which is the volume
     that turns a channel into noise.
     """
-    return f"{verdict.watch.rig}:{verdict.word}"
+    return _stamp(verdict.watch.rig, verdict.word)
 
 
 def worth_filing(verdict: Verdict, prior: str | None) -> bool:
@@ -343,9 +366,10 @@ def comment_body(verdict: Verdict) -> str:
     `overdue-provenance` channel's -- the fact, the reading, and what raised it.
     """
     watch = verdict.watch
+    key = registers.REPORT_KEY if verdict.crossed is not None else UNEVALUATED_KEY
     lines = [
         "```",
-        f"@{registers.REPORT_KEY}     {watch.rig}",
+        f"@{key} {watch.rig}",
         f"@{VERDICT_KEY} {verdict.word}",
         "```",
         "",
@@ -416,27 +440,42 @@ def gh(arguments: list[str], stdin: str | None = None) -> str:
     return finished.stdout
 
 
+def read_stamps(comments: list[dict], rig: str) -> str | None:
+    """The most recent stamp *rig* left in *comments*, or `None`.
+
+    Both keys are read: a run that evaluated the bar signs itself `@rig`, and a
+    run that could not signs itself `@unevaluated`, and the second is still a
+    thing this rig has already said. A comment carrying the key but no verdict
+    is **passed over rather than treated as a reset** -- a `@rig` note somebody
+    wrote by hand is not this module's record, and clearing the stamp on one
+    would make the next run file a verdict the issue already carries.
+    """
+    found = None
+    for entry in comments or []:
+        try:
+            fields = registers.field_block(entry.get("body") or "")
+        except registers.MalformedProvenance:
+            continue
+        if not fields:
+            continue
+        named = fields.get(registers.REPORT_KEY) or fields.get(UNEVALUATED_KEY) or []
+        if not named or registers.rig_name(named[0]) != rig:
+            continue
+        word = (fields.get(VERDICT_KEY) or [""])[0].strip()
+        if word:
+            found = _stamp(rig, word)
+    return found
+
+
 def last_verdict(number: int, rig: str) -> str | None:
-    """The most recent stamp this rig left on the problem, or `None`.
+    """:func:`read_stamps`, over the comments the tracker holds.
 
     Read off the comments rather than kept in a file: the record lives where the
     register reads it, and a second copy on disk is a second place the same fact
     lives.
     """
     payload = json.loads(gh(["issue", "view", str(number), "--json", "comments"]))
-    found = None
-    for entry in payload.get("comments") or []:
-        try:
-            fields = registers.field_block(entry.get("body") or "")
-        except registers.MalformedProvenance:
-            continue
-        if not fields or registers.REPORT_KEY not in fields:
-            continue
-        if registers.rig_name(fields[registers.REPORT_KEY][0]) != rig:
-            continue
-        word = (fields.get(VERDICT_KEY) or [""])[0].strip()
-        found = f"{rig}:{word}" if word else None
-    return found
+    return read_stamps(payload.get("comments") or [], rig)
 
 
 def file_report(verdict: Verdict) -> str:
@@ -451,7 +490,10 @@ def file_report(verdict: Verdict) -> str:
     try:
         prior = last_verdict(watch.number, watch.rig)
         if not worth_filing(verdict, prior):
-            return f"already on record ({prior.split(':')[-1]})"
+            # The verdict, not the stamp taken apart again: `stamp` is the only
+            # thing that knows the shape, and the two agreeing is what got us
+            # here.
+            return f"already on record ({verdict.word})"
         gh(
             ["issue", "comment", str(watch.number), "--body-file", "-"],
             stdin=comment_body(verdict),
@@ -483,47 +525,42 @@ def file_report(verdict: Verdict) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _text(register: str | pathlib.Path | None) -> str | None:
-    if register is None:
-        return None
-    if isinstance(register, pathlib.Path):
-        return register.read_text(encoding="utf-8") if register.is_file() else None
-    return register
-
-
 def report(
     rig: str,
     readings: dict[str, float],
     *,
-    register: str | pathlib.Path | None = REGISTER,
+    register: pathlib.Path | None = REGISTER,
     file: bool = True,
-    out=None,
 ) -> list[Verdict]:
     """State, for each open problem cutting on *rig*, whether the bar was crossed.
 
     This is the whole hook, and a rig calls it once at the end of its run with
     what it measured. It prints, it files, and it returns the verdicts; it does
     not raise and it does not decide the exit code.
+
+    `register` is a path and `None` says there is no register to read -- which
+    is the same state a missing file leaves, and is reported rather than raised
+    for the same reason everything else here is.
     """
-    stream = sys.stdout if out is None else out
     name = registers.rig_name(rig)
-    text = _text(register)
-    print(f"\n== cutoffs naming `{name}` ==", file=stream)
+    text = (
+        register.read_text(encoding="utf-8")
+        if register is not None and register.is_file()
+        else None
+    )
+    print(f"\n== cutoffs naming `{name}` ==")
     if text is None:
-        where = register if isinstance(register, pathlib.Path) else REGISTER
         print(
-            f"   the open problems register is not readable at {where}: no "
-            "cutoff could be evaluated. Regenerate it with "
-            "`python tools/problem_registers.py`.",
-            file=stream,
+            f"   the open problems register is not readable at "
+            f"{register or REGISTER}: no cutoff could be evaluated. Regenerate "
+            "it with `python tools/problem_registers.py`."
         )
         return []
     found = watching(text, name)
     if not found:
         print(
             f"   no open problem cuts on `{name}`. Nothing to evaluate, and that "
-            "is a statement rather than a silence.",
-            file=stream,
+            "is a statement rather than a silence."
         )
         return []
     verdicts = [judge(watch, readings) for watch in found]
@@ -531,15 +568,14 @@ def report(
         line = verdict.line
         if file:
             line += f"   [{file_report(verdict)}]"
-        print(line, file=stream)
+        print(line)
         # ASCII, unlike the comment this files: the report goes to whatever
         # console the rig was run from, and on Windows that is still cp1252,
         # which turns an em dash into a replacement character mid-report.
-        print(f"         {verdict.watch.title} - {verdict.watch.url}", file=stream)
+        print(f"         {verdict.watch.title} - {verdict.watch.url}")
     print(
         "   A rig asserts nothing: a crossing above is a report and a label, "
-        "not a failure.",
-        file=stream,
+        "not a failure."
     )
     return verdicts
 

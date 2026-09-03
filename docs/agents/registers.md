@@ -185,6 +185,11 @@ author, and "when it becomes a problem" is not a cutoff but the absence of one.
   regularly and recorded nothing until it crossed would sit in *cutoffs naming a rig with no recorded
   run* the whole time it was in fact being watched.
 
+  **A run that could not evaluate the bar is not a run.** It is reported and filed like any other —
+  only the run can see that the metric is missing or the threshold unreadable — but under `@unevaluated`,
+  which the register does not count. Signing it `@rig` would lift the problem out of that loud section
+  while nothing whatever was watching it, which is the disguise the section exists to show.
+
   The hook is one call at the end of a rig's `main` — `benchmarks/sandbox_throughput.py` is the rig
   that carries it — and it changes nothing about a rig asserting nothing: a crossing is a report and
   a label, never a failure and never a non-zero exit.

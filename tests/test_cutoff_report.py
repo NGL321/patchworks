@@ -26,6 +26,8 @@ leaving a rig that watches nothing.
 exit code; a crossing is a report and a label.
 """
 
+import json
+
 import pytest
 
 import cutoff_report as hook
@@ -158,6 +160,16 @@ class TestABarIsAMetricAComparatorAndANumber:
     def test_an_unreadable_bar_is_none_rather_than_a_guess(self, threshold):
         assert hook.read_bar(threshold) is None
 
+    @pytest.mark.parametrize("threshold", ["offset == 0.2", "offset != 0.2"])
+    def test_equality_is_not_a_comparator_a_cutoff_may_use(self, threshold):
+        """A cutoff is a direction a reading may go far enough in.
+
+        Equality on a measured float is a bar nothing ever lands on, and its
+        negation is one crossed on the first run whatever the reading. Both read
+        as cutoffs and neither is one.
+        """
+        assert hook.read_bar(threshold) is None
+
 
 # ---------------------------------------------------------------------------
 # the verdict
@@ -195,7 +207,13 @@ class TestTheVerdictStatesTheBarTheReadingAndWhetherItCrossed:
 class TestTheReportIsPrintedWhateverHappened:
     """A crossed cutoff is a report and a label, never a failure and never an exit."""
 
-    def test_every_watched_problem_gets_a_line(self, capsys):
+    def register(self, tmp_path, text):
+        """The rendered register as the rig meets it: a file on disk."""
+        path = tmp_path / "open-problems.md"
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def test_every_watched_problem_gets_a_line(self, tmp_path, capsys):
         text = rendered(
             problem(number=101),
             problem(number=102, cutoff="measurement sandbox_throughput camera_ms > 5"),
@@ -203,7 +221,7 @@ class TestTheReportIsPrintedWhateverHappened:
         verdicts = hook.report(
             "sandbox_throughput",
             {"ticks_per_second": 210.0, "camera_ms": 1.2},
-            register=text,
+            register=self.register(tmp_path, text),
             file=False,
         )
         printed = capsys.readouterr().out
@@ -211,12 +229,22 @@ class TestTheReportIsPrintedWhateverHappened:
         assert "CROSSED" in printed and "CLEAR" in printed
         assert [v.crossed for v in verdicts] == [True, False]
 
-    def test_a_rig_nothing_cuts_on_says_so_rather_than_nothing(self, capsys):
+    def test_a_rig_nothing_cuts_on_says_so_rather_than_nothing(self, tmp_path, capsys):
         """Silence would read the same as a hook nobody wired up."""
-        hook.report("sandbox_throughput", {}, register=rendered(), file=False)
+        hook.report(
+            "sandbox_throughput",
+            {},
+            register=self.register(tmp_path, rendered()),
+            file=False,
+        )
         assert "sandbox_throughput" in capsys.readouterr().out
 
-    def test_an_unreadable_register_is_reported_and_never_raised(self, capsys):
+    def test_a_register_that_is_not_there_is_reported_and_never_raised(
+        self, tmp_path, capsys
+    ):
+        """A rig on a machine with no checked-out register still finishes its run."""
+        missing = tmp_path / "not-generated-yet.md"
+        assert hook.report("sandbox_throughput", {}, register=missing, file=False) == []
         assert hook.report("sandbox_throughput", {}, register=None, file=False) == []
         assert "cutoff" in capsys.readouterr().out.lower()
 
@@ -261,6 +289,62 @@ class TestTheCommentRecordsTheRunTheRegisterCanRead:
         assert "cutoff_report.py" in self._body({"ticks_per_second": 412.0})
 
 
+class TestARunThatEvaluatedNothingIsNotRecordedAsARun:
+    """The one hole #284 is told not to close, kept open.
+
+    *"Do not try to close it here: a measurement cutoff on a rig nobody runs
+    never fires… that is why #279's design makes the register render cutoffs
+    naming a rig with no recorded run as its own loud section."*
+
+    A run that could not read the bar, or found no such metric, has fired
+    nothing. Signing that as a run would take the problem out of that loud
+    section and leave it reading as watched — the disguise the section exists to
+    show, now applied by the very tool that was meant to reveal it. So the
+    report is still filed, because only the run can see the gap, and it is filed
+    under a key the register does not count.
+    """
+
+    def _payload(self, readings, threshold="it gets slow"):
+        watch = hook.watching(
+            rendered(problem(cutoff=f"measurement sandbox_throughput {threshold}")),
+            "sandbox_throughput",
+        )[0]
+        body = hook.comment_body(hook.judge(watch, readings))
+        return {
+            "number": 101,
+            "title": "A problem",
+            "body": (
+                "```\n@failure a failure\n"
+                "@cutoff measurement sandbox_throughput ticks_per_second < 300\n```\n"
+            ),
+            "state": "OPEN",
+            "url": "https://github.com/NGL321/patchworks/issues/101",
+            "labels": [{"name": "register:problem"}],
+            "comments": [{"body": body}],
+        }
+
+    def test_an_unreadable_bar_leaves_the_problem_in_the_loud_section(self):
+        found = registers.read_problem(self._payload({"ticks_per_second": 210.0}))
+        assert found.reports == frozenset()
+        survey = registers.Registers()
+        survey.problems.append(found)
+        unwatched = registers.unwatched(survey, frozenset({"sandbox_throughput"}))
+        assert [u.reason for u in unwatched] == [registers.NO_RUN]
+
+    def test_a_metric_the_run_did_not_report_leaves_it_there_too(self):
+        payload = self._payload({"camera_ms": 1.2}, threshold="ticks_per_second < 300")
+        assert registers.read_problem(payload).reports == frozenset()
+
+    def test_an_evaluated_run_does_record_one(self):
+        """The contrast: a bar that was actually read leaves `@rig` behind."""
+        payload = self._payload(
+            {"ticks_per_second": 412.0}, threshold="ticks_per_second < 300"
+        )
+        assert registers.read_problem(payload).reports == frozenset(
+            {"sandbox_throughput"}
+        )
+
+
 class TestFilingIsIdempotentTheWayTheOverdueChannelIs:
     """One report at a time. A report nobody can keep up with is a report nobody reads.
 
@@ -291,3 +375,102 @@ class TestFilingIsIdempotentTheWayTheOverdueChannelIs:
         assert hook.stamp(self._verdict({"ticks_per_second": 412.0})) == hook.stamp(
             self._verdict({"ticks_per_second": 407.0})
         )
+
+    def test_what_this_rig_last_said_is_read_back_off_the_comments(self):
+        clear = self._verdict({"ticks_per_second": 412.0})
+        crossed = self._verdict({"ticks_per_second": 210.0})
+        comments = [{"body": hook.comment_body(clear)}]
+        assert hook.read_stamps(comments, "sandbox_throughput") == hook.stamp(clear)
+        comments.append({"body": hook.comment_body(crossed)})
+        assert hook.read_stamps(comments, "sandbox_throughput") == hook.stamp(crossed)
+
+    def test_a_run_that_evaluated_nothing_is_still_a_thing_this_rig_has_said(self):
+        """It does not count as a *run*; it does count as already reported."""
+        watch = hook.watching(
+            rendered(problem(cutoff="measurement sandbox_throughput it gets slow")),
+            "sandbox_throughput",
+        )[0]
+        verdict = hook.judge(watch, {})
+        comments = [{"body": hook.comment_body(verdict)}]
+        assert hook.read_stamps(comments, "sandbox_throughput") == hook.stamp(verdict)
+        assert not hook.worth_filing(verdict, hook.stamp(verdict))
+
+    def test_another_rigs_record_is_not_mine(self):
+        clear = self._verdict({"ticks_per_second": 412.0})
+        assert hook.read_stamps([{"body": hook.comment_body(clear)}], "detectability") is None
+
+    def test_a_hand_written_rig_note_does_not_clear_the_record(self):
+        """A comment carrying `@rig` and no verdict is somebody's note, not a run.
+
+        Treating it as a reset would file a verdict the issue already carries,
+        which is the repetition the `overdue-provenance` channel's one-report-at-
+        a-time rule exists to prevent.
+        """
+        clear = self._verdict({"ticks_per_second": 412.0})
+        comments = [
+            {"body": hook.comment_body(clear)},
+            {"body": "```\n@rig sandbox_throughput\n```\n\nI ran this by hand.\n"},
+        ]
+        assert hook.read_stamps(comments, "sandbox_throughput") == hook.stamp(clear)
+
+
+class TestTheFilingArmDoesTwoThingsAndOnlyOnACrossingBoth:
+    """`gh` stood in for, because nothing in this suite may reach the network.
+
+    What is asserted is the *calls*: which of them are made, in what order, and
+    that the label is one of them only when the bar was crossed. The stand-in is
+    a function, not a subprocess — `tests/test_cli.py` breaks every route to one
+    and this file must stay on the right side of that.
+    """
+
+    def _verdict(self, readings):
+        watch = hook.watching(rendered(problem()), "sandbox_throughput")[0]
+        return hook.judge(watch, readings)
+
+    def _calls(self, monkeypatch, verdict, comments=()):
+        made = []
+
+        def stand_in(arguments, stdin=None):
+            made.append((arguments, stdin))
+            if arguments[:2] == ["issue", "view"]:
+                return json.dumps({"comments": list(comments)})
+            return ""
+
+        monkeypatch.setattr(hook, "gh", stand_in)
+        return made, hook.file_report(verdict)
+
+    def test_a_crossing_files_the_comment_and_the_label(self, monkeypatch):
+        made, done = self._calls(monkeypatch, self._verdict({"ticks_per_second": 210}))
+        assert [call[0][:2] for call in made] == [
+            ["issue", "view"],
+            ["issue", "comment"],
+            ["issue", "edit"],
+        ]
+        assert made[1][1] == hook.comment_body(self._verdict({"ticks_per_second": 210}))
+        assert registers.OVERDUE_LABEL in made[2][0]
+        assert registers.OVERDUE_LABEL in done
+
+    def test_a_clear_reading_files_the_comment_and_no_label(self, monkeypatch):
+        made, done = self._calls(monkeypatch, self._verdict({"ticks_per_second": 412}))
+        assert [call[0][:2] for call in made] == [
+            ["issue", "view"],
+            ["issue", "comment"],
+        ]
+        assert registers.OVERDUE_LABEL not in done
+
+    def test_the_same_verdict_again_files_nothing_at_all(self, monkeypatch):
+        clear = self._verdict({"ticks_per_second": 412.0})
+        made, done = self._calls(
+            monkeypatch, clear, comments=[{"body": hook.comment_body(clear)}]
+        )
+        assert [call[0][:2] for call in made] == [["issue", "view"]]
+        assert "already on record" in done
+
+    def test_gh_being_unreachable_costs_the_run_nothing(self, monkeypatch):
+        """Offline, unauthenticated and rate-limited are ordinary states here."""
+
+        def refuse(arguments, stdin=None):
+            raise FileNotFoundError("gh")
+
+        monkeypatch.setattr(hook, "gh", refuse)
+        assert "not filed" in hook.file_report(self._verdict({"ticks_per_second": 210}))

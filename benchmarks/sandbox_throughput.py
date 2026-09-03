@@ -19,14 +19,13 @@ is CGL, and in CI `MUJOCO_GL=osmesa` makes it software. Those are different
 machines by the same argument as above, so the two rows are reported side by
 side rather than reduced to a ratio anything is compared against.
 
-**It carries the cutoff hook** (#284). After the rows, it states for every open
-problem whose `@cutoff measurement` names this rig whether the bar was crossed,
-and records the run on the problem — `tools/cutoff_report.py`, and
-`docs/agents/registers.md`, *Cutoffs*. That is the only way a measurement cutoff
-can fire, because a rig is the only thing that takes the reading and rigs do not
-run in CI. It changes nothing about the paragraph above: the report is printed
-and filed, nothing is asserted, and a crossing does not make this script exit
-non-zero. `--no-file` prints the same report and touches the tracker not at all.
+**It carries the cutoff hook** (#284): after the rows, it evaluates every open
+problem whose `@cutoff measurement` names this rig. What that means and why it
+lives in the report rather than in CI is `tools/cutoff_report.py`, and the
+design is `docs/agents/registers.md`, *Cutoffs*. It changes nothing about the
+paragraph above — the report is printed and filed, nothing is asserted, and a
+crossing does not make this script exit non-zero. `--no-file` prints the same
+report and touches the tracker not at all.
 
 The metrics a bar may name are :func:`readings`' keys.
 """
