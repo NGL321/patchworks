@@ -258,20 +258,27 @@ class TestTheArithmeticFloorHasADefinitionSite:
         """
         assert registers.lands_in(self._entry(surveys, "PRECISION_FLOOR")) == "architecture"
 
-    def test_the_floor_magnitude_is_a_debt_against_the_first_read(self, surveys):
-        """No run has published `eps_f32 * ||state||`, and the row says so.
+    def test_the_floor_magnitude_is_a_reading_and_the_debt_is_paid(self, surveys):
+        """#379 published `eps_f32 * ||state||`, so the row is `measured` now.
 
-        `@provisional` is *resting on an unmet precondition*, which is exactly
-        this: the precondition is a read, owed by
+        This test was written as *the debt exists*: `@provisional` is resting on
+        an unmet precondition, and the precondition was a read owed by
         [#379](https://github.com/NGL321/patchworks/issues/379), which carries
-        ADR-0026's gate into the `tau_hat` reading. Typing it `measured` with no
-        measurement, or leaving the quantity in a comment, are the two things
-        the rider ruled out.
+        ADR-0026's gate into the `tau_hat` reading. That read happened — the
+        trained full dome, 24 trials — so the assertion turns over to *the debt
+        is discharged*, which is what the row was always going to become.
+
+        The two things #224's rider ruled out are still ruled out and are still
+        what this guards: typing it `measured` with **no** measurement, and
+        leaving the quantity in a comment rather than at a definition site. It
+        is `measured` here because there is a measurement, and the value is on
+        the constant rather than in prose.
         """
         entry = self._entry(surveys, "PRECISION_FLOOR")
-        assert entry.provisional == "379"
-        assert entry.type == ""
-        assert entry.value == "None"
+        assert entry.provisional == ""
+        assert entry.type == "measured"
+        assert entry.value != "None"
+        assert float(entry.value) > 0.0
 
     def test_the_floor_is_read_at_the_state_and_not_at_one(self):
         """`precision_floor` multiplies, because the epsilon is relative.

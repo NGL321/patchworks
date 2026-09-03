@@ -48,6 +48,7 @@ construction has to answer it as much as one bound at import.
 
 | name | value | type | flexibility | warrant | depends_on | source |
 |---|---|---|---|---|---|---|
+| `PRECISION_FLOOR` | `4.89e-07` | measured | not a knob and not a constant of the architecture: it is a reading, and it moves with the state it is read at, so the row records what the record has published rather than a value anything is set to | docs/adr/0026-rim-core-influence-is-a-conduction-ratio.md, The reading is gated on the runtime precision floor | — | `src/patchworks/tick.py` |
 | `EPS_F32` | `1.1920928955078125e-07` | derived | not a knob at all: it is the arithmetic the architecture runs in, and #224 ruled that precision is not a design variable | docs/adr/0026-rim-core-influence-is-a-conduction-ratio.md, The reading is gated on the runtime precision floor | torch.finfo, torch.float32 | `src/patchworks/tick.py` |
 | `DEFAULT_BIAS_VARIANCE` | `0.5` | selected | the weak knob of the two: three orders of magnitude barely move the regional spectra | docs/research/027-regional-jacobian-spectra.md | — | `src/patchworks/body.py` |
 | `DEFAULT_SPARSITY_PRESSURE` | `0.4` | selected | measured: at 0.4 the pressure gradient is a median 0.12 of the transport term's (0.114-0.127, three seeds) on the default dome | docs/spec/07-local-learning-rule.md, Permitted global signals; tests/test_transport_rule.py | — | `src/patchworks/learning.py` |
@@ -79,7 +80,6 @@ construction has to answer it as much as one bound at import.
 | `INITIAL_NORM` | `1.0` | chosen | unknown | here | — | `src/patchworks/restriction.py` |
 | `NORM_FLOOR` | `1e-24` | chosen | unknown; 1e-12 in the norm itself, far below anything the maps or stalks carry | here | — | `src/patchworks/learning.py` |
 | `CHART_DIM` | `12` | provisional #132 | rung 5, the last rung: may become a range or a gradient ACROSS THE GRAPH if uniformity fails (01-cell-and-sheaf.md, Flex priority). #132's axis is across DOMAINS, which the ladder does not license | docs/research/032-dimensioning-small-predictors.md (#172); docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/body.py` |
-| `PRECISION_FLOOR` | `None` | provisional #379 | unknown, and it is a reading rather than a knob: no run has ever published `eps_f32 * \|\|state\|\|` at a cell, so the row is a debt against the first read that does | docs/adr/0026-rim-core-influence-is-a-conduction-ratio.md, The reading is gated on the runtime precision floor | — | `src/patchworks/tick.py` |
 
 ## Marked `@register none`
 
