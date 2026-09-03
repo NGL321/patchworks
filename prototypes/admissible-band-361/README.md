@@ -162,7 +162,34 @@ here because reporting only the half that tightens would misstate the correction
 `|loop(c)| <= tau_c < dwell_c` at both ends holds at **32 to 56 of 150 cells** across the
 nine seeds — roughly a third, on every seed.
 
-## 4. The caveats that bind anything quoted from this
+## 4. The same reading at #226's own horizon — seeds 42–44 to 100,000 ticks
+
+30,000 is a horizon this rig chose. #226's numbers are at 100,000, so three seeds were run
+there too, and **the character does not change — it strengthens**:
+
+| seed | median dwell | empty band | median `dwell/tau` | licensed | conducts |
+|---|---|---|---|---|---|
+| 42 | 12.92 | 20/150 | 3.923 | 131/150 | 70/150 |
+| 43 | 28.82 | 7/150 | 13.315 | 149/150 | 24/150 |
+| 44 | 21.07 | 11/150 | 9.876 | 140/150 | 32/150 |
+
+Empty band **7 to 20 of 150**, median `dwell/tau` **3.923 to 13.315**, and again **0 of 150
+cells have an empty band on every seed** (28 on at least one, 122 on none).
+
+**The like-for-like comparison with #226 is the point of this table.** Same seed, same
+horizon, same dome and split — the only change is that both quantities now come from one
+run:
+
+| seed 42 at 100,000 ticks | #226's pairing | same-run |
+|---|---|---|
+| median `dwell/tau` | 1.997 | **3.923** |
+| clears `dwell > tau` | 93/150 | **131/150** |
+| empty band | 38/150 | **20/150** |
+
+The mismatched pairing **understated the ratio by about 2x and overstated the empty band by
+about 2x**, in the pessimistic direction on both.
+
+## 5. The caveats that bind anything quoted from this
 
 - **Every number here is a range over seeds**, never a median from one run. #274's binding
   caveat carries: `tau = -1/ln rho` is violently sensitive near `rho = 1`, so the spread is
@@ -172,20 +199,26 @@ nine seeds — roughly a third, on every seed.
   stand-in, and #226's whole point is that the stand-in is licensed only where
   `dwell > tau`. The corrected number is a better stand-in and is still a stand-in.
   [#99](https://github.com/NGL321/patchworks/issues/99) owes the real reading.
-- **A fixed seed does not fix the run.** Two independent runs at seed 42 agree exactly to
-  tick 5,000 and diverge after. At the reported horizon of 30,000 they give median
-  `dwell/tau` of **2.165 and 1.958**, empty band **39 and 39**, licensed 104 and 103,
-  conducting cells 85 and 79. The within-seed spread is ~10% on the ratio and zero on the
-  empty-band count, against a between-seed spread of ~5x, so the seed term dominates — but
-  a single run is not a point either. Consistent with #195's four runs at one seed giving
-  four different binding cells.
+- **A fixed seed does not fix the run, and the spread grows with the horizon.** Two
+  independent runs at seed 42 agree exactly to tick 5,000 and diverge after. At 30,000 they
+  give median `dwell/tau` of **2.165 and 1.958**, empty band **39 and 39**, licensed 104 and
+  103, conducting cells 85 and 79 — ~10% on the ratio, zero on the count. At 100,000 the
+  gap is wider: this rig reads seed 42's median dwell at **12.92** where #206's own run of
+  the same seed, split, dome and horizon left **9.71** in `206-per-tick.npz`, a ~33%
+  spread. So a single run is not a point, and it is least a point where the record quotes
+  it. Consistent with #195's four runs at one seed giving four different binding cells.
 - **The horizon is a choice, and the empty band moves with it.** Dwell is cumulative, so
-  the empty-band count falls monotonically on every seed as the run lengthens (seed 47:
-  59 → 2 between ticks 100 and 30,000). A count quoted without its horizon says nothing.
+  the empty-band count falls on every seed as the run lengthens (seed 47: 59 → 2 between
+  ticks 100 and 30,000; seed 42: 129 → 39 → 20 at 100, 30,000 and 100,000). A count quoted
+  without its horizon says nothing. **It does not fall without limit**, though: dwell is
+  `ticks / (1 + crossings)` and the crossing rate settles, so the median flattens rather
+  than growing with the run — seed 42's goes 3.7 at 5,000 to 12.9 at 100,000, a 3.5x rise
+  over a 20x longer run. `dwell > |loop|` is a bar a long run can fail, not one any run
+  eventually passes.
 - **Per cell, never per level.** The by-level rows in the roll-up are a reporting axis;
   nothing is indexed on them (#181).
 
-## 5. What this does not do
+## 6. What this does not do
 
 It reports whether bands are empty. **It does not nominate a remedy** — not
 [#317](https://github.com/NGL321/patchworks/issues/317), not anything else. The map's
