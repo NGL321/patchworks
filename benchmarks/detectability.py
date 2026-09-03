@@ -182,12 +182,18 @@ PROBE = 1.0
 
 #: float32's granularity: the architecture's arithmetic noise floor (#224).
 #:
-#: Held as the machine's own quantity rather than typed as a literal, per
-#: ADR-0018 — a derived constant is derived where its dependency lives, and the
-#: dependency here is the dtype the architecture runs in. **Its definition site
-#: is #381's**, in a module `tools/constant_registers.py` scans; `benchmarks/`
-#: is not scanned, so this is the read's use of the machine quantity and not a
-#: second definition of it. When #381 lands, this reads from there.
+#: **The definition site is `patchworks.tick.EPS_F32`, and the floor itself is
+#: `patchworks.tick.precision_floor(state)` — the one place `eps_f32 · ‖state‖`
+#: is computed.** Both are #381's, written on
+#: [PR #387](https://github.com/NGL321/patchworks/pull/387), which is not on
+#: `main` yet. This line is a **stand-in with a fixed expiry, not a second
+#: definition**: it computes the identical quantity, derived from the machine
+#: rather than typed as a literal (ADR-0018), and the follow-up is one import.
+#:
+#: **Merge order: #387 before this.** When it lands, `EPS_F32` here becomes
+#: `from patchworks.tick import precision_floor` and :func:`readable` calls it
+#: instead of multiplying. Recorded here rather than in a ticket because this is
+#: the line that has to change and this is where someone will be standing.
 EPS_F32 = float(torch.finfo(torch.float32).eps)
 
 
@@ -303,6 +309,9 @@ class Trial:
 
     private: np.ndarray
     """`[predicting cells]` bool: the cell has private dimension to hold at all (#385)."""
+
+    floor: float
+    """`eps_f32 · ‖state‖` at the median cell: the runtime precision floor's magnitude."""
 
     conduction_horizons: tuple[tuple[int, float], ...]
     """`(ticks, conduction)`: `τ̂` is a decay time, so the window is never silent."""
@@ -617,6 +626,7 @@ def conduction(
         "censored": censored,
         "readable": above,
         "private": (dome.private_dimensions > 0).numpy(),
+        "floor": float(np.median(EPS_F32 * state.max(axis=0))),
         "ratio": ratio,
     }
 
@@ -880,6 +890,7 @@ def trial(
         censored=conducted["censored"],
         resolved=conducted["readable"],
         private=conducted["private"],
+        floor=conducted["floor"],
         conduction_horizons=tuple(
             (
                 h,
@@ -993,6 +1004,22 @@ def linearity(
     decaying, so it explores more of `encode`'s nonlinearity and has no claim on
     the flat window #214 measured on a pulse. `--stimulus` and `--collective`
     pick the corner, and the linear window is a property of the corner.
+
+    **The ladder runs on `τ̂` too** — ADR-0026 asks for it and
+    [#381](https://github.com/NGL321/patchworks/issues/381) handed the edit here,
+    because it could not be written before `τ̂` existed and `τ̂` is #379's. The
+    tell is the same and the argument is *stronger*, because `τ̂` needs no
+    rescaling to be comparable: it is a **decay time**, scale-free by
+    construction, so a linear response gives the identical number at every
+    amplitude where the bottleneck column has to be divided back down to `A₀ = 1`
+    first. A `τ̂` column that moves with `A₀` is reading rounding, full stop.
+
+    **The gate column is expected to move, and that is not the same failure.**
+    #224's floor is `eps_f32 · ‖state‖`, an absolute magnitude, so a small enough
+    injection falls under it at every cell — the reading is then a real float64
+    number the float32 build has no signal for. A `τ̂` column that stays flat
+    while the readable column collapses is the instrument behaving exactly as
+    #224 said it would.
     """
     env, agent = prepared(name, split, seed, learn)
     observation, _info = env.reset(seed=seed * 1000)
@@ -1002,7 +1029,13 @@ def linearity(
     state = ufp.snapshot(agent.sheaf)
     cells = pick(agent.dome, seed, collective)
     quiet, held = branch(
-        agent, state, observation, applied, window, None, record=cells
+        agent,
+        state,
+        observation,
+        applied,
+        window,
+        None,
+        record=tuple(dict.fromkeys(cells + agent.dome.predicting)),
     )
 
     twice, _ = branch(agent, state, observation, applied, window, None)
@@ -1019,9 +1052,14 @@ def linearity(
         f"corner: {stimulus} x {'collective' if collective else 'single-source'}; "
         f"injected into {len(cells)} {kind} cell(s)"
     )
-    print("\n  A0         bottleneck at A0=1     median edge ratio")
+    loops = loop_lengths(agent.dome)
+    record = tuple(dict.fromkeys(cells + agent.dome.predicting))
+    print(
+        "\n  A0         bottleneck at A0=1     median edge ratio   "
+        "conduction        median tau_hat   readable"
+    )
     for a0 in amplitudes:
-        ratio, _ = ratios(
+        ratio, moved = ratios(
             agent,
             state,
             quiet,
@@ -1031,11 +1069,20 @@ def linearity(
             a0,
             window,
             sustained=held if stimulus == "sustained" else None,
+            record=record,
         )
         peaks = ratio.max(axis=0)
         value, _target, _edge, _path = widest_path(agent.dome, peaks, cells, targets)
         finite = peaks[np.isfinite(peaks)]
-        print(f"  {a0:<10.3g} {value:<22.5g} {np.median(finite):.5g}")
+        conducted = conduction(
+            agent.dome, held, moved, cells, targets, loops
+        )
+        print(
+            f"  {a0:<10.3g} {value:<22.5g} {np.median(finite):<19.5g} "
+            f"{conducted['conduction']:<17.5g} "
+            f"{np.median(conducted['tau']):<16.5g} "
+            f"{conducted['readable'].mean():.1%}"
+        )
     ufp.restore(agent.sheaf, state)
 
 
@@ -1119,6 +1166,17 @@ def report(dome: Dome, direction: str, outcomes: list[Trial], window: int) -> No
     print(
         f"   tau_hat censored by the window of {window}: {censored:.1%} of cells "
         "— a lower bound, so it can only cost a pass"
+    )
+    # The floor's *magnitude*, which #381 registers as `PRECISION_FLOOR` and
+    # marks `provisional #379` because the record has never held a value for it.
+    # It is a scale rather than a constant — it moves with the state it is read
+    # at — so what is published is the median over the cells of a trial and the
+    # spread across trials, not a single number pretending to be fixed.
+    floors = np.array([o.floor for o in outcomes])
+    print(
+        f"   the runtime precision floor at these cells: median {np.median(floors):.3g} "
+        f"(p05 {np.quantile(floors, 0.05):.3g}, p95 {np.quantile(floors, 0.95):.3g}), "
+        f"eps_f32 = {EPS_F32:.3g}"
     )
     ladder = "  ".join(
         f"{h}:{np.median([dict(o.conduction_horizons)[h] for o in outcomes]):.3g}"
