@@ -64,10 +64,13 @@ from .restriction import GAUGE_RHO, RestrictionMaps, gain_denominators, pair_ind
 
 __all__ = [
     "DEFAULT_GAMMA",
+    "EPS_F32",
+    "PRECISION_FLOOR",
     "FoldRead",
     "Sheaf",
     "StalkLayout",
     "assert_no_tape",
+    "precision_floor",
     "reconciliation_gain",
 ]
 
@@ -96,6 +99,75 @@ __all__ = [
 #: `γ` buys a clean run and `γ/33` still leaves half the ticks breaching
 #: (`docs/adr/0019-construction-nominates-the-run-decides.md`, decision 5).
 DEFAULT_GAMMA = 1.0
+
+
+#: @type derived
+#: @depends_on torch.finfo, torch.float32
+#: @flexibility not a knob at all: it is the arithmetic the architecture runs in, and #224 ruled that precision is not a design variable
+#: @warrant docs/adr/0026-rim-core-influence-is-a-conduction-ratio.md, The reading is gated on the runtime precision floor
+#: `eps_f32`, the machine epsilon of the precision the architecture runs in —
+#: the relative granularity of a float32 difference, and the multiplier of
+#: :func:`precision_floor`.
+#:
+#: **The architecture's noise floor, not a defect** (#224). A difference smaller
+#: than the representable granularity at the magnitude the state sits at **has
+#: not arrived**, and nothing here is required to keep a ripple above it: the
+#: chamber is dissipative and echoes are supposed to fade
+#: (`docs/motivating-image.md`, *The chamber*), so what survives is the structure
+#: the ripples assemble rather than any one of them. Running in float64 was
+#: rejected on that image rather than on cost — it would make a numerical
+#: parameter part of the transmission budget.
+#:
+#: **Evaluated, never typed** (ADR-0018): the dependency is `torch`'s own
+#: arithmetic, so this is where it is read rather than a literal that would go
+#: stale silently against the dtype the sheaf is actually built at. Distinct from
+#: **every kind of ADR-0007 floor**, which are floors on *disagreement
+#: magnitude*; this is a floor on the *resolvable difference between two states*.
+#: Folding the two would make ADR-0021's predicate self-referential, since it
+#: already divides an arriving deviation by the quiescent-hold floor
+#: (`CONTEXT.md`, *Arithmetic floor*).
+EPS_F32 = torch.finfo(torch.float32).eps
+
+#: @provisional 379
+#: @flexibility unknown, and it is a reading rather than a knob: no run has ever published `eps_f32 * ||state||` at a cell, so the row is a debt against the first read that does
+#: @warrant docs/adr/0026-rim-core-influence-is-a-conduction-ratio.md, The reading is gated on the runtime precision floor
+#: The floor magnitude at the cell being read — `eps_f32 * ||state||`, the
+#: smallest difference float32 resolves at the magnitude that state sits at.
+#:
+#: **A definition site so the first read files a value here rather than leaving
+#: it in a comment** (#224's rider, written by #381). The quantity has no value
+#: in the record today: `None` is that absence stated, and the debt is #379's,
+#: which carries ADR-0026's gate into the `tau_hat` reading and is the first
+#: thing that will have a number. When it does, this becomes a `measured` row
+#: with the value and the run that read it.
+#:
+#: It is a *scale*, not a constant of the architecture: it moves with the state
+#: it is read at, which is why :func:`precision_floor` computes it per read and
+#: this row records only what the record has published.
+PRECISION_FLOOR: float | None = None
+
+
+def precision_floor(state: torch.Tensor) -> float:
+    """`eps_f32 * ||state||`: the smallest difference float32 resolves here.
+
+    The one place the runtime precision floor is computed, so a reading that
+    gates on it and the register row that publishes it cannot disagree.
+    ADR-0026's gate is stated against this quantity: a `tau_hat` is valid for a
+    cell only if the projected paired deviation stays above it at the `1/e`
+    crossing, and a reading that fails the gate is reported **alongside**
+    `tau_hat` rather than dropped — the float64 number stays visible next to the
+    fact that a float32 build has no signal there.
+
+    **Read at the state, not at 1.0.** `EPS_F32` is a *relative* granularity, so
+    the floor is only a magnitude once it is multiplied by the norm of what is
+    being resolved. Nothing is invented here: the epsilon is the machine's and
+    the norm is read.
+
+    Returned as a Python float rather than a tensor: it is a threshold a caller
+    compares against, and it is filed into a register row when a read publishes
+    one.
+    """
+    return EPS_F32 * float(torch.linalg.vector_norm(state.detach().to(torch.float64)))
 
 
 def _would_be_misread(gamma: object) -> bool:
