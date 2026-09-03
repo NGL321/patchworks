@@ -138,14 +138,14 @@ rather than *where*.
 - **Tick-indexed, not event-indexed.** Half-duplex with an idle floor means most slots hold idle.
   That is signal, not padding: pauses, latency, and who-waits-for-whom are conversational dynamics,
   and event-indexing deletes exactly them. It costs buffer efficiency, and that cost is what sets `B`.
-- **One stream, two rims.** Heard and spoken boundary cells are separate — #128 bans a sensory and a
-  motor rim sharing a boundary cell — but they are **aligned on the same tick axis**, so slot `i` of
-  each refers to the same tick. A graph that never sees its own words beside the interlocutor's is
-  modelling two monologues.
+- **One stream, two rims.** Heard and spoken boundary cells are separate — #128's ban is per
+  **boundary cell**, and each slot is its own boundary cell — but they are **aligned on the same tick
+  axis**, so slot `i` of each refers to the same tick. A graph that never sees its own words beside
+  the interlocutor's is modelling two monologues.
 - **The buffer shifts.** At tick `t`, slot `i` holds what happened at tick `t − i`; at `t + 1` it
   holds what slot `i − 1` held. The world writes the head; the rest is history moving along. A slot's
-  index is an **age**, not the identity of a moment. This has a consequence the taper depends on and
-  an exposure it does not escape — both under *Known exposure*, below.
+  index is an **age**, not the identity of a moment. This has a consequence the taper depends on —
+  under *Known exposure*, below — and it is why the spoken rim's contract is read off the slot.
 
 **`B = 128` is not derived from turn length, because there is none.** #129 makes turn length
 deliberately not a tick count: the agent emits every tick and must fall silent to be heard. `B` is
@@ -153,6 +153,46 @@ set by the **boundary-cell budget** instead. At `B = 128` the rim is 256 boundar
 dome's 264, and the L0→L1 cut is 2,048 numbers per tick against the dome's 2,120. It lands on the
 dome's figure because that is the figure the rest of the architecture was sized against, and 128
 ticks is a sentence or two of history.
+
+### A rim's kind is the slot's, not the rim's
+
+**The spoken buffer is one motor boundary cell plus 127 sensory ones**, and the heard buffer is 128
+sensory ones. [ADR-0003](../adr/0003-action-is-prediction-the-world-clears.md) locates the
+sensory/motor opposition **in the edge** — *"a cell's role is emergent from which boundary cells it
+happens to be near"* — so a boundary cell's kind is read off that cell's own edge to the world, never
+declared over a rim:
+
+- **Slot 0 of the spoken column** is read by the interlocutor for its command and written for its
+  readback. **Motor**, and [`12-the-interlocutor.md`](./12-the-interlocutor.md) already says so.
+- **Slots 1–127** are written by the outside — the shift — and read by no one. That is
+  [ADR-0016](../adr/0016-a-boundary-cell-is-written-or-read-never-both.md)'s definition of a
+  **sensory** boundary cell. Their commands were consumed and cleared ticks ago; an assertion onto
+  slot 40 has no route to the world, so calling it motor claims an actionability it does not have.
+
+This document previously declared the group reading, and the argument it gave for it was unsound:
+
+> The spoken buffer is a motor rim entire under this document, and whether a rim's contract is a
+> property of the group or of the slot is not settled by anything in the record.
+
+*Superseded by [#169](https://github.com/NGL321/patchworks/issues/169).* The alternative it turned
+down — a motor head beside a sensory tail — was held to *either break #128's ban or double the rim and
+lose the tick alignment #130 made load-bearing*. **It does neither.** The ban is per boundary cell, so
+a motor head beside a sensory tail puts no cell on both streams; and tick alignment is untouched,
+because slot `i` of each column still names the same tick. The sentence is kept because a
+contract-level argument about it was wrong, which is why the ruling reaches ADR-0016 rather than only
+this document.
+
+**Nothing mechanical changes, and no count moves.** Same tick, same shift, same graph, same 196-wide
+per-slot stalks; the cut capacities below are edge budgets and are unaffected, and #130's shape stands
+as [#163](https://github.com/NGL321/patchworks/issues/163) recorded it. What changes is what binds the
+next rim with an interior.
+
+**[#242](https://github.com/NGL321/patchworks/issues/242)'s outbound universal tightens here, and it
+tightens correctly.** The predicate ranges over L1 predicting cells and the actuator boundary cell,
+excluding sensory boundary cells *"because the world's write voids what arrives."* Under the group
+reading it would have ranged over 128 spoken cells; under the slot reading it is the spoken **head
+alone**, and the other 127 are excluded by exactly the stated reason — the world's write **is** the
+shift, and it voids what arrives.
 
 ### The levels
 
@@ -365,19 +405,25 @@ refused is bought by reading `λ_max`. Nothing in it bears on routing by content
 
 - **Most of the rim is trivially predictable, and the taper's apparent width overstates the
   prediction pressure on it.** The buffer shifts, so for every slot but the head the next value is the
-  current value of its neighbour — a deterministic shift, known to the graph. Two of 256 boundary
-  cells carry a genuinely new value per tick; the rim holds 37,504 numbers of which 293 are new. The
-  taper's own arithmetic is unaffected — the cut capacities above are edge budgets and stand — but a
-  reader who reads 2,048 numbers per tick into L1 as 2,048 numbers' worth of *problem* will be wrong
-  by two orders of magnitude. This is not a defect of the buffer: holding a value still is precisely
-  what lets a decimating taper see a span, and it is why the buffer exists. It is recorded because it
-  changes what the rim's disagreement means, and because it makes the straddle the recurring event
-  rather than an incidental one — every four ticks, one value crosses a pooling boundary.
-- **What clears the tail of the spoken rim.** [ADR-0003](../adr/0003-action-is-prediction-the-world-clears.md)
-  makes a motor edge one the world clears by moving, immediately. That is true of the head slot, which
-  the readback answers. It is not obviously true of slot 40, which nothing writes but the shift. The
-  spoken buffer is a motor rim entire under this document, and whether a rim's contract is a property
-  of the group or of the slot is not settled by anything in the record.
+  current value of its neighbour — a deterministic shift, known to the graph. **254 of the rim's 256
+  boundary cells carry a shift of a record, and 2 carry new world content**; the rim holds 37,504
+  numbers of which 293 are new. The taper's own arithmetic is unaffected — the cut capacities above
+  are edge budgets and stand — but a reader who reads 2,048 numbers per tick into L1 as 2,048 numbers'
+  worth of *problem* will be wrong by two orders of magnitude. **That misreading is the whole of what
+  this bullet prevents.** It is not a defect of the buffer: holding a value still is precisely what
+  lets a decimating taper see a span, it is why the buffer exists, and it makes the straddle the
+  recurring event rather than an incidental one — every four ticks, one value crosses a pooling
+  boundary. Nor is it a claim about supply or about disagreement's size: the operative bar reads
+  **time, not amplitude** ([#242](https://github.com/NGL321/patchworks/issues/242)), cold-start supply
+  is not scarce ([#154](https://github.com/NGL321/patchworks/issues/154)), and the live form of
+  disagreement going away is [#324](https://github.com/NGL321/patchworks/issues/324), which reads
+  **rank**. What the arithmetic does bear on is that the wedge's short-horizon memory is supplied by
+  construction, and that is owned as a problem at
+  [#388](https://github.com/NGL321/patchworks/issues/388) and argued nowhere here.
+- **What clears the tail of the spoken rim is settled and is no longer exposure.** A boundary cell's
+  kind is read off its own edge to the world, so the spoken buffer is one motor boundary cell plus 127
+  sensory ones — [#169](https://github.com/NGL321/patchworks/issues/169), written up under *A rim's
+  kind is the slot's, not the rim's* above.
 - **A lateral edge in time may be carrying order.** As above, under *Lateral edges transfer*.
 - **The interleaved merge is chosen, not derived.** Heard to even core cells and spoken to odd is one
   of several interleavings, and the rule says only that columns spread rather than bunch. The dome's
