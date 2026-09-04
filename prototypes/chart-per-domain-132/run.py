@@ -42,7 +42,17 @@ def main() -> None:
     p.add_argument("--split", default="train")
     args = p.parse_args()
 
-    live = RestrictionMaps._flatten
+    # **The post-floor arm needs PR #434 and says so rather than failing
+    # obscurely.** On `main` there is no `_flatten` to call or to suppress, so
+    # only the pre-floor arm is runnable there -- and on `main` that arm is not
+    # a control, it is simply the surface.
+    live = getattr(RestrictionMaps, "_flatten", None)
+    if live is None and "postfloor" in args.arms:
+        raise SystemExit(
+            "RestrictionMaps has no _flatten: the post-floor arm needs PR #434 "
+            "(patchworks#432), which is unmerged. Run --arms prefloor on `main`, "
+            "or stack the floor branch."
+        )
 
     for arm in args.arms:
         RestrictionMaps._flatten = (

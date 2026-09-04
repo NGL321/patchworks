@@ -170,6 +170,21 @@ of 10.25–10.43 in stable rank and 0.0133–0.0147 in non-normality. Whatever t
 does to the *maps* — [#435](https://github.com/NGL321/patchworks/issues/435)'s
 question — it does not change what `K` looks like.
 
+**At 100k, three seeds, the width is still not binding** — which is what the ticket
+needed from this read, and it is now taken at ADR-0032's pre-registered horizon rather
+than at 30k:
+
+| ticks | stable rank | effective rank | ρ(K) | non-normality |
+|---|---|---|---|---|
+| 30,000 | 10.089 – 10.209 | 11.861 – 11.884 | 0.944 – 0.953 | 0.0171 – 0.0190 |
+| **100,000** | **9.431 – 9.595** | 11.622 – 11.732 | 0.914 – 0.927 | **0.0354 – 0.0437** |
+
+**#178's caveat fires.** Non-normality roughly **doubles** between 30k and 100k and
+stable rank falls a further 0.6, so a 30k read understates how far learning moves this
+operator; two of three seeds also drop to **11 of 12** modes retaining, the first time
+the count leaves 12 anywhere on this ladder. The 100k row has **no matched control** —
+the pre-floor arm was stopped at 30k to free cores.
+
 **What has moved is `main` itself.** Same seed, same horizon, same rig, against #166's
 recorded run:
 
@@ -187,6 +202,14 @@ survives and strengthens — there is now more width unspent, not less — but i
 numbers, including the two #127's *Decisions so far* quotes for it, are stale. The
 non-normality figure matters most: it is **3.2x smaller** than the 0.05 that
 [#357](https://github.com/NGL321/patchworks/issues/357) was spun out against.
+
+**And that is not a horizon artifact.** The obvious escape is that the current build
+learns more slowly and arrives later; measured, it does not. At **100,000** ticks the
+current build reads 0.0354–0.0437, which is still short of the **0.0495–0.0519** the
+pre-ADR-0031 build reached at **30,000**. More than tripling the horizon does not
+close it, so #357's shortfall is larger and slower than the record implies.
+[#436](https://github.com/NGL321/patchworks/issues/436) found the same class of
+staleness from the maps' side on the same day.
 
 ## Running it
 
