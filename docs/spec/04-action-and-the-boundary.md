@@ -316,8 +316,8 @@ of what satisfaction looks like.
 Low bandwidth is the point. A wide drive channel would smuggle the task specification back in through
 the side door, after the sandbox worked to put it in the render.
 
-**The stalk's width and the edge's are one decision.** A restriction map out of a one-dimensional stalk
-has rank at most one, so a wider edge stalk carries nothing more — it only lets the drive assert *zero*
+**The stalk's width and the lane's are one decision.** A restriction map out of a one-dimensional stalk
+has rank at most one, so a wider lane carries nothing more — it only lets the drive assert *zero*
 in the surplus directions, which is an arbitrary constraint on a core cell expressed in content the
 drive does not have. Matching them is what makes "valence, not specification" exact rather than
 approximate.

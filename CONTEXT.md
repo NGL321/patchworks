@@ -37,17 +37,38 @@ bounded by construction rather than pinned to its neighbours'. Distinct from the
 internal state, which reconciliation never touches.
 _Avoid_: node state, node embedding, activation
 
-**Edge stalk**:
+**Communication lane**:
 The space shared by two adjacent cells, carrying a belief about a latent variable both are
-modelling in common. It carries belief only; error is never a channel in it.
-_Avoid_: message, edge feature, edge embedding
+modelling in common. It carries belief only; error is never a channel in it. Non-directional:
+the same `R^m` carries `u→v` and `v→u`, which is why disagreement is defined on it. Formally the
+edge's **stalk** in the cellular sheaf, and that word is kept for reading against Bodnar, Hansen &
+Ghrist and Barbero; bare `stalk` in this repo means the node one. Renamed from `edge stalk` on
+#411 §6.
+_Avoid_: message, edge feature, edge embedding, edge stalk, communication band, communication
+subspace
+
+**Communication bus**:
+The set of a cell's incident lanes, `Σ_e m_e` wide. What the cell can say and hear in total, and
+what the private width is the complement of: `p_v = max(0, n − Σ_e m_e)`, which is why 82 of 150
+predicting cells have zero private width (#385). The bus belongs to **one** cell and fans out over
+its edges; it is not a medium shared between cells, and the hardware reading that would make it one
+is the accepted caveat on the name.
+_Avoid_: bandwidth, channel (reserve for the learned aligned subspace), fan-out, degree
 
 **Restriction map**:
-The map from a cell's node stalk into one incident edge stalk. Performs transport and change
+The map from a cell's node stalk into one incident communication lane. Performs transport and change
 of basis only; all inference happens inside the cell. Its overall magnitude is **gauge-fixed**,
 not learned — no term in the transport rule's objective identifies it, and left free an edge's
 joint scale grows without bound, until the maps stop moving.
 _Avoid_: projection, encoder, transport map
+
+**Carried subspace**:
+The row space of `F_{u◁e}` inside `u`'s node stalk — the `m` directions that cell actually puts on
+that lane. A genuine subspace of one cell's `n`, where the lane is a space in its own right
+belonging to neither cell; the two appear in the same sentences, which is why the lane is not called
+a communication subspace. What the transport rule's isometry demand is stated in: `F_v⁺F_u` is asked
+to be an isometry between the two endpoints' carried subspaces (#411).
+_Avoid_: communication subspace, image, span (bare), receptive field
 
 **Scale gauge**:
 The construction-time bound on a restriction map's Frobenius norm: a band `[1/ρ, ρ]` for
@@ -81,7 +102,7 @@ along it and under-relaxed off it.
 _Avoid_: path, route, pathway, bandwidth, receptive field
 
 **Disagreement**:
-The difference, measured in an edge stalk, between the two adjacent cells' restrictions of
+The difference, measured in a communication lane, between the two adjacent cells' restrictions of
 their node stalks. Patchworks' only edge-level error signal: derived, never carried, and never
 fully cleared. Collected across every edge it is the sheaf's coboundary, and its squared sum is
 the Dirichlet energy of the sheaf Laplacian. Trains the transport rule; kept distinct from
@@ -369,7 +390,7 @@ struck clause — see **Private width**)
 
 **Private width**:
 `p_v = max(0, n − Σ_e m_e)` — the part of a cell's node stalk no incident edge's restriction map
-reads. A **relay aperture**: how much of a cell's decoded prediction returns to its own `encode` next
+reads, the complement of the cell's **communication bus**. A **relay aperture**: how much of a cell's decoded prediction returns to its own `encode` next
 tick undisturbed by reconciliation, since `∂evidence/∂chart = (I − g_v Σ_e F_evᵀ F_ev) @ D` is the
 identity exactly on the private block. It is a **transmission** property and belongs to the
 influence predicate — **not** a retention term and not a timescale term (#271): construction grades
@@ -520,7 +541,7 @@ A cell whose node stalk something outside the sheaf writes or reads directly —
 the graph and everything that is not the graph. Like a relay cell it performs no inference; unlike
 one, it is not fed by reconciliation alone. It is **exempt from `n`**: its node stalk has whatever
 dimension the thing writing or reading it gives it — the world's shape at the sensorimotor rim, and at
-the internal rim whatever the faculty asserts. Its edge stalks are ordinary, and the outside write
+the internal rim whatever the faculty asserts. Its lanes are ordinary, and the outside write
 lands *after* the message-passing phase, so it is always the last word. Three kinds: sensory,
 actuator, and drive — the first two at the sensorimotor rim, the third at the internal rim.
 _Avoid_: input node, output node, sensor node, IO cell
@@ -681,7 +702,7 @@ construction choice about the shared body, costing no parameters and breaking no
 to reach for first. Behind it sits a **learned gate** on `encode`'s fusion, reached for only if
 deliberate clearing proves necessary, and priced at a third parameter group and therefore a third
 learning rule. Distinct from the change gate by tier: inside the body's recurrence, not on the edge.
-_Avoid_: gate (unqualified), change gate, LSTM hatch, edge-stalk pass-through
+_Avoid_: gate (unqualified), change gate, LSTM hatch, lane pass-through
 
 **Cell contract**:
 What is uniform across every cell: its interface and the algorithm it runs. Capacity and

@@ -51,7 +51,7 @@ level to the next::
 
     Δx_r  =  gain_r · F_{p^1}ᵀ · F_p · Δx_v      then the receiver's body
 
-— the sender's own restriction onto the shared edge stalk, one message-passing
+— the sender's own restriction onto the shared lane, one message-passing
 step's transfer of that belief into the receiver's node stalk, and the shared
 body carrying it into next tick's prediction. **Three, not two**: a map at
 Frobenius 1 spread over `m × n` acts on a stalk with gain well under one, so
@@ -525,7 +525,7 @@ def attenuation(
         # incident edge, so perturbing all of them at once and dividing by one
         # `epsilon` attributes a cell's whole response to a single edge -- and a
         # predicting cell here has mean degree 5 to 7. And `broadcast` is padded
-        # to the widest edge stalk in the graph while rows past an edge's own
+        # to the widest lane in the graph while rows past an edge's own
         # `m` are structurally zero in the maps, so a nudge spread over all of
         # them spends most of itself on directions `spread()` discards: half of
         # it on an `m = 4` interior edge, seven eighths on a drive edge.

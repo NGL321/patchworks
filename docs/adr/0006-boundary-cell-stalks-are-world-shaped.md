@@ -39,9 +39,9 @@ nothing out there gives it a dimension. The rule is that a boundary cell is **ex
 sizes its stalk is whatever writes or reads it. For the world that is the world's shape. For the drive
 it is what the drive asserts, which is one number
 (`04-action-and-the-boundary.md`, *Valence, not specification*), and its edges are `m_e = 1` to match —
-a wider edge stalk cannot raise the rank of a map out of a one-dimensional stalk.
+a wider communication lane cannot raise the rank of a map out of a one-dimensional stalk.
 
-**Every edge stalk in the graph remains ordinary.** The world touches node stalks only; it is not a
+**Every lane in the graph remains ordinary.** The world touches node stalks only; it is not a
 cell, holds no restriction map, and there is no edge between the world and the graph. A patch cell
 reaches its neighbours by an ordinary linear masked restriction map, 48 → `m`.
 
@@ -69,9 +69,9 @@ reaches its neighbours by an ordinary linear masked restriction map, 48 → `m`.
   boundary cells against ~150 predicting cells, and makes a dimension internal to the graph dictate
   how the world is sliced.
 - **Keep `n` global and raise it to 192.** Rejected on the junk-capacity argument above, and it would
-  make every edge stalk, restriction map, and body forward pass in the graph carry a dimension only
+  make every lane, restriction map, and body forward pass in the graph carry a dimension only
   the rim needs.
 - **A learned compressor between the render and the stalk.** This is exactly the banned act: it
   compresses across a slice on the way in, outside the graph, which is what cells exist to do.
-- **Let the world write into an edge stalk instead.** Would require the world to hold a restriction
+- **Let the world write into a lane instead.** Would require the world to hold a restriction
   map, making it a cell. The seam is at the node stalk and stays there.

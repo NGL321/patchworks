@@ -87,7 +87,7 @@ bought with width. It is paid for in nonlinearity-in-the-loop and in time.”*
 
 **And the nonlinearity is not in the decomposition.** Recorded because it is the natural next
 mis-statement, and it would be a fresh false claim replacing the old one. Every part of the gluing is
-linear by construction — restriction maps (ADR-0004), transport, edge stalks — so were `encode`
+linear by construction — restriction maps (ADR-0004), transport, communication lanes — so were `encode`
 linear, the entire 150-cell graph would collapse to one linear system. The decomposition contributes
 **zero** nonlinearity. It buys local flatness and a small `k`; the nonlinearity is at exactly one
 point per cell, re-entered every tick, and that is `encode`.

@@ -7,7 +7,7 @@ inward are successively coarser lattices; the apex is a small deep core which is
 also the **internal rim**, where the drive boundary cell attaches.
 
 :func:`build_graph` returns a :class:`Dome`. Everything a later ticket needs is
-on it: the cells, the edges, the edge stalk dimensions, the structural masks,
+on it: the cells, the edges, the communication lane dimensions, the structural masks,
 and the private-component projection. :meth:`Dome.report` prints the
 construction diagnostics — the numbers that say it was built right.
 
@@ -21,7 +21,7 @@ Three commitments are structural here rather than configurable.
   never a cell's index — asserted in `tests/test_graph.py`.
 * **Boundary cells are exempt from `n`.** Their node stalk is the world's shape:
   48 for a sensory patch, 2 proprioceptive, 1 touch, 6 actuator, 1 drive
-  (`docs/adr/0006-boundary-cell-stalks-are-world-shaped.md`). Every edge stalk
+  (`docs/adr/0006-boundary-cell-stalks-are-world-shaped.md`). Every lane
   in the graph, boundary-incident ones included, is ordinary and `m`-sized.
 * **No edge is ever removed.** The mask closes and never re-opens. Nothing here
   deletes an edge or narrows a stalk, and nothing later may either
@@ -127,7 +127,7 @@ class Cell:
 
 @dataclass(frozen=True)
 class Edge:
-    """One edge, carrying an edge stalk of dimension `m`.
+    """One edge, carrying a communication lane of dimension `m`.
 
     `m` is fixed here and never changes: 4 between two predicting cells, 8 on a
     boundary-incident edge, 1 on a drive edge. Boundary edges are wider because
@@ -211,7 +211,7 @@ class DomeSpec:
     boundary_m: int = 8
 
     #: @type stipulated
-    #: @flexibility free, and pinned to drive_stalk from above: the drive asserts one number, and an edge stalk wider than the stalk it carries carries nothing extra. Never varied in any run
+    #: @flexibility free, and pinned to drive_stalk from above: the drive asserts one number, and a lane wider than the stalk it carries carries nothing extra. Never varied in any run
     #: @warrant docs/spec/06-graph-topology.md, Dimensions
     drive_m: int = 1
 
@@ -405,7 +405,7 @@ def _grid_lateral(ids: dict[tuple[int, int], int], side: int) -> list[tuple[int,
 
 
 def build_graph(spec: DomeSpec = DEFAULT_SPEC) -> "Dome":
-    """Build the dome: cells, edges, edge stalks, structural masks.
+    """Build the dome: cells, edges, communication lanes, structural masks.
 
     Deterministic and free of any draw — the whole thing follows from the level
     and lattice indices. Two calls with the same spec give identical graphs.
@@ -745,7 +745,7 @@ class Dome:
         The node term runs over **predicting cells only** — including boundary
         cells swamps it, 256 cells of nominally private state the world
         overwrites every tick. The edge term runs over **all** edges,
-        boundary-incident ones included, because those edge stalks are ordinary
+        boundary-incident ones included, because those lanes are ordinary
         and are the route the boundary's information actually takes
         (`docs/spec/06-graph-topology.md`, *Private dimension is a gradient*).
 

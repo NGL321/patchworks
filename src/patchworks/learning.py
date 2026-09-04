@@ -411,7 +411,7 @@ class PredictionRule:
 # a layer's loss in a feedforward network never does. That neighbour's map
 # enters this rule exactly once, inside
 # :attr:`~patchworks.tick.Sheaf.incoming` — the belief the neighbour restricted
-# onto the shared edge stalk one tick ago, which is the *only* thing the rule
+# onto the shared lane one tick ago, which is the *only* thing the rule
 # ever learns about a neighbour. `07-local-learning-rule.md` is explicit that
 # the rule never reads a neighbour's raw node stalk, "only the disagreement
 # already derived from it during reconciliation", and `09-the-build-stack.md`
@@ -522,7 +522,7 @@ def relative_disagreement(
       worst value the rule can reach rather than something it can fall into.
 
     ``neighbour_beliefs`` is `y_e`, the belief the neighbour restricted onto
-    the shared edge stalk one tick ago. It is a plain array the tick left
+    the shared lane one tick ago. It is a plain array the tick left
     behind: the neighbour's map is in it, applied and dead.
 
     **The maximum is flat, and where it is reachable that matters.** ADR-0010
@@ -541,7 +541,7 @@ def relative_disagreement(
       so its whole stalk and every belief it broadcasts are zero — and it is
       the per-edge form of exactly what :meth:`TransportRule.gradient`'s
       two-tick guard refuses graph-wide.
-    * **A one-dimensional edge stalk whose ends disagree in sign**, where
+    * **A one-dimensional lane whose ends disagree in sign**, where
       collinear-and-opposed is half of the possible configurations rather than
       a measure-zero coincidence. Reconciliation moves the node stalk every
       tick, so the endpoint leaves as soon as the signs agree.
@@ -635,7 +635,7 @@ class TransportRule:
         endpoint it owns, and the neighbour contribution to each of those
         endpoints. No neighbour's raw node stalk is among them: what a cell
         learns about its neighbour is the belief the neighbour already
-        restricted onto the shared edge stalk, which is the only form in which
+        restricted onto the shared lane, which is the only form in which
         the two cells' features are comparable at all.
 
         **Which node stalk, and why it is the reconciled one.**

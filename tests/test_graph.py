@@ -262,8 +262,8 @@ class TestDimensionsAndTheBoundaryExemption:
         assert {dome.cells[i].stalk for i in dome.predicting} == {32}
         assert dome.shape == BodyShape(n=32, k=12)
 
-    def test_every_edge_stalk_is_ordinary(self, dome):
-        # The world touches node stalks only. Boundary-incident edge stalks are
+    def test_every_lane_is_ordinary(self, dome):
+        # The world touches node stalks only. Boundary-incident lanes are
         # ordinary and m-sized like any other.
         widths = {}
         for edge in dome.edges:

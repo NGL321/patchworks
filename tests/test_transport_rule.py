@@ -226,7 +226,7 @@ class TestTheObjectiveIsRelativeDisagreement:
 
     def test_the_neighbours_half_is_what_it_restricted_a_tick_ago(self, running):
         # The normaliser's other term is the belief the neighbour put on the
-        # shared edge stalk, not the neighbour's node stalk and not the
+        # shared lane, not the neighbour's node stalk and not the
         # neighbour's map: what reaches the rule is already transported.
         # And it is a tick stale, which is the unit delay: what the rule sees
         # on an endpoint is its partner's broadcast from `t − 1`.
@@ -285,7 +285,7 @@ class TestTheObjectiveIsRelativeDisagreement:
         per_pair = gradient.flatten(1).abs().sum(-1)
         assert torch.all(per_pair[wide_pairs] > 0)
 
-    def test_a_one_dimensional_edge_stalk_is_flat_where_it_is_worst(
+    def test_a_one_dimensional_lane_is_flat_where_it_is_worst(
         self, running, narrow_pairs
     ):
         # The one place the objective has no descent direction, recorded
@@ -654,7 +654,7 @@ class TestTheNeighboursMapEntersDetached:
 
     def test_the_rule_never_reads_a_neighbours_raw_node_stalk(self, running):
         # What a cell learns about its neighbour is the belief the neighbour
-        # already restricted onto the shared edge stalk. A raw neighbour stalk
+        # already restricted onto the shared lane. A raw neighbour stalk
         # is in the wrong space until the map has done that work, and nothing
         # here reads one.
         rule = TransportRule(running)

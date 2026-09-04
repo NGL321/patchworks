@@ -217,7 +217,7 @@ Two honest limits on it, both from the docs:
   model are part of the gradient computation"), and it is per-tensor state, not a partition — the same
   discipline again.
 - **A static check.** **None found**, in PyTorch or anywhere. Nothing in the tooling can tell you at
-  import time that an edge stalk was not detached.
+  import time that a communication lane was not detached.
 
 **Verdict on the ticket's question:** one genuinely stronger guard exists and is native to the chosen
 stack; it is untested for this purpose, and adopting it is a decision for a revision ticket, not for

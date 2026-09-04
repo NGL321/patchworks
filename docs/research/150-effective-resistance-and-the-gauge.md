@@ -172,8 +172,9 @@ compose to `m^-3/2`. Rebuilding the dome at other widths and pricing each with t
 | 6 | 8 | 0.0007214 | 0.590x | 0.40 | 218 |
 | 8 | 8 | 0.0005114 | 0.418x | **0.00** | -600 |
 
-**Widening an edge stalk costs transmission.** This is not an argument against `m = 8` at the rim,
-because width and gain buy different things: width buys **rank** — how many of a patch cell's 48
+**Widening a communication lane costs transmission.** This is not an argument against `m = 8` at
+the rim, because width and gain buy different things: width buys **rank** — how many of a patch
+cell's 48
 directions can leave at all — and costs **gain per direction**. It is an argument that the trade was
 never priced, and this is the price. Narrowing interior edges to `m = 2` is worth **1.734x per hop**
 and *also* returns private dimension (10.75 against 3.95), which is `H^0`, which is slow state. Both

@@ -586,7 +586,7 @@ def piece_dimensions(sheaf, cloud: np.ndarray) -> np.ndarray:
 
     The cloud is `[ticks, predicting cells, n]` — the cell's own public face
     over the drive segment, in the `n`-dimensional space the piece is described
-    in. Measuring it there and not in the edge stalk is what keeps the criterion
+    in. Measuring it there and not in the lane is what keeps the criterion
     from being circular: a cloud already compressed into `m` coordinates cannot
     have a measured dimension above `m`, so asking whether `m` is wide enough
     from inside it always says yes.

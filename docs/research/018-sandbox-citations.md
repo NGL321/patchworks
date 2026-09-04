@@ -290,8 +290,8 @@ variability "can vary **up to an order of magnitude** with the pushing action".
 - The spec's "epistemic pressure … is over **dynamics**" is emphatically what the literature says.
   Bauza & Rodriguez's input-dependent noise is a direct argument that a predictor of pushing must
   model its own uncertainty as a function of the action — a natural thing to ask of a cell whose job
-  is to advance its features one step in time, and which **disagreement**, measured in an edge stalk,
-  is well positioned to expose.
+  is to advance its features one step in time, and which **disagreement**, measured in a
+  communication lane, is well positioned to expose.
 - The 15/48 scripted-controller solve rate reads very differently against Yu et al.'s finding that
   identical pushes diverge: a low open-loop success rate is what the pushing literature predicts, and
   the spec is right to call it a lower bound rather than a baseline.

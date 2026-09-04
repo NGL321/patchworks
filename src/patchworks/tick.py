@@ -720,7 +720,7 @@ class Sheaf:
         #: `[predicting cells, k]`: the persisted chart. The cell's private
         #: state; reconciliation never reaches it.
         self.charts = torch.zeros(len(dome.predicting), dome.shape.k)
-        #: `[pairs, m_max]`: what every cell put on every incident edge stalk
+        #: `[pairs, m_max]`: what every cell put on every incident lane
         #: **this** tick. Read one tick later, which is the unit delay.
         self.broadcast = torch.zeros(self.maps.pairs, self.maps.edge_width)
         #: `[pairs, m_max]`: what each cell reconciled against — its neighbour's
@@ -800,7 +800,7 @@ class Sheaf:
 
         Each cell restricts its own predicted node stalk onto every incident
         edge, compares that with what its neighbour restricted onto the same
-        edge stalk one tick ago, and takes one step down its own local
+        lane one tick ago, and takes one step down its own local
         disagreement energy `½ Σ_{e∋v} ‖F_ev x_v − y_e‖²`::
 
             x_v  ←  x_v − gain_v · Σ_{e∋v} F_evᵀ (F_ev x_v − y_e(t−1))

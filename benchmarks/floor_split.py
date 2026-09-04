@@ -41,7 +41,7 @@ as large as the two it does, together. That is the claim #339 actually makes —
 the demo reads *through* this floor, and a taxonomy with two kinds in it is
 wrong about what the demo measures the moment the third outweighs them. Nothing
 was chosen: the numerator and the denominator are the same quantity, in the same
-edge-stalk units, off the same run.
+communication-lane units, off the same run.
 
 **Fleet medians first, then the ratio.** A per-edge ratio has a denominator that
 can be arbitrarily small on a single edge, and a median of such ratios is a

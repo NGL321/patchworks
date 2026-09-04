@@ -50,7 +50,7 @@ hop. #184 closed uniform per-hop factors; it did not close these.
 
 **1.1 Widening the taper's funnel.** [#8](https://github.com/NGL321/patchworks/issues/8) identified it
 and did not fix it: 12,288 numbers at the sensory base reach ~60 core cells of dimension 32 through
-edge stalks of dimension 4. Parked in map #1's *Not yet specified* with the ground **"unclear whether
+communication lanes of dimension 4. Parked in map #1's *Not yet specified* with the ground **"unclear whether
 the funnel is a defect or is the compression the architecture exists to perform,"** and the
 reactivation condition *"revisit once anything has been trained."* **That condition is met** — #120
 ran 100,000 ticks, #214 measured the channel — and the item has never been revisited. Not refuted;
@@ -162,6 +162,16 @@ conversion ("`body` is a term in the transmission budget, and today it is not a 
 retention constant rather than a construction-placed regional spectrum. The decline was correct when
 written; the conversion was taken *precisely* to unspend that budget, and nothing has re-read this
 paragraph since.
+
+**Re-read and repaired by [#420](https://github.com/NGL321/patchworks/issues/420), with one
+correction to the reading above.** The budget **split**; it did not vacate. `σ_max(K)` is still spent,
+by [ADR-0015](../adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md), at the
+maximal-transmission face of exactly 1 — so no headroom was reclaimed there. What came free is
+`ρ(K)`, and the stronger finding is that the mitigation was **never available to decline**: the
+conversion *is* Arroyo's remedy, taken in stage 1, as `docs/research/148` §10.2 had already said. `06`
+was rewritten from a decline into a claim by
+[#421](https://github.com/NGL321/patchworks/issues/421), closing
+[#338](https://github.com/NGL321/patchworks/issues/338).
 
 **3.3 "The drive does not reach."** #120's two-levels finding was quoted as settled for a long stretch;
 [#183](https://github.com/NGL321/patchworks/issues/183) found it located **float32's resolving limit,

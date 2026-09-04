@@ -1274,7 +1274,7 @@ class DomePanel:
         **A boundary cell's mark is the disagreement on its own edges**, taken
         as `sqrt(Σ_e ‖d_e‖²)` over the edges incident on it -- the cell's own
         share of the sheaf's Dirichlet energy, which is the one quantity that
-        exists for a cell of any degree with edge stalks of any width. A mean
+        exists for a cell of any degree with lanes of any width. A mean
         would say a cell with one loud edge and five quiet ones is calm, and a
         sum would make degree the brightest thing on the strip.
 

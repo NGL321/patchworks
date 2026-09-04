@@ -429,13 +429,13 @@ def analytic_hop(dome, rho: float = 1.0) -> float:
 
 
 def stalk_section() -> None:
-    """What widening an edge stalk does to the hop -- and to `H^0`.
+    """What widening a communication lane does to the hop -- and to `H^0`.
 
     `m` enters the hop three times and helps in none of them at fixed Frobenius
     norm. It is under a square root in the dilution (`1/sqrt(d m)`: the same map
     norm spread over more rows is less per row), and it is in the gain's
     `sum_e m_e` arm (`gamma / max(sum_e m_e, rho^2 deg)`). Above `m = rho^2` the
-    two compose to `m^-3/2`, so a wider edge stalk **costs** per-direction
+    two compose to `m^-3/2`, so a wider lane **costs** per-direction
     transmission.
 
     That is not an argument against `m = 8` at the rim, because the two are

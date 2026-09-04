@@ -275,9 +275,9 @@ hand-specified wiring for something that should follow from position.
 |---|---|
 | node stalk of a predicting cell, `n` | 32 |
 | chart, `k` | 12 |
-| typical interior edge stalk, `m` | 4 |
-| boundary edge stalk, `m` | 8 |
-| drive edge stalk, `m` | 1 |
+| typical interior lane, `m` | 4 |
+| boundary lane, `m` | 8 |
+| drive lane, `m` | 1 |
 | sensory patch | 4×4 px RGB → node stalk **48** |
 | proprioceptive cell | node stalk **2** (angle, velocity) |
 | actuator cell | node stalk **6** (3 commanded, 3 efference) |
@@ -306,7 +306,7 @@ run **batched** ([ADR-0001](../adr/0001-continual-learning-applies-to-the-adapti
 the batch. See [ADR-0006](../adr/0006-boundary-cell-stalks-are-world-shaped.md).
 
 **The world only ever touches node stalks.** There is no edge between the world and the graph; the
-world is not a cell and holds no restriction map. Every edge stalk in the graph, including those
+world is not a cell and holds no restriction map. Every lane in the graph, including those
 incident on boundary cells, is ordinary and `m`-sized, reached by an ordinary linear masked
 restriction map. A patch cell's 48 → 8 restriction *is* the compression of that patch, performed by a
 cell, inside the graph, costing a tick.
@@ -319,17 +319,17 @@ many ways.
 [#32](https://github.com/NGL321/patchworks/issues/32) found `n = 32`, `k = 12` and `m = 8` all
 comfortable and `m = 4` thin: the one dimensionally commensurate body of theory (delay embedding) puts
 the governing quantity at **twice the box-counting dimension** of the piece being carried, so an
-interior edge stalk of 4 supports a shared piece of box dimension under 2, and **no source was found
+interior lane of 4 supports a shared piece of box dimension under 2, and **no source was found
 either way** on whether that is enough. Recorded rather than acted on, for two reasons: `m` is the
 *first* rung on [#14](https://github.com/NGL321/patchworks/issues/14)'s constraint ladder, so it is the
 cheapest exposure in the design to carry; and widening it trades against delay and size directly —
-every interior stalk widened raises `Σ_e m_e` at every cell, which lowers the per-cell reconciliation
-gain and eats the private dimension the taper exists to produce. If a piece turns out not to fit
-through 4, that is the rung to pull first.
+every interior lane widened raises `Σ_e m_e` — the cell's communication bus — at every cell, which
+lowers the per-cell reconciliation gain and eats the private dimension the taper exists to produce.
+If a piece turns out not to fit through 4, that is the rung to pull first.
 
 **The drive edge is the exception, and in the other direction.** It is a boundary edge at `m = 1`,
 because the argument above is about *bandwidth the world needs* and the drive is not the world: it
-asserts one number, and an edge stalk wider than its stalk carries nothing extra (*Where the drive
+asserts one number, and a lane wider than its stalk carries nothing extra (*Where the drive
 attaches*). The drive cell is likewise exempt from `n` without being world-shaped — nothing outside
 gives it a dimension, so its stalk is sized by what it asserts. See
 [ADR-0006](../adr/0006-boundary-cell-stalks-are-world-shaped.md).
@@ -390,7 +390,7 @@ drive edges move it by 8; the drive's cost is local to the apex cells, not to th
 **`χ` restricts the node sum only. Every edge in the graph still counts.** The node term runs over
 predicting cells alone — including boundary cells swamps it, 256 cells × 48 dimensions of nominally
 private state that the world overwrites every tick and no cell holds — but the edge term runs over
-**all** edges, boundary-incident ones included, because those edge stalks are ordinary and are the
+**all** edges, boundary-incident ones included, because those lanes are ordinary and are the
 route the boundary's information actually takes (*The world only ever touches node stalks*, above).
 The rule was previously stated as "computed over predicting cells only", which licensed the wrong
 computation: dropping boundary edges as well as boundary nodes gives χ ≈ +3200, three times the figure
@@ -490,20 +490,53 @@ the finding — it is a reason not to let it borrow the authority of the cited m
   relays can actually lower, and they are already gated on the measurement that would show it binding
   — two core regions that must agree failing to.
 
-  **One mitigation is available in the literature and is deliberately not claimed.** Arroyo et al.
-  (2025) restate over-squashing unchanged for the recurrent setting and factor sensitivity into a
-  topology term and a **model-dynamics** term, mitigated by direct control of the Jacobian spectrum —
-  and Patchworks is recurrent with unit-delay bidirectional edges, so the term exists here. It is not
-  claimed because the spectrum is **already spoken for three times over**: the body is shared and
-  frozen, the regional spectrum is deliberately *spread* to supply timescales
-  ([`05-timescales.md`](./05-timescales.md), [#27](https://github.com/NGL321/patchworks/issues/27)),
-  spread and stability are the same global knob
-  ([#42](https://github.com/NGL321/patchworks/issues/42)), and `γ` is fixed for stability and recorded
-  as explicitly not a timescale knob
-  ([ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md), promoted to a
-  precondition by [#41](https://github.com/NGL321/patchworks/issues/41)). Buying long-range
-  sensitivity there would spend what the timescale mechanism runs on. Recorded as a route, with the
-  reason it is shut.
+  **One mitigation is available in the literature, and it is already claimed — the conversion is
+  it.** Arroyo et al. (2025) restate over-squashing unchanged for the recurrent setting and factor
+  sensitivity into a topology term and a **model-dynamics** term, mitigated by direct control of the
+  Jacobian spectrum — and Patchworks is recurrent with unit-delay bidirectional edges, so the term
+  exists here. The remedy that control names is a **state-space formulation with a controlled
+  spectrum**, and that is what the Koopman conversion
+  ([#138](https://github.com/NGL321/patchworks/issues/138)) made this body: a learned linear `K` per
+  cell, banded, with `ρ(K)` reported. The model-dynamics term has therefore been under direct control
+  since stage 1. [`docs/research/148`](../research/148-local-linear-operator-citations.md) §10.2 reads
+  it the same way and says so outright — *"Patchworks **is** a recurrent state-space GNN. A learned
+  linear `K` with controlled `rho(K)` is precisely 'a state-space formulation'."*
+
+  **The budget this paragraph once said was spent has split, not vacated**, and the half the
+  mitigation reads is the free half. `σ_max(K)` — the body — **is** spent, by
+  [ADR-0015](../adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md), at the
+  maximal-transmission face of **exactly 1**, so there is no headroom below the ceiling to reclaim.
+  `ρ(K)` is **free**: [#143](https://github.com/NGL321/patchworks/issues/143) and
+  [ADR-0028](../adr/0028-a-cell-holds-a-spectrum-of-retention-constants.md) moved retention onto a
+  learned `λ(K)`, so the regional spectrum this paragraph once spent on timescales
+  ([#27](https://github.com/NGL321/patchworks/issues/27),
+  [#42](https://github.com/NGL321/patchworks/issues/42)) is no longer the mechanism. `γ` stands, but
+  was demoted twice ([#140](https://github.com/NGL321/patchworks/issues/140),
+  [#160](https://github.com/NGL321/patchworks/issues/160)) and sits at its global ceiling of 1.0; it
+  was never the operative claimant. **Transmission spends the norm; retention reads the radius** —
+  [`05-timescales.md`](./05-timescales.md), which has carried the correction since #143 while this
+  paragraph did not.
+
+  **Two limits travel with the claim and are part of it.** Arroyo's finding (iii) is a
+  **conjunction** — *"a combination of graph rewiring and vanishing gradient mitigation"* — and this
+  design refuses rewiring, which [#237](https://github.com/NGL321/patchworks/issues/237) then
+  measured worthless sheaf-side (parallel routes worth **1.39×–1.57×**, against **3.80×**
+  graph-side). And the vanishing-gradient half is *"about backpropagated gradients and does not
+  transfer to a local learning rule; no source was found analysing over-squashing under local
+  learning rules"*
+  ([`docs/research/031`](../research/031-graph-topology-citations.md)). And weight the source as this
+  section weights its others: both Arroyo readings in the record are **from the abstract only**, with
+  Theorem 5.1 quoted secondhand. **The remedy is taken; it is not thereby sufficient.**
+
+  **And per-cell control is not composed control.** Sensitivity from rim to apex reads a **chain** of
+  per-cell operators through learned restriction maps, seven hops — and a band on each `σ_max(K)`
+  bounds the links, not the chain. ADR-0015 names that quantity exactly, as the spectral radius of *"a
+  composition of per-cell operators through learned restriction maps"*, and **records it as an open
+  risk it does not argue**, because the argument wanted the per-hop budget the effective-resistance
+  work would produce. That work has since reported
+  ([#237](https://github.com/NGL321/patchworks/issues/237)). Whether a composed bound is derivable
+  now, and whether per-cell control buys any of it, is open on
+  [#423](https://github.com/NGL321/patchworks/issues/423).
 - **Scale.** At 150 cells this is nearer a fly's brain than a mammal's. Among 150 columnar units of
   neocortex one would not expect significant thalamic communication either.
 
@@ -581,7 +614,7 @@ measure, and `n` being a global constant means no predicting cell can be dimensi
   where Patchworks differs; the argument was never that the wiring is novel. What differs is
   mechanism on the same connectivity: no pooling (tapering is fewer cells, not an aggregation
   operator), bidirectional edges with unit delay rather than a forward pass, a per-cell learned linear
-  change of basis into each shared edge stalk rather than a shared kernel, reconciliation rather than
+  change of basis into each shared lane rather than a shared kernel, reconciliation rather than
   activation, and local rules rather than backprop.
 - **Translation equivariance is absent.** A CNN applies one kernel at every position; here every cell
   holds its **own** restriction maps, so the change of basis is per-position. Any result from the
