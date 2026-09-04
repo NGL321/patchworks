@@ -384,6 +384,15 @@ Zero *guaranteed* private dimension is not zero private dimension: the bound is 
 learned rank-deficiency enlarges `H⁰` past it. What the gradient says is that near the rim a cell's
 privacy is contingent on learning, and deep it is structural.
 
+*Amended by [ADR-0032](../adr/0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md):
+the slack this paragraph leans on largely closes.* A map held to the spectral floor has rank exactly
+`m`, so no single map contributes a dead direction to `H⁰` any more. What excess can survive comes from
+misalignment across a cell's **incident** maps rather than from deficiency within one of them — and
+`GAUGE_C` pushes that the other way, because incoherence raises the stacked operator's rank. So near
+the rim privacy stops being contingent on learning and becomes what construction says it is, which for
+the cells with `Σ_e m_e ≥ n` is zero. [#385](https://github.com/NGL321/patchworks/issues/385) owns what
+follows.
+
 `χ = Σ_v n − Σ_e m_e` over predicting cells is **+1036**, measured from the built graph. The eight
 drive edges move it by 8; the drive's cost is local to the apex cells, not to the diagnostic.
 

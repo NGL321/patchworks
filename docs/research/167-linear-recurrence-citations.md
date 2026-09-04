@@ -1096,6 +1096,15 @@ touched by this pass.
   from this paper will import *consensus* (full agreement, iterated to convergence) where
   Patchworks means *reconciliation* (one penalised step per tick). Worth an explicit disambiguation
   the way the *Sheaf cohomology* entry already disambiguates Baudot & Bennequin.
+
+  **Narrowed by [#415](https://github.com/NGL321/patchworks/issues/415), which #414's sweep handed the
+  call to: the collision is no longer exact, and the surviving half is the half that always mattered.**
+  The rename defused *edge stalk* outright — the word is Sheaf-ADMM's alone now, and `communication
+  lane` collides with nothing. What still collides is **`restriction map`** and **`disagreement`**, and
+  both are used compatibly, so they are a reading aid rather than a hazard. The hazard the bullet
+  actually names is untouched by any rename: a reader arriving from this paper imports *consensus*
+  where Patchworks means *reconciliation*. Kept, rather than struck, for that reason and one other —
+  it is the record of what the rename bought, which is one of three terms.
 - **Globally-shared learned restriction maps were empirically not enough on two of three tasks.**
   Sheaf-ADMM's ablation, verbatim: *"Fixed identity maps recover partial performance on MNIST but
   fail on Maze and Sudoku. Learned shared maps suffice on Sudoku (92.5%) but not on Maze (8.9%);

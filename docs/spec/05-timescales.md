@@ -186,6 +186,16 @@ open, and it is [#411](https://github.com/NGL321/patchworks/issues/411)'s — th
 and #406 deliberately did not re-rule that; it deleted the one mechanism aimed at producing it. The
 *use* above is untouched by any of this and remains the step out from published work.
 
+**#411 ruled it a gap to close, not a source to draw on.** The residual is spent:
+[ADR-0032](../adr/0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md) floors
+every banded map's singular spectrum at `‖F‖_F/√m`, which makes each map full rank by construction, and
+*learned rank-deficiency is wanted* is retracted wherever it stood — ADR-0010's *no rank floor* section
+carries the correction, ADR-0015's comparison table cites it, and `01-cell-and-sheaf.md` no longer says
+it. Rank-deficiency on a **map** is now the failure it always was on the body; what the sheaf classes
+this section cites require, the floor supplies. That leaves the kernel-sizing lemma's other half live
+rather than settled: `dim H⁰ = d` **iff** transport is path-independent, and the floor buys the metric
+half of that and not the identification half.
+
 ### Persistence under the cell's own dynamics: `K`'s spectrum
 
 Insulation is from *neighbours*. It is not insulation from the cell itself — the private component
@@ -954,7 +964,10 @@ both hard:
   meaningfully below `n`. High-degree cells lose the *guarantee* of private dimension, though not
   necessarily the fact of it — the bound is a lower bound, and learned rank-deficiency enlarges `H⁰`
   past it. Low degree buys private dimension by construction; high degree makes it contingent on
-  learning.
+  learning. *Amended by
+  [ADR-0032](../adr/0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md): a
+  floored map has rank exactly `m`, so the contingent half largely closes and high degree buys zero
+  rather than an unknown ([#385](https://github.com/NGL321/patchworks/issues/385)).*
 - **Integration and holding may need to be separate cells.** Nothing is disqualified by the above —
   a relay cell performs no prediction and so has no slow state to hold, which is most of what
   high-degree cells are for. The tension bites only for cells that both *predict* and *integrate

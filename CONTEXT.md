@@ -59,7 +59,8 @@ _Avoid_: bandwidth, channel (reserve for the learned aligned subspace), fan-out,
 The map from a cell's node stalk into one incident communication lane. Performs transport and change
 of basis only; all inference happens inside the cell. Its overall magnitude is **gauge-fixed**,
 not learned — no term in the transport rule's objective identifies it, and left free an edge's
-joint scale grows without bound, until the maps stop moving.
+joint scale grows without bound, until the maps stop moving. What the pair on an edge is *learning* is
+**isometric transport**: `F_v⁺F_u` an isometry between the two carried subspaces (#411, ADR-0032).
 _Avoid_: projection, encoder, transport map
 
 **Carried subspace**:
@@ -76,6 +77,18 @@ interior maps, exactly 1 for boundary-cell maps, restored by projection after ea
 step. The upper face is the working constraint and binds continuously; the lower is a guardrail.
 What the band leaves free is an edge's scale ratio, not each map's magnitude.
 _Avoid_: normalisation, regularisation, weight decay, orthogonality constraint
+
+**Spectral floor**:
+The constraint `σ_min ≥ ‖F‖_F/√m` on a banded restriction map, restored by the same projection. Its
+only derivable value forces exact flatness — `Σᵢσᵢ² = ‖F‖²_F`, so a floor at the RMS singular value is
+attained with equality throughout — which makes **the floor and the projection onto the nearest scaled
+co-isometry one operation**, carrying no invented constant. It touches only `Σ`: the change of basis
+`U` and the choice of carried directions `V` are untouched, at 3 degrees of freedom of 128 per interior
+map. Preserves `‖F‖_F`, so the scale gauge is unaffected; costs `√m` on the operator norm, which is a
+hop. Distinct from the **operator band**, which runs the opposite way on `K` — a map transports and a
+cell operator computes (ADR-0032, ruled #411).
+_Avoid_: rank floor, orthogonality constraint, whitening, isometry (bare — the isometry is the edge
+pair's, not one map's)
 
 **Effective rank**:
 How many directions a restriction map is actually transmitting — the participation ratio of its
@@ -312,8 +325,12 @@ The construction-time bound on a cell operator's **spectral** norm: `σ_max(K) �
 by projection after each prediction step. One global band, not one per level. The upper face is
 exactly 1 because what it forbids is *amplification*, and a cell sitting at 1 is non-expansive rather
 than divergent — so it permits `ρ(K) = 1` and is **not** the claim `|λ| < 1`. Spectral rather than
-Frobenius, and deliberately unlike the scale gauge: rank-deficiency is wanted on a restriction map and
-is the failure mode on the body.
+Frobenius, and deliberately unlike the scale gauge. It also runs **opposite to the spectral floor**,
+and the two sit one sentence apart: a restriction map *transports*, so its spectrum is floored flat,
+while a cell operator *computes*, and non-normal transient growth is how a linear system moves content
+within a piece — so flatness on `K` is a starting condition to be escaped, not a target (#420 §3, and
+#357 is whether it must break). A session reaching for *the spectral floor applies to `K` too* has the
+level wrong.
 _Avoid_: spectral radius bound, stability constraint, scale gauge (that is the sheaf's), spectral
 normalisation (bare)
 
@@ -324,6 +341,24 @@ exactly the features private to a cell's sub-problem. **Not** the cohomology of 
 Bennequin's information theory, which is taken over a poset of partitions and has no graph in
 it; the two share a letter and nothing else, and must never be conflated.
 _Avoid_: cohomology (bare), information cohomology (for this object), topological invariant
+
+**Free abelian**:
+What the compression is over: a feature set whose generators compose **order-free**, so what arrives at
+a cell is determined by *which* generators travelled and never by the route they took. Order-freedom
+**is** path-independence, which is a statement about the transport layer rather than one sitting above
+it: `dim H⁰ = d` iff transport is path-independent (Bodnar et al., Lemma 6). So the sheaf's job is
+path-independent transport, and **departure of holonomy from the identity is the failure measure, not
+the prize** — the sign #315 reads it under. Heterogeneity is preserved and re-sourced: cells hold
+**different subsets of the generators** — different masks, different degree, different `m_e` — not
+different orders. Corrected from `non-abelian`, a dictation artifact in `docs/motivating-image.md`,
+on #411.
+**The `H¹` firewall holds here too, and this is the second `H¹` sentence in the record.** The holonomy
+obstruction named alongside this is the **cellular sheaf's** `H¹` and nothing else's — never Baudot &
+Bennequin's, whose `H¹` is a different group of a different complex over a different site, with no
+comparison map between them (`docs/research/015-information-cohomology.md`). Which is why
+*topological invariant* is on the Avoid list above and stays there.
+_Avoid_: non-abelian (retired — it was the artifact), commutative (bare), abelian (bare — the maps'
+degenerate rank-1 limit is abelian and is the failure), order-invariant
 
 **Private features**:
 The node stalk directions a cell exposes on no edge — masked out everywhere, and therefore exactly
