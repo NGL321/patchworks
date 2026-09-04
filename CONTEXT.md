@@ -177,40 +177,57 @@ settles: the perturbation must be distinguishable from what stands on the edge, 
 _Avoid_: transmission target, reachability, the ~0.37 per hop (retired), sufficiency (bare)
 
 **Conduction ratio**:
-A cell's measured retention time over the tick length of the shortest cycle through it that reaches
-the rim and returns — `τ̂_c / |loop(c)|`, dimensionless because both halves are in ticks. The
-numerator is the e-fold decay time of the paired counterfactual deviation restricted to the cell's
-private features; the denominator is a **construction-time** quantity, computed from the mask by
-enumeration and never inherited from a hop count (ADR-0026). It is `2 · d(c, rim)` — 14 at the apex of
-the default dome, where it was checked rather than assumed. Scale-free in time, so the never-settling
-floor does not touch it — **float32 does** (#224). `τ̂` is read on a float64-cast surface, so a PASS
-is a claim about **the graph's** conduction and not the float32 build's; and the reading is valid at
-a cell only where the projected deviation stays above the *arithmetic floor* at the `1/e` crossing,
-a reading failing that gate being reported alongside `τ̂` rather than dropped (ADR-0026, amended). The
-denominator is the **graph's** round trip and not the command-to-consequence loop the predicate is
-justified by; where the two differ the ratio is read against the shorter one (#368).
+A cell's measured retention time over the tick length of its command-to-consequence loop —
+`τ̂_c / world_loop(c)`, dimensionless because both halves are in ticks. The numerator is the e-fold
+decay time of the paired counterfactual deviation restricted to the cell's private features; the
+denominator is a **construction-time** quantity, computed from the mask by enumeration and never
+inherited from a hop count (ADR-0026). It is the **world loop** and not the graph's own round trip:
+the loop that leaves through the actuator, crosses the world and re-enters at a *different* sensory
+boundary cell (#383, upholding #368). Scale-free in time, so the never-settling floor does not touch
+it — **float32 does** (#224). `τ̂` is read on a float64-cast surface, so a PASS is a claim about **the
+graph's** conduction and not the float32 build's; and the reading is valid at a cell only where the
+projected deviation stays above the *arithmetic floor* at the `1/e` crossing, a reading failing that
+gate being reported alongside `τ̂` rather than dropped (ADR-0026, amended). Every conduction ratio
+already in the record was read against `|loop(c)|` and is **kept as read rather than rescaled**, on
+#274's precedent.
 _Avoid_: margin (`fold margin` is a distance to a boundary; this is a ratio), retention (bare), gain,
-timescale ratio
+timescale ratio, `τ̂_c / |loop(c)|` (the divisor before #383)
 
 **Loop length**:
 `|loop(c)|`: the tick length of the shortest cycle through a cell that reaches the sensorimotor rim
-and returns — the conduction ratio's denominator. A **construction-time** quantity: enumerated from
-the mask by breadth-first sweep, `2 · d(c, rim)` with the rim taken **as a set**, and **never
-inherited from a hop count** (ADR-0026). It moves with `DomeSpec` and is recomputed rather than
-quoted — 14 at the apex of the default dome, where it was checked rather than assumed. That it
-coincides with `2 · level` there is a fact about the current taper's wiring and not a licence to
-index by level. Computed by `benchmarks/loop_length.py`. **It is not the command-to-consequence
-loop**: this one turns around at the rim's inner face and never leaves the graph, while the round
-trip a retention time actually has to beat leaves through the actuator, crosses the world, and
-re-enters at a *different* boundary cell under ADR-0016's ban — `world_loop(c)`, longer at every cell
-(#368).
+and returns. A **construction-time** quantity: enumerated from the mask by breadth-first sweep,
+`2 · d(c, rim)` with the rim taken **as a set**, and **never inherited from a hop count** (ADR-0026).
+It moves with `DomeSpec` and is recomputed rather than quoted — 14 at the apex of the default dome,
+where it was checked rather than assumed. That it coincides with `2 · level` there is a fact about the
+current taper's wiring and not a licence to index by level. Computed by `benchmarks/loop_length.py`.
+**It is not the conduction ratio's denominator and not the command-to-consequence loop**: this one
+turns around at the rim's inner face and never leaves the graph. It was the denominator until #383,
+which kept it — an exact length, published beside the divisor — and demoted it.
 _Avoid_: round trip (bare), cycle length, depth, hop count, `2 · level`, the command-to-consequence
-loop, the loop a retention time has to beat
+loop, the loop a retention time has to beat, the conduction ratio's denominator (that is the **world
+loop** since #383)
+
+**World loop**:
+`world_loop(c)`: the tick length of the shortest **command-to-consequence** loop through a cell —
+`min` over `(a, p)`, `a` an actuator and `p` any sensory boundary cell with `a ≠ p`, of
+`d(c, a) + w + d(p, c)`. The conduction ratio's denominator since #383, and the loop ADR-0026's own
+justification names: out through the actuator, across the world, back in at a *different* boundary
+cell under ADR-0016's ban. `w` is the **world's own tick**, 1 on this sandbox. Like `|loop(c)|` a
+**construction-time** quantity off the mask, recomputed rather than quoted, computed by
+`benchmarks/loop_length.py world` beside the length it replaced — 15–16 at the apex of the default
+dome and 3–9 at L1, longer than `|loop(c)|` at every cell. `p` ranges over **every** sensory boundary
+cell, patches and touch included: the sandbox's `image` carries the arm, so the consequence returns on
+vision unconditionally. Unlike `|loop(c)|` it is **not graded by depth** — the levels' ranges overlap,
+because the world's answer takes about the same time to come back wherever the cell sits.
+_Avoid_: loop length (that is `|loop(c)|`), world round trip, sensorimotor loop, latency
 
 **Rim-core influence**:
 The predicate over the conduction ratio, and **the map's operative bar**: over paths, the max of the
 min conduction ratio along a path is at least 1 — the cell still holds what it sent by the time the
-answer gets back. Stated twice, and the two directions **do not share a quantifier**: inbound is a
+answer gets back. Since #383 that gloss is **literally true of the quantity**: the denominator is the
+loop the answer actually comes back on, so the sentence is the predicate rather than a paraphrase of
+it, and the bar of 1 is derived from it rather than resting on a round number. Stated twice, and the
+two directions **do not share a quantifier**: inbound is a
 swept single-source **count**, the fraction of rim cells whose loop closes, per stratum and never
 averaged across strata, with the bar that every stratum's reaching set is non-empty; outbound is a
 **universal** over L1 predicting cells and the actuator boundary cell. **Necessary, not sufficient**:

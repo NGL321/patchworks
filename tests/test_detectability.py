@@ -45,6 +45,7 @@ import pytest
 import torch
 
 import detectability as det
+import loop_length
 from patchworks.agent import Agent
 from patchworks.graph import build_graph
 from patchworks.sandbox import PlanarPushSandbox
@@ -147,8 +148,68 @@ class TestWidestPath:
         assert (target, edge, path) == (-1, -1, ())
 
 
+class TestTheDivisor:
+    """`world_loop(c)`: what the conduction ratio divides by since #383.
+
+    The reduction cannot pin this. `conduction_ratio` reads `0` under either
+    divisor — #385's zero-private-dimension L1 cells hold the `min` down — so a
+    test on the published key would pass whether or not the swap happened. What
+    is checkable is the divisor itself, per cell, which is what these hold.
+    """
+
+    def test_the_divisor_is_the_world_loop_and_is_not_re_derived_here(self):
+        """One enumeration, one place: `loop_length` owns it and this delegates."""
+        from patchworks.graph import DEFAULT_SPEC
+
+        dome = build_graph(DEFAULT_SPEC)
+        assert det.world_loops(dome) == loop_length.world_loops(dome).lengths
+
+    def test_the_divisor_is_longer_than_the_round_trip_at_every_cell(self):
+        """`world_loop(c) >= |loop(c)| + w` everywhere, so the swap moves every cell.
+
+        The two lengths differ at all 150 predicting cells and are never equal,
+        which is #368's gap and is the whole of what #383 ruled on. A rig still
+        dividing by the round trip would agree with this on nothing.
+        """
+        from patchworks.graph import DEFAULT_SPEC
+
+        dome = build_graph(DEFAULT_SPEC)
+        round_trip = det.loop_lengths(dome)
+        divisor = det.world_loops(dome)
+        assert set(divisor) == set(round_trip) == set(dome.predicting)
+        assert all(
+            divisor[c] >= round_trip[c] + loop_length.WORLD_TICK for c in divisor
+        )
+
+    def test_the_divisor_stops_being_graded_by_depth(self):
+        """#181 biting, per #383: 2–14 by level becomes a nearly flat 3–16.
+
+        The round trip is a distinct value per level; the world loop overlaps
+        across levels, because the world's answer takes about the same time to
+        come back wherever the cell sits.
+        """
+        from patchworks.graph import DEFAULT_SPEC
+
+        dome = build_graph(DEFAULT_SPEC)
+        divisor = det.world_loops(dome)
+        levels = {c: dome.cells[c].index.level for c in divisor}
+        assert min(divisor.values()) == 3
+        assert max(divisor.values()) == 16
+        l1 = {divisor[c] for c in divisor if levels[c] == 1}
+        apex = {divisor[c] for c in divisor if levels[c] == 7}
+        assert (min(l1), max(l1)) == (3, 9)
+        assert (min(apex), max(apex)) == (15, 16)
+        assert l1 & apex == set()
+        assert len({divisor[c] for c in divisor if levels[c] == 2} & l1) > 0
+
+
 class TestTheLoopEnumeration:
-    """`|loop(c)|` off the mask, against ADR-0026's published ladder."""
+    """`|loop(c)|` off the mask: ADR-0026's published ladder, kept and demoted.
+
+    Since #383 this is not the conduction ratio's divisor — :class:`TestTheDivisor`
+    holds that — but it is still an exact construction-time length and still the
+    table the ADR enumerated, so the ladder stays checked.
+    """
 
     def test_the_default_dome_reproduces_the_published_ladder(self):
         """ADR-0026's own table, re-derived rather than quoted.

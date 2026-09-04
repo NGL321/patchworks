@@ -1,7 +1,7 @@
 """Rim-to-core transmission: ADR-0026's conduction ratio, and ADR-0021's bottleneck.
 
 **Two predicates, two quantities, and this rig publishes both under their own
-names.** ADR-0026's **conduction ratio** `τ̂_c / |loop(c)|` is #127's operative
+names.** ADR-0026's **conduction ratio** `τ̂_c / world_loop(c)` is #127's operative
 bar; ADR-0021's **bottleneck ratio** is the sufficient per-edge diagnostic it
 demoted but kept. Neither decides anything here — both predicates, the amplitude
 convention, the floor, the bar and the loop enumeration were settled before this
@@ -24,7 +24,8 @@ reading it hands over is :func:`readings`.
 
 **What `conduction ratio` names, corrected by
 [#379](https://github.com/NGL321/patchworks/issues/379).** It is **ADR-0026's**
-`τ̂_c / |loop(c)|` — :func:`conducting_path`, a ratio of times — and it is *not*
+`τ̂_c / world_loop(c)` — :func:`conducting_path`, a ratio of times — and it is
+*not*
 ADR-0021's bottleneck ratio, which this module published under that key until
 #379. The two are not close and they fail differently: at #232's best corner the
 bottleneck ratio was short of its bar by **4.4e8x** where the conduction ratio is
@@ -51,14 +52,31 @@ the **stimulus convention** and nothing else. See :func:`injection` for what
 :func:`branch` for what *sustained* was taken to mean.
 
 **ADR-0026's predicate, the operative bar.** `max` over paths `P`, `min` over
-*cells* `c ∈ P`, of `τ̂_c / |loop(c)| ≥ 1`; per trial, the bar at the median with
-p05/p25/p75/p95 alongside; stated twice, rim→apex and apex→rim. `τ̂_c` is the
-e-fold decay time of the paired deviation **projected onto `c`'s private
-features** (:func:`tau_hat`), and `|loop(c)|` is the tick length of the shortest
-rim-returning cycle through `c`, **enumerated from the mask**
-(:func:`loop_lengths`) rather than quoted. Boundary cells hold no private
+*cells* `c ∈ P`, of `τ̂_c / world_loop(c) ≥ 1`; per trial, the bar at the median
+with p05/p25/p75/p95 alongside; stated twice, rim→apex and apex→rim. `τ̂_c` is
+the e-fold decay time of the paired deviation **projected onto `c`'s private
+features** (:func:`tau_hat`), and `world_loop(c)` is the tick length of the
+shortest loop through `c` that leaves through the actuator, crosses the world
+and re-enters at another sensory boundary cell, **enumerated from the mask**
+(:func:`world_loops`) rather than quoted. Boundary cells hold no private
 features and carry no `τ̂`, so they bound no path — ADR-0026's own exclusion,
 arrived at from the arithmetic rather than bolted on.
+
+**The divisor is `world_loop(c)` since
+[#383](https://github.com/NGL321/patchworks/issues/383)**, and it is imported
+from `benchmarks/loop_length.py` rather than re-derived here — one enumeration,
+one place. `|loop(c)|`, the graph's own round trip, is **kept and demoted**: it
+is still computed by :func:`loop_lengths` and still exact, but it is a
+construction-time length and no longer a denominator. The two differ at every
+cell, by 1 to 7 ticks on `DEFAULT_SPEC`, and #383 ruled that the loop
+ADR-0026's own justification names — *the cell still holds what it sent by the
+time the answer gets back* — is the one that crosses the world.
+
+**The published `conduction_ratio` key does not move under that swap**, and
+that is not the edit failing to bite. It reads `0` under either divisor because
+[#385](https://github.com/NGL321/patchworks/issues/385)'s zero-private-dimension
+L1 cells pin the `min`. What moves is the per-cell ratios along the path
+:func:`report` prints, which is where the ruling is visible.
 
 **This is the widest-path shape, not the acceptance form.** ADR-0026 states the
 predicate twice more — inbound as a swept per-stratum count, outbound as a
@@ -155,6 +173,12 @@ if _HERE not in sys.path:
 # `tests/test_untrained_fixed_point.py`, and a second copy drifting from it would
 # leave this script forking a branch that shares state with its own control.
 import untrained_fixed_point as ufp  # noqa: E402
+
+# ADR-0026's divisor is enumerated in exactly one place (#383). Importing it
+# rather than re-deriving it here is the same rule `untrained_fixed_point` is
+# imported under: two copies of a construction-time enumeration can disagree,
+# and the one that disagreed would be the one under the operative bar.
+import loop_length  # noqa: E402
 
 # The cutoff hook lives in `tools/` and not here, because it shells `gh` and a
 # network tool belongs on the far side of the line `tests/test_cli.py` defends.
@@ -289,7 +313,7 @@ class Trial:
     """`(ticks, bottleneck)`: the same trial read to several horizons."""
 
     conduction: float
-    """ADR-0026's reading: `min` over the widest path's cells of `τ̂_c / |loop(c)|`."""
+    """ADR-0026's reading: `min` over the path's cells of `τ̂_c / world_loop(c)`."""
 
     cell: int
     """The cell that binds the conducting path — what ADR-0026's predicate says fails."""
@@ -413,6 +437,12 @@ def loop_lengths(dome: Dome) -> dict[int, int]:
     `|loop(c)| = 2 · level` on the default dome is a fact about that taper and
     not a licence to index by level (#181): this computes per cell from the
     graph, and a changed `DomeSpec` gets a different ladder for free.
+
+    **This is no longer the conduction ratio's divisor** (#383). It is kept and
+    published under its own name as what it is — an exact construction-time
+    length, the graph's own rim-returning round trip — and :func:`world_loops`
+    carries the divisor. The demotion cost the reading nothing: `|loop(c)|` is
+    still what ADR-0026 enumerated and still what a changed `DomeSpec` moves.
     """
     distance = {cell: 0 for cell in rim(dome)}
     frontier = list(distance)
@@ -426,6 +456,28 @@ def loop_lengths(dome: Dome) -> dict[int, int]:
                     onward.append(other)
         frontier = onward
     return {c: 2 * distance[c] for c in dome.predicting if c in distance}
+
+
+def world_loops(dome: Dome) -> dict[int, int]:
+    """`world_loop(c)` for every predicting cell: ADR-0026's divisor since #383.
+
+    `min over (a, p), a an actuator, p any sensory boundary cell, a != p, of
+    d(c, a) + w + d(p, c)` — out through the actuator, across the world, back in
+    at another boundary cell, where `a != p` is ADR-0016's written-or-read ban
+    rather than a modelling choice. This is the loop ADR-0026's justification
+    names, and [#383](https://github.com/NGL321/patchworks/issues/383) ruled it
+    the divisor in place of `|loop(c)|`, which it kept and demoted.
+
+    **Delegated to `benchmarks/loop_length.py`, not re-derived.** That module
+    owns the enumeration and the world tick `w` the sandbox fixes, and a second
+    copy here could drift from it in silence — under the operative bar, which is
+    the one place a silent disagreement costs the most.
+
+    **A predicting cell no (actuator, sensory) pair reaches is absent** rather
+    than carried with an infinite divisor, for :func:`loop_lengths`' reason: *no
+    loop closing* is ADR-0026's stated falsification and it should read as one.
+    """
+    return loop_length.world_loops(dome).lengths
 
 
 #: The relative slack on `τ̂`'s `1/e` comparison, so a sample landing *on* the
@@ -448,11 +500,11 @@ def tau_hat(deviation: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     **Integer ticks, and no interpolation between samples.** ADR-0026 says *"the
     ticks from that peak until it falls to `1/e` of peak"*, and the tick is the
     architecture's own unit — one edge, one tick
-    (`01-cell-and-sheaf.md`, *Unit delay*), which is also what `|loop(c)|` counts,
-    so the ratio is in the same currency top and bottom. Interpolating a crossing
-    between two samples would report a resolution the instrument does not have,
-    and at L1, where `|loop| = 2`, the interpolated digit would be doing the
-    deciding.
+    (`01-cell-and-sheaf.md`, *Unit delay*), which is also what `world_loop(c)`
+    counts, so the ratio is in the same currency top and bottom. Interpolating a
+    crossing between two samples would report a resolution the instrument does
+    not have, and at L1, where the divisor is as small as 3, the interpolated
+    digit would be doing the deciding.
 
     **Censoring is flagged, not filled in.** A deviation that never falls to
     `1/e` inside the window has a `τ̂` this window cannot read. It comes back as
@@ -544,7 +596,7 @@ def conducting_path(
     predicates' shapes. Same invariant makes the greedy step correct: a path's
     value cannot rise by extending it.
 
-    `ratio` carries `τ̂_c / |loop(c)|` for every predicting cell. **A cell absent
+    `ratio` carries `τ̂_c / world_loop(c)` for every predicting cell. **A cell absent
     from it is unbounded** — that is the boundary cells, which hold no private
     features, carry no `τ̂` and are excluded from the outbound universal by
     ADR-0026 on exactly this ground. They are transited without binding, so a
@@ -898,7 +950,7 @@ def trial(
     ufp.restore(agent.sheaf, state)
     peaks = ratio.max(axis=0)
     value, target, edge, path = widest_path(agent.dome, peaks, cells, targets)
-    loops = loop_lengths(agent.dome)
+    loops = world_loops(agent.dome)
     conducted = conduction(agent.dome, held, moved, cells, targets, loops)
     return Trial(
         source=cells,
@@ -1080,7 +1132,7 @@ def linearity(
         f"corner: {stimulus} x {'collective' if collective else 'single-source'}; "
         f"injected into {len(cells)} {kind} cell(s)"
     )
-    loops = loop_lengths(agent.dome)
+    loops = world_loops(agent.dome)
     print(
         "\n  A0         bottleneck at A0=1     median edge ratio     "
         "conduction     median tau_hat   resolved"
@@ -1139,7 +1191,10 @@ def report(dome: Dome, direction: str, outcomes: list[Trial], window: int) -> No
     q = quantiles(conducted)
     verdict = "HOLDS" if q["median"] >= 1.0 else "FAILS"
     print(f"== {direction}: rim-core influence {verdict} ==")
-    print("   ADR-0026, the operative bar: conduction ratio = tau_hat / |loop|")
+    print(
+        "   ADR-0026, the operative bar: conduction ratio = "
+        "tau_hat / world_loop (#383)"
+    )
     print(
         f"   over {q['n']} trials — "
         f"p05 {q['p05']:.3g}  p25 {q['p25']:.3g}  "
@@ -1149,7 +1204,7 @@ def report(dome: Dome, direction: str, outcomes: list[Trial], window: int) -> No
         print(f"   short of the bar by {1.0 / q['median']:.3g}x at the median")
     middle = outcomes[int(np.argsort(conducted)[len(conducted) // 2])]
     print(f"   the median trial's binding cell: {name_cell(dome, middle.cell)}")
-    loops = loop_lengths(dome)
+    loops = world_loops(dome)
     rows = {cell: row for row, cell in enumerate(dome.predicting)}
     profile = "  ".join(
         f"{middle.tau[rows[c]] / loops[c]:.3g}" if c in loops else "-"
@@ -1248,14 +1303,22 @@ def report(dome: Dome, direction: str, outcomes: list[Trial], window: int) -> No
 def readings(results: dict[str, list[Trial]]) -> dict[str, float]:
     """What this read has to offer a `measurement` cutoff, by name.
 
-    **`conduction_ratio` is ADR-0026's `τ̂_c / |loop(c)|`**, and until
-    [#379](https://github.com/NGL321/patchworks/issues/379) it was ADR-0021's
-    bottleneck ratio wearing that key. #325 and #329 both write `conduction ratio
-    >= 1` and both name ADR-0026/0027 as the warrant, so the key they cut on now
-    carries the quantity their warrant names. The two are eight orders apart and
-    they fail differently, so this was never cosmetic: a cutoff wired to the
-    amplitude ratio waits on a quantity no amount of the work in front of it can
-    move, which is the bystander ADR-0026 exists to have replaced.
+    **`conduction_ratio` is ADR-0026's `τ̂_c / world_loop(c)`** — the divisor is
+    `world_loop(c)` since #383, and the key was ADR-0021's bottleneck ratio until
+    [#379](https://github.com/NGL321/patchworks/issues/379). #325 and #329 both
+    write `conduction ratio >= 1` and both name ADR-0026/0027 as the warrant, so
+    the key they cut on now carries the quantity their warrant names. The two are
+    eight orders apart and they fail differently, so this was never cosmetic: a
+    cutoff wired to the amplitude ratio waits on a quantity no amount of the work
+    in front of it can move, which is the bystander ADR-0026 exists to have
+    replaced.
+
+    **#383's divisor swap does not move this key and does not re-file those two
+    verdicts.** It reads `0` under `|loop(c)|` and under `world_loop(c)` alike,
+    because #385's zero-private-dimension L1 cells pin the `min` either way. A
+    reader who sees the key unchanged after the swap is seeing #385, not an edit
+    that failed to land; the per-cell ratios :func:`report` prints are where the
+    ruling shows.
 
     **ADR-0021's ratio is still published, under `bottleneck_ratio`.** ADR-0026
     kept it as the sufficient per-edge diagnostic and demoted only its role, so
@@ -1351,7 +1414,8 @@ def read(
     # cut on this rig, and all wait on the same thing: a graph that transmits,
     # which is what this read measures. It states a verdict, files the run, and
     # asserts nothing. What `conduction_ratio` means is ADR-0026's ratio of
-    # times, corrected by #379; see :func:`readings`.
+    # times, corrected by #379 and divided by `world_loop(c)` since #383; see
+    # :func:`readings`.
     report_cutoffs("detectability", readings(results), file=file_cutoffs)
 
 
