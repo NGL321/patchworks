@@ -119,17 +119,71 @@ ceiling of 1.0 and timescale no longer living in activation regions, the `γ × 
 bound is neither binding nor motivated. The fold-margin *check* survives as a construction-time
 diagnostic on `encode`. See ADR-0007, amended.
 
-### The composed system: named here, argued elsewhere
+### The composed system: bounded above, and the lower side is not a bound
 
-Nothing in the literature addresses the spectral radius of a **composition of per-cell operators
-through learned restriction maps**, and the dome must not be globally contracting if it is to sustain
-activity. **This ADR names that quantity and records it as an open risk; it does not argue it.** The
-argument needs the per-hop budget that the effective-resistance work produced, and deriving a composed
-bound before that reported would be *choosing* a number rather than deriving one.
+**The deferral is discharged.** This ADR named the spectral radius of a **composition of per-cell
+operators through learned restriction maps** and refused to argue it, pending the per-hop budget the
+effective-resistance work would produce. That work has reported
+([#237](https://github.com/NGL321/patchworks/issues/237)), and the budget was **retracted rather than
+delivered** — #237 measured effective *resistance* and diagnosed *rank*, neither of which is a per-hop
+spectral gain. The argument was made anyway, on quantities already on the record, in
+[#423](https://github.com/NGL321/patchworks/issues/423).
 
-Proportionality, so this is not read as a present danger: the measured `restrict` factor is 0.1706 and
-the whole hop 0.001086. The real system is ~921× *under* per hop. The composed-gain risk is a
-principled gap in the argument; the present danger is the opposite one, and it is the whole map.
+**The named object is two objects, and `ρ` is only literally correct of the second:**
+
+- the **rim→apex chain gain**, a path product over seven hops. It is not square, so what is defined on
+  it is `σ_max`. This is what over-squashing sensitivity reads.
+- the **dome's tick operator on `C⁰`**, which is square, and whose `ρ` is what *"must not be globally
+  contracting"* was about.
+
+**The upper bound, derived.** The hop operator is `M = F_out · gain_v · F_inᵀ` — a transpose, not a
+pseudoinverse, whose norm no Frobenius gauge would bound. Every factor is already gauge-fixed on the
+record: `‖F‖_F ≤ ρ = 2` ([ADR-0010](./0010-restriction-map-scale-is-gauge-fixed.md)), `gain_v ≤ 1`
+with global `γ` at its ceiling of 1.0 ([`02-tick-semantics.md`](../spec/02-tick-semantics.md)), and
+`σ_max(K) ≤ 1`, this ADR's own upper face. Submultiplicativity gives `σ_max ≤ ρ²·gain_v ≤ ρ²` per hop,
+and over `h = 7` hops rim to apex, **`σ_max(composed) ≤ ρ^{2h} = 4⁷ = 16,384`**. **No constant is
+invented** — it is composed entirely of construction-time quantities already declared, so it meets
+this ADR's own *derived rather than chosen* test outright.
+
+Proportionality, so this is not read as a present danger. #237's direct read of the composed object
+puts the trained seven-hop product at **`σ₁ ≈ 4.5e-17`**, with the most resistive edges at composed
+`σ₁ ≈ 5e-4`. The bound is loose against it by some **twenty-one orders of magnitude**, and forbids
+nothing that is happening. The composed-gain risk is discharged on this side; the present danger is
+the opposite one, and it is the whole map. *(The figure that stood here — the `restrict` factor at
+0.1706, the whole hop at 0.001086, the real system ~921× under per hop — was the **isotropic** reading
+against near-rank-1 maps that [#142](https://github.com/NGL321/patchworks/issues/142) corrected and
+[`docs/research/231`](../research/231-the-record-read-back.md) §3.1 calls "now the thing explicitly
+rejected". It is struck rather than restated; the measurement above points the same way, harder.)*
+
+**`ρ(K)` buys none of it.** Submultiplicativity consumes `σ_max`, never `ρ`, and this ADR has already
+**spent** `σ_max(K)` at exactly 1 — that is the factor the composed bound uses.
+[#420](https://github.com/NGL321/patchworks/issues/420) found `ρ(K)` free *precisely because it does
+not enter the composed product at all*. So per-cell control of the radius is not composed control, and
+the conversion's claim on the model-dynamics term of over-squashing sensitivity is true and narrower
+than it sounds.
+
+**The non-contraction clause is superseded, and demoted rather than deleted.** *"The dome must not be
+globally contracting if it is to sustain activity"* is a true description of the **undriven** system.
+Under [#144](https://github.com/NGL321/patchworks/issues/144) — persistence is sustained, not stored —
+long-time behaviour is a property of the **driven field**, and a driven field needs no `ρ ≥ 1` on its
+own tick operator to sustain structure. The clause stands as a description; it does not bind as a
+constraint, and no composed bound owes it anything.
+
+**The lower side is not derivable, and the reason is algebra rather than shortfall.** ADR-0010 bounds
+a **Frobenius** norm, which cannot floor `σ_min` away from zero, and the structural masks make maps
+rank-deficient by construction. That is #237's rank finding restated as a fact about the gauge: the
+gauge was never asleep, it simply does not constrain the quantity.
+
+**Pre-registered, and not a bound.** A two-sided composed bound becomes derivable if
+[#411](https://github.com/NGL321/patchworks/issues/411)'s per-map spectral floor lands — flat maps fix
+`σᵢ = ‖F‖_F/√m` and so floor each map's `σ_min` — **and** an alignment floor is measured alongside it,
+since two perfectly flat maps whose carried subspaces are orthogonal still compose to zero. That
+second term is what [#315](https://github.com/NGL321/patchworks/issues/315) reads as departure of
+holonomy from the identity. This is a pre-registration, not a claim, and it is recorded on
+[#415](https://github.com/NGL321/patchworks/issues/415), which owns the floor's consequences.
+
+**Live caveat: apex→rim was never read.** Everything above is rim→apex. #237's rank mechanism is not
+directional, so the expectation is the same reading — but expectation is not measurement.
 
 ### The falsification, pre-registered
 
