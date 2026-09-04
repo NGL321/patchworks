@@ -23,9 +23,9 @@ Three commitments are structural here rather than configurable.
   48 for a sensory patch, 2 proprioceptive, 1 touch, 6 actuator, 1 drive
   (`docs/adr/0006-boundary-cell-stalks-are-world-shaped.md`). Every edge stalk
   in the graph, boundary-incident ones included, is ordinary and `m`-sized.
-* **Sparsity is a property of the maps, not of the graph.** No edge is ever
-  removed, and the mask closes and never re-opens. Nothing here deletes an edge
-  or narrows a stalk, and nothing later may either.
+* **No edge is ever removed.** The mask closes and never re-opens. Nothing here
+  deletes an edge or narrows a stalk, and nothing later may either
+  (`docs/spec/06-graph-topology.md`, *No edge is ever removed*).
 
 Where the record leaves a construction rule open, this module chooses one and
 says so at the point of choice. Those points are the somatomotor column's

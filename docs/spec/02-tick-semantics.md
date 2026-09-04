@@ -270,7 +270,9 @@ run.
 [#33](https://github.com/NGL321/patchworks/issues/33) found the denominator could not stay fixed: the
 transport rule ([`07-local-learning-rule.md`](./07-local-learning-rule.md)) trains the restriction-map
 magnitudes `Σ_e m_e` stood in for, so the proxy drifted away from the block's true spectral radius as
-training proceeded, and each cell had to re-derive its own estimate on the anneal schedule.
+training proceeded, and each cell had to re-derive its own estimate on the sparsity anneal's
+schedule — a schedule deleted with the term itself at
+[#406](https://github.com/NGL321/patchworks/issues/406)/[ADR-0031](../adr/0031-the-sparsity-pressure-is-deleted.md).
 [ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md) **removed that drift at its source** by
 fixing the magnitudes the rule no longer identifies, so the denominator above is a bound that holds for
 as long as the run does. The periodic re-derivation is struck rather than kept just-in-case — a

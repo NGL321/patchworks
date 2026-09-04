@@ -31,7 +31,7 @@ import untrained_fixed_point as ufp
 
 from conftest import SMALL
 from patchworks.diagnostics import Diagnostics
-from patchworks.learning import SparsityAnneal, TransportRule
+from patchworks.learning import TransportRule
 
 
 class TestTheBar:
@@ -75,7 +75,7 @@ class TestTheSegments:
             observation, _info = env.reset(seed=0)
             agent.observe(observation)
             diagnostics = Diagnostics(agent.sheaf)
-            transport = TransportRule(agent.sheaf, anneal=SparsityAnneal())
+            transport = TransportRule(agent.sheaf)
             applied = agent.command()
 
             before = agent.sheaf.maps.maps.detach().clone()

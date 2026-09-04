@@ -214,6 +214,11 @@ naming, the other needed this bound extended.**
   still not a cap on what a map may learn. It fixes a magnitude no term in the objective has an opinion
   about, which is why it closes this hole without imposing the geometric constraint declined above.
 
+  *The quoted text names the **sparsity anneal**, which no longer exists: it was deleted with its term
+  at [#406](https://github.com/NGL321/patchworks/issues/406)/[ADR-0031](./0031-the-sparsity-pressure-is-deleted.md).
+  Nothing here moves — the fix it describes was already superseded, immediately above — and the
+  quotation is left as it stood.*
+
   *And this is where #37 and [#160](https://github.com/NGL321/patchworks/issues/160) have to be read
   together, because apart they look like the same decision taken twice in opposite directions.* #37
   struck a runtime re-derivation; #160 reinstated a runtime read. **They are about opposite sides of

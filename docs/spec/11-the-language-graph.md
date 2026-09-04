@@ -80,8 +80,8 @@ A graph is built from:
 7. **Dimensions**: `n`, `k`, and `m` per edge kind.
 8. **Attachment exceptions** — the escape hatch, below.
 
-Everything else in `06-graph-topology.md` — the dimensions and the boundary's exemption, the sparsity
-treatment, the absence of relay cells, the broadcast-subspace argument, hard partitions held in
+Everything else in `06-graph-topology.md` — the dimensions and the boundary's exemption, the refusal
+of edge removal, the absence of relay cells, the broadcast-subspace argument, hard partitions held in
 reserve — is independent of which instantiation is running and is **not restated here**. That was
 `06`'s own claim about what survives the dome's abandonment, and it holds.
 

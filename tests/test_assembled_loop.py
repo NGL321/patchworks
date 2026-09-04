@@ -43,7 +43,7 @@ import torch
 
 from patchworks.agent import Agent, run
 from patchworks.graph import build_graph
-from patchworks.learning import PredictionRule, SparsityAnneal, TransportRule
+from patchworks.learning import PredictionRule, TransportRule
 from patchworks.sandbox import PlanarPushSandbox
 
 # The small dome, shared (tests/conftest.py). The full dome is not the point
@@ -121,15 +121,10 @@ def test_the_assembled_loop_runs_with_both_rules_on(agent):
     because prediction error is a cell's own quantity and crosses no edge.
     """
     prediction = PredictionRule(agent.sheaf)
-    # **Not the default anneal**, and the reason is coverage rather than taste.
-    # `DEFAULT_ANNEAL_HORIZON` is 1000 steps and this run takes 299, so at the
-    # default the sparsity pressure would never once reach its ceiling and the
-    # loop would be smoke-tested only on the ramp -- while #97 spends
-    # essentially all of its time on the flat part, at full `λ`, which is also
-    # where the sparsity term pushes hardest against the gauge projection. A
-    # horizon of half the run puts both regimes inside it. It configures this
-    # run and changes no default.
-    transport = TransportRule(agent.sheaf, anneal=SparsityAnneal(horizon=TICKS // 2))
+    # The rule takes no schedule and no second global signal: #410 deleted the
+    # sparsity anneal, so there is no ramp to cover and no regime this loop can
+    # be smoke-tested on only half of.
+    transport = TransportRule(agent.sheaf)
 
     # The adapting surface as it was drawn, to compare against at the end.
     # Cloned, because both rules write theirs in place.
@@ -142,22 +137,18 @@ def test_the_assembled_loop_runs_with_both_rules_on(agent):
     ticking = run(agent, TICKS, seed=0)
     next(ticking)
     prediction.step()
-    # `transport.pressure` is the `λ` the step about to run will compose into
-    # its objective, so recording it here witnesses a step that **took** the
-    # ceiling rather than a schedule that merely reached it after the last one.
-    pressures = []
+    transport_steps = 0
     for _ in ticking:
         prediction.step()
-        pressures.append(transport.pressure)
         transport.step()
+        transport_steps += 1
 
-    # It completed, and a step ran on the anneal's flat part.
+    # It completed, and the transport rule ran on every tick but the first.
     assert agent.sheaf.ticks == TICKS
-    assert transport.steps == TICKS - 1
-    assert max(pressures) == pytest.approx(transport.anneal.pressure)
+    assert transport_steps == TICKS - 1
 
-    # Both rules actually moved something. `transport.steps` counts calls, not
-    # work, and the prediction rule counts nothing at all, so without this a rule
+    # Both rules actually moved something. The count above counts calls, not
+    # work, and neither rule counts anything at all, so without this a rule
     # that had become a silent no-op -- `argnums` mis-scoped to something that
     # is not the adapting surface, the **missing** gradient the `torch.func`
     # idiom was chosen to fail towards -- would leave this test green while the

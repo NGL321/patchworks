@@ -76,7 +76,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "tools"))
 from patchworks.agent import Agent  # noqa: E402
 from patchworks.diagnostics import Diagnostics  # noqa: E402
 from patchworks.graph import DEFAULT_SPEC, DomeSpec, build_graph  # noqa: E402
-from patchworks.learning import PredictionRule, SparsityAnneal, TransportRule  # noqa: E402
+from patchworks.learning import PredictionRule, TransportRule  # noqa: E402
 from patchworks.sandbox import PlanarPushSandbox  # noqa: E402
 
 import detectability  # noqa: E402
@@ -151,7 +151,7 @@ def measure(
 
         # -- drive: the world moving, both rules on.
         bias = PredictionRule(agent.sheaf)
-        transport = TransportRule(agent.sheaf, anneal=SparsityAnneal())
+        transport = TransportRule(agent.sheaf)
         driven: list[np.ndarray] = []
         applied = None
         for index, outcome in enumerate(ufp.run(agent, learn, seed=seed)):

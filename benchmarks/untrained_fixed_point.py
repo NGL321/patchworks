@@ -103,7 +103,7 @@ import torch
 from patchworks.agent import DRIVE_ASSERTION, Agent, run
 from patchworks.diagnostics import Condition, Diagnostics
 from patchworks.graph import DEFAULT_SPEC, Dome, DomeSpec, build_graph
-from patchworks.learning import PredictionRule, SparsityAnneal, TransportRule
+from patchworks.learning import PredictionRule, TransportRule
 from patchworks.restriction import pair_index
 from patchworks.sandbox import PlanarPushSandbox
 from patchworks.sandbox.env import ARM_JOINTS
@@ -349,7 +349,7 @@ def teaching(agent: Agent, ticks: int, seed: int):
     step for a reason that belongs to the other rule.
     """
     bias = PredictionRule(agent.sheaf)
-    transport = TransportRule(agent.sheaf, anneal=SparsityAnneal())
+    transport = TransportRule(agent.sheaf)
     for outcome in run(agent, ticks, seed=seed):
         bias.step()
         if agent.sheaf.ticks > 1:

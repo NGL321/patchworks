@@ -166,9 +166,9 @@ class TestConnectivity:
         assert min(dome.degrees) >= 1
 
     def test_no_edge_is_ever_removed(self, dome):
-        # Sparsity is a property of the maps, not of the graph. There is no
-        # removal path: the built graph is frozen, and the mask closes and never
-        # re-opens.
+        # There is no removal path: the built graph is frozen, and the mask
+        # closes and never re-opens (`06-graph-topology.md`, *No edge is ever
+        # removed*).
         with pytest.raises(dataclasses.FrozenInstanceError):
             dome.edges = ()
         with pytest.raises(dataclasses.FrozenInstanceError):

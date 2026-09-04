@@ -224,6 +224,14 @@ sets of directions is also what makes a cell's incident maps mutually incoherent
 already carries pushes toward the arrangement this section enforces, rather than against it. That is a
 consistency check on the composition, not a second mechanism, and the enforcement does not lean on it.
 
+*Struck by [#406](https://github.com/NGL321/patchworks/issues/406)/[ADR-0031](./0031-the-sparsity-pressure-is-deleted.md), which deletes the term.
+This paragraph was explicitly *"not a second mechanism, and the enforcement does not lean on it"*, so
+nothing in this ADR moves: `c` is enforced by the projection, and the incoherence it fixes never
+depended on a pressure pushing the same way. The rejection of `F = G/‖G‖_F` above cited the sparsity
+term as what would drive the shadow parameter to zero; that particular driver is gone, and the
+rejection stands on the shadow parameter being unwatched by any diagnostic, which was always the
+load-bearing half.*
+
 **The floor is not optional, and the drive cell is why.** `c` is applied as
 
 ```
