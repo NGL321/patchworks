@@ -305,6 +305,13 @@ reach the page on the weekly net rather than at once. The tracker is right immed
 
 `--check` still exists, for a human at a terminal.
 
+**A malformed *comment* is skipped; a malformed *issue body* is fatal.** A label promises a row
+exists and a comment promises nothing, which is [#354](https://github.com/NGL321/patchworks/issues/354)'s
+ruling and is argued at the seam that enforces it (`collect`). The skip is **not silent**: every
+skipped comment is named by URL in a *Comments this register could not read* section that all three
+files carry above their rows, and on stderr for a human at a terminal. A row there means edit the
+comment, never the file.
+
 The checked-in files can therefore be briefly stale, and are never the authority. That is the point:
 GitHub is the definition site, and the rendered file exists so an agent can read the register without
 a network call or a token.

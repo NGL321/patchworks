@@ -18,6 +18,23 @@ anything*. "Nothing relevant" is a complete answer and the expected one; silence
 is not, because an instruction nobody can tell was skipped decays.
 
 
+## Comments this register could not read
+
+A comment carrying a field block that does not parse is **skipped rather than
+fatal** ([#354](https://github.com/NGL321/patchworks/issues/354)): one
+unreadable comment used to abort the generator, and none of the three registers
+regenerated until somebody edited it. But a skip nobody can see is the failure
+the field-block mechanism exists to prevent, so each one is named here.
+
+**A row in this section means the file below may be incomplete.** The comment
+might have been a proposal, a rig report against a cutoff, or a dismissal —
+and a dismissal *binds*, so a row here is a reason to open the comment before
+trusting this page rather than a footnote. The fix is to edit the comment so
+its block parses; never this file.
+
+None. Every field block on every comment read.
+
+
 ## Uncut — nobody has said when this stops being tolerable
 
 Admitted, and loud. These sort first and are stated as a debt, in the voice `@flexibility unknown` uses in the constants registers: *nobody has said when this stops being tolerable* is a fact, and hiding it is worse than showing it.
@@ -72,7 +89,6 @@ An `event` row is **listed, not demoted**: the event may be exactly the right mo
 | The transport rule has no fixed point at agreement, so restriction maps wander at ~eta forever | Restriction maps never settle. At agreement the transport rule's gradient does not vanish — a norm, unlike a squared norm, has a gradient of unit magnitude arbitrarily close to zero — so every edge's maps orbit their optimum at amplitude `~η`, permanently. This is a floor on disagreement that is neither of ADR-0007's two kinds: not static (not a function of configuration) and not lag (not a function of motion), but a function of the rule itself, and it is the floor the acceptance demo reads through. | measurement `floor_split` — wander_over_named_floors >= 1 | #308, from #285's sweep of `docs/research/231-the-record-read-back.md` §4, quoting #89 | [#339](https://github.com/NGL321/patchworks/issues/339) |
 | A prior computed at the apex cannot reach the rim it exists to modulate | Any mechanism that computes a modulation centrally and distributes it outward must send it through the same per-hop taper it was invented to correct. Nothing broadcasts — ADR-0011 enforces locality — so the prior travels by edges as ordinary stalk content under the measured taper. At the standing 921x per hop over seven levels it arrives at ~1e-17 of its emitted magnitude, below every floor on the path, so the modulation cannot modulate anything. | measurement `detectability` — outbound conduction ratio >= 1 | #311, session bb1662a9-adc5-4442-a05b-21de7cdc3d39 turn 24, via #286's transcript pass | [#341](https://github.com/NGL321/patchworks/issues/341) |
 | The wedge's rim supplies the language domain's memory as a store, and the map's position is that memory is sustained | The wedge supplies the language domain's short-horizon memory as a 128-slot external store: 255 of the rim's 256 boundary cells hold a shift of a record and 2 hold new world content, so nothing distinguishes a graph that has learned to hold linguistic structure from one handed a record of it. If #375 reports no sustained structure, the rim buffer is the only memory the wedge has, and the map's adopted position — persistence is sustained, not stored — has no referent in this domain. | event #375 | #169, the grilling session that ruled the spoken rim's contract onto the slot | [#388](https://github.com/NGL321/patchworks/issues/388) |
-| Private capacity and transmitted capacity are one budget, and lambda is the only dial on it | Private capacity and transmitted capacity are one budget -- `dim H^0 = dim C^0 - rank δ` -- and the sparsity pressure `lambda` is the only dial on it. `05-timescales.md` turns it toward private state and ADR-0022's channel reads the other end, and no document prices them together. The architecture can therefore fail both halves of its own bar at once: `tau-hat_c` is a decay time read on private features, and the deviation being read has to arrive through the channel. Signature: effective rank and the conduction ratio moving in opposite directions across a sweep of `lambda`, with no setting where both clear. | event #393 | #356 | [#395](https://github.com/NGL321/patchworks/issues/395) |
 
 
 ## Resolved
@@ -83,6 +99,7 @@ An `event` row is **listed, not demoted**: the event may be exactly the right mo
 |---|---|---|---|---|
 | ADR-0016's written-or-read split may put proprioceptive feedback one hop from the action that caused it | A motor panel that also receives proprioceptive feedback on the action just taken is a single interface in the world. Under ADR-0016's written-or-read ban that feedback must land on a different boundary cell, so the shortest loop from a command to its own consequence grows by at least two ticks — and `\|loop(c)\|` is exactly the divisor of ADR-0026's conduction ratio. The split therefore raises the bar the architecture must clear, for a reason about tick bookkeeping rather than about the world. | measurement `loop_length` — loop_split_cost >= 2 | #311, sessions a3887498-5d2c-42c7-a561-9298e39a4d27 turn 23 and 7bc7c089-ad9d-49c0-97af-fb1d9b99c4d0 turn 5, via #286's transcript pass | [#343](https://github.com/NGL321/patchworks/issues/343) |
 | ADR-0026's divisor is the graph's round trip, not the loop through the world it argues for **(overdue)** | ADR-0026's conduction ratio divides by `\|loop(c)\| = 2 · d(c, rim)`, a round trip that turns around at the rim **as a set** and never leaves the graph. The loop the predicate is justified by — *the cell still holds what it sent by the time the answer gets back* — leaves through an actuator, crosses the world, and re-enters at a **different** boundary cell under ADR-0016's ban. Where the two lengths differ the bar is read against the shorter one, passing cells whose real round trip their retention cannot hold. | measurement `loop_length` — world_loop_excess >= 1 | #362, off #351's reading on #343 | [#368](https://github.com/NGL321/patchworks/issues/368) |
+| Private capacity and transmitted capacity are one budget, and lambda is the only dial on it | Private capacity and transmitted capacity are one budget -- `dim H^0 = dim C^0 - rank δ` -- and the sparsity pressure `lambda` is the only dial on it. `05-timescales.md` turns it toward private state and ADR-0022's channel reads the other end, and no document prices them together. The architecture can therefore fail both halves of its own bar at once: `tau-hat_c` is a decay time read on private features, and the deviation being read has to arrive through the channel. Signature: effective rank and the conduction ratio moving in opposite directions across a sweep of `lambda`, with no setting where both clear. | event #393 | #356 | [#395](https://github.com/NGL321/patchworks/issues/395) |
 
 
 ## Stated gaps
