@@ -99,6 +99,34 @@ ADR-0004's genericity bar is `coordinates > 2 · d_box ≈ 2.9`. **`k = 12` clea
 about fourfold and `n = 32` by elevenfold.** Read per cell, never as a graph-wide
 average — #127's standing rule, #181's per-edge form.
 
+### This is the demand `docs/research/032` argued for and never measured
+
+`032`'s capacity table is a **ceiling on what a stalk could chart, not a demand the
+piece makes on it** — a distinction it states in those words, because
+[#166](https://github.com/NGL321/patchworks/issues/166) read the ceiling back as the
+demand and got a worked example that "looks forced". `032` then puts the demand at
+*"far below 6, in a world of about twenty numbers"* — **by argument, never measured**.
+1.43 is that number, measured:
+
+| width | capacity, `032` | measured demand | margin |
+|---|---|---|---|
+| chart `k = 12` | box-dim < 6 | 1.43 | ~4x |
+| node stalk `n = 32` | < 16 | 1.43 | ~11x |
+| boundary lane `m = 8` | < 4 | 1.43 | ~2.8x |
+| **interior lane `m = 4`** | **< 2** | 1.43 | **~1.4x** |
+
+**The thinnest margin is the lane, not the chart** — which is what `032` predicted
+(*"`m = 4` is the number with the least headroom, and it is the one no source
+vindicates"*) and what [#14](https://github.com/NGL321/patchworks/issues/14)'s ladder
+already permits flexing first. It is also the same place `bus_widths.py` lands from
+the other direction.
+
+One care with that row: `m` carries the **overlap** between two cells, not a cell's
+whole piece, and an overlap's dimension is bounded above by the piece's. So 1.43 is an
+upper bound on what the lane must carry and the true margin is no worse than ~1.4x.
+The chart's fourfold headroom does not depend on that subtlety; the lane's does, and
+nothing here rules on `m` — that is not this ticket's question.
+
 The high coincidence rate is aperture sparsity, not an artifact: most sweep
 configurations leave a given 8×8 block showing arena floor. It is excluded from the
 power-law fit and reported separately, because it is itself a reading — it is
@@ -121,6 +149,44 @@ reproduces [#385](https://github.com/NGL321/patchworks/issues/385)'s **82 of 150
 predicting cells at the structural zero exactly, which is what licenses the
 cross-domain comparison: the same rule, run twice, hits a number the record already
 owns.
+
+## What `run.py` found — the floor does not move this statistic, but `main` already has
+
+§2's objection is that a `K` spectrum read through today's near-rank-1 channel is *"a
+read of the collapse, not of the domain"*. It is testable rather than assumable, so
+the read is taken twice. No-oping `_flatten` reproduces `main`'s `project()` exactly —
+the only behavioural change PR #434 makes to `project()` is that call, the rest being
+`__init__` bookkeeping and a new reporting method.
+
+Seed 42 at 20,000 ticks:
+
+| | stable rank | effective rank | ρ(K) | Σt | non-normality |
+|---|---|---|---|---|---|
+| post-floor | 10.253 | 11.890 | 0.958 | 214.8 | 0.0138 |
+| pre-floor | 10.295 | 11.893 | 0.960 | 222.4 | 0.0139 |
+
+**The floor moves the chart read by ~0.4%**, against a post-floor seed-to-seed spread
+of 10.25–10.43 in stable rank and 0.0133–0.0147 in non-normality. Whatever the floor
+does to the *maps* — [#435](https://github.com/NGL321/patchworks/issues/435)'s
+question — it does not change what `K` looks like.
+
+**What has moved is `main` itself.** Same seed, same horizon, same rig, against #166's
+recorded run:
+
+| seed 42 @ 30k | #166, pre-ADR-0031 | current `main` |
+|---|---|---|
+| stable rank | 8.777 | **10.215** |
+| effective rank | 11.658 | 11.876 |
+| ρ(K) | 0.894 | 0.956 |
+| summed τ | 84.45 | **199.69** |
+| non-normality | **0.0504** | **0.0158** |
+
+[ADR-0031](../../docs/adr/0031-the-sparsity-pressure-is-deleted.md) deleted the
+sparsity pressure from the transport rule between the two. #166's *conclusion*
+survives and strengthens — there is now more width unspent, not less — but its
+numbers, including the two #127's *Decisions so far* quotes for it, are stale. The
+non-normality figure matters most: it is **3.2x smaller** than the 0.05 that
+[#357](https://github.com/NGL321/patchworks/issues/357) was spun out against.
 
 ## Running it
 
