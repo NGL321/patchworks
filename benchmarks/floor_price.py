@@ -70,7 +70,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from patchworks.graph import Dome
+from patchworks.graph import Dome, build_graph
 from patchworks.restriction import GAUGE_RHO, RestrictionMaps, pair_index
 from patchworks.tick import DEFAULT_GAMMA, reconciliation_gain
 
@@ -79,6 +79,7 @@ if _HERE not in sys.path:
     sys.path.append(_HERE)
 import construction_grading as cg  # noqa: E402
 import detectability as det  # noqa: E402
+import untrained_fixed_point as ufp  # noqa: E402
 
 #: Below this a singular value is not a direction the surface carries, it is the
 #: arithmetic left over from one. The composed rim-to-apex operators run to
@@ -315,25 +316,26 @@ def ratio_line(label: str, before, after) -> None:
     print(f"    {label:<34}{quantiles(after[good] / before[good])}   n={int(good.sum())}")
 
 
-def reach_section(dome: Dome, before, after) -> None:
+def reach_section(reached, shapes, flat_before, flat_after) -> None:
     """What the floor reached, and how flat it actually left it.
 
     The first thing to check, because every number after it is meaningless if the
     floor did not fire. `flatness` is `sigma_min/sigma_max` per map and reads 1
     when flat; `project` orders the floor **before** the incoherence cap, so it
     holds exactly only where the cap does not bite, and this is the residual.
+
+    Takes the read values rather than the agents, because :func:`price` releases
+    each surface as soon as it has been read.
     """
     print("\n-- what the floor reached (ADR-0032, `floored`) --")
-    reached = after.sheaf.maps.floored
     print(
         f"  floored endpoints: {int(reached.sum())} of {reached.numel()} "
         f"({reached.numel() - int(reached.sum())} unattainable or m=1, excluded)"
     )
-    print(f"  groups by (m_e, k_v): {after.sheaf.maps.floor_shapes}")
+    print(f"  groups by (m_e, k_v): {shapes}")
     print(f"\n    {'flatness sigma_min/sigma_max':<34}{'5th':>11}{'median':>11}{'95th':>11}")
-    for label, agent in (("before", before), ("after", after)):
-        values = agent.sheaf.maps.flatness().numpy().astype(np.float64)
-        mask = reached.numpy()
+    mask = reached.numpy()
+    for label, values in (("before", flat_before), ("after", flat_after)):
         print(f"    {label + ', floored maps only':<34}{quantiles(values[mask])}")
 
 
@@ -579,18 +581,36 @@ def read(agent, dome: Dome, hops, chains) -> tuple[dict, dict]:
 
 
 def price(name: str, split: str, seed: int, learn: int) -> None:
-    after_agent = surface(name, split, seed, learn, floored=True)[1]
-    before_agent = surface(name, split, seed, learn, floored=False)[1]
-    dome = after_agent.dome
+    """Train, read, release; then train, read, release. Never both surfaces at once.
 
+    **The two runs are sequential and only their spectra outlive them.** Holding
+    both trained agents to read them side by side is the obvious shape and it is
+    the wrong one: a surface is the sandbox, the bodies and the sheaf, where what
+    this read needs off it is a few thousand arrays of at most eight floats. The
+    reads are order-independent — a spectrum is a property of a finished surface
+    and nothing here trains against anything read — so releasing each surface
+    before training the next costs the comparison nothing and halves the peak.
+    """
+    # The routes off the graph alone, before any surface exists — which is the
+    # module docstring's second limit made structural rather than promised.
+    dome = build_graph(ufp.dome_named(name)[0])
     hops = hops_of_graph(dome)
     chains = chain_paths(dome)
     print(f"\nreading {len(hops)} directed hops and {len(chains)} rim-to-apex chains")
 
+    after_agent = surface(name, split, seed, learn, floored=True)[1]
     hop_after, chain_after = read(after_agent, dome, hops, chains)
-    hop_before, chain_before = read(before_agent, dome, hops, chains)
+    flat_after = after_agent.sheaf.maps.flatness().numpy().astype(np.float64)
+    reached = after_agent.sheaf.maps.floored.clone()
+    shapes = list(after_agent.sheaf.maps.floor_shapes)
+    del after_agent
 
-    reach_section(dome, before_agent, after_agent)
+    before_agent = surface(name, split, seed, learn, floored=False)[1]
+    hop_before, chain_before = read(before_agent, dome, hops, chains)
+    flat_before = before_agent.sheaf.maps.flatness().numpy().astype(np.float64)
+    del before_agent
+
+    reach_section(reached, shapes, flat_before, flat_after)
     hop_section(dome, hop_before, hop_after)
     isotropic_section(dome, hop_before, hop_after)
     shape_section(dome, hop_before, hop_after)
