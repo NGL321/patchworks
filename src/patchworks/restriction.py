@@ -580,14 +580,28 @@ class RestrictionMaps(torch.nn.Module):
         and a benchmark can read the bound the projection is supposed to hold,
         against the denominator :func:`gain_denominators` hands the gain, and so
         the two can be compared at a boundary cell as well as an interior one.
+
+        **The eigendecomposition is taken in float64, and the surface this is
+        for is why.** A cell's Gram is a sum of outer products of maps that the
+        transport rule is free to drive rank-deficient, and a float32 `eigvalsh`
+        on a matrix with repeated or near-zero eigenvalues does not merely lose
+        digits — it *fails to converge* and raises. Reading a surface without
+        ADR-0032's floor at 100k does exactly that (`benchmarks/spectral_floor_read.py`,
+        the `--no-floor` arm, whose maps reach `σ_min/σ_max` of 1e-27). An
+        instrument that raises on the degenerate surface is an instrument that
+        cannot report the case it exists to catch, so the promotion is the fix
+        and it costs nothing the tick pays: #393's rank reading takes its ratio
+        in float64 for the same reason and by the same argument. The result is
+        returned in the maps' own dtype, so every caller sees what it always saw.
         """
+        maps = self.maps.detach().to(torch.float64)
         grams = torch.zeros(
             (len(self.dome.cells), self.stalk_width, self.stalk_width),
-            dtype=self.maps.dtype,
+            dtype=torch.float64,
             device=self.maps.device,
         )
-        grams.index_add_(0, self.owner, self.maps.transpose(1, 2) @ self.maps)
-        return torch.linalg.eigvalsh(grams).amax(dim=-1)
+        grams.index_add_(0, self.owner, maps.transpose(1, 2) @ maps)
+        return torch.linalg.eigvalsh(grams).amax(dim=-1).to(self.maps.dtype)
 
     def flatness(self) -> torch.Tensor:
         """`[pairs]`: `σ_min/σ_max` of each map's active block, 1 when flat.
