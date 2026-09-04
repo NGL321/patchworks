@@ -327,6 +327,56 @@ rate would be new machinery contradicting both. The spectrum of a learned `K` is
 **instrument** for checking this once the graph transmits — an instrument, never a mechanism, in
 ADR-0005's sense.
 
+## The yoked arm, and what it does and does not bound
+
+**A second arm of the same world, in which the interlocutor's output no longer depends on the
+agent.** The design is Roseberry, Hirsh-Pasek & Golinkoff (2014)'s and the decision is
+[#448](https://github.com/NGL321/patchworks/issues/448). It lives here rather than in
+[`11-the-language-graph.md`](./11-the-language-graph.md) because it is a variant of the **world**: the
+graph, the cells and the learning rules are identical across the two arms, and every difference
+between them is a difference in what is on the other end.
+
+**Two arms.** *Live*, which is everything above. *Yoked*: the same characters, the same turn
+structure, the same recorded script, played back against a fresh agent — **contingency removed and
+nothing else**.
+
+**What it separates, and what it does not.** It separates *an architecture that cannot use the loop*
+from *a domain in which the loop does nothing* — an axis nothing else in this domain reads. It is
+**not an achievability bound**: no arm of it is dumb, privileged and lower-bounding, so it leaves
+*Known exposure*'s missing figure exactly where it was.
+
+**The ablation is the recorded uptake flags, not uptake always granted.** Refusals still arrive, at
+the recorded rate and with the recorded turn structure, caused by the recorded partner rather than by
+*this* agent's silence. Always-granted is two ablations at once — *The readback is genuinely
+non-deterministic* makes turn-taking **the body's refusal on a language rim**, and `04`'s *Readback*
+names the forfeit for a world that always complies — so a live-vs-always-granted difference is
+attributable to neither. **Always-granted survives as a possible second arm** if the refusal channel
+is ever to be priced, and is not this one.
+
+**Coherence is scored live, under forced decoding.** The interlocutor **model** stays a live scorer
+and only its *output* is forced from the recording, so the number is its entropy-normalised
+next-character surprisal about **this** agent's characters, conditioned on the forced transcript. The
+quantity is unchanged from *The coherence readback* above — same exact prefix marginalisation, same
+normaliser, same vocabulary — and
+[ADR-0025](../adr/0025-coherence-is-a-motor-readback-not-a-sensory-value.md) is untouched.
+
+*Considered and rejected:* **replaying the recorded coherence numbers.** Replayed, the number is
+surprisal about a **different agent's** output, arriving on this agent's spoken stalk as a per-slot
+value decoupled from anything it did. That is not a weakened readback but noise on a motor rim, and it
+would make the yoked arm's drive incomparable to the live arm's.
+
+**What the recording must carry.** Forced decoding needs the model re-run over the transcript, so the
+character stream alone is not enough: the recording carries the **checkpoint identity**, the **drawn
+topic and system prompt**, and the **turn boundaries**. And the recording is **re-taken with the live
+arm** rather than reused across builds — a rig's recorded data ages with `main`, and an arm
+differencing against a recording taken on a superseded surface is that failure exactly.
+
+**The asymmetry is pre-registered, and it is one-directional.** A positive live-vs-yoked difference is
+a finding. **A null is not**: it cannot be separated from both arms sitting at the floor, which
+*Half-duplex, and an idle run yields the floor* makes a live possibility rather than a remote one — so
+a null inherits the missing-achievability gap rather than routing around it. This is stated here, and
+not only on the ticket, because the first reader of a null will meet it in this document.
+
 ## What this document does not decide
 
 - **The dark room's language form** is
@@ -344,6 +394,8 @@ ADR-0005's sense.
   not rediscovered: **changing the topic mid-conversation is a `retarget()`** — what is wanted changes
   without the world being touched. Choosing the readouts is that ticket's decision and not this one's,
   and the other two entry points, `perturb()` and `disturb_arm()`, have no obvious analogue at all.
+  **The demo now has a second dependent**: *The yoked arm* above inherits its readouts and its pass
+  condition whole, so the contrast is specified today and its run is gated on that ticket.
 
 ## Known exposure
 
@@ -353,6 +405,9 @@ ADR-0005's sense.
   thing being asked of it, because what is being asked has not been written down — that is the demo
   above. **The language domain therefore has no lower bound on its own solvability**, and it is
   recorded as absent rather than pending so that nobody quotes a number that was never measured.
+  **A contrast condition now exists in this document and it is not that bound.** *The yoked arm* reads
+  a different axis, bounds nothing, and leaves this bullet standing;
+  [#331](https://github.com/NGL321/patchworks/issues/331) is unchanged by it.
 - **The throughput figure is a build measurement and is not asserted here.** The design intent is tens
   of ticks per second on CPU, the same order as the sandbox, and the token-boundary argument above is
   the reason to expect it. It has not been measured; when it is, it belongs beside `03`'s ~400
