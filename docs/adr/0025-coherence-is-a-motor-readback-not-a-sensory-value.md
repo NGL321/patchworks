@@ -83,6 +83,35 @@ sensory cell, or into the drive's asserted value, has rebuilt the reward this AD
 recognisable form is a scalar that arrives *after* the agent acts and *evaluates* what it did; the
 label on it is irrelevant.
 
+**The BabyLM leakage objection was checked and does not bite, and the check corroborated this ADR
+twice.** BabyLM's Interaction track bars revealing the external model's *"weights, hidden states, or
+output distribution"* to the submission model (2025 CFP,
+[arXiv:2502.10645](https://arxiv.org/abs/2502.10645), §2), which reads as an objection to a readback
+computed by prefix marginalisation over exactly that distribution. It is not one, on the rule's own
+text: the rule quantifies over what is **transmitted**, and this number is a scalar about the agent's
+**own act** — the distribution is consulted in producing it and never crosses, which is the ordinary
+posture of a world, as `03-the-sandbox.md`'s renderer consults the physics state to produce pixels.
+The organisers' gloss carries the carve-out explicitly — participants were *"otherwise unrestricted"*
+and the external model *"could, for instance, give **scalar** or natural language feedback"*
+(*Findings of the Third BabyLM Challenge*,
+[2025.babylm-main.28](https://aclanthology.org/2025.babylm-main.28/), §2). And the rule's axis is
+**budget accounting, not ecological plausibility**: the 2026 CFP
+([arXiv:2602.20092](https://arxiv.org/abs/2602.20092), §4.1) states it as a bar on distillation whose
+sanctioned remedy is to charge the teacher's training words against the student's own word budget —
+no child-caregiver argument is offered for the rule in either year, and 2025 states no rationale at
+all. Two things came back stronger than the objection was. **The premise of the paragraph above —
+that this mistake is cheap to make — is corroborated by the track's winning entry**: BLM (Martins et
+al. 2025) had a teacher score the student's completion on *coherence* and propagated it as an **RL
+reward**, this ADR's forbidden wiring on this ADR's own quantity, winning; a second independent
+instance after Warlaumont & Finnegan's babbling model
+([#446](https://github.com/NGL321/patchworks/issues/446)). And **the entropy normaliser weakens the
+leakage reading rather than strengthening it**, which is worth stating because the intuition runs the
+other way: `12-the-interlocutor.md` specifies one scalar per slot — the *ratio* — and a ratio is
+strictly less invertible than either part, so normalising **removes** recoverable information about
+the interlocutor rather than adding a channel. Ruled on
+[#450](https://github.com/NGL321/patchworks/issues/450). Everything above about Martins et al. is the
+organisers' summary in the Findings paper; the participant papers themselves were not read.
+
 **The drive's asserted value is untouched by this decision** and is deferred to
 [#137](https://github.com/NGL321/patchworks/issues/137). `1.0` stands as the working value; whether it
 ramps under a ceiling derived from the fold-margin bound is a stage-2-dependent question, because the
