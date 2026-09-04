@@ -18,6 +18,20 @@ anything*. "Nothing relevant" is a complete answer and the expected one; silence
 is not, because an instruction nobody can tell was skipped decays.
 
 
+## Comments this register could not read
+
+A comment carrying a field block that does not parse is **skipped rather than
+fatal** ([#354](https://github.com/NGL321/patchworks/issues/354)): one
+unreadable comment used to abort the generator, and none of the three registers
+regenerated until somebody edited it. But a skip nobody can see is the failure
+the field-block mechanism exists to prevent, so each one is named here. **A row
+in this section means the file below may be incomplete** — the comment might
+have been a proposal, or a rig report against a cutoff — and the fix is to edit
+the comment so its block parses, not to edit this file.
+
+None. Every field block on every comment read.
+
+
 ## Uncut — nobody has said when this stops being tolerable
 
 Admitted, and loud. These sort first and are stated as a debt, in the voice `@flexibility unknown` uses in the constants registers: *nobody has said when this stops being tolerable* is a fact, and hiding it is worse than showing it.

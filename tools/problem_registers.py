@@ -390,7 +390,15 @@ def _reports(payload: dict) -> frozenset[str]:
     """
     found: set[str] = set()
     for entry in payload.get("comments") or []:
-        fields = field_block(entry.get("body") or "")
+        try:
+            fields = field_block(entry.get("body") or "")
+        except MalformedProvenance:
+            # One comment's failure, recorded once by :func:`collect`, which
+            # walks these same comments. Raising here would let a loose line in
+            # any comment decide whether the problem it sits under reads as
+            # watched -- and, before #354, whether the registers regenerated at
+            # all.
+            continue
         if fields and REPORT_KEY in fields:
             found.update(rig_name(value) for value in fields[REPORT_KEY] if value)
     return frozenset(found)
@@ -571,12 +579,32 @@ def _answers(values: list[str], where: str) -> tuple[str, ...]:
 # ---------------------------------------------------------------------------
 
 
+@dataclass(frozen=True)
+class Skipped:
+    """A comment whose field block could not be read, and was passed over.
+
+    Skipping it is #354's ruling: a malformed comment is a fact about one
+    comment, not about the projection, and letting it abort the run took all
+    three registers down repo-wide on a workflow that fires on comment events.
+
+    But **a skip that nobody can see is the failure the field-block mechanism
+    exists to prevent**, so the skip is a row rather than only a line on
+    stderr. It carries the comment `url` because the diagnostic used to name
+    the issue alone and a reader then scanned every comment on it by hand.
+    """
+
+    url: str
+    where: str
+    reason: str
+
+
 @dataclass
 class Registers:
     """What one survey found, before it is split three ways."""
 
     problems: list[Problem] = field(default_factory=list)
     proposals: list[Proposal] = field(default_factory=list)
+    skipped: list[Skipped] = field(default_factory=list)
 
     @property
     def shelved(self) -> list[Proposal]:
@@ -599,6 +627,17 @@ def collect(
     A comment with no field block is passed over in silence. Discussion is not
     malformed provenance, and a register that refused ordinary conversation
     would be abandoned within a week.
+
+    **A comment that has a field block and cannot be read is skipped, not
+    fatal** (#354). The asymmetry with an issue body is the point: a
+    `register:problem` or `register:proposal` label is a promise that a row
+    exists, so a body that cannot be read is a row the register would silently
+    lose and the run stops. Nothing promised a comment was provenance, and the
+    reader is already walking every comment on every problem issue, so one
+    loose line in one of them used to cost all three files -- on a workflow
+    that fires on comment events, which is repo-wide. The skip is recorded and
+    rendered, because the failure the field-block mechanism exists to prevent
+    is the silent drop, not the drop.
     """
     survey = Registers()
     seen: set[tuple[str, object]] = set()
@@ -608,31 +647,47 @@ def collect(
         number = int(payload["number"])
         for entry in payload.get("comments") or []:
             body = entry.get("body") or ""
-            fields = field_block(body)
-            if fields is None:
-                continue
-            if "proposal" not in fields:
-                if PROPOSAL_KEYS & fields.keys():
-                    raise MalformedProvenance(
-                        f"#{number}: a comment carrying "
-                        f"{', '.join('@' + k for k in sorted(PROPOSAL_KEYS & fields.keys()))} "
-                        "has declared itself a proposal and must name one with "
-                        "@proposal; dropping it would leave a row nobody can reach"
-                    )
-                continue
-            key = ("comment", entry.get("url") or "")
-            if key in seen:
-                continue
-            seen.add(key)
-            survey.proposals.append(
-                read_proposal(
+            where = f"#{number} (comment)"
+            url = entry.get("url") or payload.get("url") or ""
+            try:
+                fields = field_block(body)
+                if fields is None:
+                    continue
+                if "proposal" not in fields:
+                    if PROPOSAL_KEYS & fields.keys():
+                        named = ", ".join(
+                            "@" + key for key in sorted(PROPOSAL_KEYS & fields.keys())
+                        )
+                        raise MalformedProvenance(
+                            f"a comment carrying {named} has declared itself a "
+                            "proposal and must name one with @proposal; dropping "
+                            "it would leave a row nobody can reach"
+                        )
+                    continue
+                key = ("comment", url)
+                if key in seen:
+                    continue
+                seen.add(key)
+                found = read_proposal(
                     body,
-                    where=f"#{number} (comment)",
-                    url=entry.get("url") or payload.get("url") or "",
+                    where=where,
+                    url=url,
                     number=number,
                     is_comment=True,
                 )
-            )
+            except MalformedProvenance as failure:
+                survey.skipped.append(
+                    Skipped(
+                        url=url,
+                        where=where,
+                        # `read_proposal` prefixes its own `where`; the row
+                        # carries it in a column of its own and does not want it
+                        # twice.
+                        reason=str(failure).removeprefix(f"{where}: "),
+                    )
+                )
+                continue
+            survey.proposals.append(found)
 
     for payload in list(proposals) + list(dismissals):
         number = int(payload["number"])
@@ -742,6 +797,59 @@ is not, because an instruction nobody can tell was skipped decays.
 """
 
 
+SKIPPED_HEADING = "## Comments this register could not read"
+
+_SKIPPED = """
+A comment carrying a field block that does not parse is **skipped rather than
+fatal** ([#354](https://github.com/NGL321/patchworks/issues/354)): one
+unreadable comment used to abort the generator, and none of the three registers
+regenerated until somebody edited it. But a skip nobody can see is the failure
+the field-block mechanism exists to prevent, so each one is named here. **A row
+in this section means the file below may be incomplete** — the comment might
+have been a proposal, or a rig report against a cutoff — and the fix is to edit
+the comment so its block parses, not to edit this file.
+"""
+
+
+def _skipped_section(survey: Registers) -> str:
+    """Rendered into all three files, and first, because it qualifies them all.
+
+    All three, because an unreadable comment cannot say which register it
+    belonged to — that is what makes it unreadable. A comment-proposal is a row
+    in `proposed-solutions.md`, the same block carrying `@status dismissed` is a
+    row in `dismissed-solutions.md`, and a rig report is what keeps a problem
+    out of `open-problems.md`'s second loud section. Naming the skip in only one
+    of them would leave the other two reading as complete while they were not.
+
+    First, rather than at the foot, for the same reason the uncut section sorts
+    first: a reader needs to know the page may be missing a row before reading
+    the rows, not after.
+    """
+    out = [f"\n{SKIPPED_HEADING}\n", _SKIPPED.strip() + "\n"]
+    if survey.skipped:
+        out.append(
+            "\n".join(
+                f"* [{_cell(s.where)}]({s.url}) — {_cell(s.reason)}"
+                for s in survey.skipped
+            )
+            + "\n"
+        )
+    else:
+        out.append("None. Every field block on every comment read.\n")
+    return "\n".join(out)
+
+
+def skip_report(survey: Registers) -> list[str]:
+    """The same skips, one line each, for a terminal.
+
+    The page is where a reader finds them; this is where the person who just ran
+    the generator does. The workflow's only signal used to be a red run, and a
+    red run on a projection says *nothing regenerated* rather than *one comment
+    needs an edit*.
+    """
+    return [f"skipped {s.where} {s.url}: {s.reason}" for s in survey.skipped]
+
+
 def _cell(text: str) -> str:
     """One table cell: pipes escaped, newlines gone."""
     return text.replace("|", "\\|").replace("\n", " ").strip() or "—"
@@ -767,6 +875,7 @@ def render_problems(survey: Registers, rigs: frozenset[str] | None = None) -> st
         "an agent that finds a problem files a `wayfinder:grilling` ticket.\n"
     )
     out.append(_CONSULT)
+    out.append(_skipped_section(survey))
 
     out.append("\n## Uncut — nobody has said when this stops being tolerable\n")
     out.append(
@@ -897,6 +1006,7 @@ def render_proposals(survey: Registers) -> str:
         "([ADR-0029](../adr/0029-a-problem-is-minted-by-a-human-a-proposal-is-not.md)).\n"
     )
     out.append(_CONSULT)
+    out.append(_skipped_section(survey))
 
     out.append("\n## On the shelf\n")
     out.append(_proposal_table(open_rows) if open_rows else "None yet.\n")
@@ -966,6 +1076,7 @@ def render_dismissals(survey: Registers) -> str:
         "re-propose this* reachable without opening every problem ticket.\n"
     )
     out.append(_CONSULT)
+    out.append(_skipped_section(survey))
 
     out.append("\n## Refused — excluded by what the project is\n")
     out.append(
@@ -1067,8 +1178,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     OUTPUT.mkdir(parents=True, exist_ok=True)
+    found = survey()
+    for line in skip_report(found):
+        print(line, file=sys.stderr)
     stale = []
-    for path, text in generate(survey()).items():
+    for path, text in generate(found).items():
         current = path.read_text(encoding="utf-8") if path.exists() else None
         if current == text:
             continue
