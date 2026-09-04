@@ -33,6 +33,14 @@ The grammar is `docs/agents/registers.md`, *Field blocks*: a fenced block at the
 top of the body or comment, one `@key value` per line, everything below it prose
 the generator never reads.
 
+It then asks a **second round**: every issue an `event` cutoff names. Those are
+ordinary tickets carrying none of the three labels, so none of the queries above
+reaches them, and what the register wants from them is one field -- when they
+last moved. That is the bar the dormancy arm of the second loud section reads
+against the problem's own minting date (#353). Which tickets they are is only
+known once the problems are parsed, so the round cannot be folded into the
+first.
+
 ## What it refuses
 
 Loudly, as `constant_registers.py` refuses malformed provenance -- a register
@@ -45,7 +53,13 @@ like provenance and is not.
   discipline exists to keep that out;
 * a `@cutoff` outside `event <issue>`, `measurement <rig> <threshold>` and
   `uncut` -- dates and judgement are not admissible, because a cutoff must be
-  checkable by someone who is not its author.
+  checkable by someone who is not its author. A `measurement` with no threshold
+  is refused here, which is why it never reaches the second loud section: a rig
+  with no bar cannot be crossed;
+* a **second** `@cutoff`, which used to be dropped in silence. A sequenced
+  cutoff has no spelling in the grammar, and an author who reached for one was
+  left with a line that read as provenance and that nothing read. Whether the
+  grammar should grow one is #417's.
 
 **One rule is deliberately not enforced here.** `@source here` on a body that
 carries no argument is a real failure and a judgement call, and not the
@@ -103,7 +117,17 @@ OVERDUE_LABEL = "register:overdue"
 
 #: What `gh issue list` is asked for. `comments` is the expensive field and the
 #: necessary one: the comment arm is what makes this not a labels-only query.
-FIELDS = "number,title,body,state,url,labels,comments"
+#: `createdAt` is the problem's minting date, which is the bar an `event`
+#: cutoff's dormancy is read against -- see :func:`unwatched`. It is a fact on
+#: the tracker rather than a number anyone chose, which is the whole reason the
+#: dormancy arm could be written without a grilling session (#353).
+FIELDS = "number,title,body,state,url,labels,comments,createdAt"
+
+#: What an *event* issue is asked for. Not `FIELDS`: the register never reads a
+#: cutoff issue's body or its comments, only whether it has moved since the
+#: problem started cutting on it, and asking for the comments of every event
+#: issue would multiply the cost of a projection for nothing.
+EVENT_FIELDS = "number,updatedAt,closedAt"
 
 #: `gh issue list`'s page. A register silently truncated at its limit is the
 #: exact failure this whole mechanism exists to prevent -- a projection that
@@ -196,6 +220,32 @@ def _one(fields: dict[str, list[str]], key: str) -> str:
     return values[0] if values else ""
 
 
+def _only(fields: dict[str, list[str]], key: str, where: str) -> str:
+    """:func:`_one`, but a second value is refused rather than dropped.
+
+    `field_block` accumulates every `@key` line, because `@shape` is genuinely
+    repeatable. For a key that is not, taking the first and discarding the rest
+    in silence leaves a line on the issue that reads as provenance and that
+    nothing reads -- the same failure as a threshold nobody can fire on, which
+    is the register's second loud section (#353).
+
+    This is deliberately narrow: it says *this key was written twice and only
+    one of them is being read*, and it says nothing about whether a second
+    cutoff **should** be sayable. Sequencing one bar behind another is a
+    grammar question, argued on
+    [#417](https://github.com/NGL321/patchworks/issues/417) and not settled by
+    refusing the silent drop.
+    """
+    values = fields.get(key) or []
+    if len(values) > 1:
+        raise MalformedProvenance(
+            f"{where}: @{key} is written {len(values)} times and only the first "
+            f"is read — {', '.join(repr(v) for v in values)}. One statement, one "
+            "place; a line nothing reads looks like provenance and is not"
+        )
+    return _one(fields, key)
+
+
 # ---------------------------------------------------------------------------
 # cutoffs
 # ---------------------------------------------------------------------------
@@ -224,6 +274,20 @@ class Cutoff:
         if self.kind == "measurement":
             return f"measurement `{self.rig}` — {self.threshold}"
         return "`uncut`"
+
+    @property
+    def subject(self) -> str:
+        """What has to happen for this to fire, named: the rig, or the issue.
+
+        What a row in *cutoffs naming a firing condition nothing will reach*
+        points at. Both are set as code, so a reader scanning that section sees
+        one column of subjects rather than two shapes.
+        """
+        if self.kind == "measurement":
+            return f"`{self.rig}`"
+        if self.kind == "event":
+            return f"`{self.issue}`"
+        return self.text
 
 
 def rig_name(written: str) -> str:
@@ -317,6 +381,11 @@ class Problem:
     cutoff: Cutoff
     discovered: str = ""
     overdue: bool = False
+    #: When the issue was opened, as GitHub's ISO-8601. This is the bar an
+    #: `event` cutoff's dormancy is read against: the register asks whether the
+    #: named issue has moved *since this problem started cutting on it*, which
+    #: is a fact off two tracker timestamps rather than a duration anyone chose.
+    minted: str = ""
     #: Every rig that has reported against this problem, read off the `@rig`
     #: field blocks in its comments. Empty is the state that matters: a
     #: `measurement` cutoff nothing has ever reported against is the disguise.
@@ -368,10 +437,11 @@ def read_problem(payload: dict) -> Problem:
         url=payload.get("url") or "",
         state=payload.get("state") or "OPEN",
         failure=failure,
-        cutoff=read_cutoff(_one(fields, "cutoff"), where),
+        cutoff=read_cutoff(_only(fields, "cutoff", where), where),
         discovered=_one(fields, "discovered"),
         overdue=OVERDUE_LABEL in _labels(payload),
         reports=_reports(payload),
+        minted=payload.get("createdAt") or "",
     )
 
 
@@ -571,12 +641,37 @@ def _answers(values: list[str], where: str) -> tuple[str, ...]:
 # ---------------------------------------------------------------------------
 
 
+@dataclass(frozen=True)
+class Activity:
+    """What the register needs off an issue an `event` cutoff names.
+
+    Two timestamps and nothing else. The register never reads a cutoff issue's
+    body, its labels or its comments: the only questions it asks are *has this
+    moved since the problem started cutting on it* and *had it already closed by
+    then*, and both are answered here.
+    """
+
+    #: `updatedAt`. Bumped by anything that happens on the issue, closing
+    #: included, and never moves backwards.
+    moved: str = ""
+    #: `closedAt`, empty while the issue is open.
+    closed: str = ""
+
+
 @dataclass
 class Registers:
     """What one survey found, before it is split three ways."""
 
     problems: list[Problem] = field(default_factory=list)
     proposals: list[Proposal] = field(default_factory=list)
+    #: When each issue an `event` cutoff names last moved, keyed by the `#N`
+    #: the cutoff wrote. :func:`collect` cannot fill this -- the issues are not
+    #: in any of the three label queries -- so :func:`survey` fetches them in a
+    #: second round and assigns it here. **A ref absent from this map names an
+    #: issue the tracker does not have**, and reads as such: a cutoff waiting on
+    #: an issue nobody can close is the same disguise as one naming a rig with
+    #: no script.
+    activity: dict[str, Activity] = field(default_factory=dict)
 
     @property
     def shelved(self) -> list[Proposal]:
@@ -680,31 +775,90 @@ def available_rigs() -> frozenset[str]:
 NO_SCRIPT = "names no rig in `benchmarks/`, so there is nothing to run"
 NO_RUN = "has never reported against this problem, so nothing has fired"
 
+#: Why an `event` cutoff will not fire, in the two states the tracker can tell
+#: apart. The pair mirrors the `measurement` pair exactly, which is the reason
+#: they render as one section: `NO_ISSUE` is `NO_SCRIPT` -- the firing condition
+#: names something that does not exist -- and `NO_ACTIVITY` is `NO_RUN` -- it
+#: exists, and nothing has ever happened against it.
+NO_ISSUE = "is not an issue the tracker has, so there is nothing that can close"
+NO_ACTIVITY = (
+    "has not moved since this problem was minted, so nothing is carrying it "
+    "toward closing"
+)
+#: The third state, and the one `docs/agents/registers.md` already refuses at
+#: mint: an `event` cutoff naming an issue that had **already closed**. Read
+#: literally the cutoff fired on day one; read as intended it can never fire,
+#: because the issue closed for an unrelated reason. Nothing enforces the mint
+#: rule in code, so the register says it rather than assuming it.
+ALREADY_CLOSED = (
+    "had already closed when this problem was minted, so nothing is left to "
+    "close"
+)
+
 
 @dataclass(frozen=True)
 class Unwatched:
-    """A `measurement` cutoff that reads as watched and is not."""
+    """A cutoff that reads as watched and is not."""
 
     problem: Problem
     reason: str
 
 
+def event_refs(survey: Registers) -> tuple[str, ...]:
+    """Every issue an `event` cutoff names, in issue order, without repeats.
+
+    The refs :func:`survey` has to ask the tracker about in its second round.
+    Pure, so the round can be planned without a network call.
+    """
+    found = {p.cutoff.issue for p in survey.problems if p.cutoff.kind == "event"}
+    return tuple(sorted(found, key=lambda ref: int(ref.lstrip("#"))))
+
+
 def unwatched(
     survey: Registers, rigs: frozenset[str] | None = None
 ) -> list[Unwatched]:
-    """Cutoffs naming a rig with no recorded run — #282's second loud section.
+    """Cutoffs naming a firing condition nothing will reach.
+
+    #282's second loud section.
 
     `uncut` wearing a disguise, and **strictly worse than `uncut`**, because it
     does not read as a debt: the page says the problem is watched, and nothing
-    will ever fire. Two states, told apart because the fix differs -- one is a
-    cutoff pointing at a rig that does not exist, the other a real rig nobody
-    has run.
+    will ever fire. Two kinds of cutoff can wear it, in two states each, told
+    apart because the fix differs:
+
+    * `measurement`, naming a rig that has no script, so there is nothing to
+      run at all; or a real rig nobody has ever run.
+    * `event`, naming an issue the tracker does not have, so there is nothing
+      that can close; or a real issue that has not moved since the problem was
+      minted.
+
+    **The event arm is listed, not demoted.** `docs/agents/registers.md` is
+    explicit that the event may be exactly the right moment and the listing
+    exists to make the dormancy visible rather than to judge the cutoff. Nothing
+    here reorders a row, drops one, or touches the problem's own table.
+
+    **The dormancy bar is the problem's own minting date, and it is not a free
+    constant.** How long an issue may sit is a duration somebody would have to
+    choose, and ADR-0029 keeps an implementing session from choosing one. This
+    asks a different question, off two timestamps the tracker already holds: has
+    the named issue moved *at all* since this problem started cutting on it? It
+    is the same question the rig arm asks -- `NO_RUN` counts reports **against
+    this problem**, not reports ever -- so both arms are listed from day one and
+    leave the section the first time anything happens. Closing an issue bumps its
+    `updatedAt`, so an issue that closed *after* the mint never reads as
+    dormant: that cutoff fired, and whether anyone noticed is
+    `register:overdue`'s question and #284's rather than this section's. An
+    issue that had **already closed** at mint time is the third state, and it
+    is named as its own reason -- `docs/agents/registers.md` refuses that
+    cutoff at mint, nothing in code enforces the refusal, and calling it
+    dormant would describe a live issue nobody is pushing when the truth is an
+    issue nobody can close.
 
     This is the register's job and not the rig report's.
     [#284](https://github.com/NGL321/patchworks/issues/284) declines it in
-    terms — *"do not try to close it here… that is why #279's design makes the
+    terms -- *"do not try to close it here… that is why #279's design makes the
     register render cutoffs naming a rig with no recorded run as its own loud
-    section"* — so the failure is made visible here rather than automated away
+    section"* -- so the failure is made visible here rather than automated away
     there.
 
     A crossing counts as a run: `register:overdue` means the bar was crossed,
@@ -713,12 +867,32 @@ def unwatched(
     known = available_rigs() if rigs is None else rigs
     found = []
     for problem in survey.problems:
-        if problem.cutoff.kind != "measurement":
-            continue
-        if problem.cutoff.rig not in known:
-            found.append(Unwatched(problem, NO_SCRIPT))
-        elif problem.cutoff.rig not in problem.reports and not problem.overdue:
-            found.append(Unwatched(problem, NO_RUN))
+        cutoff = problem.cutoff
+        if cutoff.kind == "measurement":
+            if cutoff.rig not in known:
+                found.append(Unwatched(problem, NO_SCRIPT))
+            elif cutoff.rig not in problem.reports and not problem.overdue:
+                found.append(Unwatched(problem, NO_RUN))
+        elif cutoff.kind == "event":
+            seen = survey.activity.get(cutoff.issue)
+            if seen is None:
+                found.append(Unwatched(problem, NO_ISSUE))
+            elif not problem.minted:
+                # A payload that did not carry `createdAt` has no bar, and an
+                # unknown bar is not a crossed one. Comparing against the empty
+                # string -- which every timestamp sorts above -- would list
+                # every event cutoff in the register at once, on a field nobody
+                # wrote.
+                pass
+            elif seen.closed and seen.closed <= problem.minted:
+                found.append(Unwatched(problem, ALREADY_CLOSED))
+            elif seen.moved <= problem.minted:
+                # ISO-8601 in UTC, off the same API on both sides, so the
+                # string order is the time order. An issue that closed *after*
+                # the mint bumped its `moved` past it and does not reach here:
+                # that cutoff fired, which is `register:overdue`'s question and
+                # #284's rather than this section's.
+                found.append(Unwatched(problem, NO_ACTIVITY))
     return found
 
 
@@ -787,18 +961,21 @@ def render_problems(survey: Registers, rigs: frozenset[str] | None = None) -> st
     else:
         out.append("None. Every open problem here carries a cutoff.\n")
 
-    out.append("\n## Cutoffs naming a rig with no recorded run\n")
+    out.append("\n## Cutoffs naming a firing condition nothing will reach\n")
     out.append(
-        "A `measurement` cutoff that reads as watched and is not. This is `uncut` "
-        "**wearing a disguise, and strictly worse than `uncut`**, because it does "
-        "not read as a debt: the row says the problem is being watched, and nothing "
-        "will ever fire. Two states, separated because the fix differs — a cutoff "
-        "pointing at a rig that does not exist, and a real rig nobody has run.\n"
+        "A cutoff that reads as watched and is not. This is `uncut` **wearing a "
+        "disguise, and strictly worse than `uncut`**, because it does not read as a "
+        "debt: the row says the problem is being watched, and nothing will ever "
+        "fire. Both kinds of cutoff can wear it, in several states, separated "
+        "because the fix differs — a `measurement` naming a rig that does not "
+        "exist, or a real rig nobody has run; an `event` naming an issue the "
+        "tracker does not have, an issue that had already closed when the "
+        "problem was minted, or a live issue that has not moved since.\n"
     )
     if phantom:
         out.append(
             "\n".join(
-                f"* {u.problem.link} — `{u.problem.cutoff.rig}` {u.reason}. "
+                f"* {u.problem.link} — {u.problem.cutoff.subject} {u.reason}. "
                 f"*{_cell(u.problem.failure)}*"
                 for u in phantom
             )
@@ -807,7 +984,8 @@ def render_problems(survey: Registers, rigs: frozenset[str] | None = None) -> st
     else:
         out.append(
             "None. Every `measurement` cutoff names a rig that exists and has "
-            "reported.\n"
+            "reported, and every `event` cutoff names an issue that has moved "
+            "since.\n"
         )
     out.append(
         "\nA run is recorded by a `@rig` field block on a comment on the problem, "
@@ -816,9 +994,19 @@ def render_problems(survey: Registers, rigs: frozenset[str] | None = None) -> st
         "`tools/cutoff_report.py`), or by `register:overdue`, since a bar cannot be "
         "crossed without the rig running. The report files **every evaluated run** "
         "and not only a crossing, so a rig that runs regularly and never crosses "
-        "leaves this section rather than sitting in it. A row here therefore means "
-        "one of two things and not a third: the rig has genuinely not run, or it has "
-        "not been given the hook.\n"
+        "leaves this section rather than sitting in it. A `measurement` row here "
+        "therefore means one of two things and not a third: the rig has genuinely "
+        "not run, or it has not been given the hook.\n"
+    )
+    out.append(
+        "\nAn `event` row is **listed, not demoted**: the event may be exactly the "
+        "right moment, and the listing exists to make the dormancy visible rather "
+        "than to judge the cutoff. Dormancy is read off the named issue's own last "
+        "activity against this problem's minting date — *has anything happened "
+        "there since this problem started cutting on it* — which is two facts the "
+        "tracker already holds and no chosen duration. It is the same question the "
+        "`measurement` arm asks, which is why the two share a section: a run counts "
+        "against **this problem**, not against the rig's whole history.\n"
     )
 
     out.append("\n## Open problems\n")
@@ -1053,10 +1241,71 @@ def fetch(label: str) -> list[dict]:
     return payloads
 
 
+#: What `gh issue view` says when the number names nothing. Any *other*
+#: failure -- no network, an expired token, a rate limit -- is not an absent
+#: issue, and :func:`fetch_activity` refuses rather than reading it as one: a
+#: token that expired would otherwise render every `event` cutoff in the
+#: register as a firing condition that cannot exist, which is a page full of
+#: half-read rows advertised in the loudest voice the register has.
+_UNRESOLVED = "could not resolve to an issue"
+
+
+def fetch_activity(refs: tuple[str, ...]) -> dict[str, Activity]:
+    """When each issue an `event` cutoff names last moved, keyed by its `#N`.
+
+    The second network round, and the one that lets the register say anything
+    at all about a dormant event cutoff (#353). It asks per issue rather than
+    per label because an event cutoff names an ordinary ticket, which carries
+    none of the three register labels and appears in none of :func:`fetch`'s
+    three queries.
+
+    **A ref the tracker cannot resolve is left out of the map, not defaulted.**
+    An absent key is exactly what :func:`unwatched` renders as *nothing that
+    can close* -- the event arm's `NO_SCRIPT` -- and guessing a timestamp would
+    hide the one state that arm exists to show. Only *unresolved* earns that
+    reading, though: every other way `gh` can fail is refused here, exactly as
+    :func:`fetch` refuses one, because a register that cannot reach the tracker
+    has not learned that its cutoffs are phantoms.
+    """
+    found: dict[str, Activity] = {}
+    for ref in refs:
+        finished = subprocess.run(
+            [
+                "gh", "issue", "view", ref.lstrip("#"),
+                "--json", EVENT_FIELDS,
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            cwd=ROOT,
+        )
+        if finished.returncode != 0:
+            if _UNRESOLVED in (finished.stderr or "").lower():
+                continue
+            raise SystemExit(
+                f"`gh issue view {ref.lstrip('#')}` failed:\n"
+                f"{(finished.stderr or '').strip()}"
+            )
+        payload = json.loads(finished.stdout or "{}") or {}
+        if payload.get("updatedAt"):
+            found[ref] = Activity(
+                moved=payload["updatedAt"], closed=payload.get("closedAt") or ""
+            )
+    return found
+
+
 def survey() -> Registers:
-    return collect(
+    """Two rounds: the three label queries, then the issues their cutoffs name.
+
+    The second round cannot be folded into the first. An `event` cutoff names
+    an ordinary ticket, and which tickets those are is only known once the
+    problems have been parsed.
+    """
+    found = collect(
         fetch(PROBLEM_LABEL), fetch(PROPOSAL_LABEL), fetch(DISMISSAL_LABEL)
     )
+    found.activity = fetch_activity(event_refs(found))
+    return found
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -202,15 +202,19 @@ author, and "when it becomes a problem" is not a cutoff but the absence of one.
   which prints the report and touches the tracker not at all: filing records a *run* against a
   problem, and a read taken on the small dome to check the code works is not one.
 
-  **A problem carries one `@cutoff`, and a sequenced second one cannot be written down.** `_one`
-  takes the first value and the rest are dropped in silence, so *this bar, but only once that bar has
-  fired* has no spelling here. #351 met this on
+  **A problem carries one `@cutoff`, and a sequenced second one cannot be written down.** *This bar,
+  but only once that bar has fired* has no spelling here. #351 met this on
   [#329](https://github.com/NGL321/patchworks/issues/329), whose settling bar is meaningful only on
   charts from a graph that already transmits; the bar is measured and reported by
-  `benchmarks/driven_settling.py` and the field on the issue was left at the precondition. Whether
-  the grammar should grow a sequenced cutoff is
-  [#353](https://github.com/NGL321/patchworks/issues/353)'s, with the register's other missing
-  mechanisms.
+  `benchmarks/driven_settling.py` and the field on the issue was left at the precondition. Writing a
+  second `@cutoff` line **is refused at parse** since
+  [#353](https://github.com/NGL321/patchworks/issues/353): it used to be taken by `_one` and the
+  rest dropped in silence, which left a line on the issue that read as provenance and that nothing
+  read — the same failure as a threshold nobody can fire on. Refusal says *only one of these is
+  being read* and settles nothing about whether the grammar should grow a sequenced cutoff; that is
+  [#417](https://github.com/NGL321/patchworks/issues/417)'s, for a grilling session, because a
+  second gate on the same row cuts against *one statement in one place* and the argument for it is a
+  real bar that today lives only in a rig's docstring.
 - **`uncut`** — admitted, and loud. The register sorts these first and states them as a debt, in the
   voice `@flexibility unknown` uses: *nobody has said when this stops being tolerable* is a fact, and
   hiding it is worse than showing it.
@@ -228,19 +232,36 @@ first session to drain the candidate queue produced all three:
   discovered inside it stops being tolerable. Where the map's stage already has a measured bar —
   transmission has one, in ADR-0026's conduction ratio — the bar is the cutoff and the map is not.
 
-The register carries a second loud section: **cutoffs naming a firing condition nothing will reach.**
-Three kinds sit in it — a **rig with no recorded run**, an **issue with no activity**, and a
-**measurement with no threshold**. Each is the state where a problem looks cut but nothing will ever
-fire: `uncut` wearing a disguise, and strictly worse than `uncut`, because it does not read as a
-debt. An issue with no activity is *listed, not demoted* — the event may be exactly the right
-moment, and the listing exists to make the dormancy visible rather than to judge the cutoff.
+The register carries a second loud section: **cutoffs naming a firing condition nothing will
+reach.** Two kinds sit in it — a **rig with no recorded run** and an **issue with no activity** —
+and each has several states, told apart because the fix differs: a `measurement` naming a rig that has
+no script or a real rig nobody has run; an `event` naming an issue the tracker does not have, an
+issue that had already closed when the problem was minted, or a live issue that has not moved since.
+Each is the state where a problem looks cut but nothing will ever fire: `uncut` wearing a disguise,
+and strictly worse than `uncut`, because it does not read as a debt. An issue with no activity is
+*listed, not demoted* — the event may be exactly the right moment, and the listing exists to make
+the dormancy visible rather than to judge the cutoff.
 
-Only the first of the three is rendered today. A **measurement with no threshold** never reaches
-the section because `read_cutoff` refuses it at parse, and the **dormant issue** wants a bar for
-how long an open cutoff issue may sit before the register says so — a number ADR-0029 declines to
-let an implementing session invent. Both are owed by
-[#353](https://github.com/NGL321/patchworks/issues/353), and until it lands this paragraph
-describes the design rather than the projection.
+**Dormancy is read against the problem's own minting date**, not against a duration: *has anything
+happened on the named issue since this problem started cutting on it?* Two timestamps the tracker
+already holds, and no free constant, which is why
+[#353](https://github.com/NGL321/patchworks/issues/353) could settle it without a grilling session
+under ADR-0029. *How long may an issue sit* would have been such a constant, and it is not the
+question the section asks. This is the same question the rig arm asks — a run counts **against this
+problem**, not against the rig's whole history — so both arms list a problem from the day it is
+minted and let it go the first time anything moves. A cutoff issue closing bumps its activity past
+every problem's mint, so an issue that closed *after* the mint never reads as dormant: that cutoff
+fired, and whether anyone noticed is `register:overdue`'s question and #284's, not this section's.
+An issue that had **already closed** at mint time is a state of its own and says so — the shape this
+section's own *An `event` cutoff must name an issue that is open at mint time* refuses. Nothing in
+code enforces that refusal, and calling such a cutoff dormant would describe a live issue nobody is
+pushing when the truth is an issue nobody can close.
+
+A **measurement with no threshold** was the design's third kind, and it does not appear here,
+because `read_cutoff` refuses it **at parse**: a rig with no bar cannot be crossed, the field block
+is malformed provenance, and the row never renders at all. Refusing upstream is the right place for
+it — a projection that quietly rendered the malformed row would be the half-read row this whole
+mechanism exists to prevent — so what the section shows is the pair above.
 
 ## Closing a problem
 
@@ -260,7 +281,12 @@ had to specify. Deleting the row deletes the evidence.
 ## Generation
 
 `tools/problem_registers.py` renders `open-problems.md`, `proposed-solutions.md` and
-`dismissed-solutions.md` from `gh`. It is a **network** tool and lives on the far side of the line
+`dismissed-solutions.md` from `gh`. It asks in **two rounds**: the three label queries,
+and then the issues those problems' `event` cutoffs name — ordinary tickets, carrying none of the
+three labels, whose last activity is what the dormancy arm reads. Which tickets those are is only
+known once the problems are parsed, so the second round cannot be folded into the first.
+
+It is a **network** tool and lives on the far side of the line
 `tests/test_cli.py` defends: the suite never reaches it, and CI never checks these three files for
 staleness, because CI cannot ask GitHub anything offline.
 

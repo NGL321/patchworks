@@ -33,14 +33,17 @@ Admitted, and loud. These sort first and are stated as a debt, in the voice `@fl
 * [#345](https://github.com/NGL321/patchworks/issues/345) — *A decision rests on a ground — a measurement or an argument — the ground is later retracted, and nothing walks back to the decisions that rested on it. Exclusions and declines therefore outlive their grounds. Recognisable as a spec or map section stating as current a premise a later ticket struck. A sub-shape: the ground never existed at all, was written into the source document by the decision that assumed it, and became self-confirming.*
 
 
-## Cutoffs naming a rig with no recorded run
+## Cutoffs naming a firing condition nothing will reach
 
-A `measurement` cutoff that reads as watched and is not. This is `uncut` **wearing a disguise, and strictly worse than `uncut`**, because it does not read as a debt: the row says the problem is being watched, and nothing will ever fire. Two states, separated because the fix differs — a cutoff pointing at a rig that does not exist, and a real rig nobody has run.
+A cutoff that reads as watched and is not. This is `uncut` **wearing a disguise, and strictly worse than `uncut`**, because it does not read as a debt: the row says the problem is being watched, and nothing will ever fire. Both kinds of cutoff can wear it, in several states, separated because the fix differs — a `measurement` naming a rig that does not exist, or a real rig nobody has run; an `event` naming an issue the tracker does not have, an issue that had already closed when the problem was minted, or a live issue that has not moved since.
 
 * [#341](https://github.com/NGL321/patchworks/issues/341) — `detectability` has never reported against this problem, so nothing has fired. *Any mechanism that computes a modulation centrally and distributes it outward must send it through the same per-hop taper it was invented to correct. Nothing broadcasts — ADR-0011 enforces locality — so the prior travels by edges as ordinary stalk content under the measured taper. At the standing 921x per hop over seven levels it arrives at ~1e-17 of its emitted magnitude, below every floor on the path, so the modulation cannot modulate anything.*
 
 
-A run is recorded by a `@rig` field block on a comment on the problem, which is what the rig report files ([#284](https://github.com/NGL321/patchworks/issues/284), `tools/cutoff_report.py`), or by `register:overdue`, since a bar cannot be crossed without the rig running. The report files **every evaluated run** and not only a crossing, so a rig that runs regularly and never crosses leaves this section rather than sitting in it. A row here therefore means one of two things and not a third: the rig has genuinely not run, or it has not been given the hook.
+A run is recorded by a `@rig` field block on a comment on the problem, which is what the rig report files ([#284](https://github.com/NGL321/patchworks/issues/284), `tools/cutoff_report.py`), or by `register:overdue`, since a bar cannot be crossed without the rig running. The report files **every evaluated run** and not only a crossing, so a rig that runs regularly and never crosses leaves this section rather than sitting in it. A `measurement` row here therefore means one of two things and not a third: the rig has genuinely not run, or it has not been given the hook.
+
+
+An `event` row is **listed, not demoted**: the event may be exactly the right moment, and the listing exists to make the dormancy visible rather than to judge the cutoff. Dormancy is read off the named issue's own last activity against this problem's minting date — *has anything happened there since this problem started cutting on it* — which is two facts the tracker already holds and no chosen duration. It is the same question the `measurement` arm asks, which is why the two share a section: a run counts against **this problem**, not against the rig's whole history.
 
 
 ## Open problems
