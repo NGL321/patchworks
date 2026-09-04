@@ -921,6 +921,13 @@ class TestOneGlobalLearningRate:
             "hold_pairs",
             "column_mask",
             "overlap_target",
+            # Which maps the spectral floor reaches, and their `(m, k)` groups
+            # (ADR-0032). Constants of the built graph like the rest: the shapes
+            # are read off the masks once and the membership never moves.
+            "floored",
+        } | {
+            f"floor_group_{group}"
+            for group in range(len(running.maps.floor_shapes))
         }
         for name, buffer in running.maps.named_buffers():
             assert torch.equal(buffer, before[name]), name
