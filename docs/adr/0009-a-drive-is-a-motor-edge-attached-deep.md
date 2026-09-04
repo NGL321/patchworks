@@ -161,6 +161,19 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
   `λ = DEFAULT_SPARSITY_PRESSURE`, the operating point the build runs, and its reversal condition is
   [#393](https://github.com/NGL321/patchworks/issues/393).
 
+  **#393 has since reported, and the reversal condition is met in the sense it named.** The `λ` sweep
+  found the collapse is the constant's own doing: at `λ = 0` the fleet's effective rank **holds at
+  2.913** over 30k ticks where the default drives it to **1.002**. The width axis is therefore inert at
+  `0.4` and **not** inert at `0` — which is this amendment's ground behaving as stated, not against it.
+  The ruling above stands **because the build runs at 0.4**, and not because widening is impossible.
+  Whether `λ` stays there is [#406](https://github.com/NGL321/patchworks/issues/406), open at the time
+  of writing. If it moves, what this amendment is re-read against is two ceilings #188 recorded for
+  exactly that case: **`m_e` is bounded above by the apex-side map's achievable effective rank**, which
+  even at `λ = 0` is a construction-time fleet **3.66**
+  ([#356](https://github.com/NGL321/patchworks/issues/356)), so anything past `m_e ≈ 4` is unusable at
+  any `λ` this design has measured — a derived bound with a definition site, not an invented constant
+  — and the `p_v` collision recorded under *The hatch, in rungs* below, which binds before it.
+
   The usable knob therefore remains the **number of attachment points**, at the cost of a dimension of
   privacy per cell touched — spreading that cost instead of concentrating it, and never making one
   cell pay more than the minimum. It is gated too, in *The hatch, in rungs* below. The learned drive
@@ -226,7 +239,10 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
 
   **The ladder carries a dependency it was written without, and rungs 1 and 3 are both gated on it**
   ([#188](https://github.com/NGL321/patchworks/issues/188)). The gate is the transport rule's sparsity
-  pressure at `λ = DEFAULT_SPARSITY_PRESSURE`.
+  pressure at `λ = DEFAULT_SPARSITY_PRESSURE` — a gate on a **constant**, and
+  [#393](https://github.com/NGL321/patchworks/issues/393) has since confirmed it is the constant doing
+  the work, with [#406](https://github.com/NGL321/patchworks/issues/406) open on whether the constant
+  stays. See *Strength is not a new axis* above.
 
   - **Rung 1** already bore negatively on its own evidence:
     [#183](https://github.com/NGL321/patchworks/issues/183) measured coherent fan-out at **0.94x**
@@ -273,7 +289,11 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
   this ADR's: **the render supplies content**, so a wider drive stalk moves task specification out of
   the world and into the drive. [#393](https://github.com/NGL321/patchworks/issues/393) — the `λ`
   sweep — is the **reversal condition** for the map half, and was deliberately not made a blocker: the
-  finding does not depend on `λ`'s future value, only on its current one.
+  finding does not depend on `λ`'s future value, only on its current one. **#393 has since reported
+  and the condition is met**; see *Strength is not a new axis* above for what that does and does not
+  move, and [#406](https://github.com/NGL321/patchworks/issues/406) for whether `λ` stays where the
+  ruling is stated. The stalk half is unaffected either way — it is refused on a ground that has
+  nothing to do with `λ`.
 
   This is *Strength is not a new axis* above, restated where a reader will actually reach for it. It has
   a second job: **the ramp is the wrong answer to *Bootstrapping* below.** A drive edge that is noise
