@@ -555,6 +555,8 @@ function of the stalk — so A is complementary rather than duplicative;
 
 ### Proposal A — a rank floor as a constraint, not a smaller `λ`
 
+Filed as a comment on [#324](https://github.com/NGL321/patchworks/issues/324).
+
 ```
 @proposal A rank floor stated as a constraint on the map, not a smaller sparsity coefficient
 @source   VICReg (Bardes, Ponce & LeCun, ICLR 2022, arXiv:2105.04906); BNM (Cui et al., CVPR 2020,
@@ -580,6 +582,8 @@ map per step; and it makes explicit a decision `06-graph-topology.md` currently 
 is arguably its main virtue and arguably a violation of the intent.
 
 ### Proposal B — buy the kernel with holonomy instead of with rank
+
+Filed as [#396](https://github.com/NGL321/patchworks/issues/396), orphaned.
 
 ```
 @proposal Buy H^0 with holonomy rather than rank-deficiency: enlarge the kernel by aligning
