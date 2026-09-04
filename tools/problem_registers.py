@@ -389,17 +389,8 @@ def _reports(payload: dict) -> frozenset[str]:
     sections and research docs, none of which a projection may parse.
     """
     found: set[str] = set()
-    for entry in payload.get("comments") or []:
-        try:
-            fields = field_block(entry.get("body") or "")
-        except MalformedProvenance:
-            # One comment's failure, recorded once by :func:`collect`, which
-            # walks these same comments. Raising here would let a loose line in
-            # any comment decide whether the problem it sits under reads as
-            # watched -- and, before #354, whether the registers regenerated at
-            # all.
-            continue
-        if fields and REPORT_KEY in fields:
+    for _, fields in _comment_blocks(payload)[0]:
+        if REPORT_KEY in fields:
             found.update(rig_name(value) for value in fields[REPORT_KEY] if value)
     return frozenset(found)
 
@@ -579,6 +570,52 @@ def _answers(values: list[str], where: str) -> tuple[str, ...]:
 # ---------------------------------------------------------------------------
 
 
+def _comment_blocks(
+    payload: dict,
+) -> tuple[list[tuple[dict, dict[str, list[str]]]], list["Skipped"]]:
+    """Every comment on *payload* carrying a field block, and the unreadable ones.
+
+    **One walk, shared, because two walks would make "a skip is recorded exactly
+    once" a promise in a comment rather than a fact about the code.** Both
+    readers of these comments come through here: :func:`_reports`, asking which
+    rigs have reported, and :func:`collect`, which additionally keeps the skips.
+    A reader that dropped a malformed comment on its own authority would leave
+    the silent drop this whole mechanism exists to prevent, reachable by adding
+    a second `except` somewhere.
+
+    A comment with no field block is not returned at all. It is not provenance
+    and it is not malformed; most comments are discussion.
+    """
+    read: list[tuple[dict, dict[str, list[str]]]] = []
+    skipped: list[Skipped] = []
+    where = f"#{payload.get('number')} (comment)"
+    for entry in payload.get("comments") or []:
+        try:
+            fields = field_block(entry.get("body") or "")
+        except MalformedProvenance as failure:
+            skipped.append(_skip(entry, where, failure))
+            continue
+        if fields is not None:
+            read.append((entry, fields))
+    return read, skipped
+
+
+def _skip(entry: dict, where: str, failure: object) -> "Skipped":
+    """One skip row. The `where` prefix a raise site adds is not wanted twice.
+
+    Every refusal in this module prefixes its message with the `where` it was
+    given, because most of them reach a human as a traceback with no other
+    context. A skip row carries `where` in a field of its own, so the prefix is
+    taken back off here -- in one place, rather than at each of the sites that
+    can produce a skip.
+    """
+    return Skipped(
+        url=entry.get("url") or "",
+        where=where,
+        reason=str(failure).removeprefix(f"{where}: "),
+    )
+
+
 @dataclass(frozen=True)
 class Skipped:
     """A comment whose field block could not be read, and was passed over.
@@ -591,11 +628,24 @@ class Skipped:
     exists to prevent**, so the skip is a row rather than only a line on
     stderr. It carries the comment `url` because the diagnostic used to name
     the issue alone and a reader then scanned every comment on it by hand.
+
+    `url` is the *comment* URL or nothing. It never falls back to the issue,
+    which would hand back exactly the diagnostic #354 exists to replace while
+    reading as though it had not: a row pointing at an issue is a row that says
+    *scan every comment on this by hand*, and it would be indistinguishable
+    from one that named the comment. A payload with no comment URL is a
+    degradation and says so.
     """
 
     url: str
     where: str
     reason: str
+
+    @property
+    def link(self) -> str:
+        if not self.url:
+            return f"{self.where} (the payload carried no comment URL)"
+        return f"[{self.where}]({self.url})"
 
 
 @dataclass
@@ -645,47 +695,43 @@ def collect(
     for payload in problems:
         survey.problems.append(read_problem(payload))
         number = int(payload["number"])
-        for entry in payload.get("comments") or []:
-            body = entry.get("body") or ""
-            where = f"#{number} (comment)"
-            url = entry.get("url") or payload.get("url") or ""
-            try:
-                fields = field_block(body)
-                if fields is None:
-                    continue
-                if "proposal" not in fields:
-                    if PROPOSAL_KEYS & fields.keys():
-                        named = ", ".join(
-                            "@" + key for key in sorted(PROPOSAL_KEYS & fields.keys())
-                        )
-                        raise MalformedProvenance(
+        where = f"#{number} (comment)"
+        blocks, unreadable = _comment_blocks(payload)
+        survey.skipped.extend(unreadable)
+        for entry, fields in blocks:
+            url = entry.get("url") or ""
+            if "proposal" not in fields:
+                declared = PROPOSAL_KEYS & fields.keys()
+                if declared:
+                    named = ", ".join("@" + name for name in sorted(declared))
+                    survey.skipped.append(
+                        _skip(
+                            entry,
+                            where,
                             f"a comment carrying {named} has declared itself a "
                             "proposal and must name one with @proposal; dropping "
-                            "it would leave a row nobody can reach"
+                            "it would leave a row nobody can reach",
                         )
-                    continue
-                key = ("comment", url)
-                if key in seen:
-                    continue
-                seen.add(key)
+                    )
+                continue
+            # The body, not the URL alone: a payload with no comment URL must
+            # not collapse two different comments into one `seen` key.
+            key = ("comment", url or (entry.get("body") or ""))
+            if key in seen:
+                continue
+            seen.add(key)
+            try:
                 found = read_proposal(
-                    body,
+                    entry.get("body") or "",
                     where=where,
-                    url=url,
+                    # A row must link somewhere, so a proposal falls back to the
+                    # issue. A skip must not: see :class:`Skipped`.
+                    url=url or payload.get("url") or "",
                     number=number,
                     is_comment=True,
                 )
             except MalformedProvenance as failure:
-                survey.skipped.append(
-                    Skipped(
-                        url=url,
-                        where=where,
-                        # `read_proposal` prefixes its own `where`; the row
-                        # carries it in a column of its own and does not want it
-                        # twice.
-                        reason=str(failure).removeprefix(f"{where}: "),
-                    )
-                )
+                survey.skipped.append(_skip(entry, where, failure))
                 continue
             survey.proposals.append(found)
 
@@ -804,32 +850,35 @@ A comment carrying a field block that does not parse is **skipped rather than
 fatal** ([#354](https://github.com/NGL321/patchworks/issues/354)): one
 unreadable comment used to abort the generator, and none of the three registers
 regenerated until somebody edited it. But a skip nobody can see is the failure
-the field-block mechanism exists to prevent, so each one is named here. **A row
-in this section means the file below may be incomplete** — the comment might
-have been a proposal, or a rig report against a cutoff — and the fix is to edit
-the comment so its block parses, not to edit this file.
+the field-block mechanism exists to prevent, so each one is named here.
+
+**A row in this section means the file below may be incomplete.** The comment
+might have been a proposal, a rig report against a cutoff, or a dismissal —
+and a dismissal *binds*, so a row here is a reason to open the comment before
+trusting this page rather than a footnote. The fix is to edit the comment so
+its block parses; never this file.
 """
 
 
 def _skipped_section(survey: Registers) -> str:
-    """Rendered into all three files, and first, because it qualifies them all.
+    """Rendered into all three files, above the rows, because it qualifies them all.
 
     All three, because an unreadable comment cannot say which register it
-    belonged to — that is what makes it unreadable. A comment-proposal is a row
+    belonged to -- that is what makes it unreadable. A comment-proposal is a row
     in `proposed-solutions.md`, the same block carrying `@status dismissed` is a
     row in `dismissed-solutions.md`, and a rig report is what keeps a problem
     out of `open-problems.md`'s second loud section. Naming the skip in only one
     of them would leave the other two reading as complete while they were not.
 
-    First, rather than at the foot, for the same reason the uncut section sorts
-    first: a reader needs to know the page may be missing a row before reading
-    the rows, not after.
+    Above the rows, rather than at the foot, for the same reason the uncut
+    section sorts first: a reader needs to know the page may be missing a row
+    before reading the rows, not after.
     """
     out = [f"\n{SKIPPED_HEADING}\n", _SKIPPED.strip() + "\n"]
     if survey.skipped:
         out.append(
             "\n".join(
-                f"* [{_cell(s.where)}]({s.url}) — {_cell(s.reason)}"
+                f"* {s.link} \u2014 {' '.join(s.reason.split())}"
                 for s in survey.skipped
             )
             + "\n"
@@ -847,7 +896,10 @@ def skip_report(survey: Registers) -> list[str]:
     red run on a projection says *nothing regenerated* rather than *one comment
     needs an edit*.
     """
-    return [f"skipped {s.where} {s.url}: {s.reason}" for s in survey.skipped]
+    return [
+        f"skipped {s.where} {s.url or '(no comment URL)'}: {s.reason}"
+        for s in survey.skipped
+    ]
 
 
 def _cell(text: str) -> str:

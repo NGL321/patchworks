@@ -279,19 +279,12 @@ reach the page on the weekly net rather than at once. The tracker is right immed
 
 `--check` still exists, for a human at a terminal.
 
-**A malformed *comment* is skipped; a malformed *issue body* is fatal.** The asymmetry is #354's
-ruling and it follows from what a label promises. A `register:problem` or `register:proposal` label
-says a row exists, so a body that cannot be read is a row the register would silently lose, and the
-generator stops. Nothing promises a comment is provenance — most comments are discussion, passed
-over in silence already — so one loose line inside one fenced block is a fact about that comment,
-not about the projection. Before #354 it aborted the run, which took all three registers down
-repo-wide until somebody edited it, on a workflow that fires on every comment event.
-
-The skip is **not silent**: every skipped comment is named, by URL, in a section each of the three
-files carries at the top — *Comments this register could not read* — and on stderr when a human runs
-the generator. All three files, because a comment that cannot be parsed cannot say which register it
-belonged to; first in the file, because a reader needs to know the page may be missing a row before
-reading the rows. A row there means edit the comment, never the file.
+**A malformed *comment* is skipped; a malformed *issue body* is fatal.** A label promises a row
+exists and a comment promises nothing, which is [#354](https://github.com/NGL321/patchworks/issues/354)'s
+ruling and is argued at the seam that enforces it (`collect`). The skip is **not silent**: every
+skipped comment is named by URL in a *Comments this register could not read* section that all three
+files carry above their rows, and on stderr for a human at a terminal. A row there means edit the
+comment, never the file.
 
 The checked-in files can therefore be briefly stale, and are never the authority. That is the point:
 GitHub is the definition site, and the rendered file exists so an agent can read the register without

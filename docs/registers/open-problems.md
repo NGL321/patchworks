@@ -24,10 +24,13 @@ A comment carrying a field block that does not parse is **skipped rather than
 fatal** ([#354](https://github.com/NGL321/patchworks/issues/354)): one
 unreadable comment used to abort the generator, and none of the three registers
 regenerated until somebody edited it. But a skip nobody can see is the failure
-the field-block mechanism exists to prevent, so each one is named here. **A row
-in this section means the file below may be incomplete** — the comment might
-have been a proposal, or a rig report against a cutoff — and the fix is to edit
-the comment so its block parses, not to edit this file.
+the field-block mechanism exists to prevent, so each one is named here.
+
+**A row in this section means the file below may be incomplete.** The comment
+might have been a proposal, a rig report against a cutoff, or a dismissal —
+and a dismissal *binds*, so a row here is a reason to open the comment before
+trusting this page rather than a footnote. The fix is to edit the comment so
+its block parses; never this file.
 
 None. Every field block on every comment read.
 

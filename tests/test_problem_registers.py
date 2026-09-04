@@ -475,7 +475,14 @@ class TestProposalsAreCollectedFromCommentsAsWellAsIssues:
 # ---------------------------------------------------------------------------
 
 
+#: The comment #354 names: a quoted rig report with a sentence written under
+#: it, inside the same fence. Ordinary to write, and it used to take all three
+#: registers down.
 LOOSE = block("@rig detectability", "and then a sentence under it")
+
+#: This class only ever renders, and only ever looks at the skipped section, so
+#: the rig set is a placeholder rather than `RIGS` reached for from below.
+ANY_RIG = frozenset({"detectability"})
 
 
 class TestAMalformedCommentCostsOnlyItself:
@@ -544,15 +551,39 @@ class TestAMalformedCommentCostsOnlyItself:
     def test_every_register_says_how_many_comments_it_could_not_read(self):
         problems = [issue(number=300, body=PROBLEM, comments=[comment(LOOSE, 300, 7)])]
         found = registers.collect(problems, [], [])
-        for text in registers.generate(found, RIGS).values():
+        for text in registers.generate(found, ANY_RIG).values():
             assert "#issuecomment-7" in text
             assert registers.SKIPPED_HEADING in text
 
     def test_with_nothing_skipped_the_section_says_so(self):
         found = registers.collect([issue(number=300, body=PROBLEM)], [], [])
-        for text in registers.generate(found, RIGS).values():
+        for text in registers.generate(found, ANY_RIG).values():
             assert registers.SKIPPED_HEADING in text
             assert "#issuecomment" not in text
+
+    def test_a_skip_never_falls_back_to_the_issue_url(self):
+        """The row would then say *scan every comment by hand*, which is the bug.
+
+        A skip pointing at the issue is indistinguishable from one that named
+        the comment, so a payload with no comment URL states the degradation
+        instead of hiding it behind a link that reads as an answer.
+        """
+        entry = comment(LOOSE, 300, 7)
+        del entry["url"]
+        problems = [issue(number=300, body=PROBLEM, comments=[entry])]
+        skipped = registers.collect(problems, [], []).skipped[0]
+        assert skipped.url == ""
+        assert "no comment URL" in skipped.link
+        assert "issues/300" not in skipped.link
+
+    def test_the_skip_is_recorded_once_and_not_once_per_reader(self):
+        """`_reports` and `collect` read the same comments through one walk."""
+        problems = [
+            issue(number=300, body=PROBLEM,
+                  comments=[comment(LOOSE, 300, 1), comment(LOOSE, 300, 2)])
+        ]
+        found = registers.collect(problems, [], [])
+        assert len(found.skipped) == 2
 
     def test_the_skip_also_reaches_a_terminal(self):
         """The workflow's only signal was a red run; now the run stays green."""
