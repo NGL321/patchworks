@@ -673,6 +673,41 @@ class RestrictionMaps(torch.nn.Module):
                 ratios[i] = floor / top
         return ratios
 
+    def flatness(self) -> torch.Tensor:
+        """`[pairs]`: `σ_min/σ_max` of each map's active block, 1 when flat.
+
+        Reporting, not runtime — the tick never calls it. It exists because
+        :meth:`project` orders the spectral floor **before** the incoherence cap
+        and so holds the floor exactly only where the cap does not bite; this is
+        what reads the residual, and it is the instrument ADR-0032's second
+        pre-registration is written against.
+
+        A map the floor does not reach comes back at its own honest ratio rather
+        than at 1 — the nine unattainable masks read 0, since `rank(F) ≤ k < m`
+        makes `σ_min` zero there whatever anything does, and `m = 1` reads 1
+        because one singular value is trivially its own smallest and largest.
+
+        **The spectrum is the map's `m` singular values, not the block's.**
+        `svdvals` on an `[m, k]` block returns `min(m, k)` of them, so where the
+        mask leaves fewer columns open than the lane is wide the remaining
+        `m − k` are structural zeros that the factorisation simply does not
+        report. Reading `σ_min` off the returned list there would say a map is
+        nearly flat when it is rank-deficient by construction, which is exactly
+        the population the floor excludes and the last place to flatter it.
+        """
+        maps = self.maps.detach()
+        tiny = torch.finfo(maps.dtype).tiny
+        ratios = torch.zeros(self.pairs, dtype=maps.dtype, device=maps.device)
+        for edge in self.dome.edges:
+            for side, cell_id in enumerate((edge.u, edge.v)):
+                i = pair_index(edge.id, side)
+                k = int(self.support[i].any(dim=0).sum())
+                spectrum = torch.linalg.svdvals(maps[i, : edge.m, :k])
+                top = spectrum.amax().clamp_min(tiny)
+                floor = spectrum.amin() if k >= edge.m else spectrum.new_zeros(())
+                ratios[i] = floor / top
+        return ratios
+
     # -- what the message-passing phase runs -------------------------------
 
     def restrict(self, stalks: torch.Tensor) -> torch.Tensor:
