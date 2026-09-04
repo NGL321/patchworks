@@ -145,6 +145,43 @@ class TestASurfaceThatAgrees:
             assert row["channel_return"] == pytest.approx(1.0, abs=1e-6)
 
 
+class TestTheRewiredNull:
+    """The same maps, wired at random: spectra kept, incidence destroyed."""
+
+    def test_every_map_survives_with_its_own_spectrum(self, dome):
+        maps = hr.flat_maps(dome, torch.Generator().manual_seed(2))
+        null = hr.rewired(dome, maps, torch.Generator().manual_seed(4))
+        before = sorted(
+            round(float(v), 5)
+            for edge in dome.edges
+            for side in (0, 1)
+            for v in torch.linalg.svdvals(
+                maps.maps[pair_index(edge.id, side)][: edge.m].detach().double()
+            )
+        )
+        after = sorted(
+            round(float(v), 5)
+            for edge in dome.edges
+            for side in (0, 1)
+            for v in torch.linalg.svdvals(
+                null.maps[pair_index(edge.id, side)][: edge.m].detach().double()
+            )
+        )
+        assert before == after
+
+    def test_the_permutation_stays_inside_the_support(self, dome):
+        maps = hr.flat_maps(dome, torch.Generator().manual_seed(2))
+        null = hr.rewired(dome, maps, torch.Generator().manual_seed(4))
+        # The mask is a prefix applied to every row alike, so same shape means
+        # same mask; nothing is zeroed away by the re-application.
+        assert torch.count_nonzero(null.maps) == torch.count_nonzero(maps.maps)
+
+    def test_the_wiring_actually_moves(self, dome):
+        maps = hr.flat_maps(dome, torch.Generator().manual_seed(2))
+        null = hr.rewired(dome, maps, torch.Generator().manual_seed(4))
+        assert not torch.equal(null.maps, maps.maps)
+
+
 class TestTheGauge:
     """ADR-0010 leaves an edge's frame free; no column may read it."""
 

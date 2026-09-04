@@ -106,6 +106,15 @@ name.
   exactly-flat maps drawn independently -- so #436's chance null and this
   baseline are one object here and are run and printed once, under both names.
 
+- **the rewired null** -- the trained maps of that same checkpoint, permuted
+  among endpoints of the same block shape, composed around the same cycles.
+  Every map keeps its learned spectrum and its mask; what is destroyed is which
+  map sits next to which. **This is the control the channel column requires**:
+  composed transport is rank 1 (#454), and if every edge stalk has one dominant
+  direction and every hop routes it onward, a holonomy returns the channel to
+  itself with nothing learned. A channel return that survives the rewiring is
+  arithmetic about rank-1 factors; one that collapses to chance was alignment.
+
 **One seed carries the trained arms and eight carry the free ones.** A 100k
 trained trajectory is ~1.6 h on this box and the ticket asks for two of them;
 three seeds would be a day. The trained arms are seed 42, stated as a limit
@@ -417,6 +426,42 @@ def flat_maps(dome: Dome, generator: torch.Generator) -> RestrictionMaps:
     return maps
 
 
+def rewired(dome: Dome, maps: RestrictionMaps, generator: torch.Generator):
+    """The **same learned maps, wired at random**: the null the channel column needs.
+
+    Composed transport is rank 1 ([#454](https://github.com/NGL321/patchworks/issues/454)),
+    and a rank-1 holonomy `H ~ sigma u v^T` can perfectly well have `u`
+    orthogonal to `v` -- but it will *not*, trivially and with nothing learned,
+    if every edge stalk has one dominant direction and every hop routes it to
+    the next one. That is a property of the maps' spectra rather than of their
+    alignment, so a high channel return has two readings and this separates
+    them.
+
+    Every map is replaced by another **trained** map of the same block shape.
+    The mask is a prefix applied to every row alike (`RestrictionMaps.__init__`),
+    so two endpoints with the same `(m_e, k_v)` have the *same* mask and the
+    permutation stays inside the support: what survives is every map's learned
+    spectrum and shape, and what is destroyed is which map sits next to which.
+    A channel return that survives this is arithmetic; one that collapses to
+    chance was alignment.
+    """
+    groups: dict[tuple[int, int], list[int]] = {}
+    for edge in dome.edges:
+        for side in (0, 1):
+            i = pair_index(edge.id, side)
+            k = int(maps.support[i].any(dim=0).sum())
+            groups.setdefault((edge.m, k), []).append(i)
+    shuffled = RestrictionMaps(dome, generator=torch.Generator().manual_seed(0))
+    with torch.no_grad():
+        shuffled.maps.copy_(maps.maps)
+        for indices in groups.values():
+            order = torch.randperm(len(indices), generator=generator)
+            source = maps.maps[[indices[j] for j in order.tolist()]].clone()
+            shuffled.maps[indices] = source
+        shuffled.maps.mul_(shuffled.support)
+    return shuffled
+
+
 def flat_maps_of(dome: Dome):
     """:func:`flat_maps` bound to a dome, for the arm table."""
     return lambda generator: flat_maps(dome, generator)
@@ -443,7 +488,7 @@ def untrained_maps(dome: Dome, generator: torch.Generator, *, floor: bool):
     return maps
 
 
-def trained(spec, split, seed, checkpoints, cycles, floor, sink=None):
+def trained(spec, split, seed, checkpoints, cycles, floor, sink=None, save_dir=None):
     """One driven trajectory, read at every checkpoint on the way past.
 
     `spectral_floor_read.measure`'s loop, unchanged -- `agent.tick()` then the
@@ -464,14 +509,33 @@ def trained(spec, split, seed, checkpoints, cycles, floor, sink=None):
             if agent.sheaf.ticks > 1:
                 transport.step()
             if index + 1 in checkpoints:
+                arm = "floored" if floor else "unfloored"
                 reads[index + 1] = read_surface(dome, agent.sheaf.maps, cycles)
+                # The rewired null is taken *on this surface at this
+                # checkpoint*, not on a stored one: it is the same maps in a
+                # different order, so it has to be read where they are.
+                null = read_surface(
+                    dome,
+                    rewired(dome, agent.sheaf.maps, torch.Generator().manual_seed(17)),
+                    cycles,
+                )
+                if save_dir is not None:
+                    # The surface itself, so a later session can compute a
+                    # control this rig did not think of without paying 1.6 h
+                    # to reach the checkpoint again. It is not a substitute
+                    # for re-running the baseline (#127's 2026-09-04 rule):
+                    # what ages is a *reading* quoted as a fact, and this is
+                    # the surface the reading was taken on, kept beside it.
+                    torch.save(
+                        agent.sheaf.maps.state_dict(),
+                        save_dir / f"maps-{arm}-{index + 1}.pt",
+                    )
                 print(
-                    f"    checkpoint {index + 1} read "
-                    f"({'floored' if floor else 'unfloored'}, seed {seed})",
+                    f"    checkpoint {index + 1} read ({arm}, seed {seed})",
                     flush=True,
                 )
                 if sink is not None:
-                    sink(index + 1, reads[index + 1])
+                    sink(index + 1, reads[index + 1], null)
     finally:
         env.close()
     return reads
@@ -586,7 +650,7 @@ def report(dome, cycles, arms: dict) -> None:
         print("\n=== the ends of the distribution, on the shipped surface ===")
         extremes(dome, cycles, shipped)
     print(
-        "\n    identification departure is `‖UVᵀ − I‖_F/sqrt(2m)`: "
+        "\n    identification departure is ||U V^T - I||_F/sqrt(2m): "
         "0 at the identity, 1 at chance, sqrt(2) maximally opposed."
     )
     print(
@@ -642,11 +706,21 @@ def read(name: str, split: str, seed: int, learn, draws: int, out) -> None:
         arm = "floored" if floor else "unfloored"
         print(f"\n=== training {arm}, seed {seed} ===", flush=True)
 
-        def sink(checkpoint, rows, arm=arm):
+        def sink(checkpoint, rows, null, arm=arm):
             arms[f"trained, {arm}, {checkpoint}"] = rows
+            arms[f"rewired null, {arm}, {checkpoint}"] = null
             write()
 
-        trained(spec, split, seed, checkpoints, cycles, floor, sink=sink)
+        trained(
+            spec,
+            split,
+            seed,
+            checkpoints,
+            cycles,
+            floor,
+            sink=sink,
+            save_dir=out.parent if out is not None else None,
+        )
 
     report(dome, cycles, arms)
     if out is not None:
