@@ -72,8 +72,21 @@ but by the slowness being dragged.
 
 This makes the governing quantity a product of gain and offset, which forced a gap in the spec into
 the open: **reconciliation's step size had never been named.** ADR-0002 forbids a round count, but a
-descent step needs a gain regardless. It is now specified in `02-tick-semantics.md` as
-`γ / Σ_e m_e` per cell, with the bound that `gain_v × offset` must stay below the cell's fold margin.
+descent step needs a gain regardless. It is specified in
+[`02-tick-semantics.md`](../spec/02-tick-semantics.md), *Reconciliation gain*, as
+`gain_v = γ / (g_v² · c_v)` per cell, with the bound that `gain_v × offset` must stay below the cell's
+fold margin. What stood here, quoted rather than deleted:
+
+> It is now specified in `02-tick-semantics.md` as `γ / Σ_e m_e` per cell, with the bound that
+> `gain_v × offset` must stay below the cell's fold margin.
+
+*Superseded by [#190](https://github.com/NGL321/patchworks/issues/190) as to the denominator, and only
+that.* The fact this paragraph records is untouched — it was this ADR that forced reconciliation's step
+size to be named at all — and so is the bound on `gain_v × offset`, which the *Amended by #160* block
+immediately below governs. What changed is what sits under `γ`: `Σ_e m_e` was struck on both of the jobs
+it was doing, and `g_v² · c_v` bounds `λ_max(Σ_e F_evᵀF_ev)` by construction in its place
+([#155](https://github.com/NGL321/patchworks/issues/155) published it). The argument is at the *The
+gain is not a timescale knob* consequence below.
 
 *Amended by [#160](https://github.com/NGL321/patchworks/issues/160), twice over, and both amendments
 are [ADR-0019](./0019-construction-nominates-the-run-decides.md)'s.* **The divisor is the standing
@@ -177,15 +190,20 @@ naming, the other needed this bound extended.**
   (bounded by the same `γ` that already bounds reconciliation; `decode` still emits every tick, so a
   neighbour's evidence degrades but is never blocked) and it is not a stability defect to fix — it is a
   third floor, tolerated the same way the other two are.
-- **The transport rule does not need a new bound; it makes an existing one go stale.** `gain_v = γ /
-  Σ_e m_e` treats `Σ_e m_e` as a proxy for the local Laplacian block's largest eigenvalue, accurate when
-  it was checked. The transport rule trains the restriction-map *magnitudes* that proxy stands in for,
-  so as training proceeds the proxy can drift away from the block's true spectral radius, silently
-  loosening `γ × floor < fold margin` without anything re-checking it. The fix was not a cap on what a
-  restriction map may learn — that would impose a geometric constraint the maps' job (`01-cell-and-sheaf.md`,
-  ADR-0004) doesn't call for. It was cheaper and stayed local: each cell recomputing its own actual
-  spectral estimate from its own incident maps, on the same schedule the global learning-rate and
-  sparsity anneals already use ([`07-local-learning-rule.md`](../spec/07-local-learning-rule.md)).
+- **The transport rule does not need a new bound.** That half stands, and is re-sourced below. The
+  reason once given for it — that the rule made an existing bound go stale — has been struck twice, and
+  what stood here is quoted rather than deleted:
+
+  > **The transport rule does not need a new bound; it makes an existing one go stale.** `gain_v = γ /
+  > Σ_e m_e` treats `Σ_e m_e` as a proxy for the local Laplacian block's largest eigenvalue, accurate
+  > when it was checked. The transport rule trains the restriction-map *magnitudes* that proxy stands
+  > in for, so as training proceeds the proxy can drift away from the block's true spectral radius,
+  > silently loosening `γ × floor < fold margin` without anything re-checking it. The fix was not a cap
+  > on what a restriction map may learn — that would impose a geometric constraint the maps' job
+  > (`01-cell-and-sheaf.md`, ADR-0004) doesn't call for. It was cheaper and stayed local: each cell
+  > recomputing its own actual spectral estimate from its own incident maps, on the same schedule the
+  > global learning-rate and sparsity anneals already use
+  > ([`07-local-learning-rule.md`](../spec/07-local-learning-rule.md)).
 
   *Superseded by [#37](https://github.com/NGL321/patchworks/issues/37).* That fix was correct and is no
   longer needed. [ADR-0010](./0010-restriction-map-scale-is-gauge-fixed.md) **fixes the magnitudes the
@@ -207,6 +225,29 @@ naming, the other needed this bound extended.**
   it recomputes nothing, reading the pre-activation the forward pass already produced against a
   frozen weight's row norms. The full argument, and the reason it earns a file rather than a fourth
   amendment here, is [ADR-0019](./0019-construction-nominates-the-run-decides.md).
+
+  *Superseded by [#190](https://github.com/NGL321/patchworks/issues/190), which removes the premise
+  rather than the fix.* #37 retired the periodic re-derivation; #190 retired the thing that was
+  drifting. `Σ_e m_e` was never derived as a bound on `λ_max(Σ_e F_evᵀF_ev)` **at all**, so *accurate
+  when it was checked* is itself the claim in question, and a quantity that never bounded the block's
+  spectral radius cannot be said to have gone stale against it. Two further terms in the #37 note above
+  went in the same strike: `ρ² · deg(v)` — a true bound, but tight only where a cell's incident maps load
+  the same input direction, which they do not — and the `max` that chose between the two. There is no
+  longer a max; the denominator is `g_v² · c_v`.
+
+  **The bullet's conclusion survives, on better ground than the one it was given.** Every term of
+  `gain_v = γ / (g_v² · c_v)` is gauge-fixed or read off the built graph, so nothing in the denominator
+  moves as the transport rule trains — there is no proxy to drift, rather than a proxy that has stopped
+  drifting. And per [`02-tick-semantics.md`](../spec/02-tick-semantics.md), *Nothing here is a runtime
+  read*, the bound is **made true** by [ADR-0010](./0010-restriction-map-scale-is-gauge-fixed.md)'s
+  projection rather than tracked: the projection runs after every transport step and holds a cell's
+  incident maps' top singular directions apart, which is what `c` counts. A construction-time read of
+  the true `λ_max` would not merely go loose as the maps learn, it would go **unsafe**, because `λ_max`
+  grows *toward* any bound fixed at construction — `bound / true λ_max` falls 41.29 untrained → 4.671
+  taught ([#182](https://github.com/NGL321/patchworks/issues/182)). So the transport rule still needs no
+  new bound, and it still gets no cap on what a map may learn: what closed the hole is enforcement, in
+  [ADR-0011](./0011-the-locality-guarantee-is-enforced-not-inherited.md)'s idiom, not a geometric
+  constraint on the maps.
 
 Neither half is [#20](https://github.com/NGL321/patchworks/issues/20)'s change gate or the probabilistic
 sheaf. The gate amplifies differentiation on an edge; it has no purchase on whether a cell's own
@@ -251,9 +292,12 @@ what this question is actually about.
   and the record now shows the struck normalisation was grading it by accident.
 
   *Repaired by [#401](https://github.com/NGL321/patchworks/issues/401)* under the flag
-  [#188](https://github.com/NGL321/patchworks/issues/188) raised. This is the only site in this ADR
-  that ticket authorised; the remaining `Σ_e m_e` prints here are read as historical and are filed
-  rather than touched.
+  [#188](https://github.com/NGL321/patchworks/issues/188) raised. This was the only site in this ADR
+  that ticket authorised; it filed the other three rather than touching them, and
+  [#409](https://github.com/NGL321/patchworks/issues/409) carried them: the live spec pointer under
+  *Nothing represents the floor* and the transport-rule bullet under *Simultaneous learning does not
+  need its own bound* are repaired against #190, and the `Σ_e m_e` print in the consequence above is
+  confirmed as history and left standing.
 
 ## Alternatives considered
 
