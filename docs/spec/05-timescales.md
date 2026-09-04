@@ -153,10 +153,23 @@ quantity**, set by the masks and enlarged by sparsity.
 The design move is a step out from published work rather than a leap: neural sheaf diffusion
 engineers `dim ker(Δ_F)` deliberately so that information survives what would otherwise be
 oversmoothing, making stalk width the construction quantity that governs how much survives —
-structurally this bound. What is unprecedented is the *use*. There the kernel is the space a
-diffusion converges to as `t → ∞`; here it is state that persists tick to tick under the cell's own
-dynamics, and that second half has no analogue in a formalism with no per-node recurrence in it
-([#29](https://github.com/NGL321/patchworks/issues/29)).
+structurally this bound. **Two things are unprecedented here, not one: the *use*, and the *route*.**
+
+**The use.** There the kernel is the space a diffusion converges to as `t → ∞`; here it is state
+that persists tick to tick under the cell's own dynamics, and that second half has no analogue in a
+formalism with no per-node recurrence in it ([#29](https://github.com/NGL321/patchworks/issues/29)).
+
+**The route.** The source enlarges `H⁰` by stalk width and by trivial holonomy, with the restriction
+maps full rank *by hypothesis*: the kernel-sizing lemma is stated for a discrete `O(d)` bundle and
+reads `dim(H⁰) ≤ d`, with equality if and only if transport is path-independent — so `rank δ` cannot
+move at all, and the kernel is capped at the stalk width. Dong et al. (arXiv:2608.16180) route the
+same quantity through the holonomy representation `ρ: π₁(G,v₀) → Aut(ℱ(v₀))`, and `Aut` is
+invertibility again. This project enlarges `H⁰` instead by **learned rank-deficiency** in the
+restriction maps (`06-graph-topology.md`, *Sparsity is a property of the maps, not of the graph*),
+which goes past that stalk-width ceiling and puts the maps outside all four of the sheaf classes the
+source enumerates. No precedent for that route was located
+([#394](https://github.com/NGL321/patchworks/issues/394),
+`docs/research/394-kernel-versus-rank-citations.md` §1).
 
 ### Persistence under the cell's own dynamics: `K`'s spectrum
 
