@@ -244,7 +244,12 @@ adjacent cells' carried subspaces**, and two perfectly flat maps whose carried s
 orthogonal still compose to zero. That term is what #315 reads. A two-sided composed bound is
 therefore *derivable after this is built and conditional on a measured alignment floor from #315* —
 pre-registered, not ruled. An ADR claiming this decision buys composed behaviour would be
-overclaiming, and [#332](https://github.com/NGL321/patchworks/issues/332) stays open.
+overclaiming. [#332](https://github.com/NGL321/patchworks/issues/332) closed `solved` on
+[#427](https://github.com/NGL321/patchworks/issues/427) while this was being written, and it closed on
+the **upper** side — its *expanding* half forbidden by `σ_max(composed) ≤ ρ^{2h}`, its *contracting*
+half reassigned to the driven field by [#144](https://github.com/NGL321/patchworks/issues/144), and
+neither by anything here. This ADR supplies the ingredient the **lower** side lacked and does not
+close it.
 
 **The floor does not transfer to `K`, and the want inverts.** Ruled on
 [#420](https://github.com/NGL321/patchworks/issues/420) §3, and stated here because the two spectra
