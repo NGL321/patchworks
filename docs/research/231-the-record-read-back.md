@@ -163,6 +163,16 @@ retention constant rather than a construction-placed regional spectrum. The decl
 written; the conversion was taken *precisely* to unspend that budget, and nothing has re-read this
 paragraph since.
 
+**Re-read and repaired by [#420](https://github.com/NGL321/patchworks/issues/420), with one
+correction to the reading above.** The budget **split**; it did not vacate. `σ_max(K)` is still spent,
+by [ADR-0015](../adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md), at the
+maximal-transmission face of exactly 1 — so no headroom was reclaimed there. What came free is
+`ρ(K)`, and the stronger finding is that the mitigation was **never available to decline**: the
+conversion *is* Arroyo's remedy, taken in stage 1, as `docs/research/148` §10.2 had already said. `06`
+was rewritten from a decline into a claim by
+[#421](https://github.com/NGL321/patchworks/issues/421), closing
+[#338](https://github.com/NGL321/patchworks/issues/338).
+
 **3.3 "The drive does not reach."** #120's two-levels finding was quoted as settled for a long stretch;
 [#183](https://github.com/NGL321/patchworks/issues/183) found it located **float32's resolving limit,
 not the graph's**, and that read along the channel the drive's hop is worth 1.84x and the drive
