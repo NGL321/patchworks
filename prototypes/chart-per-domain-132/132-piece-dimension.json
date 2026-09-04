@@ -5,6 +5,8 @@
  "language": {
   "label": "language L1 (4 heard slots)",
   "points": 6000,
+  "distinct_points": 3959,
+  "duplicate_point_fraction": 0.3401666666666666,
   "ambient": 388,
   "median_pair_distance": 2.8284271247461903,
   "distinct_distances": 4,
@@ -15,6 +17,7 @@
    1.0
   ],
   "heaviest_atom_mass": 0.7994366253558617,
+  "heavy_atom_mass": 1.0,
   "distance_is_discrete": true,
   "zero_distance_fraction": 0.0004975833452103227,
   "radii_over_median": [
@@ -150,15 +153,164 @@
   "scaling_spread": null,
   "correlation_dimension": 11.053255208956436
  },
+ "language_through_lanes": {
+  "label": "language L1, through 4 x m=8 lanes",
+  "points": 6000,
+  "distinct_points": 3959,
+  "duplicate_point_fraction": 0.3401666666666666,
+  "ambient": 32,
+  "median_pair_distance": 0.8017973886397349,
+  "distinct_distances": 260248,
+  "heavy_atoms": [],
+  "heaviest_atom_mass": 0.00018262144325976776,
+  "heavy_atom_mass": 0.0,
+  "distance_is_discrete": false,
+  "zero_distance_fraction": 0.0004975833452103227,
+  "radii_over_median": [
+   0.001,
+   0.0012369738328770433,
+   0.0015301042632225215,
+   0.0018926989351798669,
+   0.0023412190563317377,
+   0.002896026709715441,
+   0.0035823092592310013,
+   0.004431222814941888,
+   0.005481306669730868,
+   0.006780232920431493,
+   0.008386970703385243,
+   0.010374463297193912,
+   0.012832939628772163,
+   0.015874010519681993,
+   0.01963573563566153,
+   0.024288891170604586,
+   0.03004472280763611,
+   0.037164535929089935,
+   0.045971558455302965,
+   0.05686561486578711,
+   0.07034127757944242,
+   0.08701031973691092,
+   0.1076294887048236,
+   0.1331348611738021,
+   0.16468433951571101,
+   0.20371021866557315,
+   0.2519842099789746,
+   0.31169787404218585,
+   0.3855621139535881,
+   0.47693024590934513,
+   0.5899502342974734,
+   0.7297530025256547,
+   0.9026853685876894,
+   1.1165981802639406,
+   1.3812027308246169,
+   1.708511635928365,
+   2.1133841868093373,
+   2.6142009378992763,
+   3.233698154064029,
+   4.0
+  ],
+  "correlation": [
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   2.5016636062981882e-06,
+   2.0013308850385506e-05,
+   0.00010256820785822572,
+   0.0003152096143935717,
+   0.0010982303231649047,
+   0.005180945328643548,
+   0.03418022985285215,
+   0.24282647960893994,
+   0.7997393266522237,
+   0.9973557415681428,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0
+  ],
+  "local_slope": [
+   0.0,
+   -7.105427357601002e-15,
+   7.105427357601002e-15,
+   0.0,
+   -7.105427357601002e-15,
+   7.105427357601002e-15,
+   -7.105427357601002e-15,
+   7.105427357601002e-15,
+   0.0,
+   -7.105427357601002e-15,
+   7.105427357601002e-15,
+   0.0,
+   -7.105427357601002e-15,
+   7.105427357601002e-15,
+   0.0,
+   7.105427357601002e-15,
+   7.105427357601002e-15,
+   0.0,
+   0.0,
+   -7.105427357601002e-15,
+   0.0,
+   7.105427357601002e-15,
+   0.0,
+   0.0,
+   18.3965463972588,
+   23.28548627853227,
+   8.730916553791339,
+   6.481560812329029,
+   5.574247232702014,
+   6.581868807212549,
+   8.08289985672307,
+   9.04546210941713,
+   7.412114957260535,
+   3.32151712460593,
+   0.5253952397173398,
+   0.006225105356172528,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ],
+  "scaling_window": [
+   29,
+   31
+  ],
+  "scaling_spread": null,
+  "correlation_dimension": 8.08289985672307
+ },
  "dome_cells": [
   {
    "label": "dome L1 vision (0,0)",
    "points": 6000,
+   "distinct_points": 1,
+   "duplicate_point_fraction": 0.9998333333333334,
    "ambient": 192,
    "median_pair_distance": 1.0,
    "distinct_distances": 0,
    "heavy_atoms": [],
    "heaviest_atom_mass": 1.0,
+   "heavy_atom_mass": 0.0,
    "distance_is_discrete": false,
    "zero_distance_fraction": 1.0,
    "radii_over_median": [
@@ -299,6 +451,8 @@
   {
    "label": "dome L1 vision (0,1)",
    "points": 6000,
+   "distinct_points": 3,
+   "duplicate_point_fraction": 0.9995,
    "ambient": 192,
    "median_pair_distance": 0.18439714424327447,
    "distinct_distances": 2,
@@ -307,6 +461,7 @@
     1.980228
    ],
    "heaviest_atom_mass": 0.5300353356890459,
+   "heavy_atom_mass": 1.0,
    "distance_is_discrete": true,
    "zero_distance_fraction": 0.9992923814738969,
    "radii_over_median": [
@@ -447,6 +602,8 @@
   {
    "label": "dome L1 vision (0,2)",
    "points": 6000,
+   "distinct_points": 48,
+   "duplicate_point_fraction": 0.992,
    "ambient": 192,
    "median_pair_distance": 1.2023493598299246,
    "distinct_distances": 71,
@@ -477,6 +634,7 @@
     1.161501
    ],
    "heaviest_atom_mass": 0.10185731132075472,
+   "heavy_atom_mass": 0.9961674528301887,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9830371587240863,
    "radii_over_median": [
@@ -620,6 +778,8 @@
   {
    "label": "dome L1 vision (0,3)",
    "points": 6000,
+   "distinct_points": 97,
+   "duplicate_point_fraction": 0.9838333333333333,
    "ambient": 192,
    "median_pair_distance": 1.4325163305503181,
    "distinct_distances": 203,
@@ -650,6 +810,7 @@
     0.65434
    ],
    "heaviest_atom_mass": 0.03702890596414197,
+   "heavy_atom_mass": 0.9916575192096597,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9658317768226178,
    "radii_over_median": [
@@ -793,6 +954,8 @@
   {
    "label": "dome L1 vision (0,4)",
    "points": 6000,
+   "distinct_points": 93,
+   "duplicate_point_fraction": 0.9845,
    "ambient": 192,
    "median_pair_distance": 1.396111477908063,
    "distinct_distances": 192,
@@ -823,6 +986,7 @@
     0.658289
    ],
    "heaviest_atom_mass": 0.044590364205543256,
+   "heavy_atom_mass": 0.9919828968466061,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9672520147124644,
    "radii_over_median": [
@@ -966,6 +1130,8 @@
   {
    "label": "dome L1 vision (0,5)",
    "points": 6000,
+   "distinct_points": 44,
+   "duplicate_point_fraction": 0.9926666666666667,
    "ambient": 192,
    "median_pair_distance": 1.1154846642334204,
    "distinct_distances": 75,
@@ -996,6 +1162,7 @@
     1.16264
    ],
    "heaviest_atom_mass": 0.07706679121905652,
+   "heavy_atom_mass": 0.9947065234314183,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9839398099181613,
    "radii_over_median": [
@@ -1139,6 +1306,8 @@
   {
    "label": "dome L1 vision (0,6)",
    "points": 6000,
+   "distinct_points": 2,
+   "duplicate_point_fraction": 0.9996666666666667,
    "ambient": 192,
    "median_pair_distance": 0.18439714424327447,
    "distinct_distances": 1,
@@ -1146,6 +1315,7 @@
     1.0
    ],
    "heaviest_atom_mass": 1.0,
+   "heavy_atom_mass": 1.0,
    "distance_is_discrete": true,
    "zero_distance_fraction": 0.9996549422028189,
    "radii_over_median": [
@@ -1286,11 +1456,14 @@
   {
    "label": "dome L1 vision (0,7)",
    "points": 6000,
+   "distinct_points": 1,
+   "duplicate_point_fraction": 0.9998333333333334,
    "ambient": 192,
    "median_pair_distance": 1.0,
    "distinct_distances": 0,
    "heavy_atoms": [],
    "heaviest_atom_mass": 1.0,
+   "heavy_atom_mass": 0.0,
    "distance_is_discrete": false,
    "zero_distance_fraction": 1.0,
    "radii_over_median": [
@@ -1431,6 +1604,8 @@
   {
    "label": "dome L1 vision (1,0)",
    "points": 6000,
+   "distinct_points": 2,
+   "duplicate_point_fraction": 0.9996666666666667,
    "ambient": 192,
    "median_pair_distance": 0.18439714424327447,
    "distinct_distances": 1,
@@ -1438,6 +1613,7 @@
     1.0
    ],
    "heaviest_atom_mass": 1.0,
+   "heavy_atom_mass": 1.0,
    "distance_is_discrete": true,
    "zero_distance_fraction": 0.9982972147834762,
    "radii_over_median": [
@@ -1578,6 +1754,8 @@
   {
    "label": "dome L1 vision (1,1)",
    "points": 6000,
+   "distinct_points": 89,
+   "duplicate_point_fraction": 0.9851666666666666,
    "ambient": 192,
    "median_pair_distance": 1.2471883025642343,
    "distinct_distances": 176,
@@ -1608,6 +1786,7 @@
     0.804972
    ],
    "heaviest_atom_mass": 0.06738858808829655,
+   "heavy_atom_mass": 0.9920033319450229,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9699824720640707,
    "radii_over_median": [
@@ -1751,6 +1930,8 @@
   {
    "label": "dome L1 vision (1,2)",
    "points": 6000,
+   "distinct_points": 354,
+   "duplicate_point_fraction": 0.9410000000000001,
    "ambient": 192,
    "median_pair_distance": 2.2590243647100645,
    "distinct_distances": 1844,
@@ -1781,6 +1962,7 @@
     0.181256
    ],
    "heaviest_atom_mass": 0.013210011798415642,
+   "heavy_atom_mass": 0.9681442777684139,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.8813201211202877,
    "radii_over_median": [
@@ -1924,6 +2106,8 @@
   {
    "label": "dome L1 vision (1,3)",
    "points": 6000,
+   "distinct_points": 531,
+   "duplicate_point_fraction": 0.9115,
    "ambient": 192,
    "median_pair_distance": 1.9573970742852886,
    "distinct_distances": 3976,
@@ -1954,6 +2138,7 @@
     0.145648
    ],
    "heaviest_atom_mass": 0.009037333634107827,
+   "heavy_atom_mass": 0.9505977893074667,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.8226502939242323,
    "radii_over_median": [
@@ -2097,6 +2282,8 @@
   {
    "label": "dome L1 vision (1,4)",
    "points": 6000,
+   "distinct_points": 545,
+   "duplicate_point_fraction": 0.9091666666666667,
    "ambient": 192,
    "median_pair_distance": 2.0762585757083856,
    "distinct_distances": 4023,
@@ -2127,6 +2314,7 @@
     0.144599
    ],
    "heaviest_atom_mass": 0.009665020760857367,
+   "heavy_atom_mass": 0.9504404668387386,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.8217501431489774,
    "radii_over_median": [
@@ -2270,6 +2458,8 @@
   {
    "label": "dome L1 vision (1,5)",
    "points": 6000,
+   "distinct_points": 351,
+   "duplicate_point_fraction": 0.9415,
    "ambient": 192,
    "median_pair_distance": 2.172786141232608,
    "distinct_distances": 1822,
@@ -2300,6 +2490,7 @@
     0.18908
    ],
    "heaviest_atom_mass": 0.010624169986719787,
+   "heavy_atom_mass": 0.9683804464680958,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.8813826315907914,
    "radii_over_median": [
@@ -2443,6 +2634,8 @@
   {
    "label": "dome L1 vision (1,6)",
    "points": 6000,
+   "distinct_points": 93,
+   "duplicate_point_fraction": 0.9845,
    "ambient": 192,
    "median_pair_distance": 1.372156806706677,
    "distinct_distances": 188,
@@ -2473,6 +2666,7 @@
     0.720075
    ],
    "heaviest_atom_mass": 0.05500381970970206,
+   "heavy_atom_mass": 0.9922841864018335,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9672695176442054,
    "radii_over_median": [
@@ -2616,11 +2810,14 @@
   {
    "label": "dome L1 vision (1,7)",
    "points": 6000,
+   "distinct_points": 1,
+   "duplicate_point_fraction": 0.9998333333333334,
    "ambient": 192,
    "median_pair_distance": 1.0,
    "distinct_distances": 0,
    "heavy_atoms": [],
    "heaviest_atom_mass": 1.0,
+   "heavy_atom_mass": 0.0,
    "distance_is_discrete": false,
    "zero_distance_fraction": 1.0,
    "radii_over_median": [
@@ -2761,6 +2958,8 @@
   {
    "label": "dome L1 vision (2,0)",
    "points": 6000,
+   "distinct_points": 52,
+   "duplicate_point_fraction": 0.9913333333333333,
    "ambient": 192,
    "median_pair_distance": 1.0552590692294859,
    "distinct_distances": 88,
@@ -2791,6 +2990,7 @@
     1.114381
    ],
    "heaviest_atom_mass": 0.105460088691796,
+   "heavy_atom_mass": 0.9940410199556541,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9819569777937804,
    "radii_over_median": [
@@ -2931,6 +3131,8 @@
   {
    "label": "dome L1 vision (2,1)",
    "points": 6000,
+   "distinct_points": 385,
+   "duplicate_point_fraction": 0.9358333333333333,
    "ambient": 192,
    "median_pair_distance": 2.2203802439059563,
    "distinct_distances": 2150,
@@ -2961,6 +3163,7 @@
     0.166292
    ],
    "heaviest_atom_mass": 0.009644875677552516,
+   "heavy_atom_mass": 0.9652591578094558,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.8703757879444807,
    "radii_over_median": [
@@ -3104,6 +3307,8 @@
   {
    "label": "dome L1 vision (2,2)",
    "points": 6000,
+   "distinct_points": 2022,
+   "duplicate_point_fraction": 0.663,
    "ambient": 192,
    "median_pair_distance": 2.8864689830952113,
    "distinct_distances": 50711,
@@ -3134,6 +3339,7 @@
     0.453125
    ],
    "heaviest_atom_mass": 0.0034988964360873954,
+   "heavy_atom_mass": 0.040014885280681645,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.41543208487421646,
    "radii_over_median": [
@@ -3277,6 +3483,8 @@
   {
    "label": "dome L1 vision (2,3)",
    "points": 6000,
+   "distinct_points": 2917,
+   "duplicate_point_fraction": 0.5138333333333334,
    "ambient": 192,
    "median_pair_distance": 3.3523460082434977,
    "distinct_distances": 100278,
@@ -3289,7 +3497,8 @@
     0.102689
    ],
    "heaviest_atom_mass": 0.0017888969568948445,
-   "distance_is_discrete": true,
+   "heavy_atom_mass": 0.008304178493629943,
+   "distance_is_discrete": false,
    "zero_distance_fraction": 0.24242310587023327,
    "radii_over_median": [
     0.001,
@@ -3432,6 +3641,8 @@
   {
    "label": "dome L1 vision (2,4)",
    "points": 6000,
+   "distinct_points": 2981,
+   "duplicate_point_fraction": 0.5031666666666667,
    "ambient": 192,
    "median_pair_distance": 3.2299742357159777,
    "distinct_distances": 104974,
@@ -3449,7 +3660,8 @@
     0.15966
    ],
    "heaviest_atom_mass": 0.0024679202751633944,
-   "distance_is_discrete": true,
+   "heavy_atom_mass": 0.01541316612795616,
+   "distance_is_discrete": false,
    "zero_distance_fraction": 0.22796568425211222,
    "radii_over_median": [
     0.001,
@@ -3592,6 +3804,8 @@
   {
    "label": "dome L1 vision (2,5)",
    "points": 6000,
+   "distinct_points": 2028,
+   "duplicate_point_fraction": 0.6619999999999999,
    "ambient": 192,
    "median_pair_distance": 2.8352453010198286,
    "distinct_distances": 51337,
@@ -3622,6 +3836,7 @@
     0.534875
    ],
    "heaviest_atom_mass": 0.004116885597266727,
+   "heavy_atom_mass": 0.04207287311928358,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.410863819689798,
    "radii_over_median": [
@@ -3765,6 +3980,8 @@
   {
    "label": "dome L1 vision (2,6)",
    "points": 6000,
+   "distinct_points": 385,
+   "duplicate_point_fraction": 0.9358333333333333,
    "ambient": 192,
    "median_pair_distance": 2.370538769168785,
    "distinct_distances": 2100,
@@ -3795,6 +4012,7 @@
     0.18053
    ],
    "heaviest_atom_mass": 0.00971832349240151,
+   "heavy_atom_mass": 0.9662956151389024,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.8708408658450291,
    "radii_over_median": [
@@ -3938,6 +4156,8 @@
   {
    "label": "dome L1 vision (2,7)",
    "points": 6000,
+   "distinct_points": 48,
+   "duplicate_point_fraction": 0.992,
    "ambient": 192,
    "median_pair_distance": 1.1748354650153132,
    "distinct_distances": 78,
@@ -3968,6 +4188,7 @@
     1.093271
    ],
    "heaviest_atom_mass": 0.08636180769746547,
+   "heavy_atom_mass": 0.9954405256805686,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9813543768581238,
    "radii_over_median": [
@@ -4108,6 +4329,8 @@
   {
    "label": "dome L1 vision (3,0)",
    "points": 6000,
+   "distinct_points": 90,
+   "duplicate_point_fraction": 0.985,
    "ambient": 192,
    "median_pair_distance": 1.4554567939470138,
    "distinct_distances": 183,
@@ -4138,6 +4361,7 @@
     0.681308
    ],
    "heaviest_atom_mass": 0.06120120609567273,
+   "heavy_atom_mass": 0.9920951837666042,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9693173606579102,
    "radii_over_median": [
@@ -4281,6 +4505,8 @@
   {
    "label": "dome L1 vision (3,1)",
    "points": 6000,
+   "distinct_points": 562,
+   "duplicate_point_fraction": 0.9063333333333333,
    "ambient": 192,
    "median_pair_distance": 2.8298567448658773,
    "distinct_distances": 4287,
@@ -4311,6 +4537,7 @@
     0.132905
    ],
    "heaviest_atom_mass": 0.013083455976668512,
+   "heavy_atom_mass": 0.9486923295032608,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.8148114809230547,
    "radii_over_median": [
@@ -4454,6 +4681,8 @@
   {
    "label": "dome L1 vision (3,2)",
    "points": 6000,
+   "distinct_points": 3042,
+   "duplicate_point_fraction": 0.493,
    "ambient": 192,
    "median_pair_distance": 3.466132067731598,
    "distinct_distances": 107422,
@@ -4469,7 +4698,8 @@
     0.118403
    ],
    "heaviest_atom_mass": 0.00258254815711682,
-   "distance_is_discrete": true,
+   "heavy_atom_mass": 0.013047986449672512,
+   "distance_is_discrete": false,
    "zero_distance_fraction": 0.2235049370769604,
    "radii_over_median": [
     0.001,
@@ -4612,6 +4842,8 @@
   {
    "label": "dome L1 vision (3,3)",
    "points": 6000,
+   "distinct_points": 4252,
+   "duplicate_point_fraction": 0.29133333333333333,
    "ambient": 192,
    "median_pair_distance": 3.2604512109817896,
    "distinct_distances": 191346,
@@ -4619,7 +4851,8 @@
     0.096048
    ],
    "heaviest_atom_mass": 0.0011734550409898121,
-   "distance_is_discrete": true,
+   "heavy_atom_mass": 0.0011734550409898121,
+   "distance_is_discrete": false,
    "zero_distance_fraction": 0.07522510020428422,
    "radii_over_median": [
     0.001,
@@ -4762,15 +4995,18 @@
   {
    "label": "dome L1 vision (3,4)",
    "points": 6000,
+   "distinct_points": 4173,
+   "duplicate_point_fraction": 0.3045,
    "ambient": 192,
    "median_pair_distance": 3.207274986840841,
-   "distinct_distances": 188604,
+   "distinct_distances": 188599,
    "heavy_atoms": [
     0.097641,
     0.103988
    ],
    "heaviest_atom_mass": 0.001167516962935409,
-   "distance_is_discrete": true,
+   "heavy_atom_mass": 0.0022888762784989535,
+   "distance_is_discrete": false,
    "zero_distance_fraction": 0.07908824728141964,
    "radii_over_median": [
     0.001,
@@ -4849,7 +5085,7 @@
     0.27446966220747593,
     0.40056420936022785,
     0.6244559506710508,
-    0.87881716955876,
+    0.8788144544030323,
     0.9874885624064969,
     1.0,
     1.0,
@@ -4890,9 +5126,9 @@
     1.7074376137465426,
     1.7881307084086409,
     1.932684491712732,
-    1.8472525831913185,
+    1.8472453193748533,
     1.077464059018941,
-    0.30370915679195803,
+    0.3037164206084234,
     0.02960099363662693,
     0.0,
     0.0,
@@ -4908,11 +5144,13 @@
     3,
     4
    ],
-   "variation": 0.15357377464157562
+   "variation": 0.15357383280635314
   },
   {
    "label": "dome L1 vision (3,5)",
    "points": 6000,
+   "distinct_points": 2981,
+   "duplicate_point_fraction": 0.5031666666666667,
    "ambient": 192,
    "median_pair_distance": 3.3029782792601177,
    "distinct_distances": 105240,
@@ -4926,7 +5164,8 @@
     0.104589
    ],
    "heaviest_atom_mass": 0.00229671776971836,
-   "distance_is_discrete": true,
+   "heavy_atom_mass": 0.010990508197465824,
+   "distance_is_discrete": false,
    "zero_distance_fraction": 0.2292058919869078,
    "radii_over_median": [
     0.001,
@@ -5069,6 +5308,8 @@
   {
    "label": "dome L1 vision (3,6)",
    "points": 6000,
+   "distinct_points": 553,
+   "duplicate_point_fraction": 0.9078333333333334,
    "ambient": 192,
    "median_pair_distance": 2.7141278178470003,
    "distinct_distances": 4083,
@@ -5099,6 +5340,7 @@
     0.143501
    ],
    "heaviest_atom_mass": 0.009790733472936804,
+   "heavy_atom_mass": 0.9502974663356862,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.8196972992976324,
    "radii_over_median": [
@@ -5242,6 +5484,8 @@
   {
    "label": "dome L1 vision (3,7)",
    "points": 6000,
+   "distinct_points": 91,
+   "duplicate_point_fraction": 0.9848333333333333,
    "ambient": 192,
    "median_pair_distance": 1.2960294850002463,
    "distinct_distances": 188,
@@ -5272,6 +5516,7 @@
     0.774637
    ],
    "heaviest_atom_mass": 0.04917648895480446,
+   "heavy_atom_mass": 0.9916478026695809,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9679671344950279,
    "radii_over_median": [
@@ -5415,6 +5660,8 @@
   {
    "label": "dome L1 vision (4,0)",
    "points": 6000,
+   "distinct_points": 107,
+   "duplicate_point_fraction": 0.9821666666666666,
    "ambient": 192,
    "median_pair_distance": 1.60885668675729,
    "distinct_distances": 231,
@@ -5445,6 +5692,7 @@
     0.614348
    ],
    "heaviest_atom_mass": 0.03637459807073955,
+   "heavy_atom_mass": 0.9913585209003215,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9626737478527654,
    "radii_over_median": [
@@ -5588,6 +5836,8 @@
   {
    "label": "dome L1 vision (4,1)",
    "points": 6000,
+   "distinct_points": 569,
+   "duplicate_point_fraction": 0.9051666666666667,
    "ambient": 192,
    "median_pair_distance": 2.4162209746914756,
    "distinct_distances": 4266,
@@ -5618,6 +5868,7 @@
     0.133186
    ],
    "heaviest_atom_mass": 0.01151559682051967,
+   "heavy_atom_mass": 0.949609244539443,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.8128311492174939,
    "radii_over_median": [
@@ -5761,6 +6012,8 @@
   {
    "label": "dome L1 vision (4,2)",
    "points": 6000,
+   "distinct_points": 3014,
+   "duplicate_point_fraction": 0.4976666666666667,
    "ambient": 192,
    "median_pair_distance": 3.3177119541235656,
    "distinct_distances": 106698,
@@ -5775,7 +6028,8 @@
     0.120356
    ],
    "heaviest_atom_mass": 0.0020805579120875576,
-   "distance_is_discrete": true,
+   "heavy_atom_mass": 0.010867286210578267,
+   "distance_is_discrete": false,
    "zero_distance_fraction": 0.2248376603081016,
    "radii_over_median": [
     0.001,
@@ -5918,6 +6172,8 @@
   {
    "label": "dome L1 vision (4,3)",
    "points": 6000,
+   "distinct_points": 4183,
+   "duplicate_point_fraction": 0.3028333333333333,
    "ambient": 192,
    "median_pair_distance": 3.1893107705396715,
    "distinct_distances": 189036,
@@ -5926,7 +6182,8 @@
     0.104574
    ],
    "heaviest_atom_mass": 0.0013700711351785433,
-   "distance_is_discrete": true,
+   "heavy_atom_mass": 0.0026533258815932977,
+   "distance_is_discrete": false,
    "zero_distance_fraction": 0.0783606254047553,
    "radii_over_median": [
     0.001,
@@ -6069,6 +6326,8 @@
   {
    "label": "dome L1 vision (4,4)",
    "points": 6000,
+   "distinct_points": 4205,
+   "duplicate_point_fraction": 0.2991666666666667,
    "ambient": 192,
    "median_pair_distance": 3.222789858388908,
    "distinct_distances": 191345,
@@ -6076,7 +6335,8 @@
     0.103487
    ],
    "heaviest_atom_mass": 0.0011176903591764273,
-   "distance_is_discrete": true,
+   "heavy_atom_mass": 0.0011176903591764273,
+   "distance_is_discrete": false,
    "zero_distance_fraction": 0.07606524092785541,
    "radii_over_median": [
     0.001,
@@ -6219,6 +6479,8 @@
   {
    "label": "dome L1 vision (4,5)",
    "points": 6000,
+   "distinct_points": 2998,
+   "duplicate_point_fraction": 0.5003333333333333,
    "ambient": 192,
    "median_pair_distance": 3.230837096318077,
    "distinct_distances": 105936,
@@ -6235,7 +6497,8 @@
     0.194287
    ],
    "heaviest_atom_mass": 0.0020569743072265776,
-   "distance_is_discrete": true,
+   "heavy_atom_mass": 0.013619369194545783,
+   "distance_is_discrete": false,
    "zero_distance_fraction": 0.2268905041594467,
    "radii_over_median": [
     0.001,
@@ -6378,6 +6641,8 @@
   {
    "label": "dome L1 vision (4,6)",
    "points": 6000,
+   "distinct_points": 533,
+   "duplicate_point_fraction": 0.9111666666666667,
    "ambient": 192,
    "median_pair_distance": 2.445075239291783,
    "distinct_distances": 3858,
@@ -6408,6 +6673,7 @@
     0.133285
    ],
    "heaviest_atom_mass": 0.012181758670252885,
+   "heavy_atom_mass": 0.9519702856167015,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.8242980699267127,
    "radii_over_median": [
@@ -6551,6 +6817,8 @@
   {
    "label": "dome L1 vision (4,7)",
    "points": 6000,
+   "distinct_points": 96,
+   "duplicate_point_fraction": 0.984,
    "ambient": 192,
    "median_pair_distance": 1.4542781813790178,
    "distinct_distances": 196,
@@ -6581,6 +6849,7 @@
     0.63196
    ],
    "heaviest_atom_mass": 0.042759363223871416,
+   "heavy_atom_mass": 0.9919249403983696,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9674870540815587,
    "radii_over_median": [
@@ -6724,6 +6993,8 @@
   {
    "label": "dome L1 vision (5,0)",
    "points": 6000,
+   "distinct_points": 45,
+   "duplicate_point_fraction": 0.9925,
    "ambient": 192,
    "median_pair_distance": 0.9361384769261146,
    "distinct_distances": 81,
@@ -6754,6 +7025,7 @@
     1.42832
    ],
    "heaviest_atom_mass": 0.07540888695903894,
+   "heavy_atom_mass": 0.9943551888840643,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9827246063715672,
    "radii_over_median": [
@@ -6894,6 +7166,8 @@
   {
    "label": "dome L1 vision (5,1)",
    "points": 6000,
+   "distinct_points": 378,
+   "duplicate_point_fraction": 0.937,
    "ambient": 192,
    "median_pair_distance": 1.6574926288483636,
    "distinct_distances": 2046,
@@ -6924,6 +7198,7 @@
     0.179268
    ],
    "heaviest_atom_mass": 0.014947564577840335,
+   "heavy_atom_mass": 0.9661598239597169,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.8738713734550537,
    "radii_over_median": [
@@ -7067,6 +7342,8 @@
   {
    "label": "dome L1 vision (5,2)",
    "points": 6000,
+   "distinct_points": 2052,
+   "duplicate_point_fraction": 0.6579999999999999,
    "ambient": 192,
    "median_pair_distance": 2.753594693673022,
    "distinct_distances": 51919,
@@ -7096,6 +7373,7 @@
     0.779931
    ],
    "heaviest_atom_mass": 0.003645308517574536,
+   "heavy_atom_mass": 0.03323115743837693,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.40941607719292983,
    "radii_over_median": [
@@ -7239,9 +7517,11 @@
   {
    "label": "dome L1 vision (5,3)",
    "points": 6000,
+   "distinct_points": 2968,
+   "duplicate_point_fraction": 0.5053333333333334,
    "ambient": 192,
    "median_pair_distance": 3.253127321554171,
-   "distinct_distances": 103543,
+   "distinct_distances": 103540,
    "heavy_atoms": [
     0.051399,
     0.053096,
@@ -7255,7 +7535,8 @@
     0.136139
    ],
    "heaviest_atom_mass": 0.0016131397565625459,
-   "distance_is_discrete": true,
+   "heavy_atom_mass": 0.013371136204396214,
+   "distance_is_discrete": false,
    "zero_distance_fraction": 0.23273398294214281,
    "radii_over_median": [
     0.001,
@@ -7393,11 +7674,13 @@
     5,
     3
    ],
-   "variation": 0.15219586211509203
+   "variation": 0.15219585843233602
   },
   {
    "label": "dome L1 vision (5,4)",
    "points": 6000,
+   "distinct_points": 2993,
+   "duplicate_point_fraction": 0.5011666666666666,
    "ambient": 192,
    "median_pair_distance": 3.303145891373876,
    "distinct_distances": 105187,
@@ -7412,7 +7695,8 @@
     0.13891
    ],
    "heaviest_atom_mass": 0.001888163614892485,
-   "distance_is_discrete": true,
+   "heavy_atom_mass": 0.010719059422001324,
+   "distance_is_discrete": false,
    "zero_distance_fraction": 0.22928090455151237,
    "radii_over_median": [
     0.001,
@@ -7555,6 +7839,8 @@
   {
    "label": "dome L1 vision (5,5)",
    "points": 6000,
+   "distinct_points": 2013,
+   "duplicate_point_fraction": 0.6645,
    "ambient": 192,
    "median_pair_distance": 2.5055892921165084,
    "distinct_distances": 50906,
@@ -7584,6 +7870,7 @@
     0.851585
    ],
    "heaviest_atom_mass": 0.00366591468416735,
+   "heavy_atom_mass": 0.03627033770850424,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.4147819759809768,
    "radii_over_median": [
@@ -7727,6 +8014,8 @@
   {
    "label": "dome L1 vision (5,6)",
    "points": 6000,
+   "distinct_points": 352,
+   "duplicate_point_fraction": 0.9413333333333334,
    "ambient": 192,
    "median_pair_distance": 1.6876009375026728,
    "distinct_distances": 1795,
@@ -7757,6 +8046,7 @@
     0.219235
    ],
    "heaviest_atom_mass": 0.013342031608409268,
+   "heavy_atom_mass": 0.9690229171489299,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.8811825980851793,
    "radii_over_median": [
@@ -7900,6 +8190,8 @@
   {
    "label": "dome L1 vision (5,7)",
    "points": 6000,
+   "distinct_points": 39,
+   "duplicate_point_fraction": 0.9935,
    "ambient": 192,
    "median_pair_distance": 1.1148296101164807,
    "distinct_distances": 58,
@@ -7930,6 +8222,7 @@
     1.241712
    ],
    "heaviest_atom_mass": 0.09541420118343195,
+   "heavy_atom_mass": 0.9957470414201184,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.986477735020616,
    "radii_over_median": [
@@ -8073,6 +8366,8 @@
   {
    "label": "dome L1 vision (6,0)",
    "points": 6000,
+   "distinct_points": 2,
+   "duplicate_point_fraction": 0.9996666666666667,
    "ambient": 192,
    "median_pair_distance": 0.18439714424327447,
    "distinct_distances": 1,
@@ -8080,6 +8375,7 @@
     1.0
    ],
    "heaviest_atom_mass": 1.0,
+   "heavy_atom_mass": 1.0,
    "distance_is_discrete": true,
    "zero_distance_fraction": 0.99967244513456,
    "radii_over_median": [
@@ -8220,6 +8516,8 @@
   {
    "label": "dome L1 vision (6,1)",
    "points": 6000,
+   "distinct_points": 95,
+   "duplicate_point_fraction": 0.9841666666666666,
    "ambient": 192,
    "median_pair_distance": 1.3956983399750642,
    "distinct_distances": 195,
@@ -8250,6 +8548,7 @@
     0.651178
    ],
    "heaviest_atom_mass": 0.047993943981831946,
+   "heavy_atom_mass": 0.991672975018925,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9669694673857872,
    "radii_over_median": [
@@ -8393,6 +8692,8 @@
   {
    "label": "dome L1 vision (6,2)",
    "points": 6000,
+   "distinct_points": 337,
+   "duplicate_point_fraction": 0.9438333333333333,
    "ambient": 192,
    "median_pair_distance": 2.2437096486204653,
    "distinct_distances": 1714,
@@ -8423,6 +8724,7 @@
     0.190495
    ],
    "heaviest_atom_mass": 0.010448353392408412,
+   "heavy_atom_mass": 0.9691178415553499,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.8865659998049673,
    "radii_over_median": [
@@ -8566,6 +8868,8 @@
   {
    "label": "dome L1 vision (6,3)",
    "points": 6000,
+   "distinct_points": 501,
+   "duplicate_point_fraction": 0.9165,
    "ambient": 192,
    "median_pair_distance": 2.6984096872873073,
    "distinct_distances": 3495,
@@ -8596,6 +8900,7 @@
     0.144337
    ],
    "heaviest_atom_mass": 0.012906540926127433,
+   "heavy_atom_mass": 0.9540110022971829,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.8345522875081576,
    "radii_over_median": [
@@ -8739,6 +9044,8 @@
   {
    "label": "dome L1 vision (6,4)",
    "points": 6000,
+   "distinct_points": 545,
+   "duplicate_point_fraction": 0.9091666666666667,
    "ambient": 192,
    "median_pair_distance": 2.6212364316489296,
    "distinct_distances": 4169,
@@ -8769,6 +9076,7 @@
     0.139103
    ],
    "heaviest_atom_mass": 0.012141597276344394,
+   "heavy_atom_mass": 0.9495740869874345,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.8171268687505158,
    "radii_over_median": [
@@ -8912,6 +9220,8 @@
   {
    "label": "dome L1 vision (6,5)",
    "points": 6000,
+   "distinct_points": 351,
+   "duplicate_point_fraction": 0.9415,
    "ambient": 192,
    "median_pair_distance": 2.1189248142206174,
    "distinct_distances": 1868,
@@ -8942,6 +9252,7 @@
     0.193559
    ],
    "heaviest_atom_mass": 0.018710108047223728,
+   "heavy_atom_mass": 0.9677109841057945,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.8801249209242548,
    "radii_over_median": [
@@ -9085,6 +9396,8 @@
   {
    "label": "dome L1 vision (6,6)",
    "points": 6000,
+   "distinct_points": 94,
+   "duplicate_point_fraction": 0.9843333333333333,
    "ambient": 192,
    "median_pair_distance": 1.620134747885863,
    "distinct_distances": 192,
@@ -9115,6 +9428,7 @@
     0.730765
    ],
    "heaviest_atom_mass": 0.043801391524351675,
+   "heavy_atom_mass": 0.9920145477545858,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9683747027627128,
    "radii_over_median": [
@@ -9258,6 +9572,8 @@
   {
    "label": "dome L1 vision (6,7)",
    "points": 6000,
+   "distinct_points": 2,
+   "duplicate_point_fraction": 0.9996666666666667,
    "ambient": 192,
    "median_pair_distance": 0.18439714424327447,
    "distinct_distances": 1,
@@ -9265,6 +9581,7 @@
     1.0
    ],
    "heaviest_atom_mass": 1.0,
+   "heavy_atom_mass": 1.0,
    "distance_is_discrete": true,
    "zero_distance_fraction": 0.9996774459722003,
    "radii_over_median": [
@@ -9405,11 +9722,14 @@
   {
    "label": "dome L1 vision (7,0)",
    "points": 6000,
+   "distinct_points": 1,
+   "duplicate_point_fraction": 0.9998333333333334,
    "ambient": 192,
    "median_pair_distance": 1.0,
    "distinct_distances": 0,
    "heavy_atoms": [],
    "heaviest_atom_mass": 1.0,
+   "heavy_atom_mass": 0.0,
    "distance_is_discrete": false,
    "zero_distance_fraction": 1.0,
    "radii_over_median": [
@@ -9550,11 +9870,14 @@
   {
    "label": "dome L1 vision (7,1)",
    "points": 6000,
+   "distinct_points": 1,
+   "duplicate_point_fraction": 0.9998333333333334,
    "ambient": 192,
    "median_pair_distance": 1.0,
    "distinct_distances": 0,
    "heavy_atoms": [],
    "heaviest_atom_mass": 1.0,
+   "heavy_atom_mass": 0.0,
    "distance_is_discrete": false,
    "zero_distance_fraction": 1.0,
    "radii_over_median": [
@@ -9695,6 +10018,8 @@
   {
    "label": "dome L1 vision (7,2)",
    "points": 6000,
+   "distinct_points": 39,
+   "duplicate_point_fraction": 0.9935,
    "ambient": 192,
    "median_pair_distance": 1.1317717717497149,
    "distinct_distances": 51,
@@ -9725,6 +10050,7 @@
     1.305048
    ],
    "heaviest_atom_mass": 0.11877463274811896,
+   "heavy_atom_mass": 0.997133643855249,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9860426621459094,
    "radii_over_median": [
@@ -9865,6 +10191,8 @@
   {
    "label": "dome L1 vision (7,3)",
    "points": 6000,
+   "distinct_points": 95,
+   "duplicate_point_fraction": 0.9841666666666666,
    "ambient": 192,
    "median_pair_distance": 1.5227002058694996,
    "distinct_distances": 208,
@@ -9895,6 +10223,7 @@
     0.648884
    ],
    "heaviest_atom_mass": 0.047129909365558914,
+   "heavy_atom_mass": 0.9910876132930514,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9668944548211825,
    "radii_over_median": [
@@ -10038,6 +10367,8 @@
   {
    "label": "dome L1 vision (7,4)",
    "points": 6000,
+   "distinct_points": 99,
+   "duplicate_point_fraction": 0.9835,
    "ambient": 192,
    "median_pair_distance": 1.4554567939470138,
    "distinct_distances": 229,
@@ -10068,6 +10399,7 @@
     0.679558
    ],
    "heaviest_atom_mass": 0.028169014084507043,
+   "heavy_atom_mass": 0.9904451836648029,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9646715824900671,
    "radii_over_median": [
@@ -10211,6 +10543,8 @@
   {
    "label": "dome L1 vision (7,5)",
    "points": 6000,
+   "distinct_points": 48,
+   "duplicate_point_fraction": 0.992,
    "ambient": 192,
    "median_pair_distance": 1.1006761055248526,
    "distinct_distances": 74,
@@ -10241,6 +10575,7 @@
     1.068416
    ],
    "heaviest_atom_mass": 0.08085931672385499,
+   "heavy_atom_mass": 0.9956735789944801,
    "distance_is_discrete": false,
    "zero_distance_fraction": 0.9832396926485186,
    "radii_over_median": [
@@ -10384,6 +10719,8 @@
   {
    "label": "dome L1 vision (7,6)",
    "points": 6000,
+   "distinct_points": 3,
+   "duplicate_point_fraction": 0.9995,
    "ambient": 192,
    "median_pair_distance": 0.36514837167011077,
    "distinct_distances": 2,
@@ -10392,6 +10729,7 @@
     1.0
    ],
    "heaviest_atom_mass": 0.5134099616858238,
+   "heavy_atom_mass": 1.0,
    "distance_is_discrete": true,
    "zero_distance_fraction": 0.9993473906879402,
    "radii_over_median": [
@@ -10532,11 +10870,14 @@
   {
    "label": "dome L1 vision (7,7)",
    "points": 6000,
+   "distinct_points": 1,
+   "duplicate_point_fraction": 0.9998333333333334,
    "ambient": 192,
    "median_pair_distance": 1.0,
    "distinct_distances": 0,
    "heavy_atoms": [],
    "heaviest_atom_mass": 1.0,
+   "heavy_atom_mass": 0.0,
    "distance_is_discrete": false,
    "zero_distance_fraction": 1.0,
    "radii_over_median": [
@@ -10684,6 +11025,6 @@
    9.240928270001326
   ],
   "max_distinct_distances": 191346,
-  "any_discrete": true
+  "any_discrete": false
  }
 }

@@ -143,11 +143,24 @@ def dimension_report(points, label: str, seed: int = 0) -> dict:
     # spacing a one-hot window can produce, and reported beside the slope.
     scaled = nonzero / median if median else nonzero
     atoms, counts = np.unique(np.round(scaled, 6), return_counts=True)
-    heavy = atoms[counts >= max(4, 0.001 * len(scaled))]
+    threshold = max(4, 0.001 * len(scaled))
+    heavy = atoms[counts >= threshold]
+    heavy_mass = (
+        float(counts[counts >= threshold].sum() / len(scaled)) if len(scaled) else 0.0
+    )
+
+    # **Cardinality is the claim the distances only illustrate.** Whether a
+    # piece is a manifold or a finite set is settled by counting its distinct
+    # points, and that survives any projection -- a linear map cannot turn a
+    # finite set into an infinite one. The distance atoms are the *shape* of
+    # that fact in the coordinates the world happens to write.
+    distinct_points = int(len(np.unique(points, axis=0)))
 
     return {
         "label": label,
         "points": int(len(points)),
+        "distinct_points": distinct_points,
+        "duplicate_point_fraction": 1.0 - distinct_points / max(1, len(points)),
         "ambient": int(points.shape[1]),
         "median_pair_distance": median,
         "distinct_distances": int(len(atoms)),
@@ -155,10 +168,17 @@ def dimension_report(points, label: str, seed: int = 0) -> dict:
         "heaviest_atom_mass": (
             float(counts.max() / len(scaled)) if len(scaled) else 1.0
         ),
-        # A cell whose aperture never varies is constant, not discrete: it has
-        # no distinct pairs at all, and calling that a discrete piece would
-        # count the arena floor as a finding.
-        "distance_is_discrete": bool(len(scaled) and len(heavy) <= 16),
+        "heavy_atom_mass": heavy_mass,
+        # **Discreteness means a few atoms carrying the mass, not few atoms.**
+        # Two ways to get this wrong, and the rig has hit both: a cell whose
+        # aperture never varies has no distinct pairs at all and is *constant*
+        # rather than discrete, and a set whose distances a projection has
+        # re-spread has no heavy atoms at all -- which the bare count `<= 16`
+        # reads as discrete precisely because the list is empty. So the test is
+        # that a handful of atoms carry most of the mass.
+        "distance_is_discrete": bool(
+            len(scaled) and 0 < len(heavy) <= 16 and heavy_mass > 0.5
+        ),
         "zero_distance_fraction": zero_fraction,
         "radii_over_median": (radii / median).tolist(),
         "correlation": curve.tolist(),
@@ -229,6 +249,25 @@ def language_piece(samples: int, seed: int, text: str):
     return out
 
 
+def through_lanes(piece, m: int, fan: int, seed: int):
+    """The piece as it actually **arrives**: one `m`-wide lane per boundary cell.
+
+    The obvious objection to reading the raw stalk is that an L1 cell never sees
+    it -- what arrives is the image under `fan` restriction maps of `m` rows
+    each, so `fan * m` numbers rather than the raw window. The objection does not
+    change the finding, and this measures that rather than asserting it: a linear
+    map sends a finite set to a finite set, so discreteness cannot be created or
+    destroyed by the lanes. Only the *distances* can be re-spread.
+    """
+    rng = np.random.default_rng(seed)
+    slot = piece.shape[1] // fan
+    out = []
+    for f in range(fan):
+        lane = rng.standard_normal((slot, m)) / np.sqrt(slot)
+        out.append(piece[:, f * slot:(f + 1) * slot] @ lane)
+    return np.hstack(out)
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--samples", type=int, default=6000)
@@ -252,6 +291,20 @@ def main() -> None:
         f"  language  d_corr {report['language']['correlation_dimension']:.3f}"
         f"  ambient {report['language']['ambient']}"
         f"  identical-pair fraction {report['language']['zero_distance_fraction']:.4f}",
+        flush=True,
+    )
+
+    # The same piece as it arrives through the wedge's lanes: `m = 8` on a
+    # boundary-incident edge, four of them.
+    lanes = through_lanes(lang, m=8, fan=LANG_FAN, seed=args.seed)
+    report["language_through_lanes"] = dimension_report(
+        lanes, "language L1, through 4 x m=8 lanes", args.seed
+    )
+    ltl = report["language_through_lanes"]
+    print(
+        f"  language via lanes  distinct distances {ltl['distinct_distances']}"
+        f"  discrete {ltl['distance_is_discrete']}"
+        f"  d_corr {ltl['correlation_dimension']:.3f}",
         flush=True,
     )
 

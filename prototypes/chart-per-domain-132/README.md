@@ -65,13 +65,34 @@ masses; no other stream can change the four atoms, and none of
 [#1](https://github.com/NGL321/patchworks/issues/1)'s corpus-pretraining exclusion is
 touched by using one.
 
+**The lanes do not rescue it, and the rig checks rather than asserts that.** The
+obvious objection is that an L1 cell never sees the raw stalk — what arrives is the
+image under four `m = 8` restriction maps, 32 numbers. Measured through exactly that:
+
+| | raw one-hot | through 4 × `m = 8` lanes |
+|---|---|---|
+| ambient | 388 | 32 |
+| **distinct points** | **3,959** | **3,959** |
+| distinct pair distances | 4 | 260,248 |
+| mass on the heavy atoms | 1.000 | 0.000 |
+| certified scaling region | none | none |
+
+The projection re-spreads the *distances* and changes nothing about the *set*: the
+distinct-point count is identical, because a linear map cannot turn a finite set into
+an infinite one. **Cardinality is the claim; the atoms are only its shape in the
+coordinates the world happens to write.** Neither reading yields a certified scaling
+region, so no box-counting dimension can be quoted for language at all — and that is
+the answer rather than a failure of the rig.
+
 **The dome's piece is continuous and low-dimensional.** Over the 52 of 64 L1 vision
 cells whose aperture varies at all, and the 25 with a certifiable scaling region:
 
 | | value |
 |---|---|
 | distinct pair distances | 51 to 191,346 (median 2,073) |
-| `d_corr`, quartiles | **1.26 / 1.43 / 1.53** |
+| cells reading discrete | **0 of 52** |
+| cells with a certified scaling region | 25 |
+| `d_corr`, quartiles over those 25 | **1.26 / 1.43 / 1.53** |
 | coincident-pair fraction, median | 0.872 |
 
 ADR-0004's genericity bar is `coordinates > 2 · d_box ≈ 2.9`. **`k = 12` clears it by
@@ -120,6 +141,12 @@ PYTHONPATH=src python prototypes/chart-per-domain-132/run.py --ticks 100000 --se
   `build_graph(DEFAULT_SPEC)`; the wedge's side is arithmetic from `11`, since the
   wedge has no builder. Both apply `dim H⁰ ≥ max(0, n − Σ_e m_e)` and the dome side
   reproduces #385's figure, but they are not the same kind of artifact.
+- **The dome's sample is thin per cell, and the thinness is physical.** A given 8×8
+  block shows arena floor in most configurations, so a cell sees a median of 381
+  distinct appearances in a 6,000-configuration sweep. The direction of the
+  comparison does not turn on it — 1.43 against a bar of 12 has four-fold headroom —
+  but a `d_corr` quoted to two decimals would be over-claiming, which is why the
+  quartiles are given and the certified-fit count with them.
 - **`k_piece` is not the whole of `k`.** Under [#145](https://github.com/NGL321/patchworks/issues/145)
   the chart carries the piece's coordinates *and* the memory of the history that wrote
   them. This rig reads the first. The second is `run.py`'s, and per
