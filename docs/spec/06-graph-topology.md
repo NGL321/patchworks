@@ -528,15 +528,22 @@ the finding — it is a reason not to let it borrow the authority of the cited m
   section weights its others: both Arroyo readings in the record are **from the abstract only**, with
   Theorem 5.1 quoted secondhand. **The remedy is taken; it is not thereby sufficient.**
 
-  **And per-cell control is not composed control.** Sensitivity from rim to apex reads a **chain** of
-  per-cell operators through learned restriction maps, seven hops — and a band on each `σ_max(K)`
-  bounds the links, not the chain. ADR-0015 names that quantity exactly, as the spectral radius of *"a
-  composition of per-cell operators through learned restriction maps"*, and **records it as an open
-  risk it does not argue**, because the argument wanted the per-hop budget the effective-resistance
-  work would produce. That work has since reported
-  ([#237](https://github.com/NGL321/patchworks/issues/237)). Whether a composed bound is derivable
-  now, and whether per-cell control buys any of it, is open on
-  [#423](https://github.com/NGL321/patchworks/issues/423).
+  **And per-cell control is not composed control — confirmed, and no longer open.** Sensitivity from
+  rim to apex reads a **chain** of per-cell operators through learned restriction maps, seven hops,
+  and a band on each `σ_max(K)` bounds the links, not the chain. ADR-0015 named that quantity exactly
+  and deferred the argument, wanting the per-hop budget the effective-resistance work would produce.
+  That work reported ([#237](https://github.com/NGL321/patchworks/issues/237)),
+  [#423](https://github.com/NGL321/patchworks/issues/423) made the argument, and
+  [ADR-0015](../adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md) now carries it. The
+  composed **upper** bound is derivable from gauges already declared — `σ_max(composed) ≤ ρ^{2h} =
+  4⁷ = 16,384` over seven hops, no constant invented — and **inert**, some twenty-one orders above
+  #237's measured `σ₁ ≈ 4.5e-17`. **`ρ(K)` buys none of it**: submultiplicativity consumes `σ_max`,
+  which ADR-0015 spent at exactly 1, so the free half of the split above never enters the product at
+  all. **That sharpens this paragraph rather than undercutting it** — the claim on Arroyo's
+  model-dynamics term is on the **per-cell** operator and stays exactly that size, but the chain runs
+  21 orders **under**, not over, so its narrowness is not a present danger. What no spectral bound
+  supplies is the **lower** side, and under [#144](https://github.com/NGL321/patchworks/issues/144)
+  it is not owed one: persistence is sustained by the driven field, not stored in an operator.
 - **Scale.** At 150 cells this is nearer a fly's brain than a mammal's. Among 150 columnar units of
   neocortex one would not expect significant thalamic communication either.
 
