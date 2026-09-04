@@ -564,6 +564,78 @@ def chain_section(dome: Dome, chains: dict, before: dict, after: dict) -> None:
         )
 
 
+# -- the control: what composition does to flat factors on its own ----------
+
+
+def flat_maps(dome: Dome, generator: torch.Generator) -> RestrictionMaps:
+    """Restriction maps that are **exactly** flat, drawn independently.
+
+    The floor's own projection applied to a fresh draw and nothing else: no
+    training, no band, no incoherence cap. So every map is a scaled co-isometry
+    on its active block and every pair of adjacent carried subspaces is at a
+    chance angle.
+    """
+    maps = RestrictionMaps(dome, generator=generator)
+    with torch.no_grad():
+        maps.maps.mul_(maps.support)
+        maps._flatten()
+    return maps
+
+
+def control_section(dome: Dome, chains: dict) -> None:
+    """Does the composed chain collapse to rank 1 *because* the maps are misaligned?
+
+    The measured composed chain comes back at effective rank ~1 **after** the
+    floor, and that single number is consistent with two readings that call for
+    opposite things, so it may not be left ambiguous:
+
+    - **Composition concentrates whatever it is given.** A product of several
+      operators is dominated by its top Lyapunov direction however flat the
+      factors are, in which case no per-map constraint could ever deliver
+      end-to-end directional capacity and ADR-0032's counterweight was never
+      available by this route at all.
+    - **The factors are flat and their carried subspaces are not aligned.** In
+      which case the composed rank is a statement about the *missing half* — the
+      alignment term ADR-0032 hands to [#315](https://github.com/NGL321/patchworks/issues/315)
+      and explicitly declines to claim — and the floor did its own half.
+
+    The control separates them, and it needs no training: exactly-flat maps
+    drawn independently, composed along the same routes. Their carried subspaces
+    sit at a chance angle, so this is the **null** — what a perfectly floored
+    surface delivers end to end with alignment left to luck. A measured chain at
+    the null says the floor delivered everything a per-map constraint can; a
+    measured chain below the null says alignment is worse than chance; a null
+    that is itself rank 1 says composition is the whole story and the first
+    reading is the right one.
+
+    **The ceiling is the narrowest lane on the route**, printed beside it,
+    because a composed operator cannot carry more directions than the thinnest
+    thing it passes through.
+    """
+    print("\n-- control: exactly-flat maps, composed along the same routes --")
+    print("   (no training; the null for what a floored surface can deliver end to end)")
+    from patchworks.tick import DEFAULT_GAMMA as gamma
+
+    gains = reconciliation_gain(dome, gamma=gamma, rho=GAUGE_RHO)
+    ranks, shares, tops = [], [], []
+    for seed in range(8):
+        maps = flat_maps(dome, torch.Generator().manual_seed(900 + seed))
+        for path in chains.values():
+            composed = chain_operator(dome, maps, gains, path)
+            if composed is None:
+                continue
+            values = spectrum(composed)
+            ranks.append(effective_rank(values))
+            shares.append(off_channel_share(values))
+            tops.append(carried(values))
+    print(f"\n    {'flat and independently drawn':<34}{'5th':>11}{'median':>11}{'95th':>11}")
+    print(f"    {'effective rank':<34}{quantiles(ranks)}")
+    print(f"    {'off-channel share':<34}{quantiles(shares)}")
+    print(f"    {'directions >= 0.1 sigma_1':<34}{quantiles(tops)}")
+    ceiling = [min(dome.edges[e].m for e in path) for path in chains.values()]
+    print(f"\n    the ceiling is the narrowest lane on the route: {sorted(set(ceiling))}")
+
+
 # -- the run ----------------------------------------------------------------
 
 
@@ -615,16 +687,21 @@ def price(name: str, split: str, seed: int, learn: int) -> None:
     isotropic_section(dome, hop_before, hop_after)
     shape_section(dome, hop_before, hop_after)
     chain_section(dome, chains, chain_before, chain_after)
+    control_section(dome, chains)
 
 
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("command", choices=("price",), nargs="?", default="price")
+    parser.add_argument("command", choices=("price", "control"), nargs="?", default="price")
     parser.add_argument("--dome", default="real")
     parser.add_argument("--split", default="train")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--learn", type=int, default=30_000)
     arguments = parser.parse_args(argv)
+    if arguments.command == "control":
+        dome = build_graph(ufp.dome_named(arguments.dome)[0])
+        control_section(dome, chain_paths(dome))
+        return
     price(arguments.dome, arguments.split, arguments.seed, arguments.learn)
 
 

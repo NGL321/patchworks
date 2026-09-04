@@ -213,6 +213,32 @@ class TestTheHopsAndTheChains:
             assert composed.shape == (dome.edges[path[-1]].m, dome.edges[path[0]].m)
 
 
+class TestTheControl:
+    """The null the composed chain is read against: flat maps, chance alignment."""
+
+    def test_the_control_maps_are_exactly_flat_where_the_floor_reaches(self, dome):
+        maps = fp.flat_maps(dome, torch.Generator().manual_seed(7))
+        reached = maps.floored
+        # Flat to the precision the maps are held at, not to the precision of
+        # the projection: nothing runs after the projection here, so unlike
+        # `project` there is no cap to spoil it, and what is left is float32's
+        # own resolution. A null that were only *nearly* flat for some other
+        # reason would be measuring two things. ADR-0032's quoted 1.3e-15 is a
+        # float64 figure and is not the bar for a float32 buffer.
+        assert float(maps.flatness()[reached].min()) == pytest.approx(1.0, abs=1e-5)
+
+    def test_the_control_respects_the_mask(self, dome):
+        maps = fp.flat_maps(dome, torch.Generator().manual_seed(8))
+        assert torch.equal(maps.maps, maps.maps * maps.support)
+
+    def test_two_control_draws_differ(self, dome):
+        first = fp.flat_maps(dome, torch.Generator().manual_seed(9))
+        second = fp.flat_maps(dome, torch.Generator().manual_seed(10))
+        # Independence is the whole content of "chance angle": a null whose
+        # draws coincided would report one alignment, not the typical one.
+        assert not torch.equal(first.maps, second.maps)
+
+
 class TestTheBookedPrice:
     """ADR-0032's arithmetic, so the measured column has something to sit beside."""
 
