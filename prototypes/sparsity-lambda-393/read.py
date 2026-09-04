@@ -10,6 +10,8 @@ standing rule forbids -- the within-run reductions are already per-map and
 per-direction, and they are the ones that rule is about.
 """
 
+import argparse
+import collections
 import json
 import pathlib
 import statistics
@@ -18,13 +20,28 @@ import sys
 HERE = pathlib.Path(__file__).resolve().parent
 
 
-def load(directory: pathlib.Path) -> dict[float, list[dict]]:
+def load(directory: pathlib.Path, ticks: int | None = None) -> dict[float, list[dict]]:
+    """Records grouped by `λ`, for **one** run length.
+
+    Grouping by `λ` alone would put a 3,000-tick and a 30,000-tick reading in
+    the same median, and they are not the same measurement: at `λ = 0` the two
+    lengths read 3.191 and 2.913. The length is part of the row's identity, so
+    it selects rather than pools -- `ticks=None` takes the most common length
+    present and says which.
+    """
+    records = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(directory.glob("393-lam*.json"))
+    ]
+    if ticks is None:
+        lengths = collections.Counter(r["ticks"] for r in records)
+        ticks = lengths.most_common(1)[0][0] if lengths else 0
     by_lam: dict[float, list[dict]] = {}
-    for path in sorted(directory.glob("393-lam*.json")):
-        record = json.loads(path.read_text(encoding="utf-8"))
-        by_lam.setdefault(float(record["lam"]), []).append(record)
-    for records in by_lam.values():
-        records.sort(key=lambda r: r["seed"])
+    for record in records:
+        if record["ticks"] == ticks:
+            by_lam.setdefault(float(record["lam"]), []).append(record)
+    for group in by_lam.values():
+        group.sort(key=lambda r: r["seed"])
     return by_lam
 
 
@@ -39,8 +56,17 @@ def median(records: list[dict], *path: str) -> float:
 
 
 def main(argv: list[str] | None = None) -> int:
-    directory = pathlib.Path(argv[0]) if argv else HERE
-    by_lam = load(directory)
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("directory", nargs="?", default=str(HERE))
+    parser.add_argument(
+        "--ticks",
+        type=int,
+        default=None,
+        help="run length to read; lengths are never pooled into one row",
+    )
+    args = parser.parse_args(argv)
+    directory = pathlib.Path(args.directory)
+    by_lam = load(directory, args.ticks)
     if not by_lam:
         print(f"no records in {directory}; run sweep.py first")
         return 1
