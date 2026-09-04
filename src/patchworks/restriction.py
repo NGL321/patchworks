@@ -36,6 +36,8 @@ Frobenius norm, zero to a restricted belief, and zero back to a node stalk.
 
 from __future__ import annotations
 
+import math
+
 import torch
 
 from .graph import Dome
@@ -190,6 +192,7 @@ class RestrictionMaps(torch.nn.Module):
         # band. The test is who *holds* the map, not what the edge connects, so
         # the predicting end of a sensory edge is an ordinary interior map.
         pinned = torch.zeros(self.pairs, dtype=torch.bool, device=device)
+        blocks: list[tuple[int, int]] = [(0, 0)] * self.pairs
         for edge in dome.edges:
             for side, cell_id in enumerate((edge.u, edge.v)):
                 i = pair_index(edge.id, side)
@@ -197,6 +200,12 @@ class RestrictionMaps(torch.nn.Module):
                 support[i, : edge.m, : permitted.numel()] = permitted
                 owner[i] = cell_id
                 pinned[i] = dome.cells[cell_id].is_boundary
+                # The active block, which is what the spectral floor is stated
+                # on: `m_e` rows against the `k_v` columns the mask leaves open.
+                # The mask is a prefix and it is applied to every row alike, so
+                # the block is the rectangle `[:m_e, :k_v]` and nothing outside
+                # it is ever read or written.
+                blocks[i] = (edge.m, int(permitted.sum()))
 
         self.register_buffer("support", support)
         self.register_buffer("owner", owner)
@@ -233,6 +242,59 @@ class RestrictionMaps(torch.nn.Module):
             "overlap_target", gain_denominators(dome, rho=rho).to(device)
         )
         self.hold_width = width
+
+        # -- what the spectral floor reaches (ADR-0032) --------------------
+        #
+        # **The exclusion is by attainability, not by pinning**, and the two
+        # populations differ. `_push_apart` skips a pinned map because the
+        # exact gauge leaves it no *scale* freedom to spend; the floor needs
+        # none, because projecting onto the nearest scaled co-isometry
+        # preserves `‖F‖_F` exactly. What it needs is *rank*: a mask with
+        # `k_v < m_e` open columns cannot contain a co-isometry at all, so
+        # `σ_min = 0` there whatever the projection does and the projection
+        # would shrink `‖F‖_F` by `√(k/m)` — fighting the exact gauge rather
+        # than sitting beside it. Those masks are excluded by name, computed
+        # here from the mask rather than listed: on `DEFAULT_SPEC` they are the
+        # nine ADR-0032 names, all pinned — three touch (`m = 8, k = 1`), three
+        # proprioceptive (`8, 2`) and the actuator's three (`8, 6`); see
+        # `prototypes/mask-attainability-415/`.
+        #
+        # **`m = 1` is skipped because the floor is vacuous there**, not
+        # because it is unattainable: one singular value is `‖F‖_F/√1`
+        # identically, so the projection is the identity and running an SVD to
+        # discover that every tick is cost with no consequence. That is the
+        # drive's eight edges.
+        #
+        # **Grouped by `(m_e, k_v)` so the ragged shapes batch.** A single SVD
+        # over the padded `[pairs, m_max, stalk_max]` tensor would flatten the
+        # *padding* — structural zeros are not directions, and a co-isometry
+        # fitted to them would write nonzero weights into rows and columns
+        # construction closed. Grouping means every batched SVD sees a dense
+        # block of one shape, and the padded rows and masked columns come back
+        # exactly zero because they are never touched: the same guarantee
+        # `_push_apart` gets from the mask being a shared prefix.
+        self.floor_shapes: list[tuple[int, int]] = []
+        reachable = [
+            i
+            for i in range(self.pairs)
+            for m, k in (blocks[i],)
+            if m > 1 and k >= m
+        ]
+        for m, k in sorted({blocks[i] for i in reachable}):
+            members = [i for i in reachable if blocks[i] == (m, k)]
+            self.register_buffer(
+                f"floor_group_{len(self.floor_shapes)}",
+                torch.tensor(members, dtype=torch.long, device=device),
+            )
+            self.floor_shapes.append((m, k))
+        self.register_buffer(
+            "floored",
+            torch.zeros(self.pairs, dtype=torch.bool, device=device).index_fill_(
+                0, torch.tensor(reachable, dtype=torch.long, device=device), True
+            )
+            if reachable
+            else torch.zeros(self.pairs, dtype=torch.bool, device=device),
+        )
 
         draw = torch.empty(
             (self.pairs, self.edge_width, self.stalk_width), device=device, dtype=dtype
@@ -273,19 +335,58 @@ class RestrictionMaps(torch.nn.Module):
         are the same kind of event — the surface leaving the shape construction
         gave it — and none of them is ever wanted.
 
-        **The order is load-bearing.** The mask first, because the two later
+        **The order is load-bearing.** The mask first, because the three later
         steps read norms and Gram blocks that a stray weight would pollute; the
         band next, because the incoherence target `g_v² · c_v` is stated against
-        the banded gauge; the incoherence cap last, because it is the one whose
-        guarantee the others could undo. What follows it may only shrink a map,
-        and shrinking a map can only shrink the Gram it contributes to, so the
-        cap holds at exit.
+        the banded gauge; the spectral floor after it, because the floor is
+        stated against a map's own `‖F‖_F` and preserves it exactly, so it
+        neither disturbs the band it follows nor needs it re-applied; the
+        incoherence cap last, because it is the one whose guarantee the others
+        could undo. What follows it may only shrink a map, and shrinking a map
+        can only shrink the Gram it contributes to, so the cap holds at exit.
+
+        **The floor sits before the cap, and that is a choice with a price.**
+        ADR-0032 leaves the placement to the build and it is a real collision:
+        water-filling moves energy between a cell's directions and so un-flattens
+        what the floor flattens, while a flattening step redistributes a map's
+        singular values and so can raise the Gram the cap just bounded. Two
+        invariants, and only one can be exactly true at exit.
+
+        **The cap wins the last slot because it is the one with an external
+        reader.** :func:`patchworks.tick.reconciliation_gain` divides by
+        `g_v² · c_v` on every tick, and the whole of
+        [#220](https://github.com/NGL321/patchworks/issues/220) is that the bound
+        held and the bound assumed are one thing — a cap that is only
+        approximately true at exit is a false denominator in the gain, where a
+        floor that is only approximately true at exit is a measurement. So **what
+        holds at exit is `λ_max(Σ_e F_evᵀF_ev) ≤ g_v² · c_v`, exactly and by
+        construction, unchanged from before this step existed**, and the floor
+        holds exactly wherever the cap does not bite and approximately where it
+        does. :meth:`flatness` is what reads the residual, and it is the
+        instrument ADR-0032's second pre-registration needs.
+
+        **Flatness alone cannot carry the cap, which is why the cap is kept.**
+        A flat map has `σ_max² = ‖F‖²_F/m_e`, so the triangle bound gives
+        `λ_max ≤ Σ_e ‖F_e‖²_F/m_e ≤ g_v² Σ_e 1/m_e` — a derived bound needing no
+        constant, and it discharges the cap wherever `Σ_e 1/m_e ≤ c_v`. On
+        `DEFAULT_SPEC` it does not: four degree-9 interior cells carry nine
+        `m = 4` lanes, so `Σ_e 1/m_e = 2.25` against `c_v = 2`, and the bound
+        comes to `1.125x` the target. Ordering the floor last would trade a
+        construction guarantee for a measurement at exactly the cells where the
+        denominator is tightest.
+
+        **The floor also makes the cap bite less often**, which is the other
+        half of putting it first: flattening lowers every map's `σ_max` to the
+        RMS of its own spectrum, so the Gram the cap inspects is already spread
+        when it arrives, and a cap that does not fire leaves the flatness it
+        found exactly alone.
         """
         self.maps.mul_(self.support)
         lower, upper = self.gauge_bounds
         norms = self.norms().clamp_min(1e-12)
         scale = norms.clamp(lower, upper) / norms
         self.maps.mul_(scale.unsqueeze(-1).unsqueeze(-1))
+        self._flatten()
         self._push_apart()
         # The band's upper edge, once more and downward only. Water-filling
         # moves energy between a cell's directions, so a map that was inside the
@@ -296,6 +397,74 @@ class RestrictionMaps(torch.nn.Module):
         # can move it.
         over = (self.norms() / upper).clamp_min(1.0)
         self.maps.div_(over.unsqueeze(-1).unsqueeze(-1))
+
+    @torch.no_grad()
+    def _flatten(self) -> None:
+        """Project every reachable map onto the nearest scaled co-isometry.
+
+        ADR-0032. The restriction maps are learning **isometric transport**, and
+        the constraint that expresses it is a per-map spectral floor at
+        `σ_min ≥ ‖F‖_F/√m`. Since `Σᵢσᵢ² = ‖F‖²_F`, that floor is attainable
+        only with equality throughout, so **the floor at its one derivable value
+        and the projection onto the nearest scaled co-isometry are the same
+        operation**: for `F = UΣVᵀ` on the active block,
+
+            `F ← (‖F‖_F/√m) · UVᵀ`.
+
+        It costs no invented constant — any weaker floor needs a fraction, and
+        the fraction would have no warrant.
+
+        **It preserves `‖F‖_F` exactly**, which is why it sits beside ADR-0010's
+        gauge rather than against it: the band holds a Frobenius norm and says
+        nothing about how that budget is spread across the singular values, and
+        this spreads it evenly without spending any of it. `σ_max` does move —
+        down by `√m`, which ADR-0022 prices as the hop — and that cost is booked
+        on the ADR, not discovered here.
+
+        **This is the operation :meth:`_push_apart` structurally cannot
+        perform.** The water-fill is gated on `live = eigenvalues > peak * 1e-9`,
+        because scaling zero leaves zero: a cap flattens survivors and can never
+        resurrect a dead direction. The projection can, and does — for a
+        rank-deficient block the thin SVD's trailing right-singular vectors are
+        an arbitrary orthonormal completion *inside the mask's open columns*, so
+        `UVᵀ` returns a direction the map had lost while leaving every closed
+        column at exactly zero. A cap exists; only a floor lifts a dead
+        direction.
+
+        **Isometry is a property of the edge pair, not of one map.** An interior
+        map is `4 × 32` and has a 28-dimensional kernel by arithmetic; what the
+        constraint buys is one of the two halves of `F_v⁺F_u ∈ O(m)` — flat
+        spectra on both ends — and the other half is ADR-0010's matched edge
+        scale, which [#429](https://github.com/NGL321/patchworks/issues/429)
+        owns. Nothing here claims a map is an isometry.
+
+        **The SVD is the cost, and the cheaper route was refused on
+        correctness.** `UVᵀ` is also `(FFᵀ)^{-1/2}F`, an `m × m` eigendecomposition
+        with `m ≤ 8` instead of an `m × k` SVD — but that is a *left*
+        multiplication, and a left multiplication cannot raise a rank. It would
+        reproduce the one property that distinguishes this step from
+        :meth:`_push_apart` and silently drop it, which is the worst of the
+        available trades. Measured on the real dome at 6 threads, the floor takes
+        the projection from **11.1 ms to 27.7 ms**, and the projection runs once
+        per transport step; the two tick phases beside it are 1.2 ms. A 100,000
+        tick horizon — which is the horizon ADR-0032's falsification is
+        pre-registered at — is about 46 minutes of projection against 18 before.
+        Recorded rather than optimised: it is inside what the rig can pay, and
+        the first cheaper route is a conditioning threshold nobody has a warrant
+        for.
+
+        Which maps it reaches, and why the nine are excluded, is recorded on the
+        `floor_shapes` block in :meth:`__init__`.
+        """
+        for group, (m, k) in enumerate(self.floor_shapes):
+            pairs = getattr(self, f"floor_group_{group}")
+            block = self.maps.index_select(0, pairs)[:, :m, :k]
+            left, spectrum, right = torch.linalg.svd(block, full_matrices=False)
+            # `‖F‖_F` read off the spectrum rather than the tensor: the block is
+            # the whole of the map, so the two agree, and taking it here keeps
+            # the scale and the factorisation exactly consistent.
+            flat = spectrum.square().sum(dim=-1).sqrt() / math.sqrt(m)
+            self.maps[pairs, :m, :k] = (left @ right) * flat.unsqueeze(-1).unsqueeze(-1)
 
     @torch.no_grad()
     def _push_apart(self) -> None:
@@ -419,6 +588,41 @@ class RestrictionMaps(torch.nn.Module):
         )
         grams.index_add_(0, self.owner, self.maps.transpose(1, 2) @ self.maps)
         return torch.linalg.eigvalsh(grams).amax(dim=-1)
+
+    def flatness(self) -> torch.Tensor:
+        """`[pairs]`: `σ_min/σ_max` of each map's active block, 1 when flat.
+
+        Reporting, not runtime — the tick never calls it. It exists because
+        :meth:`project` orders the spectral floor **before** the incoherence cap
+        and so holds the floor exactly only where the cap does not bite; this is
+        what reads the residual, and it is the instrument ADR-0032's second
+        pre-registration is written against.
+
+        A map the floor does not reach comes back at its own honest ratio rather
+        than at 1 — the nine unattainable masks read 0, since `rank(F) ≤ k < m`
+        makes `σ_min` zero there whatever anything does, and `m = 1` reads 1
+        because one singular value is trivially its own smallest and largest.
+
+        **The spectrum is the map's `m` singular values, not the block's.**
+        `svdvals` on an `[m, k]` block returns `min(m, k)` of them, so where the
+        mask leaves fewer columns open than the lane is wide the remaining
+        `m − k` are structural zeros that the factorisation simply does not
+        report. Reading `σ_min` off the returned list there would say a map is
+        nearly flat when it is rank-deficient by construction, which is exactly
+        the population the floor excludes and the last place to flatter it.
+        """
+        maps = self.maps.detach()
+        tiny = torch.finfo(maps.dtype).tiny
+        ratios = torch.zeros(self.pairs, dtype=maps.dtype, device=maps.device)
+        for edge in self.dome.edges:
+            for side, cell_id in enumerate((edge.u, edge.v)):
+                i = pair_index(edge.id, side)
+                k = int(self.support[i].any(dim=0).sum())
+                spectrum = torch.linalg.svdvals(maps[i, : edge.m, :k])
+                top = spectrum.amax().clamp_min(tiny)
+                floor = spectrum.amin() if k >= edge.m else spectrum.new_zeros(())
+                ratios[i] = floor / top
+        return ratios
 
     # -- what the message-passing phase runs -------------------------------
 

@@ -268,11 +268,14 @@ class TestTheIncoherenceTerm:
         assert torch.all(after[held] >= before[held] * 0.85)
 
     def test_a_cell_already_inside_the_bound_is_not_touched(self, maps):
-        # The draw is incoherent enough to start inside, so the projection has
-        # nothing to do and must do nothing: a transform applied every tick to a
-        # surface that does not need it is a slow leak, not a projection.
+        # The draw is incoherent enough to start inside, so the cap has nothing
+        # to do and must do nothing: a transform applied every tick to a surface
+        # that does not need it is a slow leak, not a projection. Read against
+        # `_push_apart` rather than the whole projection, because the spectral
+        # floor in front of it is *not* a no-op on the draw -- a random map is
+        # nowhere near flat, and flattening it is the point.
         before = maps.maps.detach().clone()
-        maps.project()
+        maps._push_apart()
         assert torch.allclose(maps.maps, before, atol=1e-6)
 
     def test_the_band_still_holds_after_the_transform(self, maps):
@@ -328,3 +331,136 @@ class TestTheDenominatorTheGainDividesBy:
         assert torch.allclose(
             gain_denominators(dome), cell_gauges(dome) ** 2 * overlap_counts(dome)
         )
+
+
+class TestTheSpectralFloor:
+    """ADR-0032, and the three mechanics it left to the build (#432).
+
+    The maps are learning isometric transport, and the constraint that expresses
+    it is a per-map floor at `σ_min ≥ ‖F‖_F/√m` — attainable only with equality
+    throughout, so the floor and the projection onto the nearest scaled
+    co-isometry are one operation. These read the property on the *real* dome,
+    where the attainability argument was made, and not on `SMALL`.
+    """
+
+    @pytest.fixture(scope="class")
+    def real(self):
+        return build_graph()
+
+    @pytest.fixture
+    def real_maps(self, real):
+        return RestrictionMaps(real, generator=torch.Generator().manual_seed(0))
+
+    def test_every_map_the_floor_reaches_comes_out_flat(self, real_maps):
+        real_maps.project()
+        assert torch.all(real_maps.flatness()[real_maps.floored] > 1 - 1e-4)
+
+    def test_the_floor_preserves_the_frobenius_norm_exactly(self, real_maps):
+        # This is why the floor sits beside ADR-0010's gauge rather than against
+        # it: the band holds `‖F‖_F` and the floor spends none of it, only
+        # spreading it evenly across the singular values.
+        before = real_maps.norms().detach().clone()
+        real_maps._flatten()
+        assert torch.allclose(real_maps.norms(), before, rtol=1e-5)
+
+    def test_the_floor_lifts_a_dead_direction_and_the_cap_cannot(self, real_maps):
+        # The whole difference between a floor and a cap. `_push_apart` gates
+        # its water-fill on `live = eigenvalues > peak * 1e-9` because scaling
+        # zero leaves zero, so it flattens survivors and can never resurrect one.
+        with torch.no_grad():
+            real_maps.maps.zero_()
+            real_maps.maps[:, 0, 0] = 1.0
+            real_maps.maps.mul_(real_maps.support)
+        assert torch.all(real_maps.flatness()[real_maps.floored] < 1e-5)
+        # The cap does *move* this surface -- it is the fully-coherent
+        # arrangement, so the one live direction is over the target and gets
+        # rescaled. What it cannot do is change the rank, which is the property
+        # at issue: every map is still rank 1 when it comes out.
+        real_maps._push_apart()
+        assert torch.all(real_maps.flatness()[real_maps.floored] < 1e-5)
+        real_maps._flatten()
+        assert torch.all(real_maps.flatness()[real_maps.floored] > 1 - 1e-4)
+
+    def test_the_padding_and_the_mask_come_back_exactly_zero(self, real_maps):
+        # A batched SVD over the padded tensor would flatten the *padding*, and
+        # a co-isometry fitted to structural zeros writes weights into rows and
+        # columns construction closed. Grouping by `(m, k)` is what prevents it,
+        # and `exactly` is the word: not `allclose`, zero.
+        real_maps.project()
+        assert torch.all(real_maps.maps[~real_maps.support] == 0)
+
+    def test_the_nine_unattainable_masks_are_excluded_by_name(self, real, real_maps):
+        # ADR-0032's mask-attainability read: `k < m` means the mask cannot
+        # contain a co-isometry at all, so `σ_min = 0` whatever the projection
+        # does and the projection would shrink `‖F‖_F` by `√(k/m)`, fighting the
+        # exact gauge. Three touch, three proprioceptive, the actuator's three.
+        unattainable = []
+        for edge in real.edges:
+            for side, cell_id in enumerate((edge.u, edge.v)):
+                k = int(real.restriction_mask(edge.id, cell_id).sum())
+                if k < edge.m:
+                    unattainable.append((edge.m, k, pair_index(edge.id, side)))
+        assert sorted({(m, k) for m, k, _ in unattainable}) == [(8, 1), (8, 2), (8, 6)]
+        assert len(unattainable) == 9
+        where = [i for _m, _k, i in unattainable]
+        assert not bool(real_maps.floored[where].any())
+        # And they are all pinned, which is why the ADR could state the floor on
+        # the banded maps without leaving a banded map behind.
+        assert bool(real_maps.pinned[where].all())
+
+    def test_the_floor_reaches_attainable_pinned_maps_too(self, real_maps):
+        # The exclusion is by attainability, not by pinning: `_push_apart` skips
+        # a pinned map for want of *scale* freedom, and the floor needs none,
+        # because it preserves `‖F‖_F`. Skipping them would leave the rim's own
+        # end of 256 sensory edges unflattened, and isometry is a property of
+        # the edge *pair*, so one flat end buys nothing.
+        assert int((real_maps.floored & real_maps.pinned).sum()) == 256
+
+    def test_a_pinned_map_still_leaves_the_projection_at_exactly_one(self, real_maps):
+        real_maps.project()
+        assert torch.allclose(
+            real_maps.norms()[real_maps.pinned],
+            torch.ones(int(real_maps.pinned.sum())),
+            atol=1e-6,
+        )
+
+    def test_the_cap_still_holds_at_exit_with_the_floor_in_front_of_it(
+        self, real, real_maps
+    ):
+        # The ordering decision (#432, mechanic 1). The floor and the cap cannot
+        # both be exactly true at exit, and the cap takes the last slot because
+        # `reconciliation_gain` divides by it on every tick (#220). So this is
+        # the invariant that must hold exactly, under the worst arrangement, and
+        # `flatness()` is what reads what the floor gave up for it.
+        _turn_the_maps_to_face_one_way(real_maps)
+        real_maps.project()
+        held = real_maps.holding
+        assert torch.all(
+            real_maps.gram_peaks()[held] <= gain_denominators(real)[held] * (1 + 1e-5)
+        )
+
+    def test_flatness_reads_zero_where_the_floor_cannot_reach(self, real_maps):
+        real_maps.project()
+        widths = torch.tensor(
+            [[float(edge.m)] * 2 for edge in real_maps.dome.edges]
+        ).reshape(-1)
+        nine = ~real_maps.floored & real_maps.pinned & (widths > 1)
+        assert int(nine.sum()) == 9
+        assert torch.all(real_maps.flatness()[nine] < 1e-5)
+
+    def test_where_the_cap_bites_the_floor_is_given_up_and_recovered(self, real_maps):
+        # The price of the ordering, measured rather than asserted away. Under
+        # the fully-coherent arrangement the cap binds at every holding cell, so
+        # the projection is *not* a one-step fixed point the way it is when only
+        # the band and the mask are live: the cap un-flattens what the floor
+        # flattened, and the next projection flattens it again. What matters is
+        # the direction -- flatness climbs monotonically toward 1 across passes
+        # while the cap stays exactly held -- so the two steps converge on a
+        # surface satisfying both rather than oscillating between them.
+        _turn_the_maps_to_face_one_way(real_maps)
+        seen = []
+        for _pass in range(4):
+            real_maps.project()
+            seen.append(float(real_maps.flatness()[real_maps.floored].amin()))
+        assert seen[0] > 0.9
+        assert seen == sorted(seen)
