@@ -154,8 +154,8 @@ of an algebra acting by conditioning.
 `docs/research/019-tick-semantics-citations.md`) is a different thing in every slot. The base is a
 **cell complex — for Patchworks, a graph**: cells are vertices and edges of the actual
 communication topology, ordered by face incidence. Coefficients are **vector spaces assigned to
-cells** (node stalks, edge stalks) with **restriction maps** `F_{v⊴e}` along incidences. The
-differential is the **cellular coboundary** `δ⁰`, and `H⁰(X; F) ≅ Γ(X; F)`, the **global
+cells** (node stalks, communication lanes) with **restriction maps** `F_{v⊴e}` along incidences.
+The differential is the **cellular coboundary** `δ⁰`, and `H⁰(X; F) ≅ Γ(X; F)`, the **global
 sections** — Hansen & Ghrist state this isomorphism directly — i.e. `ker δ⁰`, the assignments on
 which every pair of neighbours already agrees. That is exactly the zero-disagreement subspace
 `01-cell-and-sheaf.md` is built around.
@@ -167,7 +167,7 @@ Line them up:
 |---|---|---|
 | Base | Poset/monoid of **partitions of one sample space**, ordered by refinement, closed under join | **Cell complex / graph**: vertices and edges, ordered by face incidence |
 | Topology on the site | **Trivial** (every presheaf is a sheaf) | Cellular / Alexandrov on the face poset |
-| Coefficients | **Functionals of a probability law**, `P ∈ P ⊆ Δ(Ω)` | **Vector spaces per cell** (node stalk `n`, edge stalk `m`) |
+| Coefficients | **Functionals of a probability law**, `P ∈ P ⊆ Δ(Ω)` | **Vector spaces per cell** (node stalk `n`, communication lane `m`) |
 | Differential | Bar coboundary with a **conditioning** action `S₀.F = Σ P(S₀=v)F(·|S₀=v)` | Cellular coboundary via **linear restriction maps** `F_{v⊴e}` |
 | `H⁰` | **Constants** `Rᵐ` | **Global sections** `Γ(X;F) = ker δ⁰` — consistent assignments |
 | `H¹` | **Shannon entropy**, one-dimensional | Obstruction to extending local sections; `dim` reflects graph + stalk structure |
@@ -175,7 +175,7 @@ Line them up:
 
 The two theories share the letters `H`, `δ`, "cochain," and "sheaf," and share nothing else. There
 is no functor, no comparison map, and no spectral sequence in the literature relating a Patchworks
-edge-stalk `H¹` to an entropy class. **Any Patchworks document that puts the two `H¹`s in the same
+lane `H¹` to an entropy class. **Any Patchworks document that puts the two `H¹`s in the same
 sentence must say which is meant.** In particular, `01-cell-and-sheaf.md`'s Dirichlet-energy/
 harmonic-space machinery lives entirely on the *cellular* side; information cohomology contributes
 nothing to it.

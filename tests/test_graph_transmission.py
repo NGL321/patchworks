@@ -61,9 +61,9 @@ class TestEffectiveResistance:
     def test_parallel_divides(self):
         """A conductance of 4 across one pair is a resistance of 1/4.
 
-        The weight is a **conductance**: `w_e = m_e` says a wider edge stalk is
+        The weight is a **conductance**: `w_e = m_e` says a wider lane is
         an easier route, not a harder one. Getting that backwards would invert
-        the whole stalk-weighted table without changing its shape.
+        the whole lane-weighted table without changing its shape.
         """
         r = transmission.effective_resistance(adjacency_of([(0, 1)], 2, weight=4.0))
         assert r[0, 1] == pytest.approx(0.25)
@@ -167,7 +167,7 @@ class TestAnalyticHop:
         drawn = float(printed.split("->  one hop")[1].split()[0])
         assert transmission.analytic_hop(dome) == pytest.approx(drawn, rel=0.1)
 
-    def test_a_wider_edge_stalk_lowers_the_hop(self):
+    def test_a_wider_lane_lowers_the_hop(self):
         """At a fixed Frobenius gauge, `m` costs transmission and buys rank.
 
         The direction the stalk table reports, and the whole of what it claims:
@@ -177,7 +177,7 @@ class TestAnalyticHop:
         **This is the one assertion here that a later ticket may have to
         delete**, and deliberately so: it holds because the gauge fixes a
         Frobenius norm independent of `m` (ADR-0010). A gauge that scaled with
-        the edge stalk would reverse it, and whoever writes that should find
+        the lane would reverse it, and whoever writes that should find
         this test in the way.
         """
         import dataclasses

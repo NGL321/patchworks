@@ -5,8 +5,9 @@ Validates the design closed in patchworks#8 (`docs/spec/06-graph-topology.md`,
 the map's citation-sequencing rule; this document does not reopen the design. Where a source
 threatens a committed claim it is flagged and a revision ticket is recommended, not opened.
 Vocabulary follows `CONTEXT.md`: Patchworks' side of every comparison is described in its own terms
-(cell, node stalk, edge stalk, restriction map, chart, disagreement, reconciliation, boundary cell,
-predicting cell, relay cell, taper, dome); the prior art's side in its own field's terms. Where a
+(cell, node stalk, communication lane, restriction map, chart, disagreement, reconciliation,
+boundary cell, predicting cell, relay cell, taper, dome); the prior art's side in its own field's
+terms. Where a
 source could not be reached, that is stated. NTK is not cited, per the ticket.
 
 ## Headline verdict, stated plainly
@@ -80,7 +81,7 @@ as a stalk-width problem.
   in their path, potentially mitigating oversquashing" (abstract).
 
 Both sheaf-side treatments frame over-squashing as reach. **No source was found stating a
-sensitivity bound in terms of edge-stalk dimension `m`.** #8's framing — that the squeeze is the
+sensitivity bound in terms of lane dimension `m`.** #8's framing — that the squeeze is the
 `m`-sized restriction map and not the hop count — has no sheaf-side precedent either supporting or
 refuting it. That is an honest gap, and it is where a novel result would live. (Full texts of both
 sheaf papers were not reached; abstract-level only.)

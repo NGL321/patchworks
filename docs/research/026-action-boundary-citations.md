@@ -4,7 +4,7 @@ Validates the design closed in patchworks#6 (`docs/spec/04-action-and-the-bounda
 `docs/adr/0003-action-is-prediction-the-world-clears.md`). Citations validate after the fact per
 the map's Notes; this document does not revise the closed design — it only flags where a source
 threatens a claim already made. Vocabulary follows `CONTEXT.md`: Patchworks' side of every
-comparison is described in its own terms (chart, node stalk, edge stalk, disagreement,
+comparison is described in its own terms (chart, node stalk, communication lane, disagreement,
 reconciliation, restriction map, boundary cell, sensory edge, motor edge, efference copy,
 sensorimotor rim, relay cell, cell contract); the prior art's side is described in its own field's
 terms. Where a source could not be reached, that is stated rather than papered over.
@@ -113,7 +113,7 @@ below), not to extend the continuous formulation itself.
   "disagreement is cleared by the world moving" has no literal analogue in Friston's math: Friston's
   action variable `a` acts directly on the equations of motion of hidden states (Eq. 7's `ẍ =
   f(x̃,ṽ,a,θ)+w̃`), not on a **discharged, edge-local disagreement** the way Patchworks' motor edge
-  clears. Patchworks' edge-stalk vocabulary is a genuine architectural addition over Friston's
+  clears. Patchworks' lane vocabulary is a genuine architectural addition over Friston's
   scalar formulation, not a restatement of it.
 - The spec's "historically shakier for anything needing lookahead" (ADR-0003, known exposure) is
   correct and specifically attested: the field's own solution to the gap was not to extend the

@@ -451,7 +451,7 @@ class TestTheCellsTheseTestsName:
 
     def test_the_drive_cell_is_a_boundary_cell_on_three_edges_of_width_one(self, dome):
         # `test_a_flat_endpoint_is_the_objective_not_a_missing_signal` reads
-        # the objective's flat point off a one-dimensional edge stalk, so the
+        # the objective's flat point off a one-dimensional lane, so the
         # mask width is the premise of that test rather than a detail.
         assert dome.cells[DRIVE_CELL].kind is CellKind.DRIVE
         assert dome.cells[DRIVE_CELL].is_boundary
@@ -578,7 +578,7 @@ class TestPerturbingOneCellsRestrictionMaps:
 
     def test_a_flat_endpoint_is_the_objective_not_a_missing_signal(self, running):
         # Why the sweep above says "subset" where the bias sweep says "equals".
-        # On a one-dimensional edge stalk whose two ends disagree in sign the
+        # On a one-dimensional lane whose two ends disagree in sign the
         # relative disagreement is pinned at 1, its worst value, and the
         # objective is exactly flat there -- so that endpoint's update is zero
         # whatever its map does. That is ADR-0007's objective behaving as
@@ -615,7 +615,7 @@ class TestThePermittedChannel:
 
     Exactly one place: the row of :attr:`~patchworks.tick.Sheaf.incoming` for
     the edge the two cells share — the belief the neighbour restricted onto that
-    shared edge stalk a tick ago. That is the only thing the transport rule ever
+    shared lane a tick ago. That is the only thing the transport rule ever
     learns about a neighbour (`07-local-learning-rule.md`: never a neighbour's
     raw node stalk), it arrives already applied, and it is an ordinary argument
     outside the `argnums`.
@@ -624,7 +624,7 @@ class TestThePermittedChannel:
     def test_a_perturbed_map_leaves_the_graph_only_on_its_own_edges(self, running):
         # The channel, watched through the real machinery rather than
         # re-derived. Perturbing a cell's maps changes what it broadcasts onto
-        # its own edge stalks and nothing else; the delay is an index flip, so
+        # its own lanes and nothing else; the delay is an index flip, so
         # what lands in a neighbour's `incoming` next tick is the partner slot
         # of exactly those endpoints.
         cell = WIDEST

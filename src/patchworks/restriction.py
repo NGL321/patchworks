@@ -1,6 +1,6 @@
 """The restriction maps: one masked linear map per edge endpoint, gauge-fixed.
 
-Each cell holds one map from its node stalk into each incident edge stalk
+Each cell holds one map from its node stalk into each incident communication lane
 (`docs/spec/01-cell-and-sheaf.md`, *Restriction maps*). The two ends of an edge
 are independent maps belonging to different cells, so the object here is
 indexed by **edge endpoint**, never by edge: pair `2 * edge.id + side`, side 0
@@ -154,7 +154,7 @@ def pair_index(edge_id: int, side: int) -> int:
 
 
 class RestrictionMaps(torch.nn.Module):
-    """Every cell's map into every incident edge stalk, as one padded tensor.
+    """Every cell's map into every incident lane, as one padded tensor.
 
     The maps are the adapting surface's other half — per-cell, per-edge, and
     learned by the transport rule. They are registered as a parameter so that
@@ -436,7 +436,7 @@ class RestrictionMaps(torch.nn.Module):
         """`[pairs, m_max]` in, `[pairs, stalk_max]` out: `Fᵀ` applied per pair.
 
         The transpose of :meth:`restrict`, which is what carries a disagreement
-        on an edge stalk back to the node stalk directions that produced it.
+        on a lane back to the node stalk directions that produced it.
         Masked and padded directions come back zero, so a private feature is
         untouched by construction rather than by a second mask being applied.
         """

@@ -3,12 +3,12 @@
 Checks the reasoning behind the Koopman conversion recorded on
 [#127](https://github.com/NGL321/patchworks/issues/127) — each **cell** replacing its frozen random
 nonlinear `step` with a learned linear operator `K` on its own **chart**, in its own basis, glued to
-neighbours by learned **restriction maps** into **edge stalks**, with nothing converging to a global
-operator. Citations validate after the fact per [#1](https://github.com/NGL321/patchworks/issues/1)'s
+neighbours by learned **restriction maps** into **communication lanes**, with nothing converging to
+a global operator. Citations validate after the fact per [#1](https://github.com/NGL321/patchworks/issues/1)'s
 citation-sequencing rule; this document does not revise closed design, it flags where a source
 threatens a claim already made. Vocabulary follows `CONTEXT.md`: Patchworks' side in its own terms
-(cell, chart, piece, node stalk, edge stalk, restriction map, scale gauge), the prior art's in its
-own field's. Where a source could not be reached, that is stated rather than papered over.
+(cell, chart, piece, node stalk, communication lane, restriction map, scale gauge), the prior art's
+in its own field's. Where a source could not be reached, that is stated rather than papered over.
 
 The pass had a second job, named in the ticket: the reasoning had been checked **only against people
 who agree with it**. SINDy, the invariant-subspaces theorem, deep Koopman, HAVOK and mrDMD all
@@ -167,7 +167,7 @@ Setting the two lines side by side, the honest residue is:
 | Per-cell operator in its own basis | **Claimed** — Li et al., Mukherjee et al. |
 | No global operator, coupling over graph edges | **Claimed** — Mukherjee et al. |
 | Learned restriction maps | **Claimed** — Neural Sheaf Diffusion (Bodnar et al., NeurIPS 2022) |
-| Cellular-sheaf formalism with edge stalks and two maps per edge | **Unclaimed in the Koopman setting** |
+| Cellular-sheaf formalism with communication lanes and two maps per edge | **Unclaimed in the Koopman setting** |
 | Koopman-in-each-stalk | **Unclaimed** (§2) |
 | Streaming / online, no global backprop | **Unclaimed** |
 | Refusal of a shared encoder | **Unclaimed** — Mukherjee et al. still train theirs jointly through a GNN |
@@ -175,7 +175,7 @@ Setting the two lines side by side, the honest residue is:
 
 Note what changed. `A_ij` in Li et al. *is* a learned linear map between two differing bases, so even
 the change-of-basis role is not new. What is new is that Patchworks makes the shared space
-(the **edge stalk**) an object in its own right that both cells map *into*, rather than mapping one
+(the **lane**) an object in its own right that both cells map *into*, rather than mapping one
 cell's coordinates directly into the other's — plus the gauge, plus bidirectional reconciliation
 rather than one-directional prediction. That is a real difference and a much narrower claim than
 "the sheaf version does not exist."
@@ -231,8 +231,8 @@ What *does* exist, and should be cited rather than re-derived:
   is the same object as the over-squashing one.
 - **Hansen & Ghrist**, *"Opinion Dynamics on Discourse Sheaves"*, arXiv:2005.12798 **[ABS]** — dynamics
   *on* a sheaf, but the dynamics *are* the sheaf Laplacian's diffusion, not per-node autonomous
-  operators glued by it. The **communications** half of a discourse sheaf is a closer analogue to an
-  edge stalk "carrying belief only" than anything in the Koopman literature, and may be the better
+  operators glued by it. The **communications** half of a discourse sheaf is a closer analogue to a
+  communication lane "carrying belief only" than anything in the Koopman literature, and may be the better
   vocabulary source.
 - **Bodnar, Di Giovanni, Chamberlain, Liò & Bronstein**, *"Neural Sheaf Diffusion"*, arXiv:2202.04579,
   NeurIPS 2022 **[ABS]** — *"we study how sheaves can be learned from data."* **This is the direct prior
@@ -848,7 +848,7 @@ need some global or multi-scale path — and the design has declined it in both.
 external pressure on the design found anywhere in this pass, and it is aimed at #142 rather than at
 the conversion.
 
-A pleasing incidental: a Patchworks **restriction map** into an edge stalk is structurally the same
+A pleasing incidental: a Patchworks **restriction map** into a lane is structurally the same
 object as a *learned, subdomain-specific Robin interface parameter*. The DD literature has design
 guidance the repo is not currently drawing on.
 

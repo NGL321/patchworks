@@ -10,8 +10,8 @@ source, in `docs/research/027-regional-jacobian-spectra.md`. This pass reads the
 Citations validate after the fact per [#1](https://github.com/NGL321/patchworks/issues/1)'s
 citation-sequencing rule. **This document does not revise closed design.** Where a source threatens a
 claim already made it is flagged, per artifact, in *What this threatens*. Vocabulary follows
-`CONTEXT.md`: Patchworks' side in its own terms (cell, chart, piece, node stalk, edge stalk,
-restriction map, scale gauge), the prior art's in its own field's — and the two are deliberately not
+`CONTEXT.md`: Patchworks' side in its own terms (cell, chart, piece, node stalk, communication
+lane, restriction map, scale gauge), the prior art's in its own field's — and the two are deliberately not
 blurred, because §1's central finding is exactly that the design has been described in the wrong
 field's vocabulary. Where a source could not be reached, that is stated rather than papered over; see
 *What could not be reached*.
@@ -80,7 +80,8 @@ loop. Sheaf-theoretic learning **with restriction maps and a backpropagation-fre
 also in print — Bosca & Ghrist, from the group that owns the sheaf vocabulary the design borrows.
 Local linear filters reconciled across a graph by a purely local rule is fifty years old under
 another name (Kalman-consensus filtering). **What is not found, in any single source, is the
-conjunction: a learned per-cell operator, glued by learned restriction maps into edge stalks, trained
+conjunction: a learned per-cell operator, glued by learned restriction maps into communication
+lanes, trained
 by a local rule with no global objective.** Every *pair* of those three is claimed. That is a
 narrower residue than the record currently assumes, and it should be stated that way. §3.
 
@@ -284,7 +285,8 @@ form Hermans & Schrauwen and later Grigoryeva–Ortega restate.
 
 **How the hypotheses land on a cell.** The readout condition holds: `decode` is a frozen **linear**
 gauge ([ADR-0014](../adr/0014-the-linear-readout-is-gauge-fixed.md)), and what neighbours read
-of a cell passes through **linear restriction maps** into **edge stalks**. Patchworks is unusually
+of a cell passes through **linear restriction maps** into **communication lanes**. Patchworks is
+unusually
 well-placed here — the linear-readout hypothesis is not an idealisation for this design, it is a
 construction commitment. The input condition fails: `stalk_t` is written by reconciliation from
 neighbouring cells and is strongly autocorrelated in time and across the graph. Jaeger's own
@@ -513,7 +515,7 @@ reservoir line nor the graph-SSM line occupies.
 | Per-node persisting linear state advanced by a linear recurrence | **Claimed** — MP-SSM, GraphSSM, GraphESN/DynGESN |
 | Nonlinearity outside the per-node recurrence | **Claimed** — MP-SSM (and see §1: Patchworks does not have this) |
 | Glued spatially over graph edges, coupled not consensused | **Claimed** — MP-SSM, GraphSSM; and #148 §1.3 for the Koopman framing |
-| Learned linear restriction maps into edge stalks | **Claimed** — Neural Sheaf Diffusion; ST-Sheaf GNN |
+| Learned linear restriction maps into communication lanes | **Claimed** — Neural Sheaf Diffusion; ST-Sheaf GNN |
 | Cellular sheaf + restriction maps + backpropagation-free local rule | **Claimed** — Bosca & Ghrist |
 | Local linear filters reconciled by a purely local rule over a graph | **Claimed** — Kalman-consensus filtering |
 | Per-node **learned** operator, glued by learned restriction maps, under a **local rule**, with a **persisting state in world-time** | **Not found in any single source** |
@@ -891,7 +893,7 @@ more than one property's worth of ground.**
 
 Sheaf-ADMM is much closer than §3.2's one-line `[CITE]` entry allowed for. It is the **first single
 source in this record to hold three of the conjunction's properties at once**: a learned per-agent
-operator, learned restriction maps into edge stalks, and an update rule that is local by
+operator, learned restriction maps into communication lanes, and an update rule that is local by
 construction. §3.5's table had those three claimed only across *separate* sources. That is a real
 narrowing and the record should stop implying otherwise.
 
@@ -1083,8 +1085,9 @@ Flags only. No closed design is revised here, and nothing in `docs/adr/`, `CONTE
 touched by this pass.
 
 - **The vocabulary is no longer unoccupied, and the collision is exact.** Sheaf-ADMM uses *edge
-  stalk* in Patchworks' sense (*"Each edge `e ∈ E` is assigned its own edge stalk `R^{d_e}` — the
-  space in which neighboring agents compare their states"*), *restriction map* in Patchworks' sense,
+  stalk* — the name Patchworks used for the communication lane until #411 §6 — in that exact sense
+  (*"Each edge `e ∈ E` is assigned its own edge stalk `R^{d_e}` — the space in which neighboring
+  agents compare their states"*), *restriction map* in Patchworks' sense,
   *vertex stalk dimension* for what CONTEXT.md calls the node stalk, and *disagreement* for what
   CONTEXT.md calls disagreement — with the sheaf Laplacian quadratic form written out as the sum of
   squared edge disagreements, the same object CONTEXT.md names. It also calls its cells **agents**,
@@ -1132,7 +1135,7 @@ touched by this pass.
 
 The move is that three of the four properties are now claimed **in a single source** for the first
 time, where §3.5 had them claimed only across separate ones. Sheaf-ADMM holds a learned per-agent
-linear operator, learned restriction maps into edge stalks, and updates that are local by
+linear operator, learned restriction maps into communication lanes, and updates that are local by
 construction, all at once. What it cannot supply — and what the whole surrounding literature is
 built *not* to supply, because a proved global guarantee is the point of that literature — is the
 absence of a global objective and the presence of a state that persists in world-time.
@@ -1144,8 +1147,8 @@ is local in every mechanical sense and still descends on a stated global functio
 
 **New residue, in one sentence, in §3.5's form:**
 
-> A per-cell **learned** linear operator, glued by **learned** restriction maps into edge stalks,
-> advanced by a rule that is local **with no global objective anywhere above it** — neither an inner
+> A per-cell **learned** linear operator, glued by **learned** restriction maps into communication
+> lanes, advanced by a rule that is local **with no global objective anywhere above it** — neither an inner
 > problem it provably solves nor an outer loss backpropagated through it — carrying a state that
 > **persists in world-time** rather than relaxing to a fixed point within one input: **not found in
 > any single source**.
@@ -1155,7 +1158,7 @@ claims:
 
 | Property | Status |
 |---|---|
-| Per-node **learned** operator **and** learned restriction maps into edge stalks **and** updates local by construction — all three in one source | **Claimed** — Sheaf-ADMM (§7.2), but only ever as an unrolled solver for a stated global objective, trained by backpropagation, with state re-initialised to zero on every input |
+| Per-node **learned** operator **and** learned restriction maps into communication lanes **and** updates local by construction — all three in one source | **Claimed** — Sheaf-ADMM (§7.2), but only ever as an unrolled solver for a stated global objective, trained by backpropagation, with state re-initialised to zero on every input |
 | Per-node **learned** operator, glued by learned restriction maps, under a local rule with **no global objective above it**, with a **persisting state in world-time** | **Not found in any single source** — Sheaf-ADMM has two global objectives and no world-time; ST-Sheaf GNN has neither world-time state nor a local rule; the sheaf-ADMM neighbourhood (§7.4) is uniformly locality *in service of* a global functional |
 
 The conjunction stands, one property narrower and considerably more precisely stated. Per #173, a

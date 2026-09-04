@@ -2,11 +2,11 @@
 
 Validates the dimensions closed in [#8](https://github.com/NGL321/patchworks/issues/8) and recorded
 in [`06-graph-topology.md`](../spec/06-graph-topology.md): `n = 32` (node stalk of a predicting cell),
-`k = 12` (chart), `m = 4` typical interior edge stalk, `m = 8` on boundary edges. Citations validate
+`k = 12` (chart), `m = 4` typical interior lane, `m = 8` on boundary edges. Citations validate
 after the fact per the map's Notes; this document does not revise the closed design — it flags where
 a source threatens a claim already made. Vocabulary follows `CONTEXT.md`: Patchworks' side is
-described in its own terms (chart, node stalk, edge stalk, predicting cell, boundary cell, cell
-body, restriction map, piece), the prior art's in its own field's. Where a source could not be
+described in its own terms (chart, node stalk, communication lane, predicting cell, boundary cell,
+cell body, restriction map, piece), the prior art's in its own field's. Where a source could not be
 reached, that is stated rather than papered over. Reservoir computing was established as the closest
 structural precedent by [#13](https://github.com/NGL321/patchworks/issues/13) and that work is not
 redone here — only the *sizing* question it left open is asked.
@@ -77,7 +77,7 @@ Three specific results, in order of weight:
   state (≈150 predicting cells × 32 = 4,800 node-stalk dimensions; 1,800 chart dimensions) is
   squarely inside the range RC practice recommends. The per-cell number is not the comparable one.
 - **`m = 4` is the number with the least headroom, and it is the one no source vindicates.** Under
-  the same embedding criterion an interior edge stalk carrying 4 numbers can faithfully carry a
+  the same embedding criterion an interior lane carrying 4 numbers can faithfully carry a
   shared piece of box-dimension below 2. Nothing found says that is wrong; nothing found says it is
   right either. `m` is also the *first* thing the #14 ladder permits flexing, so this is the cheap
   exposure rather than the expensive one — which is the good outcome.
@@ -272,7 +272,7 @@ dimension far below 6 in a world of about twenty numbers total. `k = 12` is ther
 the strict ADR-0004 sense, and the ADR's framing (`k` is the dimension of the piece, `n` is the room
 needed to talk about it with neighbours) is the framing this literature actually supports. `m = 4` is
 where the margin thins: an overlap of box-dimension 2 or more is not faithfully embeddable in a
-4-dimensional edge stalk, and two pucks' worth of shared structure would already be at that limit.
+4-dimensional lane, and two pucks' worth of shared structure would already be at that limit.
 The mitigation is real but indirect — Duan's delay/size trade-off means many delayed 4-dimensional
 views across ticks recover what one static 4-dimensional view cannot, and Patchworks' edges are
 delayed by construction. **No source found** settles whether that mitigation is sufficient.

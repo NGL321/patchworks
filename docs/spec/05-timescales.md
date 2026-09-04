@@ -1072,7 +1072,7 @@ it selects which inbound evidence a cell weights, driven by something other than
 rate of change, and its likely mechanism is the core's broadcast subspace or relay cells rather than
 a per-edge threshold. *Recurrent-state gating* — the two-rung escape hatch of
 [`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md) (*Known exposure*) — is distinguished by **tier**: it
-sits inside the cell body's recurrence, not on the edge. An earlier draft placed it on the edge stalk,
+sits inside the cell body's recurrence, not on the edge. An earlier draft placed it on the communication lane,
 which is not on that loop at all.
 
 ## Demonstrating it
