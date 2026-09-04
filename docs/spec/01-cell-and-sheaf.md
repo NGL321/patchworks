@@ -216,8 +216,8 @@ over the embedding and the operator *jointly*, and with `encode` frozen and `dec
 `K` is free, so that completeness does not transfer to this design.
 
 **The restriction maps carry the specialisation, and now so does `K`.** Each cell learns its own
-linear map into each incident edge stalk, independently at both ends of every edge, under a sparsity
-pressure and a structural mask. That is a substantial, genuinely per-cell surface — not a thin residue
+linear map into each incident edge stalk, independently at both ends of every edge, under a
+structural mask. That is a substantial, genuinely per-cell surface — not a thin residue
 left over after freezing the body. Cells do not need to learn *different activities*: identical
 machinery is sufficient, provided each cell's metric space is tuned to a separate linear decomposition
 of the highly non-linear global problem. The decomposition specialises the cell.
@@ -376,9 +376,14 @@ They are:
   is *derived for linear networks*, so under nonlinear restriction maps "disagreement and prediction
   error are the same quantity" would stop being **true**, not merely become expensive to compute. See
   [ADR-0004](../adr/0004-linear-restriction-maps-assume-local-flatness.md) and *The geometry* below.
-- **Learned**, under a sparsity pressure. This is the local-neuroplasticity analogue: pruning within
-  what structure permits. The pressure is an **L1 on the normalised map**, so it redistributes weight
-  across the map's directions rather than removing it — see *Scale is gauge-fixed* below and
+- **Learned**, on disagreement and nothing else. The objective is the whole objective: there is no
+  second additive term and no pressure on the map's shape. A sparsity pressure — an L1 on the
+  normalised map, read as the local-neuroplasticity analogue, *pruning within what structure
+  permits* — was specified here and is **deleted**, on the grounds
+  [#406](https://github.com/NGL321/patchworks/issues/406) states and
+  [ADR-0031](../adr/0031-the-sparsity-pressure-is-deleted.md) records. What
+  selects on an edge is the mask, structurally and once; what the map does is compress, densely and
+  by learning. See *Scale is gauge-fixed* below and
   [`06-graph-topology.md`](./06-graph-topology.md).
 - **Masked** by a hand-specified structural mask, set at graph construction, naming which node stalk
   features may participate on that edge. The mask is graph structure, not a parameter. **It closes and
@@ -409,11 +414,13 @@ What a cell may transmit is its budget `Σ_e m_e`, so it must compress what matt
 latent and **what will not fit is what stays private** — which is why the same budget appears in the
 `H⁰` bound below.
 
-**`m` is fixed at construction and never changes.** The sparsity pressure prunes *within* the mask —
-it drives weights to zero; it does not shrink the stalk. A stalk dimension that moved during a run
-would make the sheaf a moving target and would edge toward structural growth, which is out of scope.
-Whether pruning and re-opening could later alternate in developmental phases is held in the map's
-fog, not exercised here.
+**`m` is fixed at construction and never changes.** Learning moves weights *within* the mask; it
+does not shrink the stalk. A stalk dimension that moved during a run would make the sheaf a moving
+target and would edge toward structural growth, which is out of scope. Whether pruning and
+re-opening could later alternate in developmental phases is held in the map's fog, not exercised
+here — and [#406](https://github.com/NGL321/patchworks/issues/406) sharpened why it has to be held there rather than
+approximated by a penalty: pruning cannot do a **selection** job while masks never re-open, so a
+pressure that concentrates weight is not a cheap stand-in for the discovery this paragraph defers.
 
 ### A one-way edge is not a sheaf edge
 
@@ -442,8 +449,10 @@ still exist for disagreement to be a mismatch of.
 A restriction map's overall magnitude is **not identified by the transport rule's objective**. The rule
 learns on disagreement relative to the restricted beliefs' own current magnitudes
 ([`07-local-learning-rule.md`](./07-local-learning-rule.md)), which is invariant under scaling both of
-an edge's maps together, and the sparsity pressure is an L1 on the normalised map, which is blind to
-magnitude too. Nothing in the rule has an opinion about it.
+an edge's maps together. That is the whole objective since [#406](https://github.com/NGL321/patchworks/issues/406) deleted
+the sparsity term, so nothing in the rule has an opinion about magnitude — and the argument is now
+**shorter rather than weaker**: it used to need the second term to be scale-blind as well, and there
+is no second term to check.
 
 Left free, an edge's joint scale **grows**. For a scale-invariant parameter the gradient is always
 perpendicular to it, so `‖F_{u◁e}‖_F² + ‖F_{v◁e}‖_F²` is non-decreasing at every step and strictly
@@ -674,9 +683,16 @@ This gives a bound holding for **any** restriction maps, learned or not:
 dim H⁰  ≥  Σ_v max(0, n − Σ_{e∋v} m_e)
 ```
 
-Two consequences. `H⁰` is **large by construction and enlarged by sparsity**, so consistency is not
-scarce in the way a naive dimension count suggests. And low-degree cells manufacture private
-structure permanently.
+Two consequences. `H⁰` is **large by construction**, so consistency is not scarce in the way a naive
+dimension count suggests. And low-degree cells manufacture private structure permanently.
+
+**It is a floor, not a maximand** ([#406](https://github.com/NGL321/patchworks/issues/406)). Since
+[#143](https://github.com/NGL321/patchworks/issues/143) and
+[ADR-0028](../adr/0028-a-cell-holds-a-spectrum-of-retention-constants.md) moved the *holding* of slow
+content onto `K`, what `H⁰` still does is **insulate** what `K` holds from reconciliation — so what
+each cell needs is enough private width for that retention to survive and be readable, not as many
+dimensions as the graph can be made to yield. The clause *and enlarged by sparsity* stood here and is
+struck with the term it named; the bound above is a **construction** quantity, set by the masks.
 
 **Corrected by [`06-graph-topology.md`](./06-graph-topology.md):** this bound and `χ` below are
 computed over **predicting cells only**. Boundary cells were originally counted here as the

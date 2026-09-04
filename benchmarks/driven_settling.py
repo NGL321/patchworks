@@ -98,7 +98,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "tools"))
 from patchworks.agent import Agent, run  # noqa: E402
 from patchworks.diagnostics import Diagnostics  # noqa: E402
 from patchworks.graph import DEFAULT_SPEC, DomeSpec, build_graph  # noqa: E402
-from patchworks.learning import PredictionRule, SparsityAnneal, TransportRule  # noqa: E402
+from patchworks.learning import PredictionRule, TransportRule  # noqa: E402
 from patchworks.sandbox import PlanarPushSandbox  # noqa: E402
 
 import loop_length  # noqa: E402
@@ -174,7 +174,7 @@ def measure(spec: DomeSpec, split: str, seed: int, ticks: int) -> dict[str, obje
     try:
         diagnostics = Diagnostics(agent.sheaf)
         bias = PredictionRule(agent.sheaf)
-        transport = TransportRule(agent.sheaf, anneal=SparsityAnneal())
+        transport = TransportRule(agent.sheaf)
         for index, _outcome in enumerate(run(agent, ticks, seed=seed)):
             bias.step()
             if agent.sheaf.ticks > 1:

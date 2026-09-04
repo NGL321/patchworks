@@ -71,7 +71,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "tools"))
 from patchworks.agent import Agent, run  # noqa: E402
 from patchworks.body import CellOperators  # noqa: E402
 from patchworks.graph import DEFAULT_SPEC, Dome, DomeSpec, build_graph  # noqa: E402
-from patchworks.learning import PredictionRule, SparsityAnneal, TransportRule  # noqa: E402
+from patchworks.learning import PredictionRule, TransportRule  # noqa: E402
 from patchworks.sandbox import PlanarPushSandbox  # noqa: E402
 
 import loop_length  # noqa: E402
@@ -140,7 +140,7 @@ def taught(agent: Agent, ticks: int, seed: int) -> list[torch.Tensor]:
     writer standing beside the world's.
     """
     bias = PredictionRule(agent.sheaf)
-    transport = TransportRule(agent.sheaf, anneal=SparsityAnneal())
+    transport = TransportRule(agent.sheaf)
     with recording(agent.sheaf.operators) as fired:
         for _outcome in run(agent, ticks, seed=seed):
             bias.step()

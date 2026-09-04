@@ -46,8 +46,8 @@ boundary is a circle.
 cheap, legible, and satisfies every inherited constraint — not because anything proves it necessary.
 If it fails, the fallback is a shape-free construction rule: a boundary set, a target depth, and
 per-level degree constraints, with connectivity sampled to satisfy them. Everything else in this
-document — the dimensions, the boundary exemption, the sparsity treatment, the absence of relays — is
-independent of the dome and survives its abandonment.
+document — the dimensions, the boundary exemption, the refusal of edge removal, the absence of
+relays — is independent of the dome and survives its abandonment.
 
 **That rule has since been exercised, and the sentence above is under-specified.**
 [#130](https://github.com/NGL321/patchworks/issues/130) produced a second topology — the **wedge**,
@@ -403,24 +403,29 @@ estimates are simply retired in favour of the measurement
 ([#83](https://github.com/NGL321/patchworks/issues/83)). Nothing is contradicted, because what is
 load-bearing about `χ` is its **invariance under learning**, not its value.
 
-## Sparsity is a property of the maps, not of the graph
+## No edge is ever removed
 
 **No edge is ever removed.** `01-cell-and-sheaf.md` fixes `m` at construction and closes the mask
-permanently; the sparsity pressure prunes *within* the mask, driving restriction-map weights toward
-zero without shrinking a stalk.
+permanently. Nothing in the run deletes an edge, narrows a stalk, or re-opens a masked feature, and
+nothing later may either.
 
-Mechanically that is an **L1 on the normalised map**
-([ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md)): the map's magnitude is fixed by
-construction, so the pressure can only move weight between a map's directions, never take it out. This
-is what makes "prunes within the mask" a statement about the map's *shape* rather than its size — and it
-is why the pressure cannot walk the sheaf to `F = 0` on its own, which is what it would otherwise do
-once the transport rule's own objective is made scale-invariant.
+**This section used to carry a mechanism, and the mechanism is deleted.** It read *sparsity is a
+property of the maps, not of the graph*: a sparsity pressure — an L1 on the normalised map
+([ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md)) — pruned *within* the mask, so
+"sparsity annealing" was a **schedule on the sparsity pressure** rather than a structural process, and
+a fully zeroed edge was functionally dead but structurally present. [#406](https://github.com/NGL321/patchworks/issues/406)
+deleted the term from the transport rule outright; [ADR-0031](../adr/0031-the-sparsity-pressure-is-deleted.md) carries the
+grounds. Two claims went with it and are struck rather than restated: that the pressure *enlarges
+`H⁰` through learned rank-deficiency*, measured at **+1.3%** and exactly zero below `λ = 0.3`
+([#393](https://github.com/NGL321/patchworks/issues/393)); and that this was *"the effect
+`05-timescales.md` actually wanted from sparsity"*, which it was not — `H⁰` is a per-cell floor set
+by the masks, and the holding job moved to `K` at
+[#143](https://github.com/NGL321/patchworks/issues/143)/ADR-0028.
 
-So "sparsity annealing" is a **schedule on the sparsity pressure**, not a structural process. A fully
-zeroed edge is functionally dead but structurally present: it still costs a tick, still contributes
-`m_e` to `χ`, and — through learned rank-deficiency — still enlarges `H⁰`, which is the effect
-`05-timescales.md` actually wanted from sparsity. Fragmentation is therefore never structural and
-needs no guard.
+What survives is this section's actual subject, and it never depended on the term: **fragmentation is
+never structural and needs no guard.** An edge whose map has learned its way to nothing is still an
+edge — it costs a tick and still contributes `m_e` to `χ` — because the graph has no removal path at
+all, not because a pressure was careful about how it pruned.
 
 Structural edge deletion was considered. It runs the same direction as pruning and is not growth, and
 it would buy compute back. It was rejected because it makes `χ` move mid-run, and `χ`'s invariance

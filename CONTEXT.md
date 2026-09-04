@@ -658,8 +658,9 @@ _Avoid_: bias rule (superseded), predictive rule, inference rule
 
 **Transport rule**:
 The half of the local learning rule that updates a cell's restriction maps: a local gradient
-step on disagreement **relative to the restricted beliefs' own current magnitudes**, composed in
-the same step with the sparsity pressure and followed by projection back into the maps' gauge.
+step on disagreement **relative to the restricted beliefs' own current magnitudes**, followed by
+projection back into the maps' gauge. One term and no penalty — a sparsity pressure was composed
+into the same step until #406 deleted it (ADR-0031).
 Trains transport — the basis a neighbour's features become comparable in — never inference.
 Never reads a neighbour's raw node stalk.
 _Avoid_: restriction rule, map rule

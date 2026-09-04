@@ -58,7 +58,9 @@ occur to someone editing that module:
    :attr:`~patchworks.tick.Sheaf.incoming` — the forgotten `.detach()`, in the
    transform idiom;
 4. the sparsity penalty normalising against a global aggregate over the graph
-   rather than each map's own magnitude;
+   rather than each map's own magnitude — a leak whose *site* no longer exists,
+   since #410 deleted the penalty (ADR-0031); the reading is kept because it is
+   what was measured, not a claim about the module as it now stands;
 5. :meth:`~patchworks.learning.TransportPath.map_parameters` doing what (2)
    does, on the maps.
 
@@ -84,7 +86,6 @@ from patchworks.learning import (
     MAPS_PARAMETER,
     PredictionRule,
     ForwardPath,
-    SparsityAnneal,
     TransportPath,
     TransportRule,
 )
@@ -252,14 +253,11 @@ def surface_update(sheaf, rule=PredictionRule):
 def map_update(sheaf, rule=TransportRule):
     """The transport rule's update, `[pairs, m_max, stalk_max]`.
 
-    Taken one step onto the anneal's ceiling rather than at the schedule's
-    origin, so the sparsity term is carrying its full pressure while the
-    comparison is made. At step zero the pressure is exactly zero and half the
-    objective would be untested — a leak living in the penalty would pass.
+    The whole objective is disagreement since #410 deleted the sparsity
+    penalty, so there is no second term to position a schedule for and the
+    rule takes no configuration here at all.
     """
-    stepped = rule(sheaf, anneal=SparsityAnneal(horizon=1))
-    stepped.steps = 1
-    return stepped.gradient()
+    return rule(sheaf).gradient()
 
 
 def moved_rows(before, after):

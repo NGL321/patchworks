@@ -52,14 +52,15 @@ to arrange.
 makes it a projection rather than a second rule — it is not in the objective, it has no gradient, and
 it reads nothing the cell did not already own.
 
-**No additive term, and the asymmetry with the transport rule is deliberate.** The band forbids
+**No additive term, and the asymmetry with the transport rule is gone.** The band forbids
 non-normal transient amplification while a dense `K` trained on a temporal objective pulls toward it,
 so the projection and the gradient fight every step. The tempting fix — a soft penalty, the
 sparsity-pressure analogue — is refused: the right template for a stability constraint is a direct
 parameterisation rather than a penalty, so the fight is not a defect to damp but the **observable that
-triggers the fallback** from a dense `K` to a structured one. The transport rule carries an additive
-term and this one carries none, and that is now on the record with a reason rather than as an accident
-of what each rule happened to need.
+triggers the fallback** from a dense `K` to a structured one. The transport rule carried an additive
+term where this one carried none, and the asymmetry was on the record with a reason; [#406](https://github.com/NGL321/patchworks/issues/406)
+deleted that term, so **neither rule carries a penalty now** — and the reason above still stands as
+the reason this one never will.
 
 **What is trained is defined rather than listed.** There is no allowlist: the body's weights are
 registered as buffers and the per-cell surface as parameters, so *buffers are the frozen body,
@@ -90,12 +91,13 @@ per-edge auxiliary variable with a hand-set time constant, the object ADR-0007 r
 learned baseline*, and it is the same criterion form the change gate settled on
 ([`05-timescales.md`](./05-timescales.md)) for the same reason.
 
-The update is a local gradient step on that quantity, composed **in the same step** with the sparsity
-pressure already named in [`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md) — one additive penalty term
-inside one descent step, not a second update loop running alongside it. The penalty is an **L1 on the
-normalised map**, so it redistributes weight across a map's directions rather than removing it.
+The update is a local gradient step on that quantity and on nothing else. It used to be composed **in
+the same step** with a sparsity pressure — one additive penalty term, an L1 on the normalised map,
+inside one descent step — and [#406](https://github.com/NGL321/patchworks/issues/406) deleted that term outright;
+[ADR-0031](../adr/0031-the-sparsity-pressure-is-deleted.md) carries the grounds. There is one term, so there is nothing here
+trading against transport.
 
-Both terms are therefore blind to a map's overall magnitude, which is why that magnitude is **fixed by
+The one term is blind to a map's overall magnitude, which is why that magnitude is **fixed by
 construction rather than learned** (`01-cell-and-sheaf.md`, *Scale is gauge-fixed*): interior maps are
 projected back into `‖F‖_F ∈ [1/ρ, ρ]` after each step, boundary maps onto `‖F‖_F = 1`. The projection
 is part of the transport rule's step and is as local as the rest of it — a cell owns its own incident
@@ -122,11 +124,18 @@ parameters do ([ADR-0011](../adr/0011-the-locality-guarantee-is-enforced-not-inh
 
 ## Permitted global signals
 
-Exactly two, both schedule-shaped rather than information-shaped, so neither carries any particular
-cell's error across the graph:
+**Exactly one**, schedule-shaped rather than information-shaped, so it carries no particular cell's
+error across the graph:
 
 - a single global **learning-rate scalar**, mirroring reconciliation's `γ`
-- the **sparsity-pressure anneal** already named in [`06-graph-topology.md`](./06-graph-topology.md)
+
+**It was two until [#406](https://github.com/NGL321/patchworks/issues/406).** The other was the *sparsity-pressure anneal*,
+and deleting the pressure took its schedule with it — the anneal was the only non-learning-rate
+broadcast in the architecture, so the count moves from two to one and the locality story gets
+simpler rather than differently qualified ([ADR-0031](../adr/0031-the-sparsity-pressure-is-deleted.md)). No value is owed for
+the anneal's horizon or its ramp: [#89](https://github.com/NGL321/patchworks/issues/89) escalated the
+anneal's *direction* and left the horizon open, and that question **dissolves** with the term rather
+than resolving — nothing is looking for a number here.
 
 Nothing else broadcasts. A global loss, confidence readout, or any other signal carrying content about
 a specific cell's error is explicitly rejected — that would be backprop across the architecture wearing
@@ -172,7 +181,8 @@ problem. Across ticks the risk splits by parameter group and neither half needed
   it needs charts from a graph that transmits.
 - The **transport rule** needed no bound of its own. It was found to make ADR-0007's existing
   `γ × floor < fold margin` check go stale, since it trains the magnitudes the `Σ_e m_e` proxy stands in
-  for, and the fix was a per-cell re-derivation on the anneal schedule. **[ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md)
+  for, and the fix was a per-cell re-derivation on the sparsity anneal's schedule (a schedule since
+  deleted with the term itself, [ADR-0031](../adr/0031-the-sparsity-pressure-is-deleted.md)). **[ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md)
   removed the drift at its source** and that re-derivation is struck: with every incident map bounded,
   `λ_max(Σ_e F_evᵀF_ev) ≤ ρ² · deg(v)`, so the denominator in
   [`02-tick-semantics.md`](./02-tick-semantics.md) is a provable bound rather than a proxy that has to

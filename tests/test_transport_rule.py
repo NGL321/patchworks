@@ -23,15 +23,11 @@ import torch
 
 from patchworks.graph import build_graph
 from patchworks.learning import (
-    DEFAULT_ANNEAL_HORIZON,
     DEFAULT_LEARNING_RATE,
-    DEFAULT_SPARSITY_PRESSURE,
     MAPS_PARAMETER,
     NORM_FLOOR,
-    SparsityAnneal,
     TransportPath,
     TransportRule,
-    normalised_l1,
     relative_disagreement,
     transport_gradient,
     transport_objective,
@@ -133,7 +129,7 @@ def outgoing_of(rule):
         return rule.sheaf.maps.restrict(gathered)
 
 
-def objective_of(rule, *, pressure=None, maps=None, neighbour_beliefs=None):
+def objective_of(rule, *, maps=None, neighbour_beliefs=None):
     """The rule's own objective, with any of its arguments substituted."""
     gathered, incoming = rule.inputs()
     parameters = rule.path.map_parameters()
@@ -144,8 +140,6 @@ def objective_of(rule, *, pressure=None, maps=None, neighbour_beliefs=None):
         rule.path,
         gathered,
         incoming if neighbour_beliefs is None else neighbour_beliefs,
-        rule.permitted,
-        rule.pressure if pressure is None else pressure,
     )
 
 
@@ -155,13 +149,7 @@ def in_precision(rule, dtype):
     convert the sheaf the rest of the test is still running on."""
     gathered, incoming = (tensor.to(dtype) for tensor in rule.inputs())
     parameters = {MAPS_PARAMETER: rule.sheaf.maps.maps.detach().to(dtype)}
-    return parameters, (
-        rule.path,
-        gathered,
-        incoming,
-        rule.permitted.to(dtype),
-        rule.pressure,
-    )
+    return parameters, (rule.path, gathered, incoming)
 
 
 def local_gradient(rule, pair, dtype=torch.float64):
@@ -175,13 +163,7 @@ def local_gradient(rule, pair, dtype=torch.float64):
     gathered, incoming = rule.inputs()
     single = rule.sheaf.maps.maps[pair].detach().to(dtype).clone().requires_grad_(True)
     restricted = (single @ gathered[pair].to(dtype)).unsqueeze(0)
-    term = (
-        relative_disagreement(restricted, incoming[pair].to(dtype).unsqueeze(0))[0]
-        + rule.pressure
-        * normalised_l1(
-            single.unsqueeze(0), rule.permitted[pair].to(dtype).unsqueeze(0)
-        )[0]
-    )
+    term = relative_disagreement(restricted, incoming[pair].to(dtype).unsqueeze(0))[0]
     term.backward()
     return single.grad
 
@@ -277,8 +259,7 @@ class TestTheObjectiveIsRelativeDisagreement:
         # Central differences on the objective itself. This is what pins the
         # rule to relative disagreement rather than to something that merely
         # moves when the maps do.
-        rule = TransportRule(running, anneal=SparsityAnneal(horizon=1))
-        rule.steps = 1
+        rule = TransportRule(running)
         parameters, arguments = in_precision(rule, torch.float64)
         taken = transport_gradient(parameters, *arguments)[MAPS_PARAMETER]
 
@@ -314,7 +295,7 @@ class TestTheObjectiveIsRelativeDisagreement:
         # pinned at 1 and flat there. That is a maximum, not a solution the
         # rule can settle into -- reconciliation moves the node stalk every
         # tick, and once the signs agree the gradient is back.
-        rule = TransportRule(running, anneal=SparsityAnneal(pressure=0.0))
+        rule = TransportRule(running)
         _, incoming = rule.inputs()
         outgoing = outgoing_of(rule)
         gradient = rule.gradient().flatten(1).abs().sum(-1)
@@ -345,7 +326,7 @@ class TestTheObjectiveExcludesTheTrivialSolution:
         # the neighbour's map reaches the rule already applied -- the belief the
         # neighbour restricted. The ratio is homogeneous of the same degree
         # above and below, so shrinking the edge buys nothing.
-        rule = TransportRule(running, anneal=SparsityAnneal(pressure=0.0))
+        rule = TransportRule(running)
         _, incoming = rule.inputs()
         before = relative_disagreement(outgoing_of(rule), incoming)
         with torch.no_grad():
@@ -358,7 +339,7 @@ class TestTheObjectiveExcludesTheTrivialSolution:
         # The same fact stated as the rule sees it: the objective a shrunken
         # sheaf reports is the objective it already had, so there is no descent
         # direction in the collapse.
-        rule = TransportRule(running, anneal=SparsityAnneal(pressure=0.0))
+        rule = TransportRule(running)
         _, incoming = rule.inputs()
         before = objective_of(rule)
         after = objective_of(
@@ -415,7 +396,7 @@ class TestTheObjectiveExcludesTheTrivialSolution:
         # evidence about what basis to transport into -- but it is the
         # per-edge form of what the two-tick guard refuses graph-wide, and it
         # is invisible to that guard.
-        rule = TransportRule(running, anneal=SparsityAnneal(pressure=0.0))
+        rule = TransportRule(running)
         silent = 4
         with torch.no_grad():
             running.incoming[silent].zero_()
@@ -543,340 +524,11 @@ class TestTheObjectiveExcludesTheTrivialSolution:
         # reason. Stated as a property: the objective is a function of the
         # state in front of it, so a rule three steps into a run and a rule
         # built fresh report the same thing about the same state.
-        rule = TransportRule(running, anneal=SparsityAnneal(pressure=0.0))
+        rule = TransportRule(running)
         for _ in range(3):
             rule.step()
-        fresh = TransportRule(running, anneal=SparsityAnneal(pressure=0.0))
+        fresh = TransportRule(running)
         assert torch.equal(rule.gradient(), fresh.gradient())
-
-
-class TestTheSparsityPressureComposesInTheSameStep:
-    """One additive penalty term inside one descent step, not a second update
-    loop running alongside it — and an L1 on the *normalised* map, so it
-    redistributes weight across a map's directions rather than removing it."""
-
-    def test_the_objective_is_the_two_terms_added(self, running):
-        rule = TransportRule(running)
-        _, incoming = rule.inputs()
-        pressure = 0.37
-        disagreement = relative_disagreement(outgoing_of(rule), incoming).sum()
-        penalty = normalised_l1(running.maps.maps.detach(), rule.permitted).sum()
-        composed = objective_of(rule, pressure=pressure)
-        assert composed.item() == pytest.approx(
-            (disagreement + pressure * penalty).item(), rel=1e-6
-        )
-
-    def test_the_gradient_is_the_two_gradients_added(self, running):
-        # Additivity in the pressure is what "composes in the same step" means
-        # mechanically: one gradient of one sum, not two steps taken in turn.
-        rule = TransportRule(running, anneal=SparsityAnneal(pressure=0.0))
-        gathered, incoming = rule.inputs()
-        parameters = rule.path.map_parameters()
-
-        def taken(pressure):
-            return transport_gradient(
-                parameters, rule.path, gathered, incoming, rule.permitted, pressure
-            )[MAPS_PARAMETER]
-
-        transport, both = taken(0.0), taken(0.4)
-        penalty = (both - transport) / 0.4
-        assert torch.allclose(taken(0.9), transport + 0.9 * penalty, atol=1e-6)
-        assert penalty.abs().sum() > 0
-
-    def test_the_step_writes_the_maps_once(self, running):
-        # A second update loop would show up here as a map that is not the
-        # projection of one descent on one gradient.
-        rule = TransportRule(running, learning_rate=0.05)
-        rule.steps = DEFAULT_ANNEAL_HORIZON
-        before = maps_of(running)
-        gradient = rule.step()
-        after = maps_of(running)
-        with torch.no_grad():
-            running.maps.maps.copy_(before - 0.05 * gradient)
-        running.maps.project()
-        assert torch.equal(maps_of(running), after)
-
-    def _term_norms(self, running):
-        """`[pairs]` gradient norms of the two terms, the penalty at `λ = 1`."""
-        rule = TransportRule(running)
-        gathered, incoming = rule.inputs()
-        parameters = rule.path.map_parameters()
-
-        def taken(pressure):
-            return transport_gradient(
-                parameters, rule.path, gathered, incoming, rule.permitted, pressure
-            )[MAPS_PARAMETER]
-
-        transport = taken(0.0)
-        return (
-            transport.flatten(1).norm(dim=-1),
-            (taken(1.0) - transport).flatten(1).norm(dim=-1),
-        )
-
-    def test_the_ceiling_leaves_pruning_secondary_to_transport(
-        self, running, free_pairs
-    ):
-        # What `DEFAULT_SPARSITY_PRESSURE` is set by, so that the number and
-        # its stated reason cannot drift apart. Read as a median, because the
-        # ratio is unbounded wherever the transport term happens to be flat.
-        transport, penalty = self._term_norms(running)
-        ratio = DEFAULT_SPARSITY_PRESSURE * penalty[free_pairs] / transport[free_pairs]
-        assert 0.03 < ratio.median().item() < 0.3
-
-    def test_the_pressure_does_not_grade_with_what_the_mask_leaves_open(
-        self, running, free_pairs
-    ):
-        # The `1/√p` normalisation's whole job (ADR-0010, amended in #89).
-        # Without it the term's gradient norm carried a `+0.985` correlation
-        # with the open-weight count, so one global `λ` pruned a wide map
-        # roughly eightfold harder than a narrow one. With it `p` is gone from
-        # the gradient identically, which is checked exactly rather than
-        # empirically by `test_the_pressures_gradient_is_free_of_the_mask_size`
-        # below. This is that identity's companion reading on a real graph.
-        #
-        # **The bound is 0.4, and the old 0.2 was a lucky seed.** #157
-        # measured the residual over 16 sheaf seeds, before and after the
-        # Koopman conversion, and it is not noise: it is a small *systematic*
-        # positive correlation, +0.19 to +0.31 (median +0.28) before the
-        # conversion and +0.21 to +0.31 (median +0.26) after. The two are
-        # indistinguishable -- the conversion does not touch this rule -- but
-        # the fixture's own seed sat at 0.1922 before, the minimum of the
-        # sixteen, so a 0.2 bound was passing on where one draw happened to
-        # land. What remains is what a shared graph leaves behind after `p`
-        # itself is gone, and it is 3x below the `+0.985` the un-normalised
-        # term carried, which is the thing this test exists to exclude.
-        _, penalty = self._term_norms(running)
-        permitted = _permitted(running).float()[free_pairs]
-        stacked = torch.stack([permitted, penalty[free_pairs]])
-        assert abs(torch.corrcoef(stacked)[0, 1].item()) < 0.4
-
-    @pytest.mark.parametrize("scale", [1e-12, 1e-8, 1e-4, 1.0, 1e4])
-    def test_the_pressures_gradient_is_free_of_the_mask_size(self, scale):
-        # The identity the ruling in #89 turned on, checked directly rather
-        # than inferred from a correlation: for `h = ‖F‖₁/(√p‖F‖_F)`,
-        # `‖∇h‖ = √(1 − h²)/‖F‖_F`, in which `p` does not appear (ADR-0010,
-        # amended in #89).
-        #
-        # **The scale is swept and only the direction is drawn** (#115), for
-        # the reason the sibling test one class up records (#111): `h` is
-        # invariant under a map's own scale and `∇h` is homogeneous of degree
-        # −1 in it, so a draw buys no coverage on that axis -- except that
-        # `NORM_FLOOR` breaks the invariance, which is what these assertions
-        # have to survive, so it is swept deliberately. A bare `randn(p)`
-        # never visits the small end at all: it lands at `‖F‖_F ≈ √p` every
-        # time, so the end where the floor lives went unchecked.
-        #
-        # **Two corrections to the identity as ADR-0010 writes it, both
-        # derived from `_norm` rather than measured.** The code's `‖F‖_F` is
-        # `n = √(FᵀF + NORM_FLOOR)`, so `∇h = (sign(F) − (‖F‖₁/n²)F)/(n√p)`
-        # and, using `FᵀF = n² − NORM_FLOOR` and `‖F‖₁ = √p·h·n`,
-        #
-        #     ‖∇h‖² = (1 − h²(1 + NORM_FLOOR/n²)) / n²
-        #
-        # 1. **The floor's correction goes as `1/‖F‖²`, not as `1/‖F‖`.**
-        #    Against the floorless form it is a relative
-        #    `NORM_FLOOR/(2‖F‖²(1 − h²))`, which reaches `1e-9` at
-        #    `‖F‖_F ≈ 4e-8` for a typical direction and is `1/2` or worse at
-        #    the bottom of this sweep. A norm-scaled tolerance cannot rescue
-        #    the floorless form there -- it is not imprecise but wrong -- and
-        #    carrying the term instead is what makes the small end assertable
-        #    at all. From `1e-4` upward the term is below round-off and costs
-        #    nothing.
-        # 2. **The identity is asserted as a sum of squares rather than as the
-        #    ratio it is written as**, because `√(1 − h²)` cannot be recovered
-        #    from `h` in float64 near a flat map: `h` is 1 exactly when every
-        #    open weight has the same magnitude, and `1 − h²` cancels to
-        #    nothing there. That is the flake this rewrite came from -- 5 of
-        #    40000 global RNG states, every one at `p = 2`, where `|a| = |b|`
-        #    is a whole locus rather than a point -- and it was a failure of
-        #    the test's own reference expression, not of `normalised_l1`.
-        #    Multiplied out, both terms below are `O(1)` and no small number
-        #    is formed by cancelling large ones, so the residue is round-off
-        #    and nothing else, at every direction including the flat map.
-        #
-        # The tolerance is therefore a multiple of float64's unit round-off
-        # `2⁻⁵³`, which is fixed by the dtype this test pins. **The multiple
-        # is a measurement, not a bound**: how much error the `p`-term sum in
-        # `‖F‖₁` accumulates depends on the order torch adds in. Worst residue
-        # over 4000 drawn directions at each of 5 scales × 5 mask sizes is
-        # `8·2⁻⁵³`, and `18·2⁻⁵³` once flat maps (`h = 1`) and maps
-        # concentrated to within `1e-16` of one direction (`h → 1/√p`) are
-        # added at every scale, which is both ends of `h`'s own range. The
-        # `128·2⁻⁵³` asserted is the latter with 7x of headroom.
-        #
-        # **Neither end of the sweep is near where this breaks**, which is what
-        # says the ends are chosen for what they exercise rather than for where
-        # the assertion runs out: measured, the sum stays inside a tenth of
-        # that tolerance from `1e-200` -- where the weights themselves have
-        # underflowed and `h` is 0 -- up to `1e153`, a few orders short of
-        # `FᵀF` overflowing, past which there is nothing to assert at all. The
-        # sweep is `1e-12` to `1e4` because that spans the floor's regime, the
-        # gauge band `[1/ρ, ρ]` the maps actually live in, and four orders
-        # above it.
-        #
-        # **The identity wants every open weight nonzero**, and that is a
-        # condition rather than an approximation: `sign(0) = 0`, so an exactly
-        # zero weight contributes to neither `‖F‖₁` nor its gradient, and the
-        # `p` in `‖sign(F)‖² = p` is really the count of nonzeros `k`. The sum
-        # below reads `k/p` and not `1` -- exactly, at every scale. It does
-        # not weaken the claim, because `p` is read off the structural mask,
-        # so a masked or padded entry is excluded from `p` rather than sitting
-        # in it as a zero, and a descent step reaches exactly zero with
-        # probability zero. It does mean the draws here have to be dense,
-        # which `randn` is.
-        for permitted in (2, 8, 13, 96, 384):
-            direction = torch.randn(permitted, dtype=torch.float64)
-            weights = (direction / direction.norm() * scale).requires_grad_(True)
-            count = torch.tensor([float(permitted)], dtype=torch.float64)
-            value = normalised_l1(weights.reshape(1, 1, -1), count)[0]
-            (taken,) = torch.autograd.grad(value, weights)
-            squared = weights.detach().pow(2).sum().item()
-            norm = (squared + NORM_FLOOR) ** 0.5
-            floorless = (taken.norm().item() * norm) ** 2 + value.item() ** 2
-            summed = floorless + value.item() ** 2 * NORM_FLOOR / norm**2
-            assert summed == pytest.approx(1.0, abs=128 * 2.0**-53, rel=0.0)
-            # **A tripwire on `NORM_FLOOR`, not a second claim.** The line
-            # above follows the constant symbolically and would stay green
-            # wherever it moved to; this one writes `1e-24` out, so a change
-            # of the floor in either direction turns it red. What it reads is
-            # the amount the *floorless* identity falls short by, which the
-            # algebra above gives exactly as `h²·NORM_FLOOR/n²`.
-            #
-            # It runs at the bottom scale of the sweep and nowhere else in it,
-            # because at `‖F‖_F = 1e-12` the floor is half of `n²` and the
-            # shortfall is `h²/2` -- at least `1/(4p)` for any direction, and
-            # measured between 0.06 and 0.25 over 200000 draws -- while at
-            # unit scale it is `1e-24`, nine orders below the round-off it
-            # would have to be read out of. Nothing asserts against the 0.06:
-            # it is the low end of a sample and moves with the sample, which
-            # the `1/(4p)` beside it does not.
-            #
-            # **The condition is on the sweep, not on the floor**, and the
-            # window it has to select is narrow at both ends: above about
-            # `1e-11` the shortfall drops under round-off -- at `1e-8` this
-            # line reads a relative `9e-8` against its own `1e-9` -- and below
-            # about `1e-15` `h` has collapsed toward zero and taken the
-            # shortfall with it. Asking whether `NORM_FLOOR/n²` is large
-            # enough to read selects that same window, and hands the
-            # tripwire's own switch to the constant it exists to watch:
-            # measured, a floor dropped to `1e-32` then turns the test green
-            # by skipping this line rather than by satisfying it. `scale` is a
-            # sweep coordinate and nothing under test can move it.
-            #
-            # `rel` is derived at the concentrated end, not measured at a
-            # typical one: with the floor carrying half of `n²`, `h` bottoms
-            # out at `1/√(2p)`, so the shortfall bottoms out at `1/(4p)` and
-            # the round-off allowed above is `4p·128·2⁻⁵³` of it -- `2.2e-11`
-            # at `p = 384`, against `2.7e-12` actually measured there.
-            #
-            # Note this is `NORM_FLOOR`, an epsilon guarding `0/0` in a square
-            # root, and **not ADR-0007's disagreement floor** -- the
-            # irreducible static, lag and settling parts of an edge's
-            # disagreement, which are structural and at the scale of the
-            # configuration. The two are unrelated quantities that share a
-            # word.
-            if scale <= 1e-11:
-                assert 1.0 - floorless == pytest.approx(
-                    value.item() ** 2 * 1e-24 / norm**2, rel=1e-9
-                )
-
-    def test_the_penalty_is_blind_to_a_maps_magnitude(self, running):
-        maps = running.maps.maps.detach()
-        permitted = _permitted(running).float()
-        for alpha in (0.25, 4.0):
-            assert torch.allclose(
-                normalised_l1(maps * alpha, permitted),
-                normalised_l1(maps, permitted),
-                atol=1e-5,
-            )
-
-    def test_at_a_fixed_norm_the_penalty_prefers_the_sparser_map(self):
-        # What makes it a *pruning* pressure rather than weight decay: at fixed
-        # Frobenius norm the sum of absolute values is smallest when the map's
-        # weight sits on fewest directions. The `1/√p` is a constant per map,
-        # so it cannot change this -- which is the point of it. Both maps here
-        # have the same mask, so both divide by the same root.
-        concentrated = torch.tensor([[[2.0, 0.0], [0.0, 0.0]]])
-        spread = torch.full((1, 2, 2), 1.0)
-        permitted = torch.tensor([4.0])
-        assert torch.allclose(
-            torch.linalg.matrix_norm(concentrated), torch.linalg.matrix_norm(spread)
-        )
-        assert (
-            normalised_l1(concentrated, permitted).item()
-            < normalised_l1(spread, permitted).item()
-        )
-        # Hoyer's ratio: `1/√p` on one direction, exactly `1` when flat.
-        assert normalised_l1(concentrated, permitted).item() == pytest.approx(0.5)
-        assert normalised_l1(spread, permitted).item() == pytest.approx(1.0)
-
-    def test_the_penalty_redistributes_rather_than_removes(self, running):
-        # "Prunes within the mask; does not shrink the stalk", mechanically:
-        # under the pressure alone every map keeps its gauge-fixed norm and
-        # its widest entries give way to its narrowest.
-        rule = TransportRule(
-            running, learning_rate=0.05, anneal=SparsityAnneal(horizon=1)
-        )
-        rule.steps = 1
-        widest = running.maps.maps.detach().abs().flatten(1).max(-1).values
-        for _ in range(5):
-            rule.step()
-        assert torch.all(running.maps.norms() >= 1.0 / GAUGE_RHO)
-        now = running.maps.maps.detach().abs().flatten(1).max(-1).values
-        assert torch.any(now != widest)
-
-
-class TestTheAnnealSchedule:
-    """The second and last permitted global signal: one scalar, schedule-shaped
-    rather than information-shaped, reading nothing about any cell or edge."""
-
-    def test_it_starts_at_nothing_and_reaches_the_ceiling(self):
-        anneal = SparsityAnneal(pressure=0.2, horizon=10)
-        assert anneal.at(0) == 0.0
-        assert anneal.at(5) == pytest.approx(0.1)
-        assert anneal.at(10) == pytest.approx(0.2)
-        assert anneal.at(1000) == pytest.approx(0.2)
-
-    def test_it_is_a_function_of_the_step_and_nothing_else(self):
-        anneal = SparsityAnneal(pressure=0.2, horizon=10)
-        assert [anneal.at(step) for step in range(4)] == [
-            anneal.at(step) for step in range(4)
-        ]
-
-    def test_the_rule_walks_the_schedule_one_step_at_a_time(self, running):
-        rule = TransportRule(running, anneal=SparsityAnneal(pressure=0.2, horizon=4))
-        seen = []
-        for _ in range(6):
-            seen.append(rule.pressure)
-            rule.step()
-        assert seen == pytest.approx([0.0, 0.05, 0.1, 0.15, 0.2, 0.2])
-
-    def test_the_default_ceiling_is_positive_and_small(self):
-        assert 0 < DEFAULT_SPARSITY_PRESSURE < 1
-        assert DEFAULT_ANNEAL_HORIZON >= 1
-
-    @pytest.mark.parametrize("pressure", [-1e-6, float("nan"), float("inf")])
-    def test_a_pressure_that_is_not_a_scalar_is_refused(self, pressure):
-        # nan and inf among them, for the reason the learning rate refuses
-        # them: a nan pressure poisons every map on the first step.
-        with pytest.raises(ValueError, match="global scalar"):
-            SparsityAnneal(pressure=pressure)
-
-    @pytest.mark.parametrize(
-        "horizon", [0, -1, float("nan"), float("inf"), float("-inf")]
-    )
-    def test_a_horizon_that_is_not_a_step_count_is_refused(self, horizon):
-        # nan and inf among them: `horizon < 1` admits both, and both switch
-        # the schedule off rather than failing. A nan horizon puts
-        # `min(1.0, nan)` at 1.0, so the full pressure applies from step zero;
-        # an infinite one holds it at zero for the length of the run.
-        with pytest.raises(ValueError, match="positive step count"):
-            SparsityAnneal(horizon=horizon)
-
-    @pytest.mark.parametrize("step", [-1, float("nan"), float("inf")])
-    def test_a_position_that_is_not_on_the_schedule_is_refused(self, step):
-        with pytest.raises(ValueError, match="starts at step 0"):
-            SparsityAnneal().at(step)
 
 
 class TestTheGaugeProjectionRunsAfterTheStep:
@@ -971,14 +623,13 @@ class TestTheNeighboursMapEntersDetached:
         # rows that term's gradient reaches. Under a correct rule that is the
         # endpoint's own row and nothing else. A partner's map inside the term
         # would move the partner's row along with it.
-        rule = TransportRule(running, anneal=SparsityAnneal(horizon=1))
-        rule.steps = 1
+        rule = TransportRule(running)
         gathered, incoming = rule.inputs()
         parameters = rule.path.map_parameters()
 
         def taken(beliefs):
             return transport_gradient(
-                parameters, rule.path, gathered, beliefs, rule.permitted, rule.pressure
+                parameters, rule.path, gathered, beliefs
             )[MAPS_PARAMETER]
 
         before = taken(incoming)
@@ -1057,8 +708,7 @@ class TestTheBatchedGradientEqualsThePerEndpointLocalGradient:
         "dtype, tolerance", [(torch.float64, 1e-13), (torch.float32, 1e-5)]
     )
     def test_every_endpoint(self, running, dtype, tolerance):
-        rule = TransportRule(running, anneal=SparsityAnneal(horizon=1))
-        rule.steps = 1
+        rule = TransportRule(running)
         parameters, arguments = in_precision(rule, dtype)
         batched = transport_gradient(parameters, *arguments)[MAPS_PARAMETER]
         for pair in range(running.maps.pairs):
@@ -1090,16 +740,13 @@ class TestTheBatchedGradientEqualsThePerEndpointLocalGradient:
 
 
 class TestTrainingChangesNoShape:
-    """`m` is fixed at construction and the mask closes and never re-opens. The
-    sparsity pressure prunes *within* the mask; it does not shrink a stalk and
-    it removes no edge."""
+    """`m` is fixed at construction and the mask closes and never re-opens.
+    Training moves weights inside the mask; it does not shrink a stalk and it
+    removes no edge."""
 
     @pytest.fixture
     def trained(self, running):
-        rule = TransportRule(
-            running, learning_rate=0.2, anneal=SparsityAnneal(horizon=1)
-        )
-        rule.steps = 1
+        rule = TransportRule(running, learning_rate=0.2)
         for _ in range(10):
             rule.step()
         return running
@@ -1169,8 +816,8 @@ class TestAPhaseSeparateFromTheTick:
         # The unit delay, as the rule sees it: the message-passing phase reads
         # the broadcast buffer as it stood *before* the phase, so the first
         # tick reconciles against the constructor's zeros. A rule that took
-        # this state would take a silent null step -- no gradient, but a
-        # position burned on the anneal schedule and every map re-projected.
+        # this state would take a silent null step -- no gradient, but every
+        # map re-projected.
         sheaf.tick()
         assert sheaf.incoming.abs().sum() == 0.0
         with pytest.raises(ValueError, match="needs two ticks to learn from"):
@@ -1200,11 +847,9 @@ class TestOneGlobalLearningRate:
         assert torch.equal(maps_of(running), after)
 
     def test_the_step_moves_every_map_the_mask_leaves_free(self, running, free_pairs):
-        # The formula above is satisfied by a zero gradient too. Read with the
-        # pressure at its ceiling, so that every map moves rather than only the
-        # ones whose edge has something to descend this tick.
-        rule = TransportRule(running, anneal=SparsityAnneal(horizon=1))
-        rule.steps = 1
+        # The formula above is satisfied by a zero gradient too, so this reads
+        # that every map the mask leaves free actually moves.
+        rule = TransportRule(running)
         before = maps_of(running)
         rule.step()
         moved = (running.maps.maps.detach() - before).flatten(1).abs().sum(-1)
@@ -1220,8 +865,7 @@ class TestOneGlobalLearningRate:
         # back. Nothing is left for the rule to identify, which is the
         # unidentified-magnitude argument at its smallest.
         assert single_entry_pairs
-        rule = TransportRule(running, anneal=SparsityAnneal(horizon=1))
-        rule.steps = 1
+        rule = TransportRule(running)
         before = maps_of(running)
         rule.step()
         for pair in single_entry_pairs:
@@ -1231,11 +875,9 @@ class TestOneGlobalLearningRate:
 
     def test_the_rule_carries_nothing_per_cell_or_per_edge(self, running):
         # No momentum, no running average, no per-edge baseline: two rules
-        # stepped from the same state at the same schedule position agree, and
-        # a second step of one rule is the plain gradient of the state it now
-        # sees.
-        anneal = SparsityAnneal(pressure=0.0)
-        first = TransportRule(running, learning_rate=0.03, anneal=anneal)
+        # stepped from the same state agree, and a second step of one rule is
+        # the plain gradient of the state it now sees.
+        first = TransportRule(running, learning_rate=0.03)
         before = maps_of(running)
         first.step()
         gradient = first.step()
@@ -1243,35 +885,19 @@ class TestOneGlobalLearningRate:
 
         with torch.no_grad():
             running.maps.maps.copy_(before)
-        second = TransportRule(running, learning_rate=0.03, anneal=anneal)
+        second = TransportRule(running, learning_rate=0.03)
         second.step()
         assert torch.equal(second.step(), gradient)
         assert torch.equal(maps_of(running), after_two)
 
-    def test_the_only_thing_it_carries_is_the_schedules_position(self, running):
+    def test_it_carries_nothing_between_steps(self, running):
+        # Since #410 deleted the sparsity anneal, the rule holds no counter and
+        # no per-edge array at all: what is left is the sheaf it is built
+        # against, the one scalar, and the path. `steps` was the anneal
+        # schedule's position and `permitted` was the mask's open-weight count
+        # the deleted penalty divided by; nothing reads either now.
         rule = TransportRule(running)
-        assert set(vars(rule)) == {
-            "sheaf",
-            "learning_rate",
-            "anneal",
-            "path",
-            "permitted",
-            "steps",
-        }
-        assert rule.steps == 0
-
-    def test_the_open_weight_counts_are_the_masks_own_and_never_move(self, running):
-        # `permitted` is the one per-edge array the rule holds, and it has to
-        # be a structural constant rather than state for the "no per-edge
-        # auxiliary variable" constraint to survive it. So: it is read off the
-        # mask, and training does not touch it.
-        rule = TransportRule(running, learning_rate=0.2)
-        assert torch.equal(rule.permitted, _permitted(running).to(rule.permitted.dtype))
-        before = rule.permitted.clone()
-        for _ in range(5):
-            rule.step()
-        assert torch.equal(rule.permitted, before)
-        assert torch.equal(rule.permitted, _permitted(running).to(rule.permitted.dtype))
+        assert set(vars(rule)) == {"sheaf", "learning_rate", "path"}
 
     def test_the_maps_gain_no_buffer_of_their_own(self, running):
         # A per-edge auxiliary variable would have to live somewhere, and the
@@ -1373,7 +999,7 @@ def test_the_real_dome_trains_inside_its_gauge_and_its_mask():
     # the mask and the padding are properties of the shape, and the shape is
     # what changes here.
     sheaf = Sheaf(build_graph(), generator=torch.Generator().manual_seed(0))
-    rule = TransportRule(sheaf, learning_rate=0.1, anneal=SparsityAnneal(horizon=1))
+    rule = TransportRule(sheaf, learning_rate=0.1)
     support = sheaf.maps.support.clone()
     for _ in range(3):
         sheaf.tick()
@@ -1388,38 +1014,3 @@ def test_the_real_dome_trains_inside_its_gauge_and_its_mask():
     assert torch.equal(sheaf.maps.support, support)
     assert torch.all(sheaf.maps.maps.detach()[~support] == 0)
     assert torch.all(torch.isfinite(sheaf.maps.maps.detach()))
-
-
-@pytest.mark.parametrize("seed", [0, 3, 17])
-def test_the_real_domes_pressure_is_the_fraction_the_constant_records(seed):
-    # `DEFAULT_SPARSITY_PRESSURE`'s docstring quotes a median of 0.12 measured
-    # on **this** dome. The window is wide enough to survive a reseed and far
-    # too narrow to survive the constant moving, which is the job: a number
-    # recorded in a comment and held nowhere drifts away from what it claims.
-    dome = build_graph()
-    sheaf = Sheaf(dome, generator=torch.Generator().manual_seed(seed))
-    generator = torch.Generator().manual_seed(seed + 100)
-    with torch.no_grad():
-        sheaf.stalks[: sheaf.layout.total] = torch.randn(
-            sheaf.layout.total, generator=generator
-        )
-        sheaf.charts.normal_(0.0, 1.0, generator=generator)
-    for _ in range(4):
-        sheaf.tick()
-
-    rule = TransportRule(sheaf)
-    gathered, incoming = rule.inputs()
-    parameters = rule.path.map_parameters()
-
-    def taken(pressure):
-        return transport_gradient(
-            parameters, rule.path, gathered, incoming, rule.permitted, pressure
-        )[MAPS_PARAMETER]
-
-    transport = taken(0.0).flatten(1).norm(dim=-1)
-    penalty = (taken(1.0) - taken(0.0)).flatten(1).norm(dim=-1)
-    # The flat endpoints are excluded rather than clamped: a zero transport
-    # gradient makes the ratio infinite and says nothing about the balance.
-    live = (_permitted(sheaf) > 1) & (transport > 0)
-    ratio = DEFAULT_SPARSITY_PRESSURE * penalty[live] / transport[live]
-    assert 0.08 < ratio.median().item() < 0.18

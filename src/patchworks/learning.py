@@ -73,20 +73,16 @@ from .restriction import RestrictionMaps
 from .tick import Sheaf
 
 __all__ = [
-    "DEFAULT_ANNEAL_HORIZON",
     "DEFAULT_OPERATOR_RATE_RATIO",
     "DEFAULT_LEARNING_RATE",
-    "DEFAULT_SPARSITY_PRESSURE",
     "MAPS_PARAMETER",
     "NORM_FLOOR",
     "PredictionRule",
     "ForwardPath",
-    "SparsityAnneal",
     "TransportPath",
     "TransportRule",
     "prediction_gradient",
     "checked_learning_rate",
-    "normalised_l1",
     "prediction_error",
     "relative_disagreement",
     "transport_gradient",
@@ -96,8 +92,8 @@ __all__ = [
 #: @type chosen
 #: @flexibility unknown; the first thing to retune once #90 and #91 can measure a run
 #: @warrant here
-#: `η`, the single global learning-rate scalar — one of exactly two permitted
-#: global signals, and the only one this rule uses
+#: `η`, the single global learning-rate scalar — the **one** permitted global
+#: signal, since #410 deleted the sparsity anneal that was the other
 #: (`docs/spec/07-local-learning-rule.md`, *Permitted global signals*). It is
 #: schedule-shaped rather than information-shaped: it carries no cell's error
 #: anywhere, which is what keeps it from being a global loss wearing a
@@ -119,8 +115,9 @@ DEFAULT_LEARNING_RATE = 1e-2
 #: `c`, the ratio `eta_K = c * eta` at which `K` descends (ticket #139).
 #:
 #: **A construction-time constant, not a second global signal.** ADR-0008
-#: permits exactly two global signals — one learning-rate scalar and the
-#: sparsity anneal — and a second `eta` would be a third. What that clause
+#: permitted two global signals — one learning-rate scalar and the sparsity
+#: anneal — and ADR-0031 deleted the second, so a second `eta` would now be the
+#: only other one there is. What that clause
 #: guards is stated in the ADR itself: the permitted signals are *schedule-
 #: shaped rather than information-shaped, so neither smuggles in a global error
 #: channel*. A fixed ratio carries no cell's error anywhere. It is visible,
@@ -464,103 +461,6 @@ MAPS_PARAMETER = "maps.maps"
 #: nothing to learn from" — reads like a settling guarantee and is not one.
 NORM_FLOOR = 1e-24
 
-#: @type selected
-#: @flexibility measured: at 0.4 the pressure gradient is a median 0.12 of the transport term's (0.114-0.127, three seeds) on the default dome
-#: @warrant docs/spec/07-local-learning-rule.md, Permitted global signals; tests/test_transport_rule.py
-#: `λ_max`, the ceiling the sparsity pressure anneals up to — the second and
-#: last permitted global signal alongside `η`
-#: (`docs/spec/07-local-learning-rule.md`, *Permitted global signals*), and
-#: schedule-shaped rather than information-shaped in exactly the same way.
-#:
-#: **The value is chosen here, not recorded.** `06-graph-topology.md` fixes that
-#: sparsity annealing is "a schedule on the sparsity pressure, not a structural
-#: process" and ADR-0010 fixes that the pressure is an L1 on the normalised map;
-#: neither fixes a number. It is set by **measuring** the balance rather than by
-#: arguing it: the relative disagreement lies in `[0, 1]`, and the pressure
-#: term's gradient is `√(1 − h²)/‖F‖_F` (see :func:`normalised_l1`), so the two
-#: are the same order but not the same size. Measured on the default dome at
-#: `λ = 0.4`, the pressure term's per-map gradient sits at a median **0.12** of
-#: the transport term's (0.114–0.127 across three seeds), which is what "prunes
-#: *within* the mask" asks of a secondary pressure. It is a thing to retune once
-#: #91 can read effective rank, and `tests/test_transport_rule.py` holds the
-#: figure to the dome it names.
-#:
-#: The value moved from `0.03` to `0.4` when the `1/√p` normalisation went into
-#: :func:`normalised_l1` (#89): the term shrank by roughly `√p`, and the ceiling
-#: rose by roughly the same factor to hold the balance where it was.
-DEFAULT_SPARSITY_PRESSURE = 0.4
-
-#: @type chosen
-#: @flexibility unknown; set an order of magnitude above the slowest cell's tau >= 100 ticks
-#: @warrant docs/spec/05-timescales.md
-#: How many steps the pressure takes to reach that ceiling.
-#:
-#: **Chosen here, not recorded**, and the *direction* is the choice: the
-#: pressure anneals **up**, from nothing, rather than down. A map is drawn
-#: random and dense, and until transport has organised it there is no shape for
-#: an L1 to prune *within* — pruning a map before it carries anything is the
-#: local-neuroplasticity analogue run backwards. **That direction was escalated
-#: from #89 and ruled on rather than left to default**, so it is settled and not
-#: merely a first guess; the horizon and the ramp's shape were not, and remain
-#: this module's. The horizon is set an
-#: order of magnitude above the slowest cell's own time constant
-#: (`docs/spec/05-timescales.md` reaches `τ ≥ 100 ticks`), so that on the
-#: timescale any one cell adapts over the pressure is a constant rather than
-#: something it is chasing.
-DEFAULT_ANNEAL_HORIZON = 1000
-
-
-class SparsityAnneal:
-    """The schedule on the sparsity pressure: one global scalar, per step.
-
-    A pure schedule — a linear ramp from zero to :attr:`pressure` over
-    :attr:`horizon` steps, flat thereafter. It reads nothing about any cell,
-    any edge, or any disagreement, which is what keeps the second permitted
-    global signal schedule-shaped rather than information-shaped. It holds no
-    state either: the step index is handed in.
-    """
-
-    def __init__(
-        self,
-        *,
-        pressure: float = DEFAULT_SPARSITY_PRESSURE,
-        horizon: int = DEFAULT_ANNEAL_HORIZON,
-    ) -> None:
-        if not 0.0 <= pressure < math.inf:
-            raise ValueError(
-                "the sparsity pressure is a single non-negative global scalar "
-                "(docs/spec/07-local-learning-rule.md, Permitted global signals); "
-                f"got {pressure}"
-            )
-        # Written as a two-sided comparison for the reason
-        # `checked_learning_rate` is: `horizon < 1` admits `nan` and `inf`, and
-        # both are silently wrong rather than loud. A `nan` horizon puts
-        # `min(1.0, nan)` at `1.0`, so the full ceiling applies from step zero
-        # -- the anneal run backwards -- and an infinite one holds the pressure
-        # at zero forever, switching the second global signal off.
-        if not 1 <= horizon < math.inf:
-            raise ValueError(
-                f"the anneal horizon is a positive step count, got {horizon}"
-            )
-        self.pressure = pressure
-        self.horizon = horizon
-
-    def at(self, step: int) -> float:
-        """`λ(step)`: the pressure this step's objective composes.
-
-        Zero at the first step and the full ceiling from :attr:`horizon`
-        onwards. The bound is two-sided for the reason the horizon's is:
-        `step < 0` admits `nan`, and `min(1.0, nan)` is `1.0`, so a `nan`
-        position would report the full pressure rather than a mistake.
-        """
-        if not 0 <= step < math.inf:
-            raise ValueError(f"the schedule starts at step 0, got {step}")
-        return self.pressure * min(1.0, step / self.horizon)
-
-    def __repr__(self) -> str:
-        return f"SparsityAnneal(pressure={self.pressure}, horizon={self.horizon})"
-
-
 class TransportPath(torch.nn.Module):
     """The restriction of every cell's own node stalk, as one callable module.
 
@@ -657,87 +557,29 @@ def relative_disagreement(
     )
 
 
-def normalised_l1(maps: torch.Tensor, permitted: torch.Tensor) -> torch.Tensor:
-    """`[pairs]`: `‖F‖₁ / (√p ‖F‖_F)`, the sparsity pressure's per-map term.
-
-    An L1 on the **normalised** map, so the pressure redistributes weight
-    across a map's directions rather than removing it
-    (`docs/spec/06-graph-topology.md`, *Sparsity is a property of the maps, not
-    of the graph*). It is blind to a map's overall magnitude, exactly as the
-    disagreement term is — which is the whole argument for the magnitude being
-    gauge-fixed rather than learned.
-
-    Zeroed entries — masked or padded — contribute nothing to either norm, so
-    the quantity is over what the mask permits without a second mask being
-    applied here.
-
-    **The `1/√p` is what makes one global `λ` mean the same thing on every
-    map**, where `p` is how many weights that map's structural mask leaves open
-    (ADR-0010, amended in #89). Without it the term's gradient has norm
-    `√(p − ‖F‖₁²/‖F‖_F²)/‖F‖_F`, which grows with the mask, so a single global
-    scalar prunes a wide map harder than a narrow one — measured at `+0.985`
-    correlation with `p` across the real dome, an eightfold spread. With it the
-    gradient is::
-
-        ‖∇(‖F‖₁ / (√p ‖F‖_F))‖  =  √(1 − h²) / ‖F‖_F,   h the value above
-
-    and **`p` is gone from it identically**, not approximately: correlation with
-    `p` falls to `+0.071`. What is left, `√(1 − h²)`, is the same function of a
-    map's own normalised sparsity for every map at any size. `p` survives only
-    in `h`'s own floor of `1/√p` — a fully concentrated map — so the *attainable
-    ceiling* still varies by `√(1 − 1/8) / √(1 − 1/384) = 6.8%` across this
-    dome's mask sizes, at an extreme the maps do not occupy.
-
-    That line is the identity **without** :data:`NORM_FLOOR`, which is the form
-    ADR-0010 argues from and is exact only as `‖F‖_F` stays clear of the floor.
-    Since :func:`_norm` gives `n = √(FᵀF + NORM_FLOOR)` rather than `‖F‖_F`, the
-    gradient this function actually has is `√(1 − h²(1 + NORM_FLOOR/n²)) / n`
-    (#115) — a relative `NORM_FLOOR/(2‖F‖_F²(1 − h²))`, so `1/‖F‖_F²` and not
-    `1/‖F‖_F`. It reaches `1e-9` around `‖F‖_F ≈ 4e-8` and a factor of two by
-    `1e-12`. **Anywhere in the gauge band the two forms agree to `1e-24`**, so
-    nothing above reads differently for a map the projection has touched; the
-    correction is what an analytic reference has to carry if it is checked far
-    below the band, as `tests/test_transport_rule.py` does. `p` is absent from
-    the corrected form too, which is why the claim above survives it intact.
-
-    The quantity `h` itself is Hoyer's sparseness ratio, normalised for exactly
-    this reason: to be comparable across dimensions. It runs `1/√p` for a map
-    on one direction to `1` for a flat one, so **smaller is sparser** and the
-    pressure descends it. Dividing by `√p` is a construction-time constant per
-    map and changes nothing *within* one — the pruning `06-graph-topology.md`
-    asks for is untouched — only the weight between maps of different sizes.
-
-    ``permitted`` is `[pairs]`: the mask's open-weight count, read off the
-    structural mask at construction. It is **not** per-edge state — nothing
-    updates it, nothing learns it, and it moves only if the graph does, exactly
-    like the `Σ_e m_e` the reconciliation gain divides by.
-    """
-    flat = maps.flatten(1)
-    return flat.abs().sum(-1) / (_norm(flat) * permitted.sqrt())
-
-
 def transport_objective(
     map_parameters: dict[str, torch.Tensor],
     path: TransportPath,
     gathered: torch.Tensor,
     neighbour_beliefs: torch.Tensor,
-    permitted: torch.Tensor,
-    pressure: float,
 ) -> torch.Tensor:
     """The whole graph's transport objective, as one scalar.
 
     A pure function. The maps arrive as ``map_parameters`` — an explicit
     argument, not the module's ambient state — and everything else is a
-    detached array the tick left behind, plus the one global scalar the anneal
-    schedule supplies.
+    detached array the tick left behind. Nothing global enters it at all: the
+    learning rate multiplies the gradient outside, and the sparsity pressure
+    that used to be composed here is gone (ADR-0031, #410).
 
     Disagreement is **recomputed** here rather than read off the tick, which is
     the point: it is what makes it live in that cell's own maps.
     :meth:`~patchworks.tick.Sheaf.disagreement` is a number carried over dead
     and has no gradient in anything.
 
-    The sparsity pressure composes as **one additive term inside this one
-    descent step**, not as a second update loop running alongside it.
+    **It is one term, and there is no second one.** The objective *is* the
+    disagreement; ADR-0031 deleted the additive sparsity penalty that used to
+    be composed into this same step, so there is nothing here trading against
+    transport and nothing pushing the maps' singular spectrum anywhere.
 
     The objective is a plain **sum** over edge endpoints, and the sum is what
     batches: each term is a function of that endpoint's own row of the map
@@ -746,16 +588,14 @@ def transport_objective(
     exactly, not approximately.
     """
     outgoing = functional_call(path, map_parameters, (gathered,))
-    disagreement = relative_disagreement(outgoing, neighbour_beliefs).sum()
-    penalty = normalised_l1(map_parameters[MAPS_PARAMETER], permitted).sum()
-    return disagreement + pressure * penalty
+    return relative_disagreement(outgoing, neighbour_beliefs).sum()
 
 
 #: `∂ transport_objective / ∂ maps`, and nothing else.
 #:
-#: `argnums=0` names the map tensor alone. The path, the gathered node stalks,
-#: the neighbour beliefs, the mask's open-weight counts and the pressure are
-#: ordinary arguments and are not differentiated. The neighbour's map is inside ``neighbour_beliefs``, already
+#: `argnums=0` names the map tensor alone. The path, the gathered node stalks
+#: and the neighbour beliefs are ordinary arguments and are not
+#: differentiated. The neighbour's map is inside ``neighbour_beliefs``, already
 #: applied, so the one cross-cell parameter in the phase is not reachable from
 #: here at all.
 transport_gradient = grad(transport_objective, argnums=0)
@@ -765,13 +605,17 @@ class TransportRule:
     """The transport rule as a phase: one local gradient step per edge endpoint.
 
     Built against a :class:`~patchworks.tick.Sheaf` and run after its tick.
-    Holds a learning rate, an anneal, a path, and **one integer** — the
-    position on the global anneal schedule, which is the second permitted
-    global signal and is one number for the whole graph. There is nothing
-    per-cell and nothing per-edge that *changes*: no momentum, no running
-    average, no baseline and no estimate of any edge's recent scale. The one
-    per-edge array it holds, :attr:`permitted`, is the structural mask's own
-    open-weight count, fixed at construction and never written.
+    Holds a learning rate and a path, and — since ADR-0031 — **no state
+    whatsoever**, which is the same sentence :class:`PredictionRule` carries.
+    No momentum, no running average, no baseline, no estimate of any edge's
+    recent scale, and no counter: the step index used to exist to position the
+    sparsity anneal on its schedule, and with the anneal deleted nothing reads
+    it. Two calls with the same sheaf state produce the same step.
+
+    **The anneal was the second of the two permitted global signals**
+    (`docs/spec/07-local-learning-rule.md`, *Permitted global signals*), and
+    deleting it leaves exactly one — the learning-rate scalar — so this rule's
+    locality story is now the plain one it always read as.
     """
 
     def __init__(
@@ -779,29 +623,10 @@ class TransportRule:
         sheaf: Sheaf,
         *,
         learning_rate: float = DEFAULT_LEARNING_RATE,
-        anneal: SparsityAnneal | None = None,
     ) -> None:
         self.sheaf = sheaf
         self.learning_rate = checked_learning_rate(learning_rate)
-        self.anneal = anneal if anneal is not None else SparsityAnneal()
         self.path = TransportPath(sheaf.maps)
-        #: `[pairs]`: how many weights each map's structural mask leaves open,
-        #: which the sparsity term divides by the root of
-        #: (:func:`normalised_l1`). Read off the mask once, because the mask is
-        #: set at construction and closes permanently — this is the same kind
-        #: of object as the `Σ_e m_e` in the reconciliation gain's denominator,
-        #: a structural constant of the built graph, and **not** per-edge state.
-        self.permitted = sheaf.maps.support.flatten(1).sum(-1).to(
-            sheaf.maps.maps.dtype
-        )
-        #: How many steps this rule has taken — the schedule's position, and
-        #: the only thing it carries between steps.
-        self.steps = 0
-
-    @property
-    def pressure(self) -> float:
-        """`λ`, the sparsity pressure this step's objective will compose."""
-        return self.anneal.at(self.steps)
 
     def inputs(self) -> tuple[torch.Tensor, torch.Tensor]:
         """The two detached arrays the objective reads, in pair order.
@@ -866,14 +691,12 @@ class TransportRule:
             self.path.map_parameters(),
             self.path,
             *self.inputs(),
-            self.permitted,
-            self.pressure,
         )[MAPS_PARAMETER]
 
     def step(self) -> torch.Tensor:
         """Take the gradient, descend it, then project. Returns the gradient.
 
-        `F ← Π(F − η · ∇F)`, under one global `η` and one global `λ`, where `Π`
+        `F ← Π(F − η · ∇F)`, under the one global `η`, where `Π`
         is ADR-0010's gauge projection together with the structural mask
         (:meth:`~patchworks.restriction.RestrictionMaps.project`). The
         projection runs **after** the step and **outside** the transform: it is
@@ -892,7 +715,6 @@ class TransportRule:
         with torch.no_grad():
             self.sheaf.maps.maps.sub_(self.learning_rate * gradient)
         self.sheaf.maps.project()
-        self.steps += 1
         # The rule reads the tick's state and writes only the maps, so this
         # should be untouched -- which is exactly why it is cheap to say so.
         self.sheaf.assert_no_tape()

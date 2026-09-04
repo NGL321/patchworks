@@ -174,6 +174,18 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
   any `λ` this design has measured — a derived bound with a definition site, not an invented constant
   — and the `p_v` collision recorded under *The hatch, in rungs* below, which binds before it.
 
+  **#406 has since closed, and `λ` did not move — it was deleted.**
+  [#406](https://github.com/NGL321/patchworks/issues/406) removed the sparsity term from the transport
+  rule entirely ([ADR-0031](./0031-the-sparsity-pressure-is-deleted.md)), so
+  `DEFAULT_SPARSITY_PRESSURE` no longer exists and *"the operating point the build runs"* is now
+  `λ = 0` by construction rather than by configuration. The clause above is therefore live rather than
+  hypothetical: **the ruling's stated operating point is gone, and the re-read this amendment
+  pre-specified is due.** Nothing here re-rules it — the two ceilings named above are exactly what the
+  re-read runs against, and what the maps should be learning in the term's place is
+  [#411](https://github.com/NGL321/patchworks/issues/411)'s. What is recorded is that the gate's
+  subject no longer exists, so no later reader mistakes *inert at 0.4* for a standing finding about
+  the build as it now runs.
+
   The usable knob therefore remains the **number of attachment points**, at the cost of a dimension of
   privacy per cell touched — spreading that cost instead of concentrating it, and never making one
   cell pay more than the minimum. It is gated too, in *The hatch, in rungs* below. The learned drive
@@ -241,8 +253,9 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
   ([#188](https://github.com/NGL321/patchworks/issues/188)). The gate is the transport rule's sparsity
   pressure at `λ = DEFAULT_SPARSITY_PRESSURE` — a gate on a **constant**, and
   [#393](https://github.com/NGL321/patchworks/issues/393) has since confirmed it is the constant doing
-  the work, with [#406](https://github.com/NGL321/patchworks/issues/406) open on whether the constant
-  stays. See *Strength is not a new axis* above.
+  the work. **[#406](https://github.com/NGL321/patchworks/issues/406) has since deleted that
+  constant**, so both rungs' gate names something that no longer exists; see *Strength is not a new
+  axis* above for what that does and does not move.
 
   - **Rung 1** already bore negatively on its own evidence:
     [#183](https://github.com/NGL321/patchworks/issues/183) measured coherent fan-out at **0.94x**

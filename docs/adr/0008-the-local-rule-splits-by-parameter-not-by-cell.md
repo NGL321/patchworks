@@ -29,7 +29,9 @@ already-local signals each one trains on:**
   *(Widened and renamed from **the bias rule** by
   [#139](https://github.com/NGL321/patchworks/issues/139); see the amendment below.)*
 - **The transport rule** trains restriction maps on **disagreement**, composed in the same gradient step
-  with the sparsity pressure already named in `01-cell-and-sheaf.md`. It trains transport, never
+  with the sparsity pressure already named in `01-cell-and-sheaf.md`. *(That second term is deleted by
+  [#406](https://github.com/NGL321/patchworks/issues/406)/[ADR-0031](./0031-the-sparsity-pressure-is-deleted.md); the rule now descends
+  disagreement alone.)* It trains transport, never
   inference, and a neighbour's raw node stalk is explicitly not an input to it — that would defeat the
   map's purpose, which is to make two cells' features comparable when they don't yet share a basis.
 
@@ -42,6 +44,11 @@ neither smuggles in a global error channel — a single learning-rate scalar (mi
 `γ`) and the sparsity-pressure anneal already named in `06-graph-topology.md`. Nothing else
 broadcasts. **A construction-time ratio is not a third**: see the amendment below.
 
+*Amended to **exactly one** by [#406](https://github.com/NGL321/patchworks/issues/406)/[ADR-0031](./0031-the-sparsity-pressure-is-deleted.md):
+deleting the sparsity pressure deletes its anneal, which was the only non-learning-rate broadcast in
+the architecture. What the clause guards is unchanged — a permitted signal is schedule-shaped rather
+than information-shaped — and there is now one signal for it to guard.*
+
 ## Consequences
 
 - `CONTEXT.md` gains **Prediction error**, **Prediction rule** (originally **Bias rule**), and
@@ -49,7 +56,8 @@ broadcasts. **A construction-time ratio is not a third**: see the amendment belo
   distinguishing prediction error (cell-owned, temporal) from disagreement (edge-owned, spatial) —
   a distinction the existing glossary's `_Avoid_` lists already implied but never named.
 - Sparsity pressure is not a separate mechanism or a second update loop on the restriction maps; it is
-  one additive term inside the transport rule's single gradient step.
+  one additive term inside the transport rule's single gradient step. *(Deleted outright by
+  [#406](https://github.com/NGL321/patchworks/issues/406)/[ADR-0031](./0031-the-sparsity-pressure-is-deleted.md) — there is no second term.)*
 - **Stability under simultaneous, cell-local learning is explicitly not resolved by this ADR.** It
   entangles with change gating ([#20](https://github.com/NGL321/patchworks/issues/20)) and the
   probabilistic sheaf (held in the map's fog), and is carried forward as its own ticket rather than

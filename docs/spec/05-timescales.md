@@ -148,7 +148,12 @@ observation about where learning might put things. It is also not an overload of
 features are for: holding a slowly-varying variable *is* an abstract cell's sub-problem.
 
 The bound `dim H⁰ ≥ Σ_v max(0, n − Σ_{e∋v} m_e)` makes the capacity for slow state a **construction
-quantity**, set by the masks and enlarged by sparsity.
+quantity**, set by the masks. It used to read *"and enlarged by sparsity"*, and [#406](https://github.com/NGL321/patchworks/issues/406)
+struck that clause with the term it named: nothing in the run enlarges it. **What the bound gives is
+a per-cell floor rather than a graph-wide total** — enough private width at each cell for what `K`
+retains to survive reconciliation and be readable — and a fleet sum can be large while individual
+cells sit at zero
+([#385](https://github.com/NGL321/patchworks/issues/385), which owns the floor itself).
 
 The design move is a step out from published work rather than a leap: neural sheaf diffusion
 engineers `dim ker(Δ_F)` deliberately so that information survives what would otherwise be
@@ -159,17 +164,27 @@ structurally this bound. **Two things are unprecedented here, not one: the *use*
 that persists tick to tick under the cell's own dynamics, and that second half has no analogue in a
 formalism with no per-node recurrence in it ([#29](https://github.com/NGL321/patchworks/issues/29)).
 
-**The route.** The source enlarges `H⁰` by stalk width and by trivial holonomy, with the restriction
-maps full rank *by hypothesis*: the kernel-sizing lemma is stated for a discrete `O(d)` bundle and
-reads `dim(H⁰) ≤ d`, with equality if and only if transport is path-independent — so `rank δ` cannot
-move at all, and the kernel is capped at the stalk width. Dong et al. (arXiv:2608.16180) route the
-same quantity through the holonomy representation `ρ: π₁(G,v₀) → Aut(ℱ(v₀))`, and `Aut` is
-invertibility again. This project enlarges `H⁰` instead by **learned rank-deficiency** in the
-restriction maps (`06-graph-topology.md`, *Sparsity is a property of the maps, not of the graph*),
-which goes past that stalk-width ceiling and puts the maps outside all four of the sheaf classes the
-source enumerates. No precedent for that route was located
-([#394](https://github.com/NGL321/patchworks/issues/394),
-`docs/research/394-kernel-versus-rank-citations.md` §1).
+**The route, and what [#406](https://github.com/NGL321/patchworks/issues/406) did to it.** The finding
+[#394](https://github.com/NGL321/patchworks/issues/394) established stands and is a fact about the
+sources: they enlarge `H⁰` by stalk width and by trivial holonomy, with the restriction maps full
+rank *by hypothesis* — the kernel-sizing lemma is stated for a discrete `O(d)` bundle and reads
+`dim(H⁰) ≤ d`, with equality if and only if transport is path-independent, so `rank δ` cannot move at
+all and the kernel is capped at the stalk width; Dong et al. (arXiv:2608.16180) route the same
+quantity through the holonomy representation `ρ: π₁(G,v₀) → Aut(ℱ(v₀))`, and `Aut` is invertibility
+again. A rank-deficient map is outside all four of the sheaf classes they enumerate
+(`docs/research/394-kernel-versus-rank-citations.md` §1).
+
+**What no longer stands is the claim that this project takes that route deliberately.** The
+architecture had one mechanism aimed at learned rank-deficiency — the sparsity pressure — and it is
+deleted: it moved `dim H⁰` by **+1.3%** (#393) while concentrating the maps' singular spectrum, which
+is the opposite of the isometric transport the sheaf exists to carry. So `H⁰` here rests on the
+masks, exactly as the source's rests on stalk width. What remains is a **residual**: the maps sit
+rank-deficient anyway, and #406 records that this is nowhere near the isometric transport §2 of its
+resolution says the sheaf wants. Whether that residual is a source to draw on or a gap to close is
+open, and it is [#411](https://github.com/NGL321/patchworks/issues/411)'s — the record still says
+*learned rank-deficiency is wanted* in several places (`01-cell-and-sheaf.md`, ADR-0010, ADR-0015),
+and #406 deliberately did not re-rule that; it deleted the one mechanism aimed at producing it. The
+*use* above is untouched by any of this and remains the step out from published work.
 
 ### Persistence under the cell's own dynamics: `K`'s spectrum
 
