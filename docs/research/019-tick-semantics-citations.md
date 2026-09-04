@@ -4,8 +4,8 @@ Validates the design closed in patchworks#4 (`docs/spec/02-tick-semantics.md`,
 `docs/spec/01-cell-and-sheaf.md`, `docs/adr/0002-message-passing-is-one-step-not-a-solve.md`).
 Citations validate after the fact per the map's Notes; this does not revise the closed design.
 Vocabulary follows `CONTEXT.md`: Patchworks' side of every comparison is described in its own
-terms (chart, node stalk, edge stalk, disagreement, reconciliation, restriction map); the prior
-art's side is described in its own field's terms.
+terms (chart, node stalk, communication lane, disagreement, reconciliation, restriction map); the
+prior art's side is described in its own field's terms.
 
 ## Predictive coding
 
@@ -210,8 +210,8 @@ between the spec's claim and the cited mathematical object:
   Ghrist and Bodnar et al., the Dirichlet energy `E_F(x) = ½ Σ_e ‖F_{v⊴e}x_v − F_{u⊴e}x_u‖²` is a
   **single global scalar**: a sum over every edge in the graph. Patchworks' disagreement, as
   defined in the same document and in CONTEXT.md, is a **local, per-edge, vector-valued**
-  quantity — "the difference, in an edge stalk, between the two endpoint cells' restrictions of
-  their node stalks." One cell's disagreement on one edge is therefore not the Dirichlet energy;
+  quantity — "the difference, in a communication lane, between the two endpoint cells' restrictions
+  of their node stalks." One cell's disagreement on one edge is therefore not the Dirichlet energy;
   it is **one squared-norm term inside the sum that defines the Dirichlet energy**. Summed over
   every edge in the graph (a computation no single cell ever performs, and which graph-locality
   explicitly forbids any cell from performing), the disagreements would recover the Dirichlet

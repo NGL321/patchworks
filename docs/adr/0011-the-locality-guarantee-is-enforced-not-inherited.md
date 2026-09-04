@@ -15,8 +15,8 @@ across the graph. The two candidate frameworks hold that constraint very differe
   subtree named by hand; a neighbour's parameters are unreachable — not because they were severed, but
   because differentiation only ever traverses what was passed in. The guarantee is *structural*.
 - **PyTorch** has one global autograd tape, and the sheaf is a connected graph. A single missing
-  `.detach()` at an edge stalk backprops one cell's error into a neighbour. The guarantee, if it exists
-  at all, is a *discipline*.
+  `.detach()` at a communication lane backprops one cell's error into a neighbour. The guarantee, if
+  it exists at all, is a *discipline*.
 
 That second bullet was drawn too tightly, and [#66](https://github.com/NGL321/patchworks/issues/66)
 corrected it after the fact: `torch.func` reaches the same structural property *inside* PyTorch, since

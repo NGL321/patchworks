@@ -112,10 +112,10 @@ precisely where a future reader will come looking for permission to assume other
   being the sole nonlinearity is not only a risk to whether a chart can separate distinct situations,
   it is a risk to whether cross-piece coupling can be modelled at all.
 - **Linearity is what keeps this test readable.** A linear map has no constant term, so it cannot
-  absorb a persistent offset in an edge stalk — and a curvature residual's constant part is exactly
-  such an offset. Affine restriction maps would launder the signature away into a learned offset while
-  the geometry stayed just as bent. This is a better argument for linearity than efficiency, and it
-  was not visible until the floor was named.
+  absorb a persistent offset in a communication lane — and a curvature residual's constant part is
+  exactly such an offset. Affine restriction maps would launder the signature away into a learned
+  offset while the geometry stayed just as bent. This is a better argument for linearity than
+  efficiency, and it was not visible until the floor was named.
 - **Linearity is also what makes disagreement and prediction error the same quantity.** Recorded here
   because this is where a future reader comes looking for permission to bend the maps. The
   identification of predictive-coding error with the sheaf coboundary — the result the whole

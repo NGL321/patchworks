@@ -36,7 +36,7 @@ Three findings worth reading before the rest.
 
 ---
 
-## 1. The three-tier split: private chart (`k`) → node stalk (`n`) → edge stalk (`m`)
+## 1. The three-tier split: private chart (`k`) → node stalk (`n`) → communication lane (`m`)
 
 **Verdict: KNOWN VARIANT in two neighbouring literatures, UNUSUAL in the sheaf-network literature
 specifically. No sheaf paper has a third, reconciliation-proof tier below the node stalk; two
@@ -63,14 +63,14 @@ creates `H⁰` nor the space that `H⁰` would insulate.
 The nearest thing in print is Hansen & Ghrist, "Opinion Dynamics on Discourse Sheaves"
 ([arXiv:2005.12798](https://arxiv.org/abs/2005.12798)), which does split private from public — but
 one tier up from where Patchworks does. Each agent's **opinion space is the vertex stalk**; the
-**discourse space is the edge stalk**; and the restriction map is explicitly the act of making a
+**discourse space is the lane**; and the restriction map is explicitly the act of making a
 private view public: agents "represent their opinions on the topics of discussion by formulating
 stances as a linear combination of existing opinions on personal basis topics." Consistency is
 defined only on the public side — "Agents have expressed consensus when `F_{u⊴e}(x_u) =
 F_{v⊴e}(x_v)`."
 
 **This validates the *lower* boundary of Patchworks' split, not the split itself.** It is precedent
-for "the node stalk is private relative to the edge stalk, and the restriction map is the act of
+for "the node stalk is private relative to the lane, and the restriction map is the act of
 going public." It is not precedent for a third space beneath the node stalk. Patchworks'
 `chart → node stalk` boundary is a second, deeper privacy boundary the discourse-sheaf paper does
 not have.
@@ -301,7 +301,7 @@ work it is credited with. Patchworks should not cite "learned restriction maps w
 
 **Settled in 015 §4.4; not re-run.** Summary of what stands: nonlinear restriction maps are
 essentially unexplored; the nonlinear sheaf work keeps `δ` linear and inserts nonlinearity on the
-edge stalk *after* restriction (`L^Φ_F = δᵀ∘Φ∘δ`), for the stated reason that convex edge
+lane *after* restriction (`L^Φ_F = δᵀ∘Φ∘δ`), for the stated reason that convex edge
 potentials give a Lyapunov function; making `δ` itself nonlinear destroys `L = δᵀδ`, the Hodge
 decomposition, and the cohomological reading. The one empirical trial of a nonlinear coupling did
 not outperform linear sheaf models. **No paper argues for nonlinear restriction maps.** The spec's
@@ -519,7 +519,7 @@ justifies on other grounds (reservoir computing), and it is **not** a warrant fo
 
 **Verdict: SUPPORTED that the exposure is real, documented, and central to the field's history.
 The gating remedy is SUPPORTED as a known fix — but the specific form the spec names, a
-pass-through subset of the *edge stalk*, is NOT the known fix, which lives in the recurrent state
+pass-through subset of the *lane*, is NOT the known fix, which lives in the recurrent state
 itself. That is a candidate revision.**
 
 ### 7.1 The failure mode is the founding constraint of the field
@@ -585,20 +585,20 @@ invokes is misplaced by one tier:
 - LSTM's constant-error carousel (Hochreiter & Schmidhuber, 1997) is a **linear self-connection on
   a cell's own internal state**. It carries state across *time*, within one unit.
 - GGNN's GRU is likewise applied to the **per-node hidden state** `h_v`, not to the messages.
-- Patchworks' recurrence is `chart(t) → chart(t+1)` via `step`. The edge stalk is not on that loop
+- Patchworks' recurrence is `chart(t) → chart(t+1)` via `step`. The lane is not on that loop
   at all: it is on the *spatial* path, and its contents reach the chart only indirectly, one tick
   later, after reconciliation has edited the node stalk and `encode` has read it.
 
-So a pass-through subset of the **edge stalk** would be an ungated skip on the *inter-cell* path,
+So a pass-through subset of the **lane** would be an ungated skip on the *inter-cell* path,
 not on the recurrence. **The LSTM-shaped fix for a recurrence lives in the recurrence** — here, a
 protected linear channel through `step` inside the chart, or a gate on `encode`'s fusion of
 persisted chart with incoming stalk. There is a real design tension behind this: putting it in the
 chart means gating parameters inside the **frozen shared body**, which the freeze forbids; putting
-it in the edge stalk keeps it on the adapting surface where the design can reach it. That tension
+it in the lane keeps it on the adapting surface where the design can reach it. That tension
 is worth stating; the current sentence hides it by naming the wrong tier.
 
-Note also that a designated pass-through subset of the edge stalk has a second reading the spec may
-not intend: an edge-stalk direction that is *always* passed through is a direction on which
+Note also that a designated pass-through subset of a lane has a second reading the spec may
+not intend: a lane direction that is *always* passed through is a direction on which
 disagreement is meant to be small, which makes it a hand-placed `H⁰`-like channel rather than an
 error-carrying one. Under §2 that is fine; it is worth being explicit that it is a channel the
 architecture deliberately does not learn from.
@@ -719,13 +719,13 @@ on the recurrence.
 
 **Why it bites here:** Patchworks' recurrence is `chart(t) → chart(t+1)` through `step`. The edge
 stalk is not on that loop; its contents reach the chart only one tick later, via reconciliation and
-`encode`. A pass-through subset of the edge stalk is a skip on the *spatial* path, not the
+`encode`. A pass-through subset of the lane is a skip on the *spatial* path, not the
 recurrent one, and does not do what the cited fix does.
 
 **Ask:** restate the escape hatch as acting on the recurrence — a protected linear channel through
 `step`, or a gate on `encode`'s fusion of persisted chart with incoming node stalk — and **name the
 tension the current phrasing hides**: a gate in the chart means gating parameters inside the frozen
-shared body, which the freeze forbids, whereas the edge stalk is on the adapting surface where the
+shared body, which the freeze forbids, whereas the lane is on the adapting surface where the
 design can reach it. That tension is a genuine consequence of the shared-frozen-body bet and
 belongs in *Known exposure* alongside it.
 

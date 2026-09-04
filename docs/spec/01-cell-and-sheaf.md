@@ -14,12 +14,12 @@ is the central commitment of this section:
 |---|---|---|---|---|
 | 1 | **Chart** — the cell's working coordinates | `k` | the cell, privately | never |
 | 2 | **Node stalk** — the cell's public face | `n` | the graph | yes |
-| 3 | **Edge stalk** — shared with one neighbour | `m` | the edge | yes |
+| 3 | **Communication lane** — shared with one neighbour | `m` | the edge | yes |
 
 The reason for three rather than two: Patchworks decomposes one hard problem into many small ones
 and then recomposes them. Solving and recomposing are different operations, so they get different
 spaces. A cell's inference happens in its chart and is never edited from outside; agreement between
-cells happens in stalks and is never confused with inference.
+cells happens in the node stalks and the lanes between them, and is never confused with inference.
 
 This also makes two things expressible that a two-tier scheme cannot represent:
 
@@ -216,7 +216,7 @@ over the embedding and the operator *jointly*, and with `encode` frozen and `dec
 `K` is free, so that completeness does not transfer to this design.
 
 **The restriction maps carry the specialisation, and now so does `K`.** Each cell learns its own
-linear map into each incident edge stalk, independently at both ends of every edge, under a
+linear map into each incident communication lane, independently at both ends of every edge, under a
 structural mask. That is a substantial, genuinely per-cell surface — not a thin residue
 left over after freezing the body. Cells do not need to learn *different activities*: identical
 machinery is sufficient, provided each cell's metric space is tuned to a separate linear decomposition
@@ -357,15 +357,18 @@ made, and buying at zero cost the one failure mode the literature says is abrupt
 
 ## The sheaf
 
-### Edge stalks carry belief
+### Communication lanes carry belief
 
-An edge stalk carries a belief about a latent variable both endpoint cells are modelling in common.
-It has **no committed semantics** — it is not a message, not a prediction of the neighbour's state,
-and it carries **no error channel**. Error is derived, never transported.
+A communication lane carries a belief about a latent variable both endpoint cells are modelling in
+common. It has **no committed semantics** — it is not a message, not a prediction of the neighbour's
+state, and it carries **no error channel**. Error is derived, never transported.
+
+The lane was the **edge stalk** until [#411](https://github.com/NGL321/patchworks/issues/411) §6
+renamed it; `stalk` remains its formal sheaf-theoretic name, and bare `stalk` here means the node one.
 
 ### Restriction maps
 
-Each cell holds one restriction map per incident edge, from its node stalk into that edge stalk.
+Each cell holds one restriction map per incident edge, from its node stalk into the lane on it.
 They are:
 
 - **Linear.** All nonlinearity lives inside the cell. This keeps the cellular-sheaf formalism real —
@@ -391,7 +394,7 @@ They are:
 - **Independent at the two ends of an edge.** Each cell learns its own map into the shared space. If
   they were tied, agreement would be definitional and disagreement could carry no information.
 
-Edge stalk dimension `m` is **fixed at construction by the edge's role**, and the mask constrains
+Lane dimension `m` is **fixed at construction by the edge's role**, and the mask constrains
 which node stalk directions may participate on that edge. The two are separate acts and must stay
 separate: **the mask selects** — structurally, once, closing and never re-opening — and **the map
 compresses**, densely and by learning, mixing every permitted direction into the `m`-dimensional
@@ -434,7 +437,7 @@ edge only one end restricts into has nothing to disagree about: there is no seco
 against, the coboundary term is not defined on it, and reconciliation has nothing to descend. What it
 transmits is one cell's belief, delivered. That is a **wire**, and it puts a directed channel into a
 formalism whose whole claim is that error is **derived, never transported** — the property this
-document asserts of the edge stalk a few paragraphs above.
+document asserts of the communication lane a few paragraphs above.
 
 The tempting cases are exactly the ones where a short path is wanted and a symmetric edge is too
 expensive: a reflex, an echo, a copy of one region's output made available cheaply somewhere far away.
@@ -501,11 +504,11 @@ See [ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md); settled in
 
 ### Disagreement, and what is done about it
 
-Disagreement is the difference, in an edge stalk, between the two endpoint cells' restrictions of
-their node stalks. It is Patchworks' only error signal, and it is one edge's term of the sheaf's
-Dirichlet energy — the global energy is the sum of these terms over every edge, but no cell ever
-reads that sum; it only ever sees its own edges' terms. Predictive coding's error and the sheaf's
-inconsistency are **the same quantity**, not two objects that need relating.
+Disagreement is the difference, in a communication lane, between the two endpoint cells'
+restrictions of their node stalks. It is Patchworks' only error signal, and it is one edge's term of
+the sheaf's Dirichlet energy — the global energy is the sum of these terms over every edge, but no
+cell ever reads that sum; it only ever sees its own edges' terms. Predictive coding's error and the
+sheaf's inconsistency are **the same quantity**, not two objects that need relating.
 
 Agreement is **penalised, not enforced.** Reconciliation runs exactly one local descent step on
 disagreement per tick (see [`02-tick-semantics.md`](./02-tick-semantics.md)) and never clears it.
@@ -612,9 +615,9 @@ is the atlas idea with the constant-dimension requirement removed — locally-de
 gluing conditions, no demand that the union be a manifold at all. That is the reason the formalism
 fits, and "patches of a manifold" in the project's name should be read as *patches with gluing*.
 
-**"Manifold" is not general vocabulary here.** Node stalks, edge stalks and their direct sums are
-**vector spaces** — flat, uncurved, uninteresting as geometry — and are called that. The word is
-reserved for the local flatness above, which is the one place something depends on it
+**"Manifold" is not general vocabulary here.** Node stalks, communication lanes and their direct
+sums are **vector spaces** — flat, uncurved, uninteresting as geometry — and are called that. The
+word is reserved for the local flatness above, which is the one place something depends on it
 ([ADR-0004](../adr/0004-linear-restriction-maps-assume-local-flatness.md)).
 
 ### The division of labour between the two adapting surfaces
@@ -636,7 +639,7 @@ survives exactly where it survives, as a description of `encode`, and nothing ne
 |---|---|---|
 | **Biases** | inside `encode` | translate the folds of the shared nonlinear map |
 | **Operators `K`** | on the chart | the cell's own linear dynamics — where its individuality now principally lives |
-| **Restriction maps** | outside, on stalks | fix the basis of the node stalk and the transport into each edge stalk |
+| **Restriction maps** | outside, on stalks | fix the basis of the node stalk and the transport into each lane |
 
 The restriction maps never touch the body's geometry. They fix what features mean and how they
 relate; the biases move the shape that consumes them, and `K` moves what the chart does next.
@@ -649,7 +652,7 @@ Information is discarded in exactly three places, and they are not the same kind
 |---|---|---|
 | world → sensory tiling (*the sensory slice*) | everything outside the render; all object pose | fixed by the environment |
 | node stalk → chart (*compression*, in `encode`) | whatever the cell's piece does not need | **nonlinear, private** |
-| node stalk → edge stalk (*restriction*) | everything the mask forbids | **linear, shared** |
+| node stalk → lane (*restriction*) | everything the mask forbids | **linear, shared** |
 
 That asymmetry — compression nonlinear and private, restriction linear and shared — is the geometric
 statement of why there are three tiers rather than two.
@@ -771,10 +774,10 @@ Recorded, not pre-emptively solved.
   else part of the body comes unfrozen.
 
   One correction, and one object the wrong version was hiding. This entry previously named the escape
-  hatch on the **edge stalk**, which is the wrong tier: the recurrence is `chart(t) → chart(t+1)` through `K`, and the edge
-  stalk is not on that loop — its contents reach the chart a tick later, via reconciliation and
-  `encode`. A pass-through subset of the edge stalk is a skip on the *spatial* path. And such a subset
-  would be a different object worth naming separately: an edge-stalk direction that always passes
+  hatch on the **communication lane**, which is the wrong tier: the recurrence is `chart(t) → chart(t+1)` through `K`, and the
+  lane is not on that loop — its contents reach the chart a tick later, via reconciliation and
+  `encode`. A pass-through subset of a lane is a skip on the *spatial* path. And such a subset
+  would be a different object worth naming separately: a lane direction that always passes
   through is a direction on which disagreement is meant to be small — a hand-placed `H⁰`-like channel
   the architecture deliberately never learns from, not a fix for the recurrence.
 

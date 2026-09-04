@@ -102,7 +102,7 @@ from one state, ticked against the same held world, differenced at the same tick
     floor_e(t) = ‖ d_e(t) | unperturbed ‖
 
 where `d_e` is :meth:`~patchworks.tick.Sheaf.disagreement`, the edge's own term of
-`xᵀLx`. Both are the same object in the same edge-stalk units — one the
+`xᵀLx`. Both are the same object in the same lane units — one the
 perturbation's contribution to it, the other what stands on the edge without the
 perturbation — which is what makes the ratio well-formed at all, and it is the
 defect ADR-0021 exists to repair. The floor is read **at the same tick** as the

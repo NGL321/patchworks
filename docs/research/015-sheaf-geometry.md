@@ -4,8 +4,8 @@ Validates (and in three places **corrects**) the sheaf-geometry mechanics assert
 issue #15, against `docs/spec/01-cell-and-sheaf.md` and `docs/spec/02-tick-semantics.md`.
 Citations validate after the fact per the map's Notes; this does not seed design. Vocabulary
 follows `CONTEXT.md`: Patchworks' side of every comparison is in its own terms (chart, node stalk,
-edge stalk, disagreement, reconciliation, restriction map); the prior art's side is in its own
-field's terms.
+communication lane, disagreement, reconciliation, restriction map); the prior art's side is in its
+own field's terms.
 
 **Headline.** Three of the five asserted claims are confirmed as stated. Two are **false as
 stated and true only under an extra hypothesis Patchworks does not satisfy** — and in both cases
@@ -53,8 +53,9 @@ and "a linear map `F_{v◁e}: F(v) → F(e)` for each incident `v ◁ e` node-ed
 that "the vector spaces of the nodes and edges are called **stalks**, while the linear maps are
 referred to as **restriction maps**" (§2, Definition 1).
 
-Patchworks' node stalk / edge stalk / restriction map are the standard objects, used with their
-standard names. No divergence.
+Patchworks' node stalk / communication lane / restriction map are the standard objects. The names
+match on two of the three: the lane was renamed from `edge stalk` on #411 §6 and keeps `stalk` as
+its formal synonym, so the mapping to the literature is unchanged. No divergence in the objects.
 
 ### 1.2 Coboundary `(δx)_e = F_{v◁e}x_v − F_{u◁e}x_u` — CONFIRMED
 
@@ -110,12 +111,12 @@ et al. restate it: "`H^0(G; F)` and `ker(L_F)` are isomorphic as vector spaces".
 `H^1 = coker δ`: Seely, Eq. 10: `H^1(G, F) = C^1 / im δ^0 ≅ ker(δ^0)^⊤`, described as "prediction
 error patterns (on edges) that cannot arise from any activation choice." On a graph `δ^1 = 0`
 (no 2-cells), so `H^1 = C^1 / im δ^0` with no quotient-by-kernel subtlety. **Confirmed.** The
-inner-product representative `ker(δ^0)^⊤` is the useful one: it is the subspace of edge-stalk
+inner-product representative `ker(δ^0)^⊤` is the useful one: it is the subspace of lane
 configurations that **no** assignment of node stalks can produce, i.e. residual disagreement that
 reconciliation provably cannot remove no matter how long it runs.
 
 **The tree claim is false.** `H^1 = 0` for a tree holds for the *constant* sheaf, and more
-generally whenever every restriction map is **surjective** onto its edge stalk (peel leaves and
+generally whenever every restriction map is **surjective** onto its lane (peel leaves and
 induct). It fails otherwise, and the counterexample is one edge wide:
 
 > Graph `u — e — v` (a tree). `F(u) = F(v) = F(e) = R`. Both restriction maps zero.
@@ -254,7 +255,7 @@ cochain supported on `v` with value `w` is a global section, by the §3.1 argume
 global sections. That is worth stating plainly because the natural reading of "`H^0` is generically
 zero" is that global sections are a degenerate accident to be designed away, whereas the spec
 deliberately manufactures them. Both readings can be right at once — the `H^0` a mask creates is
-"trivial" in the sense of being *invisible to the graph* (it never reaches an edge stalk, so it can
+"trivial" in the sense of being *invisible to the graph* (it never reaches a lane, so it can
 never be reconciled and never contributes disagreement), and *non-trivial* in the sense of being a
 real, intended, load-bearing part of a cell's representation. The sheaf formalism does not
 distinguish them; the design does.

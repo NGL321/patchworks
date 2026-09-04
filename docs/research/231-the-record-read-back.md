@@ -50,7 +50,7 @@ hop. #184 closed uniform per-hop factors; it did not close these.
 
 **1.1 Widening the taper's funnel.** [#8](https://github.com/NGL321/patchworks/issues/8) identified it
 and did not fix it: 12,288 numbers at the sensory base reach ~60 core cells of dimension 32 through
-edge stalks of dimension 4. Parked in map #1's *Not yet specified* with the ground **"unclear whether
+communication lanes of dimension 4. Parked in map #1's *Not yet specified* with the ground **"unclear whether
 the funnel is a defect or is the compression the architecture exists to perform,"** and the
 reactivation condition *"revisit once anything has been trained."* **That condition is met** — #120
 ran 100,000 ticks, #214 measured the channel — and the item has never been revisited. Not refuted;

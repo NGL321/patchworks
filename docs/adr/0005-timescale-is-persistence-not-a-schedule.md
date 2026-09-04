@@ -243,10 +243,10 @@ capability depends on timescale at all — and thereby becomes an already-valida
   rejection is unaffected — a human-held drive still supplies the abstraction the demo is supposed to
   show — and the wording is updated only because "clamp" is retired.
 - **A probabilistic sheaf**, so that low-confidence messages fail to pass. Rejected as the tail
-  wagging the dog: it would change what an edge stalk is, what restriction maps map, what disagreement
-  means, and what `decode` outputs — a rewrite of the foundational cell contract — in service of a
-  gate that needs only a magnitude threshold on a vector difference. The probabilistic sheaf stays in
-  the map's fog on its own merits.
+  wagging the dog: it would change what a communication lane is, what restriction maps map, what
+  disagreement means, and what `decode` outputs — a rewrite of the foundational cell contract — in
+  service of a gate that needs only a magnitude threshold on a vector difference. The probabilistic
+  sheaf stays in the map's fog on its own merits.
 
 ## What the literature does and does not give
 
