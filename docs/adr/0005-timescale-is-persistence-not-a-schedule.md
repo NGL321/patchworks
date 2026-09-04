@@ -175,9 +175,14 @@ capability depends on timescale at all — and thereby becomes an already-valida
   `K · J_encode(region_t)`; the cheap reading stands in for the expensive one only while that operator
   holds still, and dwell is how long it holds still. So the bar is **published wherever the spectral
   `τ` is published**, and is **reported, never asserted**, in #206's language. It composes with #242
-  as `|loop(c)| ≤ τ_c < dwell_c` — **one architectural bar (#242, on `τ̂`) plus the licence for the
-  proxy**, not two bars — whose `τ`-free consequence, `dwell_c > |loop(c)|`, is what is readable
-  today.
+  as `world_loop(c) ≤ τ_c < dwell_c` — **one architectural bar (#242, on `τ̂`) plus the licence for
+  the proxy**, not two bars — whose `τ`-free consequence, `dwell_c > world_loop(c)`, is what is
+  readable today. *The floor was `|loop(c)|` until
+  [#404](https://github.com/NGL321/patchworks/issues/404):* the lower end **is** #242's bar,
+  [#383](https://github.com/NGL321/patchworks/issues/383) moved that bar to `world_loop(c)`, and this
+  composition moved with it — on the strength of the *one bar plus a licence* sentence above, which
+  leaves the floor nowhere else to stand. `|loop(c)|` is kept and demoted, and the consequence is a
+  **harder** comparison than it was, by 1 to 7 ticks at every cell.
 
   ~~**A collapse of median `dwell/τ` below 1 falsifies the claim that placing biases is *sufficient*
   to buy a timescale.**~~ ***Retired by #226. This ADR's falsification clause is withdrawn, not
