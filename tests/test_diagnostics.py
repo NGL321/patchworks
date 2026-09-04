@@ -244,12 +244,23 @@ class TestEffectiveRank:
         collapsed = reading.effective_rank[reading.effective_rank > 0]
         assert collapsed.numel()
         assert float(collapsed.max()) == pytest.approx(1.0, abs=1e-5)
-        # And the projection that enforces the gauge does not restore rank
-        # either -- the only thing it restores is the norm.
+        # And the projection *does* restore rank, which is ADR-0032 and is the
+        # one thing this assertion used to say it did not. The diagnostic still
+        # does not prevent the degenerate limit -- it reported it above, on the
+        # unprojected surface -- but the spectral floor is a floor, and lifting
+        # a dead direction is exactly what distinguishes it from the incoherence
+        # cap, which can only ever rescale a survivor. Every map the floor
+        # reaches comes back at its full `m`.
         sheaf.maps.project()
-        assert float(diagnostics.edge_reading().effective_rank.max()) == pytest.approx(
-            1.0, abs=1e-5
+        lifted = diagnostics.edge_reading().effective_rank
+        # `effective_rank` is indexed `[edge, side]` and `floored` by pair, and
+        # `pair_index` is `2 * edge.id + side`, so the reshape is the identity
+        # on the ordering rather than a rearrangement.
+        floored = sheaf.maps.floored.reshape(-1, 2)
+        widths = torch.tensor(
+            [[float(edge.m)] * 2 for edge in sheaf.dome.edges]
         )
+        assert torch.allclose(lifted[floored], widths[floored], atol=1e-4)
 
     @pytest.mark.parametrize("scale", [1e-20, 1e-8, 1e-2, 1e2, 1e8, 1e20])
     def test_it_is_scale_invariant_across_any_magnitude(self, dome, scale):
