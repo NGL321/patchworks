@@ -103,16 +103,30 @@ That is the patchwork.
 
 ## Why a sheaf
 
-Compression must be **non-abelian**, therefore heterogeneous, therefore a graph with heterogeneous
+Compression must be **free abelian**, therefore heterogeneous, therefore a graph with heterogeneous
 connections; a sheaf over a graph is the construction that supplies it. **This is the derivation of
 the project's central choice**, and before #230 it was written nowhere in the repo.
 
+*This sentence read `non-abelian` until [#411](https://github.com/NGL321/patchworks/issues/411)
+corrected it at the user's own statement — a dictation artifact, not a position anyone held. **The
+derivation keeps its conclusion and loses only its middle term.** Heterogeneity no longer comes from
+order-dependence; it comes from cells holding **different subsets of the generators** — different
+masks, different degree, different `m_e` — and free abelian is what lets overlapping slices be
+reassembled at all, which is what a sheaf's gluing is. See
+[ADR-0032](./adr/0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md).*
+
 Offered alongside it and **marked as the agent's**, accepted as sensible rather than ruled: the
-non-abelian object here is plausibly the **holonomy** of the restriction maps around cycles — trivial
+object here is plausibly the **holonomy** of the restriction maps around cycles — trivial
 exactly when the maps are homogeneous, with `H¹` as its obstruction. That would make heterarchy
-structural rather than aesthetic, since non-abelian composition needs loops to compose around. The
-dome carries **269 independent cycles** (414 cells, 682 edges), and #150 found each level a lattice
-with many parallel routes into the next.
+structural rather than aesthetic, since composition around loops is what makes the property readable at
+all. The dome carries **269 independent cycles** (414 cells, 682 edges), and #150 found each level a
+lattice with many parallel routes into the next.
+
+*Also amended by #411, and it is a sign flip rather than a deletion.* Under free abelian the wanted
+holonomy is **trivial**, so **departure from the identity is the failure measure and not the prize**.
+Loops are still what make the reading possible, which is why
+[#315](https://github.com/NGL321/patchworks/issues/315) survives the correction and is promoted to
+build — with its sign inverted, reading a defect rather than an achievement.
 
 **Vocabulary warning, and it is load-bearing.** `docs/research/015-information-cohomology.md` already
 citation-passed the information-cohomology line from primary texts and ruled it an **interpretive

@@ -160,6 +160,32 @@ is `ρ²` of freedom in an **edge's scale ratio**, not `ρ²` of slack around ea
 the guardrail — nothing in the objective drives toward it — and it is kept because the residual
 asymmetry and finite arithmetic sit outside Lemma 2.4's assumptions, at the cost of one comparison.
 
+**A second hole, recorded by [#411](https://github.com/NGL321/patchworks/issues/411) and measured by
+[#416](https://github.com/NGL321/patchworks/issues/416): the free scale ratio is not free of
+consequence.** The clause above leaves an edge's scale ratio open and says so, correctly — nothing had
+an opinion about it when this ADR was written. Something does now.
+[ADR-0032](./0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md) rules that
+edge-isometry decomposes into **flat spectra plus matched edge scale**, and `σ_u/σ_v` *is* the
+composite `F_v⁺F_u`'s isotropic distortion. At `ρ = 2` this clause admits a factor of **4** of it on an
+interior edge — and **`ρ = 2`, not `ρ²`, on a boundary-incident edge**, where one end is pinned and
+only the other can move.
+
+#416 read it and **the gate opened.** The ratio neither sits near 1 nor spreads across the band: it
+**drifts monotonically to the band face and stops there**, on all 273 boundary-incident edges,
+permanently. At 100,000 ticks every one of them is within 0.2% of its face. The mechanism is a
+composition of this ADR's **own two decisions** — the exact gauge pins one end at 1, Lemma 2.4's
+monotone growth carries the other to `ρ`, and the projection holds it there — so it is guaranteed by
+construction rather than trajectory-dependent. **The argument in this ADR that the objective handles
+the ratio is half true and the wrong half**: *"the objective points away from collapse rather than
+toward it"* rules out ratio → 0, and says nothing about the ceiling the dynamics actually reach. The
+interior population's ratio of 1 is not evidence either way, because both ends grow together into the
+same face.
+
+**Recorded, not ruled here.** The measured cost is a `2x` unmatched endpoint scale across the whole
+sensorimotor rim, the drive and the actuator;
+[#429](https://github.com/NGL321/patchworks/issues/429) owns the remedy, because naming one is a
+ruling and ADR-0029's deferral rule says a read does not get to make it.
+
 Reparameterising as `F = G/‖G‖_F` was rejected: it costs no
 more, but it leaves a shadow parameter `G` that the sparsity term can drive toward zero, reintroducing
 collapse as numerical ill-conditioning in a parameter no diagnostic watches.
@@ -281,6 +307,17 @@ the mechanism `06-graph-topology.md` relies on to enlarge `H⁰` through a funct
 structurally present edge. The degenerate limit — every edge transmitting one direction — is
 instrumented rather than excluded.
 
+*Superseded by [ADR-0032](./0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md),
+in both halves. The **want** went first: [ADR-0031](./0031-the-sparsity-pressure-is-deleted.md) ruled
+`H⁰` a per-cell floor rather than a graph-wide maximand, so learned rank-deficiency is no longer the
+route to it. Then the **instrument reported**: the degenerate limit this section left instrumented
+rather than excluded is where the maps went — effective rank **1.0009**
+([#237](https://github.com/NGL321/patchworks/issues/237)), inside an intact gauge. ADR-0032 imposes a
+floor, at `σ_min ≥ ‖F‖_F/√m`, and the observation this section makes about Frobenius is exactly what
+makes that floor free of an invented constant: because Frobenius pins `Σᵢσᵢ²`, a floor at the RMS
+singular value forces flatness with no fraction to choose. The two constraints are compatible by
+arithmetic — the projection preserves `‖F‖_F` — and measured compatible on every banded mask.*
+
 ### The instrument is a pair, because neither half separates the routes alone
 
 - **Per-edge disagreement energy**, already available.
@@ -343,7 +380,23 @@ concentration, effective rank is the only thing that says which regime the maps 
   rejected on two grounds. It fixes the *basis* as well as the scale, which is precisely the work a
   restriction map exists to do (`01-cell-and-sheaf.md`, *Restriction maps*: transport and change of
   basis). And Patchworks' maps are masked and generally non-square, so orthogonality is not available
-  in general without changing what the mask means. **The weaker constraint is known to suffice**
+  in general without changing what the mask means.
+
+  **Amended by [#411](https://github.com/NGL321/patchworks/issues/411): the first ground is wrong, and
+  it is the sentence that kept a spectral constraint out of this architecture from
+  [#37](https://github.com/NGL321/patchworks/issues/37) until
+  [ADR-0032](./0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md).** A
+  co-isometry constraint does not fix the basis. In `F = UΣVᵀ` it sets `Σ = σI` and leaves
+  `U ∈ O(m)` and `V ∈ V_m(Rⁿ)` **completely free** — `U` *is* the change of basis, `V` *is* the choice
+  of which `m` of `n` directions to carry, and neither is touched. What it costs is `m → 1` on the
+  singular values: **3 degrees of freedom out of 128 per interior map.** The second ground is
+  **half right and survives as the real caveat**: non-square is fine, since `FFᵀ = I₄` for a `4×32`
+  map is abundant, but a **mask** may not contain a co-isometry. That is a measurement rather than an
+  argument, and ADR-0032 takes it — every one of the 1091 banded masks on `DEFAULT_SPEC` contains a
+  scaled co-isometry with a minimum margin of `k − m = 13`, and the nine that do not are all *pinned*
+  maps, which this ADR's own projection does not reach.
+
+  **The weaker constraint is known to suffice**
   ([#53](https://github.com/NGL321/patchworks/issues/53)): Hansen & Ghrist (ICASSP 2019), the paper
   Di Nino et al. generalise, exclude the trivial solution with a log barrier on `tr(L_ii)` — and since
   `L_ii = Σ_{e ∋ i} F_{i◁e}ᵀF_{i◁e}`, that quantity *is* `Σ_e ‖F_{i◁e}‖_F²`, a Frobenius floor on a

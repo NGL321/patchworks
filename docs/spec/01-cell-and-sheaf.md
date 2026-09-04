@@ -369,6 +369,19 @@ renamed it; `stalk` remains its formal sheaf-theoretic name, and bare `stalk` he
 ### Restriction maps
 
 Each cell holds one restriction map per incident edge, from its node stalk into the lane on it.
+
+**What they are for: isometric transport of a free-abelian feature set.** Cell `u` puts `F_u x_u` on
+the shared lane and cell `v` reads it back into its own **carried subspace**, so what the design asks
+is that `F_v⁺F_u` be an **isometry between the two cells' carried subspaces** — agreement about what
+each other's small slices *mean*, not merely about where they land. The demand is a property of the
+**edge pair**; a single interior map is `4 × 32` and has a 28-dimensional kernel by arithmetic, so *a
+map is an isometry* is one level too high and is unavailable before any learning. It decomposes into
+**flat spectra** on each side and **matched edge scale** across the edge; the first is bought by the
+spectral floor under *Scale is gauge-fixed*, the second is the gauge's and is
+[#429](https://github.com/NGL321/patchworks/issues/429)'s. See
+[ADR-0032](../adr/0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md), ruled
+in [#411](https://github.com/NGL321/patchworks/issues/411).
+
 They are:
 
 - **Linear.** All nonlinearity lives inside the cell. This keeps the cellular-sheaf formalism real —
@@ -380,7 +393,11 @@ They are:
   error are the same quantity" would stop being **true**, not merely become expensive to compute. See
   [ADR-0004](../adr/0004-linear-restriction-maps-assume-local-flatness.md) and *The geometry* below.
 - **Learned**, on disagreement and nothing else. The objective is the whole objective: there is no
-  second additive term and no pressure on the map's shape. A sparsity pressure — an L1 on the
+  second additive term and no pressure on the map's shape. What holds the map's *spectrum* flat is a
+  **projection** applied after the step, not a term traded against transport, and the distinction is
+  load-bearing — the transport rule has no fixed point at agreement
+  ([#339](https://github.com/NGL321/patchworks/issues/339)), so a pressure would be arguing with
+  something that never settles. A sparsity pressure — an L1 on the
   normalised map, read as the local-neuroplasticity analogue, *pruning within what structure
   permits* — was specified here and is **deleted**, on the grounds
   [#406](https://github.com/NGL321/patchworks/issues/406) states and
@@ -483,21 +500,40 @@ difference matters: a spectral gauge pins only the largest singular value, leavi
 free to shrink at no cost, so it would exclude `F = 0` and leave `F → rank 1` open. A Frobenius gauge
 pins the budget across all directions, so rank concentration buys per-direction gain and pays for it
 elsewhere — though **whether that is a price or a reward depends on the objective**, and here it is a
-weak price at best: matching a neighbour on any single tick needs only that tick's direction, and the
-L1 on the normalised map is minimised, at fixed Frobenius norm, by the sparsest map. What resists
-concentration is that a map serves the whole distribution of stalk states, not one draw.
+weak price at best: matching a neighbour on any single tick needs only that tick's direction. What
+resists concentration is that a map serves the whole distribution of stalk states, not one draw.
 
-**No rank floor is imposed** — learned rank-deficiency is wanted, and its degenerate limit is
-instrumented rather than forbidden (*Known exposure*). With the price weak, that instrument is what
-says which regime the maps are in, and it carries the argument alone.
+**And it did not resist it.** The maps went to the degenerate limit with the gauge fully intact —
+effective rank **1.0009** against `m` of 4 and 8 ([#237](https://github.com/NGL321/patchworks/issues/237)),
+inside maps banded to `[0.6729, 2.0000]`. A gauge that fixes `‖F‖_F` says nothing about how that
+budget is spread, so it was performing a rank-preserving operation on a collapsing surface.
+
+**A spectral floor is imposed: `σ_min ≥ ‖F‖_F/√m`, on the same projection.** Since `Σᵢσᵢ² = ‖F‖²_F`, a
+floor at the RMS singular value forces `σᵢ = ‖F‖_F/√m` throughout — **the floor at its only derivable
+value and the projection onto the nearest scaled co-isometry are the same operation**, so the
+constraint carries no invented constant. It leaves the map's basis alone: in `F = UΣVᵀ` only `Σ` is
+touched, and `U` — the change of basis — and `V` — which `m` of `n` directions are carried — are
+free. The cost is 3 degrees of freedom of 128 per interior map, and what it buys is that all `m`
+directions stay live, so the trajectory cannot dodge into a subspace and call that agreement.
+
+It **applies to the banded maps**, whose masks all contain a scaled co-isometry with room to spare;
+nine pinned maps at the small-stalk end of the sensorimotor rim have `k < m` and are excluded by name.
+The floor **preserves `‖F‖_F` exactly**, so it sits beside the band rather than against it, and its
+priced cost is on the operator norm: `σ_max` falls by `√m`, which is a hop
+([ADR-0022](../adr/0022-a-hop-is-an-operator-norm-along-a-learned-channel.md)). See
+[ADR-0032](../adr/0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md).
 
 A map's **norm is not a diagnostic**: the upper face binds continuously, so an interior edge's larger
 end reads `ρ` whether learning is healthy or frozen.
 
 The bound, which is the band's real content rather than an incidental cost: an edge's representable
-scale ratio is `ρ²` times the range rank concentration affords. Genuine mismatch beyond that is
-irreducible, and joins the static floor in
-[ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md).
+scale ratio is `ρ²` on an interior edge, and `ρ` where one end is pinned. Genuine mismatch beyond that
+is irreducible, and joins the static floor in
+[ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md). Under a flat spectrum
+the two ends share one `m`, so that ratio *is* `σ_u/σ_v` — the composite's isotropic distortion —
+identically rather than approximately; [#416](https://github.com/NGL321/patchworks/issues/416) measured
+it riding the face on all 273 boundary-incident edges and
+[#429](https://github.com/NGL321/patchworks/issues/429) owns what is owed.
 
 See [ADR-0010](../adr/0010-restriction-map-scale-is-gauge-fixed.md); settled in
 [#37](https://github.com/NGL321/patchworks/issues/37).
@@ -808,6 +844,14 @@ Recorded, not pre-emptively solved.
   and per `docs/research/015-sheaf-geometry.md` those theorems do not reach a sheaf whose maps are
   masked, learned, and merely norm-bounded. The proof-of-concept instruments for this; it does not
   assume it away.
+
+  *Amended by [ADR-0032](../adr/0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md):
+  the gap to that literature narrows and does not close.* A map held to the spectral floor is a **scaled
+  co-isometry**, which is nearer the orthogonal class those theorems assume than *merely norm-bounded*
+  ever was. It is still not that class — the maps stay masked and non-square, and a scaled co-isometry
+  is not an orthogonal map — so the theorems still do not reach this sheaf and the instrument still
+  carries the argument. What changes is that the counterweight is now orientation toward something the
+  design is deliberately steering at, rather than toward a class it had no route to.
 
 - **The shared frozen body is a bet, and it has a first experiment.** Nothing in the literature
   demonstrates its sufficiency, because no prior system trains a frozen-body-plus-thin-surface

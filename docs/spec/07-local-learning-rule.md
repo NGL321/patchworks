@@ -105,6 +105,22 @@ maps and needs nothing from a neighbour to project them. It is **not** inert in 
 joint scale grows monotonically under a scale-invariant objective, so the upper face binds essentially
 every step once a map reaches `ρ`.
 
+**The one term is also blind to how that magnitude is spread, and the projection gains a step for
+it.** A banded map is projected onto the nearest **scaled co-isometry** — every singular value set to
+`‖F‖_F/√m`, which is the floor `σ_min ≥ ‖F‖_F/√m` at the only value that is derivable rather than
+invented. The step is a per-map SVD, and it is local in the same sense as the rest: one map, one
+owning cell, nothing read from a neighbour. It **preserves the Frobenius norm exactly**, so it does
+not fight the band that runs beside it, and it is a projection rather than a term for the reason the
+whole rule is now one term — the transport objective has no fixed point at agreement and orbits at
+`~η` permanently ([#339](https://github.com/NGL321/patchworks/issues/339)), and a pressure would be
+arguing with something that never settles. What it exists to stop is the degenerate optimum: two maps
+carrying one direction agree perfectly on the states actually visited and are unconstrained on the
+rest, so **rank-1 collapse is agreement bought by shrinking what has to be agreed about**. Ruled in
+[#411](https://github.com/NGL321/patchworks/issues/411) and carried by
+[ADR-0032](../adr/0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md), which
+also names what is not yet built: where the flattening sits relative to the incoherence cap, whose
+water-filling moves energy between a cell's directions and so un-flattens what this flattens.
+
 This trains transport: the basis in which a cell's features become comparable to a neighbour's. It
 never reads a neighbour's raw node stalk — only the disagreement already derived from it during
 reconciliation — because the whole point of the map is to make two cells' features comparable when they

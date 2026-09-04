@@ -1,0 +1,22 @@
+endpoints: 1364   boundary-held: 273
+(m, k) census: [((4, 32), 424), ((4, 24), 324), ((8, 32), 265), ((8, 48), 256), ((4, 17), 32), ((4, 28), 28), ((4, 20), 10), ((1, 1), 8), ((1, 17), 8), ((8, 2), 3), ((8, 1), 3), ((8, 6), 3)]
+
+masks with k < m -- no scaled co-isometry exists: 9
+  pair   512 edge  256 cell  256 CellKind.PROPRIOCEPTIVE m=8 k=2  attainable sigma_min/flat = 0.5000  (rank deficit 6 of 8)
+  pair   514 edge  257 cell  257 CellKind.TOUCH m=8 k=1  attainable sigma_min/flat = 0.3536  (rank deficit 7 of 8)
+  pair   516 edge  258 cell  258 CellKind.PROPRIOCEPTIVE m=8 k=2  attainable sigma_min/flat = 0.5000  (rank deficit 6 of 8)
+  pair   518 edge  259 cell  259 CellKind.TOUCH m=8 k=1  attainable sigma_min/flat = 0.3536  (rank deficit 7 of 8)
+  pair   520 edge  260 cell  260 CellKind.PROPRIOCEPTIVE m=8 k=2  attainable sigma_min/flat = 0.5000  (rank deficit 6 of 8)
+  pair   522 edge  261 cell  261 CellKind.TOUCH m=8 k=1  attainable sigma_min/flat = 0.3536  (rank deficit 7 of 8)
+  pair   524 edge  262 cell  262 CellKind.ACTUATOR m=8 k=6  attainable sigma_min/flat = 0.8660  (rank deficit 2 of 8)
+  pair   526 edge  263 cell  262 CellKind.ACTUATOR m=8 k=6  attainable sigma_min/flat = 0.8660  (rank deficit 2 of 8)
+  pair   528 edge  264 cell  262 CellKind.ACTUATOR m=8 k=6  attainable sigma_min/flat = 0.8660  (rank deficit 2 of 8)
+
+at the draw:   max departure from flat 1.8284, median 0.3313
+after one projection, attainable masks (1355): max departure 1.26e-15
+after one projection, deficient masks (9): max departure 1.8284, min 1.0000
+
+norm move, attainable masks: max 1.11e-15
+norm move, deficient masks:  max 0.6464, min 0.1340
+all 9 deficient endpoints boundary-held: True
+deficient endpoints among the banded (unpinned) maps: 0 of 1091

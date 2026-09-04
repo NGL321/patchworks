@@ -47,12 +47,21 @@ both, and it checks that the two describe the same edges. There is no public
 function here that returns a per-edge energy on its own or a per-edge effective
 rank on its own, and there is no way to record one without the other.
 
-**No rank floor is imposed, here or anywhere.** Learned rank-deficiency is
-wanted — it is the mechanism `06-graph-topology.md` relies on to enlarge `H⁰`
-through a functionally dead but structurally present edge — and its degenerate
-limit is instrumented rather than forbidden. Nothing in this module clamps,
-warns on, refuses or floors an effective rank: a fleet of rank-1 maps is
-reported as a fleet of rank-1 maps.
+**No rank floor is imposed *here*, and this instrument imposes none anywhere.**
+Nothing in this module clamps, warns on, refuses or floors an effective rank: a
+fleet of rank-1 maps is reported as a fleet of rank-1 maps.
+
+That sentence used to end *"here or anywhere"*, on the ground that learned
+rank-deficiency was wanted — the mechanism `06-graph-topology.md` relied on to
+enlarge `H⁰` through a functionally dead but structurally present edge — with
+the degenerate limit instrumented rather than forbidden. **Both halves went.**
+ADR-0031 ruled `H⁰` a per-cell floor rather than a maximand, so that mechanism
+is not the route to it; then this instrument reported the degenerate limit
+arriving (effective rank 1.0009, #237), and ADR-0032 imposed a **spectral
+floor** on the surface, `σ_min >= ‖F‖_F/√m`. The instrument's own guarantee is
+unchanged and is the half that matters here: what floors the maps is the
+projection in :meth:`patchworks.restriction.RestrictionMaps.project`, and
+what this module does is report what it finds.
 
 That holds in the arithmetic and not only in the intent. The participation
 ratio is taken on the **unit-normalised** map, where it needs no epsilon
