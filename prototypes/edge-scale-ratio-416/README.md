@@ -5,6 +5,7 @@ The reading [#416](https://github.com/NGL321/patchworks/issues/416) asks for, on
 the readings.
 
     python prototypes/edge-scale-ratio-416/read.py --seeds 0 1 2 --ticks 30000
+    python prototypes/edge-scale-ratio-416/read.py --seeds 3 --ticks 100000
     python prototypes/edge-scale-ratio-416/summarise.py --ticks 30000
 
 **The quantity.** Per edge, per direction, `σ(F_u)/σ(F_v)` — the ratio of the two endpoint maps'
@@ -41,6 +42,16 @@ band's geometric centre, in `restriction.py`'s own words *"so no edge starts wit
 into it"*. The construction reading is `6e-08` — float32 round-off around exactly 1 — and it is the
 zero of the drift axis, not evidence. The whole reading is about what training does.
 
+## The headline: everything ends up at the gauge
+
+The one-sentence result, and the four runs all say it.
+
+**The norms saturate the band, and once they have, the ratio is decided entirely by which ends are
+pinned.** By 100,000 ticks **98.7%** of banded maps sit within 0.5% of `ρ` and 75.3% are at `ρ` to
+three decimals. An interior edge then has both ends at `ρ` and reads ratio **1**; a boundary-incident
+edge has one end at `ρ` and one nailed at 1, and reads ratio **exactly 2 — the band face**. Nothing
+about either number is the objective matching anything.
+
 ## The reading, 30,000 ticks, three seeds
 
 `|log₂ ratio|`, per edge, never pooled across the two populations.
@@ -54,69 +65,71 @@ zero of the drift axis, not evidence. The whole reading is about what training d
 | boundary-incident (`ρ=2`) | 1 | **0.909** | 1.000 | 1.000 | 1.000 | 1 | **1.000** | 18.7% |
 | boundary-incident (`ρ=2`) | 2 | **0.914** | 0.998 | 1.000 | 1.000 | 1 | **1.000** | 16.8% |
 
-In ratio terms: an interior edge's median mismatch is **1.04x** against an admissible **4x**; a
-boundary-incident edge's is **1.88x** against an admissible **2x**, with ~18% of them sitting
-*exactly on* the band face.
+Seed 3's own 30,000-tick checkpoint, inside the 100,000-tick record, reads 0.056 and 0.942 — a fourth
+seed agreeing with the three.
+
+In ratio terms at this horizon: an interior edge's median mismatch is **1.04x** against an admissible
+**4x**; a boundary-incident edge's is **1.88x** against an admissible **2x**.
 
 **Nothing is outside its band.** The largest excess measured is `2.5e-7` on a norm, which is float32
 round-off in the projection's own clamp retaken in float64, not a breach. `summarise.py` separates
 *on the face* from *beyond it* for exactly this reason — the first is the gauge binding, the second
 would be the gauge failing, and only the first happens.
 
-## Does it drift? Yes on one population, barely on the other
+## The long horizon, 100,000 ticks — where the reading resolves
 
-`|log₂ ratio|` median, at every checkpoint, median over the three seeds.
+| tick | interior median | boundary-incident median | banded maps at `ρ` (±0.5%) |
+|---|---|---|---|
+| 0 | 6e-08 | 6e-08 | 0.0% |
+| 100 | 0.031 | 0.016 | 0.0% |
+| 1,000 | 0.038 | 0.101 | 0.7% |
+| 3,000 | 0.043 | 0.213 | 2.2% |
+| 10,000 | 0.062 | 0.483 | 7.5% |
+| 30,000 | 0.056 | 0.942 | 15.8% |
+| 100,000 | **0.0002** | **1.000** | **98.7%** |
 
-| tick | interior | boundary-incident |
-|---|---|---|
-| 0 | 6.4e-08 | 6.0e-08 |
-| 10 | 0.016 | 0.006 |
-| 100 | 0.025 | 0.014 |
-| 300 | 0.030 | 0.034 |
-| 1,000 | 0.034 | 0.098 |
-| 3,000 | 0.036 | 0.210 |
-| 10,000 | 0.050 | 0.438 |
-| 30,000 | 0.056 | **0.914** |
+At 100,000 ticks **all 273** boundary-incident edges are within 0.2% of the band face (the *minimum*
+`|log₂|` over the population is 0.998), and 44% are on it to within `1e-5`. On the other side **97.6%**
+of interior edges are within 1% of ratio 1.
 
-The boundary-incident ratio **roughly doubles per decade of ticks** and is stopped by nothing except
-the band face. The interior ratio adds ~0.01 per decade and is at 2.8% of its own band's width.
+The interior median falling from 0.056 at 30k to 0.0002 at 100k is not the ratio being corrected. It is
+both ends arriving at the same ceiling.
 
 ## What it says
 
-**On interior edges, ADR-0010's argument holds at the operating point.** The ratio sits at 1.04x of an
-admissible 4x, uses 11–14% of the band at the p95, and creeps at a rate that would not reach the face
-in any run this project will do. Read alone, that is #416's *record it and close* case.
+**ADR-0010's argument for leaving the ratio free is not what is holding the ratio.** The ADR argues the
+objective handles it — *"minimising `‖F_u x_u − F_v x_v‖` on generic states wants matched scale"*, and
+along the ratio *"the objective points away from collapse rather than toward it"*. The second half is
+true and irrelevant: it rules out one-sided **collapse**, and the dynamics go the other way, to the
+**ceiling**. The first half is not visible in the reading at all. What decides every edge's ratio at
+the operating point is which of its ends the gauge pins:
 
-**On boundary-incident edges it is saturated, and the objective is not what is holding it.** The ratio
-drove monotonically from 1 to the band face over 30,000 ticks and stopped there because the projection
-stopped it. 273 of 682 edges — the entire sensorimotor rim, the drive, and the actuator — are pinned
-against the constraint.
+- both ends free → both ride `ρ` → ratio **1**, and no matching pressure is needed to produce it;
+- one end pinned → the free end rides `ρ` against a fixed 1 → ratio **`ρ` = 2**, and no matching
+  pressure is able to prevent it.
 
-**Why that is the discriminating population, and the interior one is not.** ADR-0010 argues the
-objective wants matched scale: *"minimising `‖F_u x_u − F_v x_v‖` on generic states wants matched
-scale"*. On an interior edge that hypothesis and its negation predict the same reading — both ends grow
-together under Lemma 2.4's monotone growth of the **joint** scale, which is the direction nothing has an
-opinion about, so a ratio near 1 falls out whether or not any matching pressure exists. On a
-boundary-incident edge the pinned end **cannot move**: it is nailed at 1 by the exact gauge. There the
-joint direction is unavailable and every unit of growth at the free end is a unit of *ratio*. That is
-the one place the matching pressure is testable against a fixed reference, and it reads **absent** —
-the free end climbs to `ρ` regardless.
+**The boundary-incident edges are the discriminating population and the interior ones are not.** On an
+interior edge the "objective matches scale" hypothesis and its negation predict the same reading, because
+both ends grow together under Lemma 2.4's monotone growth of the **joint** scale — the direction the ADR
+itself says nothing has an opinion about. On a boundary-incident edge that direction is unavailable: the
+pinned end cannot move, so every unit of growth at the free end is a unit of *ratio*. It is the one place
+the matching pressure is testable against a fixed reference, and it reads **absent** — the free end
+climbs to `ρ` and stays.
 
-So the interior edges' stability is not evidence that the objective holds the ratio. It is evidence
-that both ends grow at the same rate, which is Lemma 2.4 and not the transport rule having an opinion.
+**So the cost is structural, maximal and permanent.** 273 of 682 edges — the entire sensorimotor rim, the
+drive, and the actuator — carry a **2x** unmatched endpoint scale, which is the whole of the freedom their
+band allows. It is not a spread across the band; it is the band's face, occupied by the entire population.
 
-**This is #411 §5's shape, one layer over.** #411 found disagreement descent buys agreement on the
-states actually visited, and that rank-1 collapse was agreement achieved by shrinking what has to be
-agreed about. The ratio pressure is not dodged here so much as **not there**: ADR-0010's triangle-
-inequality argument rules out one-sided *collapse* (sending either map to zero reads 1, the maximum)
-and says nothing whatever about the ratio riding to the **ceiling**, which is the direction the
-dynamics actually take.
+**This is #411 §5's shape, one layer over.** #411 found disagreement descent buys agreement on the states
+actually visited, and that rank-1 collapse was agreement achieved by shrinking what has to be agreed
+about. Here the ratio pressure is not dodged so much as **not there**: the gauge determines the ratio and
+the objective does not enter.
 
-**A third finding against ADR-0010, on the way past.** The ADR states *"the larger end of every interior
-edge rides `‖F‖_F = ρ`"*, and that is the premise the `ρ²`-of-freedom figure rests on. Measured, the
-banded maps have median norm **1.71** and only **5.5–6.1%** are at `ρ` — growth is real and the ceiling
-is reached by a small minority, not by every edge's larger end. The claim is directionally right and
-quantitatively false as written.
+**ADR-0010's own drift claim, checked and upheld — at the long horizon only.** The ADR states *"the larger
+end of every interior edge rides `‖F‖_F = ρ`"*. That is **true by 100,000 ticks** (98.7% of banded maps
+within 0.5% of `ρ`) and **not yet true at 30,000** (15.8%). The claim is a long-horizon truth quoted
+without a horizon; the `ρ²`-of-freedom figure that rests on it is sound at the horizon this reading
+reaches, and a run stopping at 30k would find it false.
 
 ## Robustness: the same story on `σ_max`, and a much larger number on `σ_min`
 
@@ -130,16 +143,16 @@ quantitatively false as written.
 
 `σ_max` tells the same story with a smaller boundary figure — the top-direction distortion is **1.49x**,
 not the full 2x, because the free end spreads its Frobenius budget over 8 directions where the pinned
-end does not. **The `σ_min` p95 of 17 is not this ticket's finding**: `2^17` is a statement that the
-spectra are nowhere near flat, which is precisely the hole #411's `σ_min ≥ ‖F‖_F/√m` floor was ruled to
-close. It is carried here only so the Frobenius/`σ` identification is not quietly assumed.
+end does not. **The `σ_min` p95 of 17 is not this ticket's finding**: `2^17` says the spectra are nowhere
+near flat, which is precisely the hole #411's `σ_min ≥ ‖F‖_F/√m` floor was ruled to close. It is carried
+here only so the Frobenius/`σ` identification is not quietly assumed.
 
-Flatness `σ_min/σ_max` per map reads median **0.40–0.42** across the three seeds, which is what makes
-that identification an idealisation today rather than an identity.
+Flatness `σ_min/σ_max` per map reads median **0.40–0.42** at 30k and **0.55** at 100k — rising, but far
+from the 1 #411 wants, so the identification remains an idealisation today rather than an identity.
 
 ## By edge kind, and by position on the channel
 
-| kind | m | edges | band | median `|log₂|` |
+| kind | m | edges | band | median `|log₂|` at 30k |
 |---|---|---|---|---|
 | drive | 1 | 8 | `ρ` | 0.998 |
 | sensory | 8 | 262 | `ρ` | 0.910 |
@@ -152,25 +165,30 @@ the one unpinned kind does not.
 **Position on the channel, stated twice because the pooled figure misleads.** Rank correlation of
 `|log₂ ratio|` with `d(edge, rim)`:
 
-- **all 682 edges: −0.64.** This is an artefact — every boundary-incident edge sits at depth 0 *and* at
-  its band face, so the number reports that the two populations differ, not that anything varies along
-  the channel.
+- **all 682 edges: −0.63 to −0.65** across all four runs. An artefact — every boundary-incident edge sits
+  at depth 0 *and* at its band face, so the number reports that the two populations differ, not that
+  anything varies along the channel.
 - **interior only, 409 edges: +0.12 to +0.17.** Weak and positive: deeper interior edges carry slightly
-  more mismatch. Per edge and keyed to a distance to the rim, never to the dome's imposed level (#181).
+  more mismatch at 30k. Per edge and keyed to a distance to the rim, never to the dome's imposed
+  level (#181).
 
 ## The gate
 
-#416 makes the reading the gate: *a ratio near 1 that holds means nothing is owed; a ratio that drifts
-or spreads across the band is a second hole with a measured cost.*
+#416 makes the reading the gate: *a ratio near 1 that holds means ADR-0010's argument is sound at the
+operating point and nothing is owed; a ratio that drifts or spreads across the band is a second hole with
+a measured cost, and then it wants a grilling to rule on a constraint.*
 
-**The reading is split, and the half that saturates is the half that discriminates.** On interior edges
-nothing is owed. On the 273 boundary-incident edges the ratio drifts monotonically to the band face and
-is held only by the projection — and those edges are the *only* place the objective's claimed matching
-pressure can be tested, because they are the only place one end is fixed. So the gate opens: this is a
-second hole with a measured cost, and the cost is a **2x** unmatched scale on every rim, drive and
-actuator edge, arrived at by drift rather than sitting there from construction.
+**The gate opens, and on a finding sharper than either branch anticipated.** The ratio does not sit near 1
+and it does not spread across the band. It **drifts monotonically to the band face and stops there**, on
+273 of 682 edges, permanently, and the reason is a composition of ADR-0010's own two decisions: the exact
+gauge pins one end at 1, Lemma 2.4's monotone growth carries the other to `ρ`, and the projection holds it
+there. The cost is a **2x** unmatched endpoint scale on every rim, drive and actuator edge — the whole of
+the freedom the band allows those edges.
 
-What it is *not* is a reason to invent a constant. The measured mechanism is specific — ADR-0010's own
-two decisions, the exact gauge at the boundary and monotone growth of the free end, compose into
-guaranteed ratio saturation on exactly the edges that have one of each — and naming the remedy is a
-ruling, not a read. That is the ticket this reading hands on.
+And the half that looks healthy is healthy for a reason that is not the ADR's reason. The interior ratio of
+1 is both ends resting on the same ceiling, not the objective matching them, so it is not available as
+evidence that the objective holds the ratio anywhere.
+
+What this reading does **not** do is name the remedy. Whether the answer is `ρ = 1` at boundary-incident
+edges, a matched-scale term, or accepting the 2x as the price of the exact gauge is a ruling, and
+ADR-0029's deferral rule says a read does not get to make it. That is the ticket this hands on.
