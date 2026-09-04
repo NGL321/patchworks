@@ -316,7 +316,9 @@ def ratio_line(label: str, before, after) -> None:
     print(f"    {label:<34}{quantiles(after[good] / before[good])}   n={int(good.sum())}")
 
 
-def reach_section(reached, shapes, flat_before, flat_after) -> None:
+def reach_section(
+    reached, shapes, flat_before, flat_after, rank_before=None, rank_after=None
+) -> None:
     """What the floor reached, and how flat it actually left it.
 
     The first thing to check, because every number after it is meaningless if the
@@ -337,6 +339,18 @@ def reach_section(reached, shapes, flat_before, flat_after) -> None:
     mask = reached.numpy()
     for label, values in (("before", flat_before), ("after", flat_after)):
         print(f"    {label + ', floored maps only':<34}{quantiles(values[mask])}")
+    if rank_before is not None:
+        print(
+            f"\n    {'map effective rank (the premise)':<34}"
+            f"{'5th':>11}{'median':>11}{'95th':>11}"
+        )
+        for label, values in (("before", rank_before), ("after", rank_after)):
+            print(f"    {label + ', floored maps only':<34}{quantiles(values[mask])}")
+        print(
+            "\n    ADR-0032 books sqrt(m) per map on a spectrum at effective rank\n"
+            "    1.0009. That is the one premise in its arithmetic a run can\n"
+            "    contradict, and `before` above is the run."
+        )
 
 
 def hop_section(dome: Dome, before: dict, after: dict) -> None:
@@ -564,6 +578,35 @@ def chain_section(dome: Dome, chains: dict, before: dict, after: dict) -> None:
         )
 
 
+def map_ranks(dome: Dome, maps: RestrictionMaps) -> np.ndarray:
+    """`[pairs]`: the effective rank of each map's own active block.
+
+    **The premise the booked cost rests on, read directly.** ADR-0032 prices the
+    projection at `sqrt(m)` because it moves `sigma_max` from `~‖F‖_F` — where it
+    sits *at an effective rank of 1.0009* — to `‖F‖_F/sqrt(m)`. That premise is
+    a measurement of a surface, and it is the one thing in the ADR's arithmetic
+    that a run can contradict: a map already carrying two directions has less
+    concentrated on one and therefore less to lose.
+
+    Read on the same `[:m, :k]` active block :meth:`RestrictionMaps.flatness`
+    uses, and for the same reason: `svdvals` on the block returns `min(m, k)`
+    values, so where the mask leaves fewer columns open than the lane is wide,
+    the missing ones are structural zeros the factorisation does not report, and
+    counting only the reported ones would flatter a rank-deficient map.
+    """
+    values = maps.maps.detach()
+    out = np.zeros(maps.pairs, dtype=np.float64)
+    for edge in dome.edges:
+        for side, cell_id in enumerate((edge.u, edge.v)):
+            i = pair_index(edge.id, side)
+            k = int(maps.support[i].any(dim=0).sum())
+            spread = torch.linalg.svdvals(values[i, : edge.m, :k]).double().numpy()
+            if spread.size < edge.m:
+                spread = np.concatenate([spread, np.zeros(edge.m - spread.size)])
+            out[i] = effective_rank(spread)
+    return out
+
+
 # -- the control: what composition does to flat factors on its own ----------
 
 
@@ -673,6 +716,7 @@ def price(name: str, split: str, seed: int, learn: int) -> None:
     after_agent = surface(name, split, seed, learn, floored=True)[1]
     hop_after, chain_after = read(after_agent, dome, hops, chains)
     flat_after = after_agent.sheaf.maps.flatness().numpy().astype(np.float64)
+    rank_after = map_ranks(dome, after_agent.sheaf.maps)
     reached = after_agent.sheaf.maps.floored.clone()
     shapes = list(after_agent.sheaf.maps.floor_shapes)
     del after_agent
@@ -680,9 +724,10 @@ def price(name: str, split: str, seed: int, learn: int) -> None:
     before_agent = surface(name, split, seed, learn, floored=False)[1]
     hop_before, chain_before = read(before_agent, dome, hops, chains)
     flat_before = before_agent.sheaf.maps.flatness().numpy().astype(np.float64)
+    rank_before = map_ranks(dome, before_agent.sheaf.maps)
     del before_agent
 
-    reach_section(reached, shapes, flat_before, flat_after)
+    reach_section(reached, shapes, flat_before, flat_after, rank_before, rank_after)
     hop_section(dome, hop_before, hop_after)
     isotropic_section(dome, hop_before, hop_after)
     shape_section(dome, hop_before, hop_after)
@@ -692,7 +737,9 @@ def price(name: str, split: str, seed: int, learn: int) -> None:
 
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("command", choices=("price", "control"), nargs="?", default="price")
+    parser.add_argument(
+        "command", choices=("price", "control", "ranks"), nargs="?", default="price"
+    )
     parser.add_argument("--dome", default="real")
     parser.add_argument("--split", default="train")
     parser.add_argument("--seed", type=int, default=42)
@@ -701,6 +748,31 @@ def main(argv=None) -> None:
     if arguments.command == "control":
         dome = build_graph(ufp.dome_named(arguments.dome)[0])
         control_section(dome, chain_paths(dome))
+        return
+    if arguments.command == "ranks":
+        # The premise alone, off the cheaper of the two runs. `price` reports
+        # this too; this mode exists because the premise is what the booked
+        # cost rests on and it is answerable without paying for the floored run.
+        agent = surface(
+            arguments.dome, arguments.split, arguments.seed, arguments.learn, floored=False
+        )[1]
+        values = map_ranks(agent.dome, agent.sheaf.maps)
+        mask = agent.sheaf.maps.floored.numpy()
+        print("\n-- the premise: map effective rank without the floor --")
+        print(f"\n    {'':<34}{'5th':>11}{'median':>11}{'95th':>11}")
+        print(f"    {'floored maps only':<34}{quantiles(values[mask])}")
+        for width in sorted({e.m for e in agent.dome.edges}):
+            rows = [
+                map_ranks_index
+                for map_ranks_index, edge in (
+                    (pair_index(e.id, s), e)
+                    for e in agent.dome.edges
+                    for s in (0, 1)
+                )
+                if edge.m == width and mask[map_ranks_index]
+            ]
+            if rows:
+                print(f"    {'lane width m = ' + str(width):<34}{quantiles(values[rows])}")
         return
     price(arguments.dome, arguments.split, arguments.seed, arguments.learn)
 
