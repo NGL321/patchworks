@@ -424,14 +424,17 @@ class TestProposalsAreCollectedFromCommentsAsWellAsIssues:
         """Silence here would be the one failure silence is never allowed.
 
         A comment carrying `@source` and `@shape` has declared itself
-        provenance. Dropping it for want of `@proposal` would leave a proposal
-        that exists, is invisible in the register, and told nobody -- so the
-        next agent invents it again, which is exactly what the shelf is for.
+        provenance. Dropping it *silently* for want of `@proposal` would leave a
+        proposal that exists, is invisible in the register, and told nobody --
+        so the next agent invents it again, which is exactly what the shelf is
+        for. It is skipped rather than fatal (#354), and the skip is a row.
         """
         orphan = block("@source here", "@shape a shape", "@status open")
         problems = [issue(number=300, body=PROBLEM, comments=[comment(orphan, 300)])]
-        with pytest.raises(registers.MalformedProvenance, match="@proposal"):
-            registers.collect(problems, [], [])
+        found = registers.collect(problems, [], [])
+        assert found.proposals == []
+        assert [s.url for s in found.skipped] == [comment(orphan, 300)["url"]]
+        assert "@proposal" in found.skipped[0].reason
 
     def test_a_comment_with_a_field_block_of_another_kind_is_still_silent(self):
         """A rig report is not a malformed proposal (#284 will file these)."""
@@ -465,6 +468,129 @@ class TestProposalsAreCollectedFromCommentsAsWellAsIssues:
         )
         with pytest.raises(registers.MalformedProvenance, match="register:dismissal"):
             registers.collect([], [], [payload])
+
+
+# ---------------------------------------------------------------------------
+# one bad comment is one bad comment (#354)
+# ---------------------------------------------------------------------------
+
+
+#: The comment #354 names: a quoted rig report with a sentence written under
+#: it, inside the same fence. Ordinary to write, and it used to take all three
+#: registers down.
+LOOSE = block("@rig detectability", "and then a sentence under it")
+
+#: This class only ever renders, and only ever looks at the skipped section, so
+#: the rig set is a placeholder rather than `RIGS` reached for from below.
+ANY_RIG = frozenset({"detectability"})
+
+
+class TestAMalformedCommentCostsOnlyItself:
+    """A malformed comment is a fact about one comment, not about the projection.
+
+    Before #354 the reader let :class:`MalformedProvenance` out of the comment
+    loop and `main` caught nothing, so one unparseable comment anywhere in the
+    tracker exited the generator and **none of the three registers
+    regenerated** -- on a workflow that fires on every comment event, which is
+    repo-wide. The trigger is ordinary: quote a filed rig report inside a fence
+    and write a sentence under it.
+
+    The comment is skipped, and the skip is a row. Silent skipping is the exact
+    failure the field-block mechanism exists to prevent, so the count and the
+    comment URL are rendered rather than only raised: a reader of the page can
+    see that the file below may be incomplete, and can reach the comment that
+    made it so without scanning an issue by hand.
+    """
+
+    def test_a_loose_line_no_longer_aborts_the_survey(self):
+        problems = [
+            issue(number=300, body=PROBLEM,
+                  comments=[comment(LOOSE, 300, 1), comment(PROPOSAL, 300, 2)])
+        ]
+        found = registers.collect(problems, [], [])
+        assert [p.title for p in found.proposals] == ["Relay cells"]
+        assert [p.title for p in found.problems] == ["A problem"]
+
+    def test_the_skip_names_the_comment_url_and_not_only_the_issue(self):
+        """The diagnostic named the issue; a reader then scanned every comment."""
+        problems = [issue(number=300, body=PROBLEM, comments=[comment(LOOSE, 300, 7)])]
+        found = registers.collect(problems, [], [])
+        assert len(found.skipped) == 1
+        assert found.skipped[0].url.endswith("#issuecomment-7")
+        assert "#300" in found.skipped[0].where
+
+    def test_a_malformed_comment_does_not_hide_a_rig_report_beside_it(self):
+        """`_reports` reads the same comments; it must skip, not raise."""
+        report = block("@rig detectability", "@reading offset fell to 0.18")
+        problems = [
+            issue(number=300, body=PROBLEM,
+                  comments=[comment(LOOSE, 300, 1), comment(report, 300, 2)])
+        ]
+        found = registers.collect(problems, [], [])
+        assert found.problems[0].reports == frozenset({"detectability"})
+
+    def test_a_comment_proposal_that_cannot_be_read_is_skipped_not_fatal(self):
+        """Every comment-level refusal, not only the loose line."""
+        bad = block("@proposal X", "@source here", "@shape s", "@answers not-a-number")
+        problems = [issue(number=300, body=PROBLEM, comments=[comment(bad, 300)])]
+        found = registers.collect(problems, [], [])
+        assert found.proposals == []
+        assert len(found.skipped) == 1
+
+    def test_a_malformed_issue_body_is_still_fatal(self):
+        """A label promises a row exists; skipping the body would drop it.
+
+        The comment is different in kind: nothing promised it was provenance,
+        which is why most comments are passed over in silence already.
+        """
+        payload = issue(number=300, body=block("@failure x", "@cutoff nonsense"),
+                        labels=("register:problem",))
+        with pytest.raises(registers.MalformedProvenance):
+            registers.collect([payload], [], [])
+
+    def test_every_register_says_how_many_comments_it_could_not_read(self):
+        problems = [issue(number=300, body=PROBLEM, comments=[comment(LOOSE, 300, 7)])]
+        found = registers.collect(problems, [], [])
+        for text in registers.generate(found, ANY_RIG).values():
+            assert "#issuecomment-7" in text
+            assert registers.SKIPPED_HEADING in text
+
+    def test_with_nothing_skipped_the_section_says_so(self):
+        found = registers.collect([issue(number=300, body=PROBLEM)], [], [])
+        for text in registers.generate(found, ANY_RIG).values():
+            assert registers.SKIPPED_HEADING in text
+            assert "#issuecomment" not in text
+
+    def test_a_skip_never_falls_back_to_the_issue_url(self):
+        """The row would then say *scan every comment by hand*, which is the bug.
+
+        A skip pointing at the issue is indistinguishable from one that named
+        the comment, so a payload with no comment URL states the degradation
+        instead of hiding it behind a link that reads as an answer.
+        """
+        entry = comment(LOOSE, 300, 7)
+        del entry["url"]
+        problems = [issue(number=300, body=PROBLEM, comments=[entry])]
+        skipped = registers.collect(problems, [], []).skipped[0]
+        assert skipped.url == ""
+        assert "no comment URL" in skipped.link
+        assert "issues/300" not in skipped.link
+
+    def test_the_skip_is_recorded_once_and_not_once_per_reader(self):
+        """`_reports` and `collect` read the same comments through one walk."""
+        problems = [
+            issue(number=300, body=PROBLEM,
+                  comments=[comment(LOOSE, 300, 1), comment(LOOSE, 300, 2)])
+        ]
+        found = registers.collect(problems, [], [])
+        assert len(found.skipped) == 2
+
+    def test_the_skip_also_reaches_a_terminal(self):
+        """The workflow's only signal was a red run; now the run stays green."""
+        problems = [issue(number=300, body=PROBLEM, comments=[comment(LOOSE, 300, 7)])]
+        lines = registers.skip_report(registers.collect(problems, [], []))
+        assert len(lines) == 1
+        assert "#issuecomment-7" in lines[0]
 
 
 # ---------------------------------------------------------------------------
