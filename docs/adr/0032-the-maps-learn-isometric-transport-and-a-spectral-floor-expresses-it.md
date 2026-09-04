@@ -296,6 +296,14 @@ the same quantity. Neither is ruled here.
 `draining_effective_rank < 2`; this decision is aimed at it and purchases nothing until the constraint
 is built and the long-horizon read returns.
 
+*Amended by [#434](https://github.com/NGL321/patchworks/pull/434) and
+[#435](https://github.com/NGL321/patchworks/issues/435), 2026-09-04: both conditions are met and #324
+is closed on `solved`, with this decision as its ground.* The constraint is built — `project()`
+enforces the floor on `main` — and the long-horizon read returned: `draining_effective_rank` is
+**4.000** at 30k and at 100k (`benchmarks/spectral_floor_read.py`, `DEFAULT_SPEC`, seeds 0-2), against
+a bar of `< 2` and a `--no-floor` control of 2.925 and 3.356. The purchase named here is the one that
+was made.
+
 **The gap to the sheaf-diffusion literature narrows and does not close.** `01-cell-and-sheaf.md`'s
 *Known exposure* discounts Bodnar et al.'s collapse-resistance result because it is proved for
 *orthogonal* sheaves and Patchworks' maps are *"masked, learned, and merely norm-bounded"*. A floored
@@ -316,6 +324,13 @@ it today. Three mechanics are open and belong to the build rather than to this d
 flattening sits relative to `_push_apart` (which water-fills eigenvalues and so un-flattens what this
 flattens — pre-registration 2 is the read on that collision), how the ragged `m` across edges batches,
 and the nine named pinned exclusions.
+
+*Amended by [#434](https://github.com/NGL321/patchworks/pull/434), 2026-09-04: it is built.*
+`RestrictionMaps.project()` enforces the floor, and the three mechanics were settled there rather than
+here — the floor is ordered before the incoherence cap, ragged `m` batches by `(m_e, k_v)` shape
+group (`floor_shapes`), and the exclusion turned out to be **by attainability rather than by
+pinning**: a mask with `k_v < m_e` cannot contain a co-isometry at all, which on `DEFAULT_SPEC` is
+exactly the nine names this paragraph called pinned, computed from the mask rather than listed.
 
 ## Alternatives considered
 
