@@ -151,10 +151,11 @@ VERDICT_KEY = "verdict"
 #: What a run that could **not** evaluate the cutoff names itself with, instead
 #: of `@rig`. The distinction is load-bearing and it is the one thing #284
 #: refuses to paper over: `problem_registers._reports` collects every `@rig`
-#: block, and `unwatched()` drops a problem out of *cutoffs naming a rig with no
-#: recorded run* as soon as one appears. A run that read an unreadable bar, or
-#: found no such metric, has fired nothing -- recording it as a run would take
-#: the row out of the loud section and leave the problem reading as watched,
+#: block, and `unwatched()` drops a problem out of *cutoffs naming a
+#: firing condition nothing will reach* as soon as one appears. A run that
+#: read an unreadable bar, or found no such metric, has fired nothing --
+#: recording it as a run would take the row out of the loud section and
+#: leave the problem reading as watched,
 #: which is the disguise that section exists to show. So the report is filed,
 #: because only the run can see the gap, and it is filed under a key the
 #: register does not count.

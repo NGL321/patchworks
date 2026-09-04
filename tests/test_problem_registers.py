@@ -37,8 +37,17 @@ import problem_registers as registers
 # ---------------------------------------------------------------------------
 
 
-def issue(number=1, title="A problem", body="", state="OPEN", labels=(), comments=()):
-    """One `gh issue list --json number,title,body,state,labels,url,comments` row."""
+def issue(
+    number=1, title="A problem", body="", state="OPEN", labels=(), comments=(),
+    created="2026-01-01T00:00:00Z",
+):
+    """One `gh issue list --json` row, with the fields `FIELDS` asks for.
+
+    `created` is the problem's minting date, which is the bar an `event`
+    cutoff's dormancy is read against. Its default sits early enough that a
+    fixture naming activity later than it reads as a live cutoff without having
+    to say so.
+    """
     return {
         "number": number,
         "title": title,
@@ -47,7 +56,21 @@ def issue(number=1, title="A problem", body="", state="OPEN", labels=(), comment
         "url": f"https://github.com/NGL321/patchworks/issues/{number}",
         "labels": [{"name": name} for name in labels],
         "comments": list(comments),
+        "createdAt": created,
     }
+
+
+def surveyed(problems, activity=None):
+    """A survey of *problems*, with the event issues' last activity attached.
+
+    `collect` cannot fill `activity` -- the issues an `event` cutoff names carry
+    none of the three register labels and appear in none of its three payloads
+    -- so the live generator fetches them in a second round and assigns them.
+    This is that assignment, for a fixture.
+    """
+    found = registers.collect(list(problems), [], [])
+    found.activity = dict(activity or {})
+    return found
 
 
 def comment(body="", number=1, ident=1):
@@ -237,6 +260,32 @@ class TestAProblemIsReadOffItsIssue:
         body = block("@failure a stated failure")
         with pytest.raises(registers.MalformedProvenance, match="@cutoff"):
             registers.read_problem(issue(number=300, body=body))
+
+    def test_a_second_cutoff_is_refused_rather_than_dropped(self):
+        """`_one` took the first and dropped the rest in silence (#353).
+
+        A sequenced cutoff — *this bar, but only once that bar has fired* — has
+        no spelling in the grammar, so an author who reaches for one writes a
+        second `@cutoff` line and gets no error. What they get is a line
+        nothing reads, which is the same failure as a threshold nobody can fire
+        on: provenance in appearance and not in fact. Whether the grammar
+        *should* grow a sequenced cutoff is a separate question and is not
+        settled by refusing the silent drop.
+        """
+        body = block(
+            "@failure a stated failure",
+            "@cutoff measurement detectability conduction ratio >= 1",
+            "@cutoff measurement driven_settling tau_wander_over_loop >= 1",
+        )
+        with pytest.raises(registers.MalformedProvenance, match="written 2 times"):
+            registers.read_problem(issue(number=300, body=body))
+
+    def test_the_minting_date_is_carried(self):
+        """The bar an `event` cutoff's dormancy is read against."""
+        problem = registers.read_problem(
+            issue(number=300, body=PROBLEM, created="2026-09-01T00:00:00Z")
+        )
+        assert problem.minted == "2026-09-01T00:00:00Z"
 
     def test_a_closed_problem_stays_a_problem(self):
         """Deleting the row deletes the evidence for the bet the project makes."""
@@ -613,6 +662,14 @@ PHANTOM = issue(
     title="A cutoff nothing will fire",
     body=block("@failure something", "@cutoff measurement no_such_rig bar < 1"),
 )
+#: An `event` cutoff, minted on a stated date so a fixture can put the named
+#: issue's last activity on either side of it.
+DORMANT = issue(
+    number=304,
+    title="Waits on an issue",
+    body=block("@failure a thing", "@cutoff event #99"),
+    created="2026-03-01T00:00:00Z",
+)
 
 #: The rigs these tests pretend `benchmarks/` holds, passed in rather than read
 #: off disk. Reading the real directory would make this file's verdicts depend
@@ -698,14 +755,142 @@ class TestACutoffNamingARigWithNoRecordedRunIsLouderThanUncut:
         text = registers.render_problems(registers.collect([crossed], [], []), RIGS)
         assert "#300" not in self.loud(text)
 
-    def test_an_event_cutoff_is_never_in_this_section(self):
-        """It fires by itself; `issues: closed` is already watched."""
-        evented = issue(
+    def test_an_event_cutoff_that_is_moving_is_not_in_this_section(self):
+        """Something is happening on the issue whose closing fires it."""
+        text = registers.render_problems(
+            surveyed([DORMANT], {"#99": registers.Activity(moved="2026-06-01T00:00:00Z")}), RIGS
+        )
+        assert "#304" not in self.loud(text)
+
+
+class TestAnEventCutoffWithNothingCarryingItIsInTheSectionToo:
+    """The register's second loud section names two kinds, not one (#353).
+
+    `docs/agents/registers.md` has always said three — a rig with no recorded
+    run, an issue with no activity, and a measurement with no threshold — and
+    only the first was rendered. The third never reaches a renderer at all:
+    `read_cutoff` refuses a measurement with no threshold at parse, which is
+    the right place for it and is what the doc now says. The second is here.
+
+    **The bar is the problem's own minting date, and it is not a free
+    constant.** *How long may an issue sit* is a duration somebody would have
+    to choose, and ADR-0029 keeps an implementing session from choosing one.
+    The question asked instead is the one the rig arm already asks: has
+    anything happened against this cutoff **since this problem started cutting
+    on it**? Both arms therefore list from day one and leave the moment
+    anything moves.
+    """
+
+    def loud(self, text):
+        return text.split("## Open problems")[0]
+
+    def test_an_issue_that_has_not_moved_since_minting_is_named(self):
+        text = registers.render_problems(
+            surveyed([DORMANT], {"#99": registers.Activity(moved="2026-02-01T00:00:00Z")}), RIGS
+        )
+        assert "#304" in self.loud(text)
+        assert "has not moved since this problem was minted" in self.loud(text)
+
+    def test_activity_exactly_at_the_minting_date_is_not_movement(self):
+        """The issue was touched when the problem was written, and not since."""
+        text = registers.render_problems(
+            surveyed([DORMANT], {"#99": registers.Activity(moved="2026-03-01T00:00:00Z")}), RIGS
+        )
+        assert "#304" in self.loud(text)
+
+    def test_an_issue_the_tracker_does_not_have_is_named(self):
+        """The event arm's `NO_SCRIPT`: a firing condition that cannot exist."""
+        text = registers.render_problems(surveyed([DORMANT], {}), RIGS)
+        assert "#304" in self.loud(text)
+        assert "nothing that can close" in self.loud(text)
+
+    def test_a_dormant_row_is_listed_and_not_demoted(self):
+        """The doc is explicit: the listing makes dormancy visible, not wrong.
+
+        The event may be exactly the right moment. So the row stays in the open
+        problems table, in its ordinary place, carrying its ordinary cutoff —
+        nothing is reordered, dropped, or marked overdue.
+        """
+        text = registers.render_problems(
+            surveyed([DORMANT], {"#99": registers.Activity(moved="2026-02-01T00:00:00Z")}), RIGS
+        )
+        table = text.split("## Open problems")[1]
+        assert "#304" in table
+        assert "event #99" in table
+        assert "overdue" not in table
+
+    def test_a_problem_with_no_minting_date_is_not_judged(self):
+        """An unknown bar is not a crossed one.
+
+        A payload that did not carry `createdAt` would otherwise be compared
+        against the empty string, which every timestamp sorts above, and every
+        event cutoff in the register would be listed at once on a field nobody
+        wrote.
+        """
+        undated = issue(
             number=304, title="Waits on an issue",
             body=block("@failure a thing", "@cutoff event #99"),
+            created="",
         )
-        text = registers.render_problems(registers.collect([evented], [], []), RIGS)
+        text = registers.render_problems(
+            surveyed([undated], {"#99": registers.Activity(moved="2026-02-01T00:00:00Z")}), RIGS
+        )
         assert "#304" not in self.loud(text)
+
+    def test_an_issue_that_had_already_closed_at_mint_is_named_as_that(self):
+        """The third state, and not dormancy — the two read differently.
+
+        `docs/agents/registers.md` refuses this cutoff at mint: read literally
+        it fired on day one, read as intended it can never fire, because the
+        issue closed for an unrelated reason. Nothing in code enforces the
+        refusal, so the register says which state it is rather than calling a
+        closed issue quiet.
+        """
+        text = registers.render_problems(
+            surveyed(
+                [DORMANT],
+                {"#99": registers.Activity(
+                    moved="2026-02-01T00:00:00Z", closed="2026-02-01T00:00:00Z"
+                )},
+            ),
+            RIGS,
+        )
+        row = [
+            line for line in self.loud(text).splitlines() if line.startswith("* ")
+        ]
+        assert len(row) == 1
+        assert "#304" in row[0]
+        assert "had already closed" in row[0]
+        assert "has not moved" not in row[0]
+
+    def test_an_issue_that_closed_after_the_mint_is_not_in_the_section(self):
+        """That cutoff fired. Whether anyone noticed is `register:overdue`'s.
+
+        The state the docstring used to claim was impossible: closing bumps
+        `updatedAt`, so a close that follows the mint carries the issue out of
+        the section on the dormancy test alone.
+        """
+        text = registers.render_problems(
+            surveyed(
+                [DORMANT],
+                {"#99": registers.Activity(
+                    moved="2026-06-01T00:00:00Z", closed="2026-06-01T00:00:00Z"
+                )},
+            ),
+            RIGS,
+        )
+        assert "#304" not in self.loud(text)
+
+    def test_the_section_names_both_kinds(self):
+        """One section, because both arms ask the same question."""
+        text = registers.render_problems(surveyed([CUT], {}), RIGS)
+        heading = "## Cutoffs naming a firing condition nothing will reach"
+        assert heading in text
+
+    def test_the_refs_the_second_round_must_ask_about_are_the_event_ones(self):
+        """`event_refs` plans the second network round without making it."""
+        found = surveyed([DORMANT, CUT, UNCUT])
+        assert registers.event_refs(found) == ("#99",)
 
 
 class TestTheThreeFilesRender:
