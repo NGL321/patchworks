@@ -44,9 +44,13 @@ and how each of the near-misses below is told apart on screen — belongs to
 [`10-the-demo-surface.md`](./10-the-demo-surface.md).
 
 **Depth.** The **conduction ratio**, per cell: the e-fold decay time `τ̂_c` of the paired
-private-feature deviation, over `|loop(c)|` — the tick length of the shortest cycle through `c` that
-reaches the rim and returns. Both halves are in ticks, so the ratio is dimensionless. The quantity,
-its derivation and `|loop(c)|`'s enumeration on the default dome are
+private-feature deviation, over `world_loop(c)` — the tick length of the shortest loop through `c`
+that leaves through an **actuator**, crosses the world, and re-enters at a **different** sensory
+boundary cell. Both halves are in ticks, so the ratio is dimensionless. *The divisor was `|loop(c)|`,
+the graph's own inner-face round trip, until [#383](https://github.com/NGL321/patchworks/issues/383)
+moved it; that length is **kept and demoted** and still has its own name where this file needs it
+(*K's warrant*, below).* The quantity,
+its derivation and both lengths' enumeration on the default dome are
 [ADR-0026](../adr/0026-rim-core-influence-is-a-conduction-ratio.md)'s and are not restated here; what
 this file fixes is what the *demo* does with them, which is
 [ADR-0027](../adr/0027-the-demos-depth-criterion-is-a-conduction-time.md)'s.
@@ -122,8 +126,8 @@ What that settles and what it does not:
   longer an amplitude.
 - **The pass conditions below are unaffected by impulse size, and now for a stronger reason than
   before.** They were orderings, and an ordering does not depend on absolute size. The depth clause
-  is now a **ratio of times**, which is scale-free outright: `τ̂_c / |loop(c)|` has no amplitude in
-  it. The impulse must still be large enough to produce a deviation the paired fork can see at all —
+  is now a **ratio of times**, which is scale-free outright: `τ̂_c / world_loop(c)` has no amplitude
+  in it. The impulse must still be large enough to produce a deviation the paired fork can see at all —
   the falsification named in ADR-0026 is a deviation *bit-identical* between branches — and above
   that floor it does not enter the criterion.
 - **The event stays exactly as specified.** Nothing in the protocol changes on this account.
@@ -134,8 +138,8 @@ Fixed **before** the live run, so that no result is narrated after the fact.
 
 **Passing is one closure and one ordering.**
 
-- **Depth: the event's loop closes.** For each event, `τ̂_c / |loop(c)| ≥ 1` along **some path from
-  that event's injection site** — read **inbound** for the arm nudge (entering at proprioception and
+- **Depth: the event's loop closes.** For each event, `τ̂_c / world_loop(c) ≥ 1` along **some path
+  from that event's injection site** — read **inbound** for the arm nudge (entering at proprioception and
   touch) and the puck teleport (entering at vision), **outbound** for the retarget, which is injected
   at the drive boundary cell attached to the apex. **Single-source, not a sweep**: the demo pokes the
   sources a human actually pokes, and ADR-0026's swept per-stratum read stays where it lives, on
@@ -190,9 +194,10 @@ rule was forgotten.
 **Failing.**
 
 - **A loop that does not close is a failure**, including the case where every recovery looks
-  perfect. If no path from the event's injection site holds `τ̂_c / |loop(c)| ≥ 1`, the graph does not
-  hold what it sent long enough for the answer to get back, and no amount of convincing footage
-  changes that. **This is the criterion that fails today, and it fails on every reading of `τ` the
+  perfect. If no path from the event's injection site holds `τ̂_c / world_loop(c) ≥ 1`, the graph
+  does not hold what it sent long enough for the answer to get back — the answer being the world's,
+  which is the loop #383 put in the denominator so that this sentence means what it says — and no
+  amount of convincing footage changes that. **This is the criterion that fails today, and it fails on every reading of `τ` the
   record holds.** On the chart's **direct** round trip `τ` is flat at about one tick graph-wide —
   0.91 at the apex against 0.99 at the rim, no depth→timescale gradient and slightly inverted. With
   the stalk relay included ([#274](https://github.com/NGL321/patchworks/issues/274), nine driven seeds) the
@@ -200,7 +205,11 @@ rule was forgotten.
   the rim rather than slower.
   Against `|loop|` of 2 at L1 and 14 at the apex, that is a ratio of **0.12 to 0.93 at the apex** —
   short on every seed, which is why the criterion's verdict is unchanged and only its magnitude
-  moves. Both figures are read on `05`'s regional `τ` and **neither is `τ̂_c`**, the paired
+  moves. **That ratio is held against the demoted `|loop(c)|`, the divisor it was read against, and
+  is kept as read rather than rescaled** (#383): the apex's `world_loop(c)` is 15 or 16 rather than
+  one integer, so a re-pointed number would be a choice dressed as a measurement. Under the divisor
+  the criterion now uses it is shorter still, since `world_loop(c)` exceeds `|loop(c)|` at every one
+  of the 150 cells. Both figures are read on `05`'s regional `τ` and **neither is `τ̂_c`**, the paired
   counterfactual decay this criterion is actually written over; they are stand-ins, the corrected
   one is the better stand-in, and #99 owes the real instrument
   ([`05-timescales.md`](./05-timescales.md), *What the live read says*). Pre-registering a condition
@@ -242,8 +251,8 @@ that a reader can check the criteria above against them rather than take the cri
   `‖Δ private‖` because *"that would make the display's decay and the claim the display tests the
   same number, so the panel could never contradict the thesis."* #214 made the graph's attenuation
   and the claim the same number; only the application was missing, because this file and `05` predate
-  the measurement. **The conduction ratio is immune**: attenuation is an amplitude and `τ̂ / |loop|`
-  is a ratio of times, so shrinking the deviation does not lengthen its decay.
+  the measurement. **The conduction ratio is immune**: attenuation is an amplitude and
+  `τ̂ / world_loop` is a ratio of times, so shrinking the deviation does not lengthen its decay.
 - **Unit edge delay.** Every edge costs exactly one tick
   ([`01-cell-and-sheaf.md`](./01-cell-and-sheaf.md), *Unit delay*), so on this graph **an onset
   ordering is a restatement of hop count**, and no guard separates hierarchy from delay — because
@@ -320,11 +329,17 @@ and only the second reaches a number.
 **A floor, from the graph.** Nothing has been injected at the snapshot tick, so what K has to
 survive is not a correction in flight but ordinary engaged behaviour — an agent *between* decisions.
 Every edge costs exactly one tick (*Unit edge delay*, above), so a commitment taken at the apex
-cannot be revised in less than that cell's own round trip: `|loop| = 14` ticks, the widest of the
-loop lengths this file reports against 2 at L1 (*Failing*, above). **Only the length is borrowed.**
+cannot be revised in less than that cell's own round trip: `|loop| = 14` ticks, the widest rung of
+ADR-0026's enumerated `|loop(c)|` ladder against 2 at L1. **Only the length is borrowed**, and it is
+the **demoted** length deliberately. `|loop(c)|` is the graph's own inner-face round trip, which is
+exactly what *revised at the apex* means — the commitment is revised by the graph's own traffic and
+not by waiting on the world — so this warrant is the case
+[#383](https://github.com/NGL321/patchworks/issues/383) kept `|loop(c)|` for: a document that needs
+the construction-time length still has it under its own name. It is **not** re-pointed to
+`world_loop(c)`, which would silently change what K is a floor on, and it is not a denominator here.
 `|loop|` is a hop count that unit delay happens to denominate in ticks; the depth clause's
-instrument is the *ratio* `τ̂_c / |loop(c)|`, and no part of `τ̂` enters here — this file keeps its
-two measures apart and this warrant does not reach across. A K under 14 would read the graph's own
+instrument is the *ratio* `τ̂_c / world_loop(c)`, and no part of `τ̂` enters here — this file keeps
+its two measures apart and this warrant does not reach across. A K under 14 would read the graph's own
 deliberation as disengagement, and would disqualify snapshots in proportion to how deep the
 machinery working at them is — biasing what survives toward the shallow rung. That rules out the
 short end and nothing else.

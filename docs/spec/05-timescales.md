@@ -1172,7 +1172,9 @@ criterion*, passing when the trace fell with hop distance, and that clause **can
 channel's own attenuation supplies a falling trace whether or not anything is retained, which
 [#214](https://github.com/NGL321/patchworks/issues/214) measured at **8.7e-10** rim→apex. The
 criterion is now a **conduction time**: per cell, the e-fold decay time `τ̂_c` of the paired
-private-feature deviation over `|loop(c)|`, with the bar at `τ̂_c / |loop(c)| ≥ 1`
+private-feature deviation over `world_loop(c)`, with the bar at `τ̂_c / world_loop(c) ≥ 1` — the
+same divisor this file's admissible band takes its floor from, above
+([#383](https://github.com/NGL321/patchworks/issues/383), [#404](https://github.com/NGL321/patchworks/issues/404))
 ([ADR-0026](../adr/0026-rim-core-influence-is-a-conduction-ratio.md) for the quantity,
 [ADR-0027](../adr/0027-the-demos-depth-criterion-is-a-conduction-time.md) for the demo's calls
 against it, [`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md) for the protocol). The scatter

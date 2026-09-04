@@ -83,9 +83,12 @@ wrong:
   rather than deleted because a reader has to be able to see that the condition was **met rather than
   waived** — the same reason the retracted destination is quoted in *Context* above.
 - **[ADR-0026](./0026-rim-core-influence-is-a-conduction-ratio.md) is the operative bar.** The
-  **rim-core influence** predicate over the **conduction ratio** `τ̂_c / |loop(c)|`, which reads
+  **rim-core influence** predicate over the **conduction ratio** `τ̂_c / world_loop(c)`, which reads
   **time rather than amplitude**: a cell's measured retention against the tick length of the shortest
-  cycle through it that reaches the rim and returns. #127's *Done when* and the stage-3 gate are read
+  loop through it that leaves at an actuator, crosses the world, and re-enters at a different sensory
+  boundary cell. *The divisor was `|loop(c)|`, the graph's own inner-face round trip, until
+  [#383](https://github.com/NGL321/patchworks/issues/383); it is kept and demoted, and this
+  cross-reference follows the bar rather than owning it.* #127's *Done when* and the stage-3 gate are read
   against it, and not against this ratio. **The two are complements, and neither replaces the
   other** — ADR-0026 says the loop *can close*, which is necessary and not sufficient; this predicate
   says something *distinguishable arrives*, which is sufficient and not necessary. That is precisely
