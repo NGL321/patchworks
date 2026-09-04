@@ -92,8 +92,23 @@ construction reads **2.63** against [#27](https://github.com/NGL321/patchworks/i
 (`docs/registers/rig.md`). **The field buys nothing over what the record already books per cell.**
 
 The curve *plateaus* rather than decaying, because ρ > 1 here: the field operator is expansive even
-though #274 found the median cell contracting. Both are true — ρ of the uncoupled operator is the
-max over cells, so one expansive cell sets it.
+though #274 found the median cell contracting. Both are true — ρ of a block-diagonal operator is the
+**max** over cells, so a handful of expansive cells set it.
+
+**And the medium is dissipative, which is what makes the negative mean anything.** Per-cell block
+radii, never as a graph-wide average (#181):
+
+| tick | min | p25 | median | p75 | max | expansive |
+|-----:|----:|----:|-------:|----:|----:|----------:|
+| 0    | 0.524 | 0.817 | 0.929 | 1.064 | 1.535 | 52/150 |
+| 500  | 0.474 | 0.819 | 0.901 | 0.970 | 1.337 | 27/150 |
+| 2000 | 0.324 | 0.812 | 0.900 | 0.974 | 1.363 | 29/150 |
+
+Median **0.900** — contracting, and consistent with #274's ~0.88 on the chart loop alone — with an
+expansive minority that learning *shrinks*, 52/150 → 29/150. So this is a driven **dissipative**
+medium with hot spots, not a broadly unstable one, and #374's literature is addressing the right
+object. It also means the run leaves the region this operator was linearised in: **§2 rules out a
+mechanism, not a phenomenon.**
 
 **Scope.** One seed, one dome, to 2000 ticks. That is enough for a question about the *operator* —
 which is what §2 gates on — and is not a long-horizon claim. The `broadcast` identity drifts to a

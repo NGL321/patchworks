@@ -476,9 +476,21 @@ def row(agent, reached: int, *, horizon: int, eigs: bool) -> dict:
     # rather than a quoted one.
     cell_operator = agent.sheaf.operators.K.detach().double()
 
+    # Per cell, the (k+n) block's own spectral radius. The aggregate `rho` is
+    # the *max* over these, so a field that reads expansive can still be a
+    # dissipative medium with a few hot cells -- and which of those it is
+    # decides whether #374's driven-dissipative literature applies at all. #274
+    # measured the median cell contracting on the chart loop alone; this is the
+    # same question asked of the whole cell, relay included, and never as a
+    # graph-wide average (#181).
+    block_radii = torch.linalg.eigvals(diagonal).abs().amax(dim=-1).numpy()
+
     out: dict[str, object] = {
         "ticks": reached,
         "size": int(field.shape[0]),
+        "block_spectral_radius": quantiles(block_radii),
+        "cells_expansive": int((block_radii >= 1.0).sum()),
+        "cells": int(diagonal.shape[0]),
         "coupling_terms": parts["coupling_terms"],
         "coupling_share_of_norm": float(
             torch.linalg.matrix_norm(field - block_diagonal(diagonal), ord="fro")
