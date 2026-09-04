@@ -138,6 +138,38 @@ contents and **ratifies that choice rather than superseding it**: the contents a
 per-slot, and carrying the readback at every slot rather than only at the head is what keeps a
 boundary cell's stalk dimension out of the hands of its index. Nothing here reopens the count.
 
+### The domain is mixed, and that is the position rather than the concession
+
+*Added by [#440](https://github.com/NGL321/patchworks/issues/440).*
+
+The three rims above are **not all discrete**, and the record needs the split stated because a later
+reader will otherwise take *the language domain* to mean *the discrete domain*.
+[`11-the-language-graph.md`](./11-the-language-graph.md)'s stalk table gives the **heard** rim 97
+dimensions of one-hot and nothing else; the **spoken** rim carries a commanded character and its
+uptake alongside **coherence**, a continuous motor readback
+([ADR-0025](../adr/0025-coherence-is-a-motor-readback-not-a-sensory-value.md)); and the **drive**
+stalk is a continuous valence scalar. So the discreteness describes **one of the wedge's two
+columns**, not the wedge.
+
+**The mixture is favoured, not tolerated.** A symbol stream read through a rim that also carries the
+motor consequence of speaking is what learning the **dynamics of a conversation** requires, as
+against the statistics of a corpus — the same commitment *Conversational by construction* makes,
+read one level down at the stalks. It stands on ADR-0025, which put coherence on the motor rim, and
+on [ADR-0009](../adr/0009-a-drive-is-a-motor-edge-attached-deep.md), which makes the drive a motor
+edge attached deep; it needs nothing else to license it.
+
+**It is a design position and it is unobserved.** Nothing here has been measured, and the stage 5
+experiment is what would convert it into an observation. It is recorded as a position so that a
+result is read against a claim that was made in advance rather than one assembled afterwards.
+
+**What it buys the record downstream.**
+[ADR-0004](../adr/0004-linear-restriction-maps-assume-local-flatness.md)'s criterion has one want
+and two warrants, and the warrant is selected by the overlap's geometry.
+[#132](https://github.com/NGL321/patchworks/issues/132)'s finding — a finite **situation set** with
+no box-counting dimension — is **heard-side**, so the discrete warrant applies there and the
+continuous one remains fully live on the spoken column and on the drive. The bill discreteness
+presents is therefore one column's, which is considerably smaller than it first read.
+
 ## Half-duplex, and an idle run yields the floor
 
 **One party speaks at a time**, and the **floor** is which of them it is.

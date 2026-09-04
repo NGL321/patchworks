@@ -27,8 +27,23 @@ _Avoid_: latent, internal representation, hidden state, embedding, lift
 **Piece**:
 The part of the problem one cell owns — locally Euclidean, and of the chart's dimension. What
 makes a cell's chart a chart. The pieces, not the world, are what Patchworks claims to be
-manifolds; the sheaf glues them without their union being one.
-_Avoid_: patch (reserve for the sensory tiling), subproblem, region, manifold (bare)
+manifolds; the sheaf glues them without their union being one. **What the chart occupies, and
+therefore what carries history**: the chart persists (ADR-0023), so a piece is the limit set of the
+cell's driven recurrence and not the set of configurations it is shown. Distinct from the
+**situation set** for exactly that reason — a configuration sweep reads the situation set, and where
+the two come apart it is the sweep that is the wrong instrument for the piece. Where a piece is
+locally Euclidean is a matter of measurement rather than assumption (ADR-0004, #440).
+_Avoid_: patch (reserve for the sensory tiling), subproblem, region, manifold (bare), situation set
+
+**Situation set**:
+The configurations a cell must tell apart — what a configuration sweep reads, and what ADR-0004's
+discrete warrant demands injectivity over. Distinct from the **piece**, which is what the *chart*
+occupies: the chart persists, so the piece carries history and the situation set does not. In the
+dome the distinction is inert, both being continuous; in language it is the whole question, because
+a heard cell's situation set is finite (#132) while its piece is the limit set of a
+discretely-driven recurrence. **In language the sweep reads the drive rather than the state**, which
+is what makes it the right instrument for the situation set and the wrong one for the piece.
+_Avoid_: piece (that is the charted object), state space, configuration space (bare)
 
 **Node stalk**:
 A cell's public face — the feature vector it exposes to the graph, and **the cell's own metric
@@ -293,7 +308,10 @@ The claim a linear restriction map rests on: the latent structure two adjacent c
 is locally Euclidean at the scale of their overlap, so transport between their stalks loses nothing a
 first-order map could have kept. A claim about the **geometry of the overlap**, and the oldest of the
 three linearity claims (ADR-0004). Says nothing whatever about how anything moves in time. Failure
-surfaces as a static floor on that edge.
+surfaces as a static floor on that edge. **It is one of two warrants for a single want, not the want
+itself** (#440): over a *continuous* overlap the warrant is local flatness and the error is
+curvature; over a *discrete* one it is injectivity on the situation set plus isometry of the carried
+subspaces (ADR-0032), and the error is **collision**.
 _Avoid_: linear (bare), linearity (unqualified), local linearity, flat (bare)
 
 **Chart linearity**:

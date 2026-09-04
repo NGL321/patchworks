@@ -15,7 +15,7 @@ model in common is **locally Euclidean at the scale of the overlap**. Where it i
 map is a first-order approximation, and the part it cannot follow arrives at the edge as
 disagreement indistinguishable from any other.
 
-This is the load-bearing use of the word *manifold* in Patchworks, and the only one. The world
+This is the load-bearing use of the word *manifold* in Patchworks, and the only one — **demoted by [#440](https://github.com/NGL321/patchworks/issues/440) to the *continuous* case's warrant; see *One want, two warrants* below.** The world
 is not claimed to be a manifold and does not need to be; the **pieces** are. Each cell owns a
 `k`-dimensional, locally Euclidean piece of the problem — its chart is a chart of *that piece*,
 in the strict sense — and the sheaf glues pieces of differing dimension without ever requiring
@@ -31,6 +31,68 @@ orders of magnitude *above* the state rather than below it. It does not:
 [ADR-0023](./0023-the-chart-is-not-a-koopman-lift.md) records that the chart persists and `K` is a
 linear recurrence rather than a lift, so this sentence stands unamended and unshared. Nothing here
 changes; what changes is that nothing else may borrow `k`.
+
+## One want, two warrants
+
+*Amended by [#440](https://github.com/NGL321/patchworks/issues/440).*
+
+This ADR opens by stating a **want** and one **warrant** for it, written as though the warrant were
+the want. They are separated here, because the language domain's heard rim
+has a **discrete** overlap and the manifold sentence is **inapplicable in its stated form** there —
+not vacuous, not violated, and not satisfied, with the want it encodes fully intact.
+
+- **The want.** A linear restriction map is honest exactly insofar as the relation between the two
+  endpoint cells' representations of their shared content is realised by a linear map **without
+  loss**.
+- **Continuous overlap → local flatness.** *Locally Euclidean at the scale of the overlap* is a
+  **licence to be first-order**: shrink the patch and a fixed linear rule becomes exact with an
+  error term going to zero. **Curvature is the error** — Singer & Wu's mechanism, unchanged — and
+  the disagreement floor is its signature.
+- **Discrete overlap → injectivity on the situation set, plus isometry of the carried subspaces.**
+  There is no limit and no shrinking error, and the underlying question is still sharp: two
+  situations either collide or they do not, and distances either survive or they do not.
+  [ADR-0032](./0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md)
+  already gave that question its statement — `F_v⁺F_u` an isometry between the two cells' **carried
+  subspaces**, expressed as a per-map spectral floor, which is a condition on the maps, true or
+  false over any point set at all, with no manifold anywhere in it. **Collision is the error**, not
+  curvature.
+
+So `manifold` stops being *"the load-bearing use in Patchworks, and the only one"* and becomes **the
+continuous case's warrant**. The sentence is demoted, not struck: it still says exactly what it says
+wherever the overlap is continuous, which is the whole of the dome.
+
+**The four load-bearing uses of linearity are untouched, and this is stated rather than left to be
+inferred** — `L = δᵀδ`, the `E_PC(s) = ½‖δ⁰s‖²` identity, the coupling between pieces, and the
+unabsorbable constant offset. None of them ever needed a manifold, so the amendment reaches none of
+them. Nor does it reach `k < n`, which keeps one reading and now has two derivations.
+
+**A criterion with a case split is not a domain-specific justification.** The want is one and both
+warrants are stated in domain-general terms, so *the same cells run both domains* stands unamended
+and the dome remains the only thing on the domain-specific side. The warrant structure is general;
+the clause inside it is selected by the overlap's geometry.
+
+### What the sweep reads, and what the chart occupies
+
+[#132](https://github.com/NGL321/patchworks/issues/132) read a language L1 wedge cell by
+**configuration sweep** — this ADR's own procedure — and found a finite set: a `97⁴` ceiling, four
+pairwise distances `sqrt(2j)` carrying all the mass, and `C(r)` a staircase with no box-counting
+dimension. That is a reading of the **situation set**, the configurations a cell must tell apart,
+and **not** of the **piece**. The chart **persists**
+([ADR-0023](./0023-the-chart-is-not-a-koopman-lift.md)), so the set the chart occupies is the limit
+set of a discretely-driven recurrence — bounded under the operator band, filling roughly
+`log 97 / log(1/r)` dimensions at retention `r` — and is **neither a finite set nor a manifold**,
+only fat enough to be locally Euclidean at high retention. The two terms are separated in
+[`CONTEXT.md`](../../CONTEXT.md). In the dome the distinction is inert, because the situation set is
+already continuous and reads `d_corr` 1.43; in language it is the whole question, because the sweep
+there reads the **drive** rather than the state.
+
+**Language is a mixed domain, and the discreteness reaches one column of it.**
+[`11-the-language-graph.md`](../spec/11-the-language-graph.md)'s stalk table gives **heard** 97
+dimensions of one-hot, while **spoken** carries a continuous coherence readback
+([ADR-0025](./0025-coherence-is-a-motor-readback-not-a-sensory-value.md)) and the drive stalk is a
+continuous valence scalar. #132's finding is heard-side, so the criterion is fully live in its
+continuous form on the spoken column and on the drive. The design position this rests on is
+[`12-the-interlocutor.md`](../spec/12-the-interlocutor.md)'s.
 
 ## What this ADR does not claim
 
@@ -96,6 +158,37 @@ precisely where a future reader will come looking for permission to assume other
   **Read this one first.** Ruling it out costs one projection and restores the three-cause procedure
   above; failing to rule it out means the gauge is wrong, which is ADR-0014's own pre-registered
   falsification and not a fact about any edge.
+
+  **Further amended by [#440](https://github.com/NGL321/patchworks/issues/440): all four causes keep
+  their structure over a discrete overlap, and curvature's applicability becomes a
+  measurement.** Read in the order the procedure above reads them:
+
+  - **`colspan(D)`** — unchanged, still read first. It is shared across cells and fixed at
+    construction, and it references no geometry at all.
+  - **The lag floor** — unchanged in principle. The **quiescent hold is available** in language
+    because `idle` is a symbol in the 97-alphabet, so holding the world still is something the
+    interlocutor can do. **One instrument detail is unsettled, and is recorded as open rather than
+    invented here**: the hold's second half is *sweep configurations while held*, and what a sweep
+    is on the **heard** column with the world silent is not obvious. It belongs to stage 5's demo
+    work.
+  - **Self-intersection** — **transfers free and needs no amendment.** #49's clause above is already
+    written as *twice the piece's **box-counting** dimension*, not twice a manifold dimension, and
+    box dimension exists for a dust, a filled set, and everything between; the criterion came from
+    delay embedding, where fractal attractors are the ordinary case. The ADR's newest clause is the
+    one that survives the transfer intact.
+  - **Curvature** — **conditional, and this is the finding.** Curvature is a property of something
+    locally Euclidean, and whether a language cell's piece is depends on how fat its limit set is.
+
+  Both live questions hinge on the **same number**, so one read settles them.
+  **Pre-registered, and not taken:** the box / correlation dimension `d_box` of a **heard L1 cell's
+  driven chart limit set**, read once stage 5 trains. `d_box` near 12 → the piece fills, curvature
+  keeps its referent, and language reads exactly like the dome. `d_box` low → the piece is a dust,
+  curvature is **struck in language** and its mass moves to **collision**, and `n > 2·d_box` is
+  comfortably satisfied so self-intersection **drops** from the reading — the same *drop this cause*
+  move this ADR already licenses above. It is also the number
+  [`docs/research/032-dimensioning-small-predictors.md`](../research/032-dimensioning-small-predictors.md)'s
+  capacities are quoted against, so it carries #132's `m = 4` margin (~1.4x, the width with the
+  least margin) into language.
 
 - **Linearity is load-bearing a fourth time: it is the whole of the coupling between pieces.**
   *Added by [#141](https://github.com/NGL321/patchworks/issues/141).* Decomposition creates boundary
