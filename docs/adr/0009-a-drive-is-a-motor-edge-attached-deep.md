@@ -60,7 +60,22 @@ holds no chart ([ADR-0006](./0006-boundary-cell-stalks-are-world-shaped.md)). It
 to a subset of core cells — fixed by [#36](https://github.com/NGL321/patchworks/issues/36) as the
 **apex level, entire** — and are ordinary edges with ordinary masked linear restriction maps. The
 assertion reaches those cells as ordinary disagreement, pulled with the ordinary reconciliation gain
-`γ / Σ_e m_e`. Every core cell it touches keeps its body and keeps inferring every tick.
+`gain_v = γ / (g_v² · c_v)` ([`02-tick-semantics.md`](../spec/02-tick-semantics.md),
+*Reconciliation gain*). Every core cell it touches keeps its body and keeps inferring every tick.
+
+What stood here named a different denominator, quoted rather than deleted because a consequence below
+was built on it:
+
+> pulled with the ordinary reconciliation gain `γ / Σ_e m_e`
+
+*Superseded by [#190](https://github.com/NGL321/patchworks/issues/190)*, which struck `Σ_e m_e` from
+the denominator outright — as a **bound** it was never derived, and as a **normalisation** the
+*equalising* property it was separately defended for was measured and never held (`gain_v · λ_max`
+spreads **3.57x at initialisation and ~2.6x taught, graded by depth and largest at the apex**).
+[#155](https://github.com/NGL321/patchworks/issues/155) published the replacement in the spec.
+**This ADR's decision does not turn on which denominator it is** — a drive edge is pulled with
+whatever the ordinary gain is, and that is the whole content of the sentence. *Strength is not a new
+axis* below did turn on it, and is amended there.
 
 Placed in ADR-0003's taxonomy, which sorts edges by **who clears the disagreement**, it is a motor
 edge:
@@ -101,16 +116,68 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
 - **Strength is not a new axis.** How hard a drive pulls is set by things that already exist. There is
   no new "how hard to clamp" parameter.
 
-  **Amended by [#36](https://github.com/NGL321/patchworks/issues/36): the knob is fan-out, not mask
-  width.** This ADR named `m_e` and the gain. `m_e` turns out not to be usable. A restriction map out
-  of a `d`-dimensional stalk has rank at most `d`, so with a scalar drive stalk an `m_e` above 1
-  carries nothing extra — it only lets the drive assert *zero* in the surplus directions, an arbitrary
-  constraint on a core cell in content the drive does not have. Worse, the per-cell gain is
-  `γ / Σ_e m_e`, so widening a drive edge **turns down every other edge that cell has**: the drive
-  making itself heard by making the world quieter. The usable knob is the **number of attachment
-  points** — not free either, since each new one costs that cell a dimension of privacy and the same
-  dilution, but it spreads the cost instead of concentrating it and never makes one cell pay more than
-  the minimum. The learned drive vector below remains the move after that one.
+  **Amended by [#36](https://github.com/NGL321/patchworks/issues/36), and re-grounded by
+  [#188](https://github.com/NGL321/patchworks/issues/188): `m_e > 1` is still not taken, but neither of
+  #36's two reasons survives.** The conclusion stands and its entire support has been replaced. What
+  stood here, quoted rather than deleted because the reasoning that produced it is worth keeping
+  legible:
+
+  > This ADR named `m_e` and the gain. `m_e` turns out not to be usable. A restriction map out
+  > of a `d`-dimensional stalk has rank at most `d`, so with a scalar drive stalk an `m_e` above 1
+  > carries nothing extra — it only lets the drive assert *zero* in the surplus directions, an
+  > arbitrary constraint on a core cell in content the drive does not have. Worse, the per-cell gain
+  > is `γ / Σ_e m_e`, so widening a drive edge **turns down every other edge that cell has**: the
+  > drive making itself heard by making the world quieter. The usable knob is the **number of
+  > attachment points** — not free either, since each new one costs that cell a dimension of privacy
+  > and the same dilution …
+
+  *Superseded by [#188](https://github.com/NGL321/patchworks/issues/188)* on both grounds:
+
+  - **The gain ground is void.** [#190](https://github.com/NGL321/patchworks/issues/190) struck
+    `Σ_e m_e` from the denominator entirely and
+    [#155](https://github.com/NGL321/patchworks/issues/155) published
+    `gain_v = γ / (g_v² · c_v)` ([`02-tick-semantics.md`](../spec/02-tick-semantics.md),
+    *Reconciliation gain*). **Widening a drive edge turns down nothing**, and the cost argument goes
+    with the formula — including the *"and the same dilution"* half of the fan-out pricing, which was
+    that same `Σ_e m_e` under another name.
+  - **The content ground is false as the code is built.** A boundary cell's own maps are
+    **scale-pinned, not frozen**: `TransportRule.step` steps every pair, and only `RestrictionMaps`'
+    projection knows about pinning, restoring *scale* alone — which is
+    [#356](https://github.com/NGL321/patchworks/issues/356)'s *"`grep pinned
+    src/patchworks/learning.py` returns nothing."* At `m_e = 1` out of a one-dimensional stalk the
+    drive-side map's admissible set is `{±1}`, **zero degrees of freedom**; at `m_e = w` it is
+    `S^(w−1)`, **`w − 1` learnable degrees of freedom the transport rule already trains**, needing no
+    gauge change and no unpinning. The surplus directions carry a **learned unit vector**, not zero.
+    *Valence, not specification* is untouched: the drive still asserts one number, and the graph still
+    chooses the direction.
+
+  **What closes the axis instead is the transport rule's sparsity pressure.** #188 read the drive
+  edges' apex-side maps over three seeds at 30k ticks: mean squared-mass share in a single apex-stalk
+  coordinate **0.9904–1.0000**, Hoyer `h` **0.2470–0.2539** against a floor of `1/√17 = 0.2425` —
+  **1.02x–1.05x the pressure's exact global minimum**, where the interior maps on the same apex cells
+  sit at **1.17x–1.20x** their own floor. So `rank(F_apex) = 1` whatever `m_e` is; the composition
+  through a drive edge is one coordinate of the apex stalk at `m_e = 1` and one coordinate of it at
+  `m_e = 16`, and widening cannot widen what the drive constrains. The ruling is stated at
+  `λ = DEFAULT_SPARSITY_PRESSURE`, the operating point the build runs, and its reversal condition is
+  [#393](https://github.com/NGL321/patchworks/issues/393).
+
+  **#393 has since reported, and the reversal condition is met in the sense it named.** The `λ` sweep
+  found the collapse is the constant's own doing: at `λ = 0` the fleet's effective rank **holds at
+  2.913** over 30k ticks where the default drives it to **1.002**. The width axis is therefore inert at
+  `0.4` and **not** inert at `0` — which is this amendment's ground behaving as stated, not against it.
+  The ruling above stands **because the build runs at 0.4**, and not because widening is impossible.
+  Whether `λ` stays there is [#406](https://github.com/NGL321/patchworks/issues/406), open at the time
+  of writing. If it moves, what this amendment is re-read against is two ceilings #188 recorded for
+  exactly that case: **`m_e` is bounded above by the apex-side map's achievable effective rank**, which
+  even at `λ = 0` is a construction-time fleet **3.66**
+  ([#356](https://github.com/NGL321/patchworks/issues/356)), so anything past `m_e ≈ 4` is unusable at
+  any `λ` this design has measured — a derived bound with a definition site, not an invented constant
+  — and the `p_v` collision recorded under *The hatch, in rungs* below, which binds before it.
+
+  The usable knob therefore remains the **number of attachment points**, at the cost of a dimension of
+  privacy per cell touched — spreading that cost instead of concentrating it, and never making one
+  cell pay more than the minimum. It is gated too, in *The hatch, in rungs* below. The learned drive
+  vector below remains the move after that one, and is gated in the same place.
 - **Multiple simultaneous drives compose by reconciliation**, the same way several cells driving one
   actuator do (ADR-0003). Genuinely incompatible drives are standing disagreement, which is a fourth
   source alongside static, lag, and settling
@@ -127,7 +194,11 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
   [#36](https://github.com/NGL321/patchworks/issues/36):** the drive attaches at the **apex level,
   entire** — one edge to each of the eight L7 cells — with a **scalar** stalk and `m_e = 1`. The apex is
   the most abstract place in the graph and the only part of the core with private dimension to spare;
-  the cost is one dimension of privacy per apex cell (16 → 15) and 8 off `χ`.
+  the cost is one dimension of privacy per apex cell (16 → 15) and 8 off `χ`. **That dimension has
+  since acquired a second buyer**: [ADR-0026](./0026-rim-core-influence-is-a-conduction-ratio.md) reads
+  the operative bar's `τ̂` *in private features*, so `p_v` is the substrate the bar is measured on and
+  not only a privacy budget. See the ladder's gate under *Known exposure*, where that is what makes
+  rung 3 self-defeating rather than merely expensive.
 - **The assertion needs the tick to be ordered.** ADR-0009 has the drive standing forever, which is only
   true if reconciliation cannot erode it. #36 settled this without an exemption: external writes land
   **after** the message-passing phase, as the tick's last word
@@ -147,7 +218,10 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
   vector, "the dimensionality of the embedding vectors, w, … set as k = 16" (Vezhnevets et al. 2017).
   Abel et al. (2021) prove a scalar cannot express some task specifications, which lands softer here
   because the drive is not the specification: the render is. What survives is the width question, and
-  it is now pre-costed.
+  it is now pre-costed — and, at today's operating point, **answered**: see the ladder's gate below,
+  where [#188](https://github.com/NGL321/patchworks/issues/188) closes both halves of it. The exposure
+  itself is not thereby retired; the scalar is still unproven, and what is ruled is that widening is
+  not the hatch out of that while `λ` stands where it does.
 
   **Trigger.** Task-invariant behaviour: the arm's trajectory the same across tasks differing only in
   the render, while the drive edge's disagreement is non-trivial. The mechanism-level confirmation is
@@ -163,6 +237,37 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
   `k ≈ 16`**, the attested width, at the cost of the one-cell-one-drive reading. The rungs are ordered
   by price, and only (3) changes the design's shape.
 
+  **The ladder carries a dependency it was written without, and rungs 1 and 3 are both gated on it**
+  ([#188](https://github.com/NGL321/patchworks/issues/188)). The gate is the transport rule's sparsity
+  pressure at `λ = DEFAULT_SPARSITY_PRESSURE` — a gate on a **constant**, and
+  [#393](https://github.com/NGL321/patchworks/issues/393) has since confirmed it is the constant doing
+  the work, with [#406](https://github.com/NGL321/patchworks/issues/406) open on whether the constant
+  stays. See *Strength is not a new axis* above.
+
+  - **Rung 1** already bore negatively on its own evidence:
+    [#183](https://github.com/NGL321/patchworks/issues/183) measured coherent fan-out at **0.94x**
+    across the eight drive edges that exist.
+  - **Rung 3 is measured shut at today's `λ`.** The drive edges' apex-side maps sit at
+    **1.02x–1.05x** the sparsity pressure's exact global minimum over three seeds at 30k ticks — mass
+    share **0.9904–1.0000** in a single apex-stalk coordinate, Hoyer `h` **0.2470–0.2539** against a
+    floor of `1/√17 = 0.2425` — where the interior maps on the same apex cells sit at
+    **1.17x–1.20x** their own floor. `rank(F_apex) = 1` whatever `m` is, so the composition through a
+    drive edge is one coordinate of the apex stalk and widening cannot widen what the drive
+    constrains. See *Strength is not a new axis* above.
+
+  This is a **gate, not a re-ordering**: #188 declined to re-price the rungs against each other on a
+  single operating point.
+
+  **Rung 3 is additionally self-defeating on the map route, and the pricing above predates the reason.**
+  Apex cells are `n = 32` with `Σ_e m_e = 17`, so `p_v = 15`; widening the drive edge to `w` gives
+  `p_v = 16 − w`. **At `k ≈ 16` the apex's private width reaches zero** — and
+  [ADR-0026](./0026-rim-core-influence-is-a-conduction-ratio.md) reads `τ̂` **in private features**, so
+  the operative bar would read **zero at the apex by construction**, adding the eight apex cells to the
+  82 [#385](https://github.com/NGL321/patchworks/issues/385) is open about. This ADR records that rung's
+  cost as *"one dimension of privacy per apex cell"* under *Graph topology gains one cell* above, which
+  was written before the bar existed: on the map route the rung is not merely expensive, it is
+  self-defeating against the bar it would be widened to clear.
+
   **The ramp is a fourth axis, and it is declined.**
   [#137](https://github.com/NGL321/patchworks/issues/137) asked whether the asserted scalar should stay
   constant or ramp under a ceiling, on this exposure's own premise that a scalar drive may prove too
@@ -174,8 +279,21 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
   scaled ~5.2e3. And it cannot reach this exposure's own trigger: an **undifferentiated apex** is a
   failure of *direction*, and with `m_e = 1` there is no direction to choose, so scaling moves all eight
   apex stalks in the same proportions and differentiates nothing. Coherent fan-out was measured at
-  0.94x for the same reason. Width remains the axis with leverage, which is
-  [#188](https://github.com/NGL321/patchworks/issues/188).
+  0.94x for the same reason. Width was the axis with leverage, and
+  [#188](https://github.com/NGL321/patchworks/issues/188) has since resolved it: **no**, at
+  `λ = DEFAULT_SPARSITY_PRESSURE`. The two halves of "width" were never one question. On the **map**
+  route, `m_e > 1` is buildable and free of the contract cost this ADR priced — and inert, because the
+  sparsity pressure has already taken the apex-side map to a single coordinate (*Strength is not a new
+  axis* above, and the ladder's gate above). On the **stalk** route, `drive_stalk > 1` is refused
+  outright, and on [`docs/motivating-image.md`](../motivating-image.md)'s own ground rather than on
+  this ADR's: **the render supplies content**, so a wider drive stalk moves task specification out of
+  the world and into the drive. [#393](https://github.com/NGL321/patchworks/issues/393) — the `λ`
+  sweep — is the **reversal condition** for the map half, and was deliberately not made a blocker: the
+  finding does not depend on `λ`'s future value, only on its current one. **#393 has since reported
+  and the condition is met**; see *Strength is not a new axis* above for what that does and does not
+  move, and [#406](https://github.com/NGL321/patchworks/issues/406) for whether `λ` stays where the
+  ruling is stated. The stalk half is unaffected either way — it is refused on a ground that has
+  nothing to do with `λ`.
 
   This is *Strength is not a new axis* above, restated where a reader will actually reach for it. It has
   a second job: **the ramp is the wrong answer to *Bootstrapping* below.** A drive edge that is noise

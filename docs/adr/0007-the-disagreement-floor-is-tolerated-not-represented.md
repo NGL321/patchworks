@@ -231,10 +231,29 @@ what this question is actually about.
   running re-derivation. *Amended by [#160](https://github.com/NGL321/patchworks/issues/160):* the
   construction check is a **nomination** and the verdict is live, on measured dwell (ADR-0019). Still
   no running re-derivation — what runs is a read.
-- **The gain is not a timescale knob and must not become one.** Normalising by `Σ_e m_e` tracks the
-  local Laplacian block's largest eigenvalue; its job is to *equalise* the effective step across the
-  taper, removing a degree artifact. A gain deliberately graded by depth would be ADR-0005's rejected
-  clock divisor wearing a different name.
+- **The gain is not a timescale knob and must not become one.** The prohibition survives; the account
+  of *why* it holds does not. What stood here, quoted rather than deleted:
+
+  > Normalising by `Σ_e m_e` tracks the local Laplacian block's largest eigenvalue; its job is to
+  > *equalise* the effective step across the taper, removing a degree artifact.
+
+  *Superseded by [#190](https://github.com/NGL321/patchworks/issues/190)*, which struck `Σ_e m_e` from
+  the denominator on both counts. As a **bound** it was never derived — nothing shows it bounds
+  `λ_max(Σ_e F_evᵀF_ev)` at all. As a **normalisation** the equalising property was defended in its own
+  right and then measured for the first time, and **it was never held**: in the only units that make
+  the claim mean anything, `gain_v · λ_max`, the spread across the taper is **3.57x at initialisation
+  and ~2.6x taught, graded by depth and largest at the apex**. What replaced it is
+  `gain_v = γ / (g_v² · c_v)` ([`02-tick-semantics.md`](../spec/02-tick-semantics.md),
+  *Reconciliation gain*), which bounds the same quantity by construction, and which #190 also made
+  **uniform across the interior** — the strike the amendment under *Known exposure* above already
+  records. **The prohibition is unchanged and is now load-bearing rather than decorative:** a gain
+  deliberately graded by depth would be ADR-0005's rejected clock divisor wearing a different name,
+  and the record now shows the struck normalisation was grading it by accident.
+
+  *Repaired by [#401](https://github.com/NGL321/patchworks/issues/401)* under the flag
+  [#188](https://github.com/NGL321/patchworks/issues/188) raised. This is the only site in this ADR
+  that ticket authorised; the remaining `Σ_e m_e` prints here are read as historical and are filed
+  rather than touched.
 
 ## Alternatives considered
 
