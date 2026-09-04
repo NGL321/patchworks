@@ -580,14 +580,63 @@ class RestrictionMaps(torch.nn.Module):
         and a benchmark can read the bound the projection is supposed to hold,
         against the denominator :func:`gain_denominators` hands the gain, and so
         the two can be compared at a boundary cell as well as an interior one.
+
+        **The eigendecomposition is taken in float64, and the surface this is
+        for is why.** A cell's Gram is a sum of outer products of maps that the
+        transport rule is free to drive rank-deficient, and a float32 `eigvalsh`
+        on a matrix with repeated or near-zero eigenvalues does not merely lose
+        digits — it *fails to converge* and raises. Reading a surface without
+        ADR-0032's floor at 100k does exactly that (`benchmarks/spectral_floor_read.py`,
+        the `--no-floor` arm, whose maps reach `σ_min/σ_max` of 1e-27). An
+        instrument that raises on the degenerate surface is an instrument that
+        cannot report the case it exists to catch, so the promotion is the fix
+        and it costs nothing the tick pays: #393's rank reading takes its ratio
+        in float64 for the same reason and by the same argument. The result is
+        returned in the maps' own dtype, so every caller sees what it always saw.
         """
+        maps = self.maps.detach().to(torch.float64)
         grams = torch.zeros(
             (len(self.dome.cells), self.stalk_width, self.stalk_width),
-            dtype=self.maps.dtype,
+            dtype=torch.float64,
             device=self.maps.device,
         )
-        grams.index_add_(0, self.owner, self.maps.transpose(1, 2) @ self.maps)
-        return torch.linalg.eigvalsh(grams).amax(dim=-1)
+        grams.index_add_(0, self.owner, maps.transpose(1, 2) @ maps)
+        return torch.linalg.eigvalsh(grams).amax(dim=-1).to(self.maps.dtype)
+
+    def flatness(self) -> torch.Tensor:
+        """`[pairs]`: `σ_min/σ_max` of each map's active block, 1 when flat.
+
+        Reporting, not runtime — the tick never calls it. It exists because
+        :meth:`project` orders the spectral floor **before** the incoherence cap
+        and so holds the floor exactly only where the cap does not bite; this is
+        what reads the residual, and it is the instrument ADR-0032's second
+        pre-registration is written against.
+
+        A map the floor does not reach comes back at its own honest ratio rather
+        than at 1 — the nine unattainable masks read 0, since `rank(F) ≤ k < m`
+        makes `σ_min` zero there whatever anything does, and `m = 1` reads 1
+        because one singular value is trivially its own smallest and largest.
+
+        **The spectrum is the map's `m` singular values, not the block's.**
+        `svdvals` on an `[m, k]` block returns `min(m, k)` of them, so where the
+        mask leaves fewer columns open than the lane is wide the remaining
+        `m − k` are structural zeros that the factorisation simply does not
+        report. Reading `σ_min` off the returned list there would say a map is
+        nearly flat when it is rank-deficient by construction, which is exactly
+        the population the floor excludes and the last place to flatter it.
+        """
+        maps = self.maps.detach()
+        tiny = torch.finfo(maps.dtype).tiny
+        ratios = torch.zeros(self.pairs, dtype=maps.dtype, device=maps.device)
+        for edge in self.dome.edges:
+            for side, cell_id in enumerate((edge.u, edge.v)):
+                i = pair_index(edge.id, side)
+                k = int(self.support[i].any(dim=0).sum())
+                spectrum = torch.linalg.svdvals(maps[i, : edge.m, :k])
+                top = spectrum.amax().clamp_min(tiny)
+                floor = spectrum.amin() if k >= edge.m else spectrum.new_zeros(())
+                ratios[i] = floor / top
+        return ratios
 
     def flatness(self) -> torch.Tensor:
         """`[pairs]`: `σ_min/σ_max` of each map's active block, 1 when flat.
