@@ -123,3 +123,70 @@ the live maps either way, which is the record's standing convention.
 `--float64` is the *verification* mode: it puts the run's own buffers in double so the
 finite-difference check is a real one. Reported numbers come from the float32 run the rest of the
 record was read on.
+
+## Re-taken on the floored surface, and the negative replicates
+
+Everything above was read on **2026-09-04 at 00:58Z**. [#434](https://github.com/NGL321/patchworks/pull/434)
+merged the spectral floor into `RestrictionMaps.project()` at **15:52Z the same day**, so the reading
+above is a reading of the **near-rank-1 surface** — the collapse
+[ADR-0032](https://github.com/NGL321/patchworks/blob/main/docs/adr/0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md)
+exists to end. #375's own reshape pre-registered that as a confound in this exact read, and asked for
+it again afterwards: *"§2's field-level non-normality read is retained, still first, still the gate —
+and taken after the floor lands it is worth more, not less, because it then reads a property of the
+coupling structure rather than of the collapse."*
+
+**This is that re-take.** Same rig, same seed, same dome, same ladder, same `--eigs --horizon 20`;
+the only difference is the surface. `375-real-train-seed42-2000-floored.json`, 942 s. `compare.py`
+prints the two side by side.
+
+The confound was real. The coupling block this rig assembles is `g_v (F_pᵀ F_p̄)` — a one-hop
+composed pair — and [#436](https://github.com/NGL321/patchworks/issues/436) measured exactly that
+object moving under the floor: per-hop effective rank **1.108 → 2.153**, off-channel energy share
+**0.051 → 0.381**, over 7,122 directed hops. The coupling's directional structure is precisely what
+changed between these two runs.
+
+| | | *before* | | | | *floored* | | |
+|-----:|---------:|-------------:|----------:|------:|-|---------:|-------------:|----------:|------:|
+| tick | nn field | nn uncoupled | gap | coup% | | nn field | nn uncoupled | gap | coup% |
+| 0    | 0.04624 | 0.04627 | −3.05e-05 | 2.82 | | 0.04624 | 0.04627 | −3.05e-05 | 2.82 |
+| 100  | 0.04600 | 0.04603 | −3.58e-05 | 3.06 | | 0.04592 | 0.04596 | −3.38e-05 | 2.97 |
+| 200  | 0.04601 | 0.04605 | −4.00e-05 | 3.22 | | 0.04596 | 0.04600 | −3.73e-05 | 3.11 |
+| 500  | 0.04616 | 0.04622 | −6.04e-05 | 3.93 | | 0.04610 | 0.04615 | −4.76e-05 | 3.50 |
+| 1000 | 0.04624 | 0.04634 | −1.01e-04 | 5.03 | | 0.04602 | 0.04609 | −6.14e-05 | 3.96 |
+| 2000 | 0.04604 | 0.04624 | −2.04e-04 | 7.11 | | 0.04632 | 0.04641 | −8.71e-05 | 4.67 |
+
+**The finding survives, and it sharpens.** Field and uncoupled still agree to three or four
+significant figures at every checkpoint. Henrici at 2000 reads **0.93473** field against **0.93537**
+uncoupled; `ρ` reads **1.4254** against **1.4255**, four figures, which is again a block-diagonal
+operator's `max_v ρ(B_v)`. Peak `‖M^t‖₂/ρ^t` is **2.798** field against **2.797** uncoupled.
+
+**And the gap the coupling does open is smaller than before, not larger** — `−8.71e-05` at 2000
+against `−2.04e-04` — while the coupling's share of the operator's norm grows to **4.67%** rather
+than 7.11%. The sign is unchanged and worth stating plainly: the coupling makes the field operator
+*very slightly less* non-normal than the same graph with every cell talking to nobody.
+
+A smaller share is what a flattened pair predicts — `F_pᵀ F_p̄` for two near-rank-1 maps is
+`≈ ‖F_p‖‖F_p̄‖·|cos∠|`, and spreading each map's energy over `m` directions shrinks the product
+unless the carried subspaces are aligned, which [#437](https://github.com/NGL321/patchworks/issues/437)
+records the transport rule driving *away* from. That is offered as consistent-with and not as a
+measurement: this rig reports the share, not its decomposition.
+
+**Construction is bit-identical across the two runs** (field `0.04623822224043648` on both), which is
+the control it looks like: at tick 0 no learning has run, so `project()` has never been called and
+the maps are the raw draw on either side of #434. It also anchors `DEFAULT_SAFETY_FACTOR`'s warrant —
+peak amplification at construction is **2.659** in both runs, so #27's 2.62 behind the shipped 2.6 is
+untouched by the floor.
+
+**What this does and does not change.** It does not change §2's answer, and it removes the one
+caveat that could have been raised against it — that the negative was an artifact of the collapse.
+So it does not reopen the *constrain the instruments, do not close the ticket* ruling; it removes
+that ruling's remaining exposure. **§2's own half-two stands untouched**: this is a local
+linearisation, the run leaves the region it is read in, and it therefore forecloses a mechanism
+rather than a phenomenon. The next action on #375 is still **instrument III, the drive-quench test**.
+
+**Scope.** One seed, one dome, to 2000 ticks, exactly as above — enough for a question about the
+operator and not a long-horizon claim. The floored run's `broadcast` identity drifts to a median
+1.9–6.2%, the same band as before (3.4–6.3%), with the same occasional large max on a pair whose
+denominator is small (24.6 here, 14.1 before).
+
+    python prototypes/field-operator-375/compare.py
