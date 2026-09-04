@@ -43,8 +43,8 @@ answer gets back through the **world**: an actuator writes, the world responds,
 and under ADR-0016's ban a *different* boundary cell reads the consequence. That
 loop is a construction-time graph quantity like its sibling::
 
-    world_loop(c) = min over (a, p), a an actuator, p a proprioceptor, a != p
-                    of  d(c, a) + w + d(p, c)
+    world_loop(c) = min over (a, p), a an actuator, p any sensory boundary cell,
+                    a != p, of  d(c, a) + w + d(p, c)
 
 `|loop(c)|` collapses it by allowing `a = p` and setting `w = 0`. The metric this
 arm offers a cutoff is `world_loop_excess`: the largest number of ticks
@@ -54,13 +54,21 @@ the sandbox fixes. A reading of 0 would say the two names denote one quantity an
 shorter of two different lengths, which is the failure as stated. The bar is
 #368's and was argued there, not here.
 
+**Since [#383](https://github.com/NGL321/patchworks/issues/383) this is also
+ADR-0026's divisor**, and not only #368's diagnostic: the conduction ratio is
+`τ̂_c / world_loop(c)`, imported from here by `benchmarks/detectability.py` so
+there is one enumeration and one place. `|loop(c)|` is **kept and demoted** — an
+exact construction-time length, published beside `world_loop(c)` by this arm,
+and no longer a denominator.
+
 **The reading cannot be 0, and the reason is the same one that made `split` read
 0** — `|loop(c)|` measures to the rim *as a set*. That set contains both `a` and
 `p`, so `d(c, rim) ≤ min(d(c, a), d(c, p))` and
 
     world_loop(c) = d(c, a) + w + d(p, c) ≥ 2 · d(c, rim) + w = |loop(c)| + w
 
-at every cell, on any `DomeSpec` carrying an actuator and a proprioceptor. So the
+at every cell, on any `DomeSpec` carrying an actuator and a sensory boundary
+cell. So the
 excess is at least `w` everywhere and the fleet max is at least `w` — the bar is
 crossed by construction, not by this taper. What the rig measures is how far
 *above* that floor the graph actually sits, which is the number a divisor
@@ -117,6 +125,26 @@ SENSORIMOTOR = (
     CellKind.PROPRIOCEPTIVE,
     CellKind.TOUCH,
     CellKind.ACTUATOR,
+)
+
+#: Where the world's answer is allowed to re-enter: the sensorimotor rim minus
+#: the actuator, which is every cell the world **writes**.
+#:
+#: **The actuator is out because ADR-0016's ban puts it out**, and that is the
+#: whole of the restriction (#383). #368 defined the return at proprioceptors
+#: alone; that restriction arrived with the definition, was argued nowhere, and
+#: is struck. The sandbox settles it on the facts: `03-the-sandbox.md` makes
+#: `image` a top-down render of the arena **with the arm in it**, so a torque's
+#: consequence lands on vision every tick, unconditionally, exactly as it lands
+#: on `qpos`/`qvel`. A divisor that refuses to see the visual return measures a
+#: route rather than a cell. Touch is not a question on this dome — patches plus
+#: proprioceptors read identically to all-sensory — so the one conditional
+#: channel changes no number here and the widening does not have to rule on
+#: whether a conditional return counts.
+SENSORY = (
+    CellKind.PATCH,
+    CellKind.PROPRIOCEPTIVE,
+    CellKind.TOUCH,
 )
 
 
@@ -208,8 +236,8 @@ def motor_fusion(dome: Dome) -> dict[int, int]:
 
 
 #: The world's own tick `w`, in the units `d(c, a)` and `d(p, c)` are counted in:
-#: what the crossing from an actuator to the proprioceptor that reads its
-#: consequence costs, in graph ticks.
+#: what the crossing from an actuator to the sensory boundary cell that reads
+#: its consequence costs, in graph ticks.
 #:
 #: **The sandbox fixes it, and it fixes it at 1.** `src/patchworks/agent.py`'s
 #: ordering is two graph phases and then the world: `tick()` runs `sheaf.tick()`,
@@ -235,9 +263,10 @@ class WorldLoops:
     lengths: dict[int, int]
     world_tick: int
     actuators: tuple[int, ...]
-    proprioceptors: tuple[int, ...]
+    sensory: tuple[int, ...]
+    """Where the answer is allowed to re-enter: every sensory boundary cell."""
     unreachable: tuple[int, ...]
-    """Predicting cells no actuator-and-proprioceptor pair reaches. Reported."""
+    """Predicting cells no actuator-and-sensory pair reaches. Reported."""
 
 
 def distances_from(neighbours: dict[int, set[int]], source: int) -> dict[int, int]:
@@ -256,13 +285,23 @@ def distances_from(neighbours: dict[int, set[int]], source: int) -> dict[int, in
 def world_loops(dome: Dome, world_tick: int = WORLD_TICK) -> WorldLoops:
     """#368's loop: out through an actuator, across the world, back elsewhere.
 
-    `world_loop(c) = min over (a, p), a an actuator, p a proprioceptor, a != p,
-    of d(c, a) + w + d(p, c)`. This is the loop ADR-0026 *argues* for — *the cell
-    still holds what it sent by the time the answer gets back* — and under
-    ADR-0016's written-or-read ban the answer cannot return at the cell that
-    sent it, so `a != p` is the ban rather than a modelling choice. `|loop(c)|`
-    is what this collapses to when `a = p` is allowed and `w` is set to 0:
-    exactly the two things ADR-0016 and the sandbox forbid.
+    `world_loop(c) = min over (a, p), a an actuator, p any sensory boundary
+    cell, a != p, of d(c, a) + w + d(p, c)`. This is the loop ADR-0026 *argues*
+    for — *the cell still holds what it sent by the time the answer gets back* —
+    and under ADR-0016's written-or-read ban the answer cannot return at the
+    cell that sent it, so `a != p` is the ban rather than a modelling choice.
+    `|loop(c)|` is what this collapses to when `a = p` is allowed and `w` is set
+    to 0: exactly the two things ADR-0016 and the sandbox forbid.
+
+    **`p` ranges over every sensory boundary cell** (:data:`SENSORY`), widened
+    from #368's proprioceptors-only definition by #383. The restriction read as
+    if it were ADR-0016's ban; it is not — the ban is `a != p`, and it is kept.
+    The sandbox's `image` is a top-down render of the arena with the arm in it,
+    so the consequence of a torque returns on vision unconditionally, and a
+    divisor that refuses to see that return measures a route rather than a cell.
+
+    Since #383 this is **ADR-0026's divisor**, not only #368's diagnostic:
+    `benchmarks/detectability.py` imports it rather than re-deriving it.
 
     The `min` is the same `min` :func:`loops` takes over the rim — a cell sits on
     the shortest loop available to it, and a bar read against a longer route it
@@ -276,12 +315,10 @@ def world_loops(dome: Dome, world_tick: int = WORLD_TICK) -> WorldLoops:
     """
     neighbours = adjacency(dome)
     actuators = tuple(sorted(c.id for c in dome.cells if c.kind is CellKind.ACTUATOR))
-    proprioceptors = tuple(
-        sorted(c.id for c in dome.cells if c.kind is CellKind.PROPRIOCEPTIVE)
-    )
+    sensory = tuple(sorted(c.id for c in dome.cells if c.kind in SENSORY))
     reach = {
         cell: distances_from(neighbours, cell)
-        for cell in sorted(set(actuators) | set(proprioceptors))
+        for cell in sorted(set(actuators) | set(sensory))
     }
     lengths: dict[int, int] = {}
     unreachable: list[int] = []
@@ -289,7 +326,7 @@ def world_loops(dome: Dome, world_tick: int = WORLD_TICK) -> WorldLoops:
         candidates = [
             reach[a][cell] + world_tick + reach[p][cell]
             for a in actuators
-            for p in proprioceptors
+            for p in sensory
             if a != p and cell in reach[a] and cell in reach[p]
         ]
         if candidates:
@@ -300,7 +337,7 @@ def world_loops(dome: Dome, world_tick: int = WORLD_TICK) -> WorldLoops:
         lengths=lengths,
         world_tick=world_tick,
         actuators=actuators,
-        proprioceptors=proprioceptors,
+        sensory=sensory,
         unreachable=tuple(unreachable),
     )
 
@@ -459,7 +496,7 @@ def world(spec: DomeSpec, *, file: bool = True) -> None:
     print("\n== ADR-0026's divisor against the loop it argues for ==")
     print(
         f"   {len(crossing.actuators)} actuator cell(s), "
-        f"{len(crossing.proprioceptors)} proprioceptive cell(s); "
+        f"{len(crossing.sensory)} sensory cell(s) the answer may return at; "
         f"a != p is ADR-0016's ban."
     )
     print(f"   world tick w = {crossing.world_tick}, fixed by the sandbox's ordering.")
@@ -488,7 +525,7 @@ def world(spec: DomeSpec, *, file: bool = True) -> None:
         )
     if crossing.unreachable:
         print(
-            f"\n   reached by no (actuator, proprioceptor) pair: "
+            f"\n   reached by no (actuator, sensory) pair: "
             f"{len(crossing.unreachable)} cells"
         )
 
@@ -499,10 +536,12 @@ def world(spec: DomeSpec, *, file: bool = True) -> None:
         f"min {min(zero_world.values())} ticks"
     )
     print(
-        "\n   Where the excess is positive the conduction ratio divides by the "
+        "\n   Where the excess is positive the conduction ratio divided by the "
         "shorter of\n   two different lengths, which is #368's failure. The bar "
         "is >= 1 because 1 is\n   the integer separating *the same quantity* "
         "from *two different quantities*."
+        "\n   #383 upheld it: world_loop(c) is now ADR-0026's divisor, and "
+        "|loop(c)| is\n   kept beside it as the construction-time length it is."
     )
     report_cutoffs("loop_length", readings(spec), file=file)
 

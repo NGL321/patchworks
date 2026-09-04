@@ -110,8 +110,8 @@ class TestTheWorldLoop:
         """`d(c, rim) <= min(d(c, a), d(c, p))`, because both are in the rim.
 
         The floor is closed-form and holds on any dome carrying an actuator and
-        a proprioceptor, which is why it is checked on both and cell by cell
-        rather than on the fleet maximum alone.
+        a sensory boundary cell, which is why it is checked on both and cell by
+        cell rather than on the fleet maximum alone.
         """
         dome = build_graph(spec)
         gaps = loop_length.excesses(dome)
@@ -128,20 +128,53 @@ class TestTheWorldLoop:
         }
 
     def test_the_ban_is_enforced_the_answer_returns_at_another_cell(self):
-        """`a != p`. One actuator and `joints` proprioceptors, so the pairs are real."""
+        """`a != p`. One actuator, and the answer returns at a sensory cell."""
         dome = build_graph(DEFAULT_SPEC)
         found = loop_length.world_loops(dome)
         assert len(found.actuators) == 1
-        assert len(found.proprioceptors) == DEFAULT_SPEC.joints
-        assert not set(found.actuators) & set(found.proprioceptors)
+        assert not set(found.actuators) & set(found.sensory)
         assert found.unreachable == ()
         assert len(found.lengths) == len(dome.predicting) == 150
 
+    def test_the_answer_may_return_at_every_sensory_boundary_cell(self):
+        """#383 struck #368's proprioceptors-only restriction; `a != p` is kept.
+
+        The rim is 263 cells and exactly one of them is the actuator, so the
+        return population is the other 262 — every cell the world *writes*,
+        patches and touch included, because the sandbox's `image` carries the
+        arm and the consequence returns on vision unconditionally.
+        """
+        dome = build_graph(DEFAULT_SPEC)
+        found = loop_length.world_loops(dome)
+        assert len(found.sensory) == 262
+        assert {dome.cells[c].kind for c in found.sensory} == set(loop_length.SENSORY)
+        assert CellKind.ACTUATOR not in {dome.cells[c].kind for c in found.sensory}
+
+    def test_the_widening_is_what_moved_the_ladder(self):
+        """#383's table: L1 3–9 and the apex 15–16, against 3–15 and 15–17.
+
+        Held as the two ends of the ladder because the widening's whole shape is
+        there — the apex barely moves and essentially all of it lands on L1.
+        """
+        dome = build_graph(DEFAULT_SPEC)
+        cells = {c.id: c for c in dome.cells}
+        widened = loop_length.world_loops(dome).lengths
+        by_level: dict[int, set[int]] = {}
+        for cell, length in widened.items():
+            by_level.setdefault(cells[cell].index.level, set()).add(length)
+        assert (min(by_level[1]), max(by_level[1])) == (3, 9)
+        assert (min(by_level[7]), max(by_level[7])) == (15, 16)
+
     def test_the_reading_the_cutoff_reads(self):
-        """#368's bar is `world_loop_excess >= 1`; the default dome reads 13."""
+        """#368's bar is `world_loop_excess >= 1`; the default dome reads 7.
+
+        It read 13 while `p` was restricted to proprioceptors. #383 struck the
+        restriction and the excess halved — the cutoff was never the problem and
+        it stays crossed, which is what that ruling turns on.
+        """
         found = loop_length.readings(DEFAULT_SPEC)
-        assert found["world_loop_excess"] == 13.0
-        assert found["world_loop_excess_w0"] == 12.0
+        assert found["world_loop_excess"] == 7.0
+        assert found["world_loop_excess_w0"] == 6.0
 
     def test_the_other_two_readings_do_not_move(self):
         """#369's instruction in terms: `ladder`'s and `split`'s readings stay put."""

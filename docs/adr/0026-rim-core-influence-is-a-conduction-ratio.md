@@ -42,7 +42,9 @@ This ADR needed none:
   holds a value for more than about one tick. Every remedy family the map had opened was spatial.
 - **[#143](https://github.com/NGL321/patchworks/issues/143) named what `τ` must beat, in terms:**
   *"`H⁰` is commitment against the graph, `τ` against the cell's **own round trip**."* The bar below
-  is that round trip, and nothing else.
+  is that round trip, and nothing else. **Which round trip, settled by
+  [#383](https://github.com/NGL321/patchworks/issues/383): the one through the world**, out via the
+  actuator and back at another boundary cell, not the graph's own inner-face cycle.
 - **[`05-timescales.md`](../spec/05-timescales.md) gives the reading today** (*What the live read
   says*): `τ` is **flat at about one tick graph-wide — 0.91 at the apex against 0.99 at the rim**,
   with no depth→timescale gradient at all, and slightly *inverted*. **Read on the chart's *direct*
@@ -89,16 +91,52 @@ counterfactual, unchanged and not re-derived**. Read the paired deviation restri
 **private features** (`H⁰`, where retained state lives by construction, and the one place
 reconciliation cannot move it) and take its e-fold decay time `τ̂_c`. The **conduction ratio** is
 
-> `τ̂_c / |loop(c)|`
+> `τ̂_c / world_loop(c)`
 
-where `|loop(c)|` is the tick length of the shortest cycle through `c` that reaches the rim and
-returns. The predicate is ADR-0021's own widest-path shape with the quantity swapped:
+where `world_loop(c)` is the tick length of the shortest loop through `c` that leaves through an
+**actuator**, crosses the world, and re-enters at a **different** sensory boundary cell:
 
-> `max` over paths `P`, `min` over cells `c ∈ P`, of `τ̂_c / |loop(c)| ≥ 1`
+> `world_loop(c) = min` over `(a, p)`, `a` an actuator and `p` any sensory boundary cell with
+> `a ≠ p`, of `d(c, a) + w + d(p, c)`
+
+`d` is graph distance in ticks — one edge, one tick, `01`'s *Unit delay* — and `w` is the **world's
+own tick** in the same units, **1** on this sandbox: a command written on tick `t` is answered onto
+a sensory stalk as that tick's last word and read by that cell's neighbours on `t + 1`, which is
+exactly the latency of one edge. `a ≠ p` is
+[ADR-0016](./0016-a-boundary-cell-is-written-or-read-never-both.md)'s written-or-read ban and
+not a modelling choice: the cell that sent cannot be the cell that hears the answer. The predicate is
+ADR-0021's own widest-path shape with the quantity swapped:
+
+> `max` over paths `P`, `min` over cells `c ∈ P`, of `τ̂_c / world_loop(c) ≥ 1`
 
 evaluated **per trial**, reported as a **distribution over trials** with the bar at the **median** and
 p05 / p25 / p75 / p95 alongside — ADR-0021's precedent, and
 [#202](https://github.com/NGL321/patchworks/issues/202)'s reason for it.
+
+> **Amended by [#383](https://github.com/NGL321/patchworks/issues/383): the divisor was
+> `|loop(c)|`.** The ratio read `τ̂_c / |loop(c)|`, *where `|loop(c)|` is the tick length of the
+> shortest cycle through `c` that reaches the rim and returns*, and the predicate read
+> `τ̂_c / |loop(c)| ≥ 1`.
+
+*Superseded by #383.* The two lengths are not the same quantity and differ at **every** cell — by 1
+to 7 ticks on `DEFAULT_SPEC`. `|loop(c)|` is the graph's own inner-face round trip, which returns at
+the cell that sent; this ADR's justification names the loop that *leaves through the actuator and
+comes back somewhere else*, and [#368](https://github.com/NGL321/patchworks/issues/368) was right
+that the ADR makes no argument anywhere for the shorter one. **`|loop(c)|` is kept and demoted**: it
+is still an exact construction-time length, still enumerated below, still published beside
+`world_loop(c)` by `benchmarks/loop_length.py world` — and it is no longer a denominator. There is
+**one** conduction ratio, not two: a second *ratio* would mint a second name for one predicate, which
+is the failure [#180](https://github.com/NGL321/patchworks/issues/180) exists to kill, and a second
+*length* already carries the diagnostic.
+
+**`p` ranges over every sensory boundary cell**, patch and touch included, and not over
+proprioceptors alone. #368 defined the return at proprioceptors as if that were ADR-0016's ban; it is
+not — the ban is `a ≠ p` — and the restriction was argued nowhere. [`03-the-sandbox.md`](../spec/03-the-sandbox.md)
+settles it on the facts: `image` is a top-down render of the arena **with the arm in it**, so a
+torque's consequence lands on vision every tick, unconditionally, exactly as it lands on `qpos` and
+`qvel`. A divisor that refuses to see the visual return is measuring a route rather than a cell.
+Touch decides nothing on this dome — patches plus proprioceptors read identically to all-sensory — so
+the widening does not have to rule on whether a **conditional** return channel counts.
 
 It is stated **twice**, and **the two directions do not share a quantifier**:
 
@@ -135,6 +173,17 @@ safety factor**, for the reason ADR-0021 chose `k = 1`: every invented constant 
 has later been found to have none, and
 [#142](https://github.com/NGL321/patchworks/issues/142) struck the inherited ~0.37/hop precisely
 because it was back-computed with no derivation.
+
+> **Amended by [#383](https://github.com/NGL321/patchworks/issues/383): under `|loop(c)|` the bar of
+> `1` had no derivation.** The sentence this section derives `1` from — *the cell still holds what it
+> sent by the time the answer gets back* — names a loop that **leaves through the actuator, crosses
+> the world, and re-enters at another boundary cell**. Divided by `|loop(c)|`, which is neither of
+> those things, `1` was a round number sitting where a derived one was claimed: exactly the defect
+> this section exists to forbid, in this section. **#368's charge is upheld in full**, not softened.
+>
+> The bar is still `1`, and **staying derived is the whole reason the divisor moved**. Nothing here
+> is loosened: the fix was to make the denominator the length the sentence names, not to put a
+> multiplier in front of it.
 
 ### `|loop(c)|` is computed from the mask, not inherited
 
@@ -191,6 +240,43 @@ is the reading for `DEFAULT_SPEC`, and a graph with a different `core_sizes` has
 
 The **drive boundary cell is not part of the rim** for this purpose. It sits at the internal rim,
 attached to all eight apex cells, and its own distance to the sensorimotor rim is 8.
+
+#### `world_loop(c)`, the divisor, enumerated beside it (#383)
+
+The same mask, the same sweep, the other loop — out through the one actuator, one world tick, back in
+at any of the other 262 sensory boundary cells (`benchmarks/loop_length.py world`, exact integers off
+the mask, `w = 1`):
+
+| level | cells | `\|loop(c)\|` | `world_loop(c)` | excess |
+|---|---|---|---|---|
+| L1 | 70 | 2 | **3–9** | 1–7 |
+| L2 | 20 | 4 | **5–9** | 1–5 |
+| L3 | 16 | 6 | **7–10** | 1–4 |
+| L4 | 14 | 8 | **9–11** | 1–3 |
+| L5 | 12 | 10 | **11–12** | 1–2 |
+| L6 | 10 | 12 | **13–14** | 1–2 |
+| L7 (apex) | 8 | 14 | **15–16** | 1–2 |
+
+Three things this table settles, none of them assumable:
+
+- **The excess is positive at every one of the 150 cells**, and structurally so: the rim is a *set*
+  containing both `a` and `p`, so `d(c, rim) ≤ min(d(c, a), d(c, p))` and
+  `world_loop(c) ≥ |loop(c)| + w` everywhere, on any `DomeSpec` carrying an actuator and a sensory
+  cell. The swap is not a fact about this taper.
+- **The apex barely moves and the hardening lands at L1.** The apex factor is at most `16/14 ≈ 1.14x`
+  where L1's is `9/2`. #383's own ticket had this backwards, quoting `27/14` at the apex; the
+  enumeration corrects it.
+- **`d(c, rim)` was exact per level; `world_loop(c)` is not**, and that is the point of the next
+  paragraph.
+
+**The divisor stops being graded by depth.** `|loop(c)|` is a single exact value per level, 2 at L1
+to 14 at the apex — a ladder in `d(c, rim)` and so a ladder in the construction level. `world_loop(c)`
+is a *range* at every level whose per-level maxima run 9 to 16, and the ranges **overlap**: an L1
+cell can carry a longer divisor than an L4 cell, because the world's answer takes about the same time
+to come back wherever the cell sits. [#181](https://github.com/NGL321/patchworks/issues/181)'s
+standing rule says a bar indexed per level elevates the dome's imposed shape to a relevance it has
+not earned, and the old divisor was doing exactly that under a per-cell name. `world_loop(c)` is
+per-cell in substance and not only in form — an argument for the swap #368 did not make.
 
 ### The quantifiers are asymmetric, and the asymmetry is the architecture's
 
@@ -376,7 +462,8 @@ by construction. The gate is what carries that pressure rather than hiding it.
 
   *This bullet used to read **the reading is zero everywhere today**, and as a per-cell claim that is
   wrong.* It compares every cell against the **apex's** `|loop| = 14`. Against each cell's **own**
-  `|loop(c)|`, [#361](https://github.com/NGL321/patchworks/issues/361) reads **40 to 85 of 150**
+  `|loop(c)|` — the divisor of the day, kept as read and not rescaled under #383 —
+  [#361](https://github.com/NGL321/patchworks/issues/361) reads **40 to 85 of 150**
   cells clearing `τ_c ≥ |loop(c)|` across nine seeds, because `|loop| = 2` at L1 where 33 to 56 of 70
   clear. **The predicate's value is untouched, and this is not a PASS**: it is `max` over paths of
   `min` over a path's cells, every rim-to-apex path contains an apex cell, and at the apex **0 to 1
@@ -389,7 +476,25 @@ by construction. The gate is what carries that pressure rather than hiding it.
   counted, not summed.**
 - **`|loop(c)|` is a construction-time quantity that moves with `DomeSpec`.** The ladder above is
   `DEFAULT_SPEC`'s. Any graph change re-derives it, and no session should quote 14 at a dome it has
-  not checked.
+    not checked. **`world_loop(c)` is one too** (#383), and the same rule holds of it: the divisor
+  is recomputed, never quoted, and `benchmarks/loop_length.py world` is where.
+- **Every conduction ratio already in the record is kept as read, not rescaled** (#383). They are all
+  based on `|loop(c)|`, and this ADR set its own precedent for that under
+  [#274](https://github.com/NGL321/patchworks/issues/274) — *kept as read rather than rescaled, on
+  #206's precedent*. A rescaled figure has no run behind it, and a number nobody measured is worse
+  than a number carrying an amendment. So **the 15.4x and the ~3.8x above stand exactly as
+  published**, with the divisor they were read under named. What the swap does move is the *per-cell*
+  readings: on the median apex→rim path `0.214 0.25 0.5 0.75 1.33 1.25 1 0.833 0.75 0`, the three
+  cells above the bar are re-based and can fall below it. That is the ruling biting, and it is the
+  point.
+- **The published `conduction_ratio` key does not move, and that is #385, not a failed edit.** It
+  reads `0` under either divisor, because
+  [#385](https://github.com/NGL321/patchworks/issues/385)'s zero-private-dimension L1 cells pin the
+  `min` either way. So this ruling re-files neither
+  [#325](https://github.com/NGL321/patchworks/issues/325) nor
+  [#329](https://github.com/NGL321/patchworks/issues/329), and it does not disturb
+  [#379](https://github.com/NGL321/patchworks/issues/379)'s repointing, which settled *which
+  quantity* wears the name and is untouched by *what it divides by*.
 
 ## Alternatives considered
 
