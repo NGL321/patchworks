@@ -95,28 +95,47 @@ __all__ = [
 #: criterion that would return a different number.
 NODE_STALK_DIM = 32
 
-#: @provisional 132
-#: @flexibility rung 5, the last rung: may become a range or a gradient ACROSS THE GRAPH if uniformity fails (01-cell-and-sheaf.md, Flex priority). #132's axis is across DOMAINS, which the ladder does not license
-#: @warrant docs/research/032-dimensioning-small-predictors.md (#172); docs/spec/06-graph-topology.md, Dimensions
+#: @type stipulated
+#: @flexibility rung 5, the last rung: may become a range or a gradient ACROSS THE GRAPH if uniformity fails (01-cell-and-sheaf.md, Flex priority). The across-DOMAINS axis is closed by #132 and is not a rung
+#: @warrant docs/spec/06-graph-topology.md, Dimensions; docs/research/032-dimensioning-small-predictors.md (#172); docs/adr/0023-the-chart-is-not-a-koopman-lift.md
 #: `k`, the chart dimension — the cell's private low-dimensional coordinates,
 #: and the memory depth its operator advances.
 #:
 #: A module-level constant here for the same reason as
 #: :data:`NODE_STALK_DIM`, and off `DomeSpec` with it (ticket #186).
 #:
-#: **What #132 may take away is the global-constant form, not the value.** 12 is
-#: defended — #145 argued it and #172 re-sourced it to reservoir dimensioning —
-#: and this entry is not a warning that the number is shaky. #132 re-specifies
-#: chart width as *per-domain*, so what it threatens is whether one global number
-#: is the right kind of thing at all.
+#: **`stipulated` for the same reason `NODE_STALK_DIM` is, and by the same
+#: sentence of the same spec section.** `06-graph-topology.md`'s *Dimensions*
+#: says 12. Three passes have checked that 12 *clears* a bound and none has
+#: swept it: #145 and ADR-0023 established there is no `k_lift` to size against,
+#: `032` found nothing in the literature speaks to `n`/`k`/`m` as a set, and
+#: #132 measured the dome piece's correlation dimension at **1.43** — against
+#: which `032`'s capacities leave `k = 12` about **4x**. A bound cleared with
+#: margin is not a re-runnable criterion that would return a different number,
+#: so this is not `selected`; and since the literature does not fix the value it
+#: is not `literature` either.
 #:
-#: **Rung 5 and #132 are different axes, and must not blur.**
+#: **The width with the least margin is not this one.** On #132's reading the
+#: margins rank `n = 32` ~11x, `k = 12` ~4x, `m = 4` ~1.4x. A session looking
+#: for the dimension that is actually tight wants `m`.
+#:
+#: **This entry was `@provisional 132` and the debt is discharged (#442).**
+#: #132 asked whether the chart must be a **per-domain** number — what it
+#: threatened was the global-constant *form*, never the value — and resolved
+#: **no**: an L1 wedge cell's piece is a finite set with no box-counting
+#: dimension to be per-domain about, so #128's one frozen dictionary stands and
+#: one global `k` is the right kind of thing. Nothing open now waits on `k`;
+#: memory is capped by `K`'s **shape**, not by `k` (#166, #167), so #357's
+#: non-normality shortfall is not a debt this constant carries.
+#:
+#: **Rung 5 and #132's axis are different axes, and must not blur.**
 #: `01-cell-and-sheaf.md`'s *Flex priority* ladder puts `k` last — it *"may become
 #: a range or a gradient across the graph if uniformity fails"* — which is `k`
-#: varying **across the graph**, per cell. #132 asks whether it varies **across
-#: domains**. Rung 5 is not licence for #132's reversal. The ordering is itself a
-#: reversal: `k` was formerly the first thing the spec would flex and is now the
-#: last, because widening it weakens the low-dimensional claim.
+#: varying **across the graph**, per cell. #132 asked whether it varies **across
+#: domains**, which the ladder never licensed and which is now closed. The
+#: ordering is itself a reversal: `k` was formerly the first thing the spec would
+#: flex and is now the last, because widening it weakens the low-dimensional
+#: claim.
 CHART_DIM = 12
 
 #: @type selected

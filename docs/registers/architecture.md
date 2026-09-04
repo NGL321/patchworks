@@ -52,6 +52,7 @@ construction has to answer it as much as one bound at import.
 | `EPS_F32` | `1.1920928955078125e-07` | derived | not a knob at all: it is the arithmetic the architecture runs in, and #224 ruled that precision is not a design variable | docs/adr/0026-rim-core-influence-is-a-conduction-ratio.md, The reading is gated on the runtime precision floor | torch.finfo, torch.float32 | `src/patchworks/tick.py` |
 | `DEFAULT_BIAS_VARIANCE` | `0.5` | selected | the weak knob of the two: three orders of magnitude barely move the regional spectra | docs/research/027-regional-jacobian-spectra.md | — | `src/patchworks/body.py` |
 | `DEFAULT_WEIGHT_VARIANCE` | `1.2` | selected | unknown | #42's rig; docs/spec/05-timescales.md, What this requires elsewhere | — | `src/patchworks/body.py` |
+| `CHART_DIM` | `12` | stipulated | rung 5, the last rung: may become a range or a gradient ACROSS THE GRAPH if uniformity fails (01-cell-and-sheaf.md, Flex priority). The across-DOMAINS axis is closed by #132 and is not a rung | docs/spec/06-graph-topology.md, Dimensions; docs/research/032-dimensioning-small-predictors.md (#172); docs/adr/0023-the-chart-is-not-a-koopman-lift.md | — | `src/patchworks/body.py` |
 | `DEFAULT_GAMMA` | `1.0` | stipulated | free in (0, 1] and held at the ceiling because nothing derives a lower value: #206 declined a ramp permanently and #205 declined a permanently lower value, so both alternatives are now closed | docs/adr/0019-construction-nominates-the-run-decides.md | — | `src/patchworks/tick.py` |
 | `DEFAULT_OPERATOR_SCALE` | `1.0` | stipulated | superseded per body by a rule, patchworks.bias_selection.operator_scale_rule; this is the band ceiling, the rule's answer where no rig has run | docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md | — | `src/patchworks/body.py` |
 | `DEFAULT_RHO_K` | `2.0` | stipulated | unknown | docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md | — | `src/patchworks/body.py` |
@@ -77,7 +78,6 @@ construction has to answer it as much as one bound at import.
 | `DomeSpec.touch_stalk` | `1` | chosen | free, and the one stalk the spec does not size: ADR-0006 settles the rule (a boundary cell's stalk is whatever the thing writing it gives it) rather than the number, and the sandbox's touch observation is one scalar per joint. Never varied in any run | here | — | `src/patchworks/graph.py` |
 | `INITIAL_NORM` | `1.0` | chosen | unknown | here | — | `src/patchworks/restriction.py` |
 | `NORM_FLOOR` | `1e-24` | chosen | unknown; 1e-12 in the norm itself, far below anything the maps or stalks carry | here | — | `src/patchworks/learning.py` |
-| `CHART_DIM` | `12` | provisional #132 | rung 5, the last rung: may become a range or a gradient ACROSS THE GRAPH if uniformity fails (01-cell-and-sheaf.md, Flex priority). #132's axis is across DOMAINS, which the ladder does not license | docs/research/032-dimensioning-small-predictors.md (#172); docs/spec/06-graph-topology.md, Dimensions | — | `src/patchworks/body.py` |
 
 ## Marked `@register none`
 
