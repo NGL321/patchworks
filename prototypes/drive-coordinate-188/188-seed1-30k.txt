@@ -1,0 +1,77 @@
+full dome, split 'train', seed 1: 8 drive edges into 8 apex cells, 32 interior maps on those cells as control
+drive edge m = 1, apex stalk n = 32
+
+=== 0 ticks ===
+  drive edges, apex-side map F_apex:
+    apex cell   top coord   share of mass   Hoyer h
+          405           7          0.2376    0.8590
+          406          12          0.2242    0.7773
+          407           7          0.2542    0.8091
+          408           0          0.1955    0.8731
+          409          16          0.5225    0.6830
+          410           0          0.3547    0.7673
+          411          10          0.3073    0.7977
+          412          13          0.2211    0.7645
+    -> 6 distinct coordinate(s) across 8 apex cells
+    mean share 0.2896   mean Hoyer h 0.7914
+  control: 32 interior maps on the same apex cells — mean share 0.1599, mean Hoyer h 0.7948
+
+=== 1000 ticks ===
+  drive edges, apex-side map F_apex:
+    apex cell   top coord   share of mass   Hoyer h
+          405           7          0.4505    0.5669
+          406           8          0.3041    0.5846
+          407           7          0.6739    0.4664
+          408          16          0.3660    0.5008
+          409          16          0.8655    0.3354
+          410           0          0.8661    0.3734
+          411          10          0.4600    0.5255
+          412          16          0.4293    0.5621
+    -> 5 distinct coordinate(s) across 8 apex cells
+    mean share 0.5519   mean Hoyer h 0.4894
+  control: 32 interior maps on the same apex cells — mean share 0.3159, mean Hoyer h 0.4451
+
+=== 3000 ticks ===
+  drive edges, apex-side map F_apex:
+    apex cell   top coord   share of mass   Hoyer h
+          405           7          0.5805    0.4107
+          406           8          1.0000    0.2465
+          407           7          0.9998    0.2521
+          408          16          0.7158    0.3458
+          409          16          1.0000    0.2439
+          410           0          0.5199    0.3550
+          411          10          0.8647    0.3267
+          412          16          0.5997    0.3425
+    -> 5 distinct coordinate(s) across 8 apex cells
+    mean share 0.7851   mean Hoyer h 0.3154
+  control: 32 interior maps on the same apex cells — mean share 0.6469, mean Hoyer h 0.2145
+
+=== 10000 ticks ===
+  drive edges, apex-side map F_apex:
+    apex cell   top coord   share of mass   Hoyer h
+          405           7          0.5598    0.5360
+          406           8          0.9999    0.2502
+          407           7          0.9999    0.2507
+          408          16          0.6485    0.3451
+          409          16          1.0000    0.2432
+          410           6          0.9999    0.2509
+          411          10          0.9999    0.2504
+          412          11          1.0000    0.2432
+    -> 6 distinct coordinate(s) across 8 apex cells
+    mean share 0.9010   mean Hoyer h 0.2962
+  control: 32 interior maps on the same apex cells — mean share 0.8787, mean Hoyer h 0.1614
+
+=== 30000 ticks ===
+  drive edges, apex-side map F_apex:
+    apex cell   top coord   share of mass   Hoyer h
+          405           5          0.9999    0.2483
+          406           8          0.9999    0.2484
+          407           7          0.9999    0.2496
+          408          12          1.0000    0.2432
+          409          16          1.0000    0.2432
+          410           6          0.9999    0.2508
+          411          10          0.9999    0.2487
+          412          11          1.0000    0.2435
+    -> 8 distinct coordinate(s) across 8 apex cells
+    mean share 1.0000   mean Hoyer h 0.2470
+  control: 32 interior maps on the same apex cells — mean share 0.9348, mean Hoyer h 0.1450
