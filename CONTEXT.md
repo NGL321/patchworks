@@ -524,8 +524,10 @@ clause is retired and the reading is published wherever the spectral `τ` is. Th
 express **at least one e-fold of the operator's own retention** (re-pointed by #226 from *the
 region's decay*; the number is unchanged) — `dwell > τ`; where dwell is short, a cell realises an
 average over unrelated regions rather than the rate its operator holds. It composes with ADR-0026 as
-**`|loop(c)| ≤ τ_c < dwell_c`** — one architectural bar plus the licence for the proxy, whose
-`τ`-free consequence `dwell_c > |loop(c)|` is what is readable today. Nominated at
+**`world_loop(c) ≤ τ_c < dwell_c`** — one architectural bar plus the licence for the proxy, whose
+`τ`-free consequence `dwell_c > world_loop(c)` is what is readable today. The floor is the **world
+loop** since [#404](https://github.com/NGL321/patchworks/issues/404), because the lower end is
+ADR-0026's bar and #383 moved it; `|loop(c)|` is kept and demoted. Nominated at
 construction by the fold margin, measured at runtime on a driven trajectory — and since #160 the
 runtime measurement is **the verdict**, the construction reading a nomination
 (`patchworks.tick.FoldRead`, ADR-0019). Since #208 the verdict is the **median cell's** `dwell/τ > 1`,
