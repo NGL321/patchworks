@@ -1,6 +1,7 @@
 # ADR-0032: The maps learn isometric transport, and a spectral floor expresses it
 
-**Status:** accepted
+**Status:** accepted; amended by [#437](https://github.com/NGL321/patchworks/issues/437) — the
+decision stands and its ledger is replaced. Not re-accepted.
 
 ## Context
 
@@ -12,6 +13,15 @@ and 8 boundary ([#393](https://github.com/NGL321/patchworks/issues/393)); at the
 **1.0009** on all three seeds ([#237](https://github.com/NGL321/patchworks/issues/237)) while the
 gauge was measured fully intact — maps pinned at Frobenius exactly 1.0000, banded within
 `[0.6729, 2.0000]`.
+
+*Amended by [#437](https://github.com/NGL321/patchworks/issues/437), on
+[#436](https://github.com/NGL321/patchworks/issues/436)'s read: the two ranks in that paragraph are a
+before and an after, and only one of them is today.* ADR-0031 deleted the sparsity pressure, so
+`λ = 0` **is** the surface that ships and **1.0009 is a number about a build that no longer exists**.
+Three instruments now agree on where the unfloored surface sits: #436 read **2.949** over the
+floor-reachable maps at 30k, [#435](https://github.com/NGL321/patchworks/issues/435)'s independently
+written control arm **2.925** at 30k, against #393's **2.913**. Everything below that prices against
+1.0009 prices against the deleted surface — which is *What this costs*, amended there.
 
 **The gauge was never asleep. It was performing a rank-preserving operation on a collapsing
 surface.** [ADR-0010](./0010-restriction-map-scale-is-gauge-fixed.md) bands `‖F‖_F` and says nothing
@@ -105,6 +115,18 @@ non-degenerate trajectory**: the same environment drives the whole graph, and di
 pushes toward consistent identification on its own once the trajectory cannot dodge into a subspace.
 [#315](https://github.com/NGL321/patchworks/issues/315) is the read that checks whether it did.
 
+**Amended by [#437](https://github.com/NGL321/patchworks/issues/437): that sentence is struck as
+measured-against, and #315 becomes required rather than confirmatory.**
+[#436](https://github.com/NGL321/patchworks/issues/436) §4 composed the trained surface along 263
+structural rim-to-apex routes and read it **~240x below its own chance-alignment null** — off-channel
+share 2.1e-4 against the null's 0.051 at 100k. The objective is not drifting toward identification
+agreement; it is building a **single composed channel**, which is
+[ADR-0022](./0022-a-hop-is-an-operator-norm-along-a-learned-channel.md)'s *"14.20x taught against
+3.66x untrained"* doing what it is documented to do. The null bounds what *chance* alignment buys and
+not what composition permits, so this is a **direction and not a ceiling**: it is filed as a standing
+problem, [#454](https://github.com/NGL321/patchworks/issues/454), and
+[#453](https://github.com/NGL321/patchworks/issues/453) is the holonomy read that puts a sign on it.
+
 ### The reframe, which is the ruling's real answer
 
 Minimising `‖F_u x_u − F_v x_v‖` buys **agreement** — both cells land on the same point of the lane.
@@ -193,6 +215,44 @@ resistance along the channel is **2.8e5x–4.4e5x** the graph's at effective ran
 **Plausibly is not priced**, and the two are in different units (a resistance ratio against a gain
 product), so the comparison is made properly by the read below or not claimed at all.
 
+**Amended by [#437](https://github.com/NGL321/patchworks/issues/437): this ledger is replaced rather
+than repaired, and its counterweight is struck as grounds rather than repriced.** The cost, the
+benefit and the counterweight above are all quoted at effective rank 1.0009 — the `λ = 0.4` surface
+ADR-0031 deleted, which this ADR's own *Context* names as superseded four paragraphs earlier.
+[#436](https://github.com/NGL321/patchworks/issues/436) paid pre-registration 3 and measured what
+each of them is on the surface that ships: 7,122 directed hops and 263 rim-to-apex chains, no
+sampling, at 30k and 100k. Read on `benchmarks/floor_price.py`, which was not on `main` when this was
+written — [#438](https://github.com/NGL321/patchworks/pull/438) — with
+[#434](https://github.com/NGL321/patchworks/pull/434)'s floor merged in.
+
+| | as booked above | as measured (#436) |
+|---|---|---|
+| per interior hop | `√4 = 2x` | `σ_max` **0.792x**, `‖M‖_F` **0.988x** at 100k |
+| rim-to-apex composed | `2⁷ = 128x` (`∏√m = 181`) | **7.3x** at 100k, `paid/booked = 0.040` |
+| the benefit | *"`m − 1` directions that currently transmit nothing at all"* | off-channel share **0.051 → 0.381** per hop; a map at 2.784 of a ceiling of 4 already transmits most of them |
+
+**Why struck and not corrected.** Re-read at today's rank, this ADR's own citation gives **5.3x** —
+#237's 2.85 column, beside the 2.8e5x–4.4e5x quoted above from its 1.0009 column — against a measured
+7.3x, and no correction of digits turns that into a pass. It goes because it was never the right
+ledger: it prices a **resistance ratio against a gain product**, the unit mismatch this ADR flagged
+itself and deferred to *"the read below"*. The read came back, and it does not speak in resistance at
+all.
+
+**What replaces it**, all measured on the surface that ships:
+
+- **Per hop the trade is near-free at 100k.** `‖M‖_F` **0.988x** — total transported energy unchanged
+  — while off-channel energy share goes **0.051 → 0.381** and effective rank **1.108 → 2.153** (#436).
+- **The floor relieves the incoherence cap rather than costing it.** Fleet median gram/cap
+  **0.998 → 0.125**, cells pressed against the cap **223 → 12** at 100k
+  ([#435](https://github.com/NGL321/patchworks/issues/435)). ADR-0010 pre-registered a collision;
+  there is none, and the sign is the opposite of the one pre-registered.
+- **[#324](https://github.com/NGL321/patchworks/issues/324)'s bar is cleared.**
+  `draining_effective_rank` reads **4.000** against a bar of `< 2` (#435).
+- **Amplitude is not the operative bar.** Since [#242](https://github.com/NGL321/patchworks/issues/242)
+  the destination's *Done when* reads **time, not amplitude** — ADR-0026's conduction ratio — so a
+  fall in composed `σ_max` is a cost in a currency this map stopped spending. That, and not 7.3x
+  being smaller than 128x, is why the cost is no longer the load-bearing part of the answer.
+
 **And the subtler one.** [#142](https://github.com/NGL321/patchworks/issues/142)'s correction —
 *"read along the channel, the hop is ~184x what an isotropic probe reports"* — is a
 channel-versus-isotropic ratio measured against near-rank-1 maps, and **that ratio shrinks as the
@@ -203,9 +263,20 @@ but the sentence explaining why it went away stops being true of the post-edit s
 amended: the sentence is true of today's surface and stays true until the constraint is built and
 read.
 
+*Amended by [#437](https://github.com/NGL321/patchworks/issues/437): the constraint is built (#434)
+and the read is taken, so the flag comes off.* #436 §5 measured the channel-versus-isotropic ratio
+`σ_max / (‖M‖_F/√m_in)` per hop at **1.991 → 1.674** (100k; 1.984 → 1.661 at 30k), and on `m_in = 8`
+hops **2.704 → 2.068**. It shrank as predicted and **did not go to 1**: reading along the channel
+still buys ~1.67x over an isotropic probe per hop, against a ceiling of `√m_in`. The isotropic
+baseline never moved, so the ~1e14 phantom deficit #142 struck does not come back. That is what
+#240's gate was for on this sentence, and it is answered.
+
 ## Pre-registrations
 
 Three, and the first is discharged above.
+
+*Amended by [#437](https://github.com/NGL321/patchworks/issues/437): **all three are discharged**,
+and the second returned with its sign inverted.*
 
 1. **Mask attainability** — taken here. Attainable on all 1091 banded masks; nine pinned masks
    excluded by name.
@@ -216,9 +287,24 @@ Three, and the first is discharged above.
    [#178](https://github.com/NGL321/patchworks/issues/178) has cost this map the 30k mistake three
    times, most recently on #416, where the interior scale ratio's meaning reversed between 30k and
    100k.
+
+   *Discharged by [#435](https://github.com/NGL321/patchworks/issues/435), at 30k and 100k, on three
+   seeds and against a `--no-floor` control arm: both halves pass and **the second inverts**.*
+   Effective rank on the draining maps reaches **4.000 = 1.000 of `m`** with all 1,364 endpoints
+   transmitting, and the floor does not cost the incoherence cap but **relieves** it — fleet median
+   gram/cap **0.998 → 0.125**, cells pressed against the cap **223 → 12** at 100k. The collision
+   ADR-0010 pre-registered is absent. The one cell over the cap is over it in the control arm too —
+   the actuator, whose three maps are pinned and therefore reached by neither `_push_apart` nor the
+   floor — and it is [#439](https://github.com/NGL321/patchworks/issues/439) rather than this
+   decision's price.
 3. **Per-hop gain along the channel, before and after, on the same rig — per edge and per direction**,
    never a graph-wide average (#127's standing rule, and #181's per-edge-not-per-level form). This is
    what makes the 128x-against-three-orders comparison payable rather than plausible.
+
+   *Discharged by [#436](https://github.com/NGL321/patchworks/issues/436): 7,122 directed hops, per
+   edge and per direction, no sampling, at both horizons, with the composed chains' spectra taken
+   rather than a product of per-hop top gains.* It is what made the comparison payable, and what it
+   paid is the ledger replaced under *What this costs* above.
 
 ## Consequences
 
@@ -250,6 +336,15 @@ the **upper** side — its *expanding* half forbidden by `σ_max(composed) ≤ �
 half reassigned to the driven field by [#144](https://github.com/NGL321/patchworks/issues/144), and
 neither by anything here. This ADR supplies the ingredient the **lower** side lacked and does not
 close it.
+
+*Amended by [#437](https://github.com/NGL321/patchworks/issues/437): the paragraph stands as written
+and gains its measurement — **and #436 measured that it does not, yet**.* The composed chain is a
+rank-1 object before the floor and after it — effective rank 1.000 → 1.000 at 100k, one direction
+above `0.1·σ_1` in both arms — so the conditional stated here, *derivable after this is built and
+conditional on a measured alignment floor from #315*, has its antecedent measured **unmet**. That is
+a pre-registration reporting back rather than a ground collapsing, and the decision is unaffected:
+the composed benefit was an aspiration attached to it, never a ground of it. **What the amendment
+forbids is the reverse citation: ADR-0032 may not be cited as buying anything rim-to-apex.**
 
 **The floor does not transfer to `K`, and the want inverts.** Ruled on
 [#420](https://github.com/NGL321/patchworks/issues/420) §3, and stated here because the two spectra
