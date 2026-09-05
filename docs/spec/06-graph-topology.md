@@ -393,6 +393,45 @@ the rim privacy stops being contingent on learning and becomes what construction
 the cells with `Σ_e m_e ≥ n` is zero. [#385](https://github.com/NGL321/patchworks/issues/385) owns what
 follows.
 
+#### The zero row is two populations, and only one of them is reachable from the interior
+
+*Written by [#475](https://github.com/NGL321/patchworks/issues/475), on
+[#385](https://github.com/NGL321/patchworks/issues/385)'s ruling.* The table above carries **one**
+zero row for L1 vision, and it hides the fact that matters: **82 of the 150 predicting cells have
+`p_v = 0`, and `interior_m` reaches 18 of them and cannot reach the other 64 at any value.**
+
+| population | cells | what fills the bus | of which non-interior | does `interior_m` reach it? |
+|---|---|---|---|---|
+| **L1 vision** | **64** | 4 rim edges × `boundary_m` = 8, plus lateral and up | 44–52, of which **32 is rim-side alone** | **No**, at 4, 1 or 0 alike |
+| L1 somatomotor | 6 | 1–2 rim edges plus interior | 0–16 | Yes — `interior_m` 3 clears 3 of them, 2 clears all 6 |
+| L2 vision (lattice edge and interior) | 12 | interior only, degree 8–9 | 0 | Yes — `interior_m` 3 clears all 12 |
+
+**For the 64 the communication bus is full before a single interior edge is counted.**
+`4 × boundary_m = 4 × 8 = 32 = n`, so `p_v = max(0, n − Σ_e m_e)` is `0` whatever the interior does:
+dropping `interior_m` to 1, or to 0, leaves all 64 exactly where they are. **Lateral degree is
+powerless there too** — the lattice corner, edge and interior cells differ by two lateral neighbours
+and all three read 0, because the rim edges alone have already exhausted the stalk.
+
+**So this section's own framing is right and incomplete.** *Rim-adjacent cells are necessarily
+high-degree — an L1 vision cell must read four patches* is true, and it points at the **count** of
+neighbours when the binding quantity is the rim edges' **width**. A cell reading four patches through
+lanes of 2 would have `p_v = 24`; it is `boundary_m = 8`, deliberately *twice the interior's*, that
+makes four of them fill `n` exactly.
+
+**What is left, for `p_v ≥ 1` at those 64**, at today's L1 degree of 4 rim + 4 lateral + 1 up:
+
+- `boundary_m ≤ 2` — a 24x compression of a 48-dimensional patch, against this file's deliberate
+  *twice the interior's*.
+- `n ≥ 53` with `boundary_m` held — every cell's node stalk and every `K` widened, not just L1's.
+- **one patch per L1 cell** — `p_v = 4` outright, and four times as many L1 cells.
+
+Three knobs, each a rebuild of the rim's compression rather than a constant to re-price, which is
+why **none of them is chosen here**. `n`, `boundary_m` and `interior_m` are untouched by #475;
+[#474](https://github.com/NGL321/patchworks/issues/474) is the decision that moves one or rules that
+none moves. What this section now records is the constraint: **`p_v` at the rim is a construction
+quantity nobody has set**, not a residual, and the first rung on
+[#14](https://github.com/NGL321/patchworks/issues/14)'s constraint ladder does not reach it.
+
 `χ = Σ_v n − Σ_e m_e` over predicting cells is **+1036**, measured from the built graph. The eight
 drive edges move it by 8; the drive's cost is local to the apex cells, not to the diagnostic.
 
