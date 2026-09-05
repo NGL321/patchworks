@@ -74,7 +74,7 @@ construction has to answer it as much as one bound at import.
 | `PIXEL_SCALE` | `1.0 / 255.0` | stipulated | none: 255 is uint8's range, and any other value is a unit error | docs/spec/01-cell-and-sheaf.md | — | `src/patchworks/agent.py` |
 | `DEFAULT_LEARNING_RATE` | `0.01` | chosen | unknown; the first thing to retune once #90 and #91 can measure a run | here | — | `src/patchworks/learning.py` |
 | `DEFAULT_OPERATOR_RATE_RATIO` | `1.0` | chosen | unknown; inherits eta's retune duty | docs/adr/0008-the-local-rule-splits-by-parameter-not-by-cell.md | — | `src/patchworks/learning.py` |
-| `DRIVE_ASSERTION` | `1.0` | chosen | any non-zero constant; zero makes the drive inert, and a schedule is not a drive | docs/adr/0009-a-drive-is-a-motor-edge-attached-deep.md | — | `src/patchworks/agent.py` |
+| `DRIVE_ASSERTION` | `1.0` | chosen | any non-zero constant; zero makes the drive inert, and a schedule is not a drive -- but an `exogenous drive` probe is an instrument on a diagnostic run, not a counterexample (#495) | docs/adr/0009-a-drive-is-a-motor-edge-attached-deep.md | — | `src/patchworks/agent.py` |
 | `DomeSpec.touch_stalk` | `1` | chosen | free, and the one stalk the spec does not size: ADR-0006 settles the rule (a boundary cell's stalk is whatever the thing writing it gives it) rather than the number, and the sandbox's touch observation is one scalar per joint. Never varied in any run | here | — | `src/patchworks/graph.py` |
 | `INITIAL_NORM` | `1.0` | chosen | unknown | here | — | `src/patchworks/restriction.py` |
 | `NORM_FLOOR` | `1e-24` | chosen | unknown; 1e-12 in the norm itself, far below anything the maps or stalks carry | here | — | `src/patchworks/learning.py` |

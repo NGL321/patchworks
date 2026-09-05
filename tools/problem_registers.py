@@ -58,8 +58,13 @@ like provenance and is not.
   with no bar cannot be crossed;
 * a **second** `@cutoff`, which used to be dropped in silence. A sequenced
   cutoff has no spelling in the grammar, and an author who reached for one was
-  left with a line that read as provenance and that nothing read. Whether the
-  grammar should grow one is #417's.
+  left with a line that read as provenance and that nothing read. #417 ruled
+  that it never will: a second `@cutoff` stays refused at parse, permanently,
+  because *this bar, but only once that bar has fired* types the second bar as
+  a cutoff and it is not one. What grew instead is the **precondition**;
+* a **second** `@when` on a problem, refused for the same reason and at the
+  same place. `@when` says *until this holds, the cutoff below is not a
+  meaningful reading*, carries no obligation, and there is one per problem.
 
 **One rule is deliberately not enforced here.** `@source here` on a body that
 carries no argument is a real failure and a judgement call, and not the
@@ -153,6 +158,22 @@ _ISSUE = re.compile(r"^#?(?P<number>\d+)$")
 #: problem looking watched while nothing fires.
 REPORT_KEY = "rig"
 
+#: The key a rig report's **precondition** block names itself with (#417). A
+#: precondition is not a cutoff and its report is not a run against a bar that
+#: obliges anything, so it may never be collected as `@rig`: a `@rig` block
+#: takes the problem out of *cutoffs naming a firing condition nothing will
+#: reach*, and a precondition opening imposes nothing and settles nothing about
+#: whether the cutoff below it has ever been read. Its own key, counted by its
+#: own arm of that section.
+PRECONDITION_KEY = "precondition"
+
+#: A precondition run that could **not** evaluate the bar, the mirror of the
+#: `@unevaluated` key `cutoff_report.py` files for a cutoff. Spelled with an
+#: underscore because the field grammar's key is `\\w+`. It is separate from
+#: `@unevaluated` so that a rig which is both a problem's cutoff and its
+#: precondition cannot have one of its two records read as the other.
+UNEVALUATED_PRECONDITION_KEY = "unevaluated_precondition"
+
 #: The keys that make a field block a proposal's. A comment carrying any of them
 #: has declared itself provenance, so a missing `@proposal` is refused rather
 #: than dropped -- a row nobody can reach, that nobody was told about, is the
@@ -230,11 +251,12 @@ def _only(fields: dict[str, list[str]], key: str, where: str) -> str:
     is the register's second loud section (#353).
 
     This is deliberately narrow: it says *this key was written twice and only
-    one of them is being read*, and it says nothing about whether a second
-    cutoff **should** be sayable. Sequencing one bar behind another is a
-    grammar question, argued on
-    [#417](https://github.com/NGL321/patchworks/issues/417) and not settled by
-    refusing the silent drop.
+    one of them is being read*, and it said nothing about whether a second
+    cutoff **should** be sayable. That is settled:
+    [#417](https://github.com/NGL321/patchworks/issues/417) ruled that a
+    sequenced cutoff never grows a spelling, so the refusal here is permanent
+    rather than provisional, and what an author reaching for one wants is a
+    `@when` precondition over a single `@cutoff`.
     """
     values = fields.get(key) or []
     if len(values) > 1:
@@ -352,8 +374,16 @@ def read_when(value: str, where: str) -> Cutoff:
     """`@when`: a cutoff's mirror, opposite polarity, no obligation attached.
 
     A cutoff says *this problem stops being tolerable*; `@when` says *this
-    proposal starts being relevant*. `uncut` has nothing to say here, because
-    there is no obligation for it to be the absence of.
+    proposal starts being relevant*, and on a problem (#417) *until this holds,
+    the cutoff below it is not a meaningful reading*. Both are the same field
+    doing the same job in the same grammar, which is why the reader is shared
+    rather than copied: the polarity is what differs, and the polarity is not
+    something a parser can check.
+
+    `uncut` has nothing to say here, because there is no obligation for it to be
+    the absence of. `@when <precondition>` over `@cutoff uncut` **is** admissible
+    and is the most informative row the register can write for a problem whose
+    real bar nobody has stated yet.
     """
     cutoff = read_cutoff(value, where)
     if cutoff.kind == "uncut":
@@ -379,6 +409,12 @@ class Problem:
     state: str
     failure: str
     cutoff: Cutoff
+    #: `@when`, the precondition (#417): the condition under which the cutoff
+    #: above becomes a *readable* number. It is not a second cutoff and it
+    #: obliges nothing -- a crossing behind a shut precondition is recorded and
+    #: withholds `register:overdue`, which is `cutoff_report.py`'s half of this.
+    #: `None` is the ordinary state: most problems' bars are readable now.
+    precondition: Cutoff | None = None
     discovered: str = ""
     overdue: bool = False
     #: When the issue was opened, as GitHub's ISO-8601. This is the bar an
@@ -390,6 +426,11 @@ class Problem:
     #: field blocks in its comments. Empty is the state that matters: a
     #: `measurement` cutoff nothing has ever reported against is the disguise.
     reports: frozenset[str] = frozenset()
+    #: The same, for the precondition, off the `@precondition` field blocks in
+    #: its comments. A separate set because the two fields are stuck in
+    #: different ways and the fix differs: a `@rig` block says the bar was read,
+    #: and says nothing about whether it was readable.
+    precondition_reports: frozenset[str] = frozenset()
 
     @property
     def resolved(self) -> bool:
@@ -431,6 +472,8 @@ def read_problem(payload: dict) -> Problem:
             f"{where}: @failure is required — a problem is admitted if it has a "
             "statable failure someone could recognise happening"
         )
+    when = _only(fields, "when", where)
+    reports, precondition_reports = _reports(payload)
     return Problem(
         number=int(payload["number"]),
         title=payload.get("title") or "",
@@ -438,9 +481,11 @@ def read_problem(payload: dict) -> Problem:
         state=payload.get("state") or "OPEN",
         failure=failure,
         cutoff=read_cutoff(_only(fields, "cutoff", where), where),
+        precondition=read_when(when, where) if when else None,
         discovered=_one(fields, "discovered"),
         overdue=OVERDUE_LABEL in _labels(payload),
-        reports=_reports(payload),
+        reports=reports,
+        precondition_reports=precondition_reports,
         minted=payload.get("createdAt") or "",
     )
 
@@ -449,20 +494,30 @@ def _labels(payload: dict) -> set[str]:
     return {entry.get("name", "") for entry in payload.get("labels") or []}
 
 
-def _reports(payload: dict) -> frozenset[str]:
-    """Every rig that has reported against this problem, off its comments.
+def _reports(payload: dict) -> tuple[frozenset[str], frozenset[str]]:
+    """What has reported against this problem's two fields, off its comments.
 
     The rig report (#284) files on the problem issue; a field block naming
-    `@rig` is that report. Reading it here is what lets the register answer
-    *has anything ever fired against this bar* without a run ledger, which this
-    repository does not have -- rig readings live as prose in ADRs, spec
-    sections and research docs, none of which a projection may parse.
+    `@rig` is that report against the **cutoff**, and one naming
+    `@precondition` is that report against the **precondition** (#417). Reading
+    them here is what lets the register answer *has anything ever fired against
+    this bar* without a run ledger, which this repository does not have -- rig
+    readings live as prose in ADRs, spec sections and research docs, none of
+    which a projection may parse.
+
+    Two sets and not one, because the two fields are stuck in different ways and
+    a reader's fix differs. `@unevaluated` and `@unevaluated_precondition` are
+    counted by neither: a run that could not read the bar has fired nothing, and
+    collecting it here would lift the row out of the loud section while nothing
+    whatever was watching it.
     """
-    found: set[str] = set()
+    cutoff: set[str] = set()
+    precondition: set[str] = set()
     for _, fields in _comment_blocks(payload)[0]:
-        if REPORT_KEY in fields:
-            found.update(rig_name(value) for value in fields[REPORT_KEY] if value)
-    return frozenset(found)
+        for key, found in ((REPORT_KEY, cutoff), (PRECONDITION_KEY, precondition)):
+            if key in fields:
+                found.update(rig_name(value) for value in fields[key] if value)
+    return frozenset(cutoff), frozenset(precondition)
 
 
 # ---------------------------------------------------------------------------
@@ -878,6 +933,15 @@ def available_rigs() -> frozenset[str]:
 NO_SCRIPT = "names no rig in `benchmarks/`, so there is nothing to run"
 NO_RUN = "has never reported against this problem, so nothing has fired"
 
+#: `NO_RUN`'s precondition half. The state is the same one -- a real rig that
+#: has never reported here -- and only the sentence differs, because a
+#: precondition does not fire: it opens, and until it does the cutoff below it
+#: is not a reading anybody may act on.
+NO_PRECONDITION_RUN = (
+    "has never reported against this problem, so nothing has opened it and the "
+    "cutoff below it is not yet a readable number"
+)
+
 #: Why an `event` cutoff will not fire, in the two states the tracker can tell
 #: apart. The pair mirrors the `measurement` pair exactly, which is the reason
 #: they render as one section: `NO_ISSUE` is `NO_SCRIPT` -- the firing condition
@@ -901,28 +965,50 @@ ALREADY_CLOSED = (
 
 @dataclass(frozen=True)
 class Unwatched:
-    """A cutoff that reads as watched and is not."""
+    """A field that reads as watched and is not.
+
+    `field` names **which** of the problem's two fields is stuck -- `cutoff` or
+    `precondition` -- because the fix differs, and a row that did not say would
+    send a reader to the wrong one. A stuck precondition is the worse of the
+    two: the row shows a real bar underneath it, and still nothing will ever
+    fire.
+    """
 
     problem: Problem
     reason: str
+    field: str = "cutoff"
+
+    @property
+    def bar(self) -> Cutoff:
+        if self.field == "precondition":
+            assert self.problem.precondition is not None
+            return self.problem.precondition
+        return self.problem.cutoff
 
 
 def event_refs(survey: Registers) -> tuple[str, ...]:
-    """Every issue an `event` cutoff names, in issue order, without repeats.
+    """Every issue an `event` cutoff or precondition names, in issue order.
 
     The refs :func:`survey` has to ask the tracker about in its second round.
-    Pure, so the round can be planned without a network call.
+    Pure, so the round can be planned without a network call. Both fields, since
+    an `event` precondition goes dormant exactly as an `event` cutoff does and
+    the dormancy arm reads the same two timestamps for either.
     """
     found = {p.cutoff.issue for p in survey.problems if p.cutoff.kind == "event"}
+    found |= {
+        p.precondition.issue
+        for p in survey.problems
+        if p.precondition is not None and p.precondition.kind == "event"
+    }
     return tuple(sorted(found, key=lambda ref: int(ref.lstrip("#"))))
 
 
 def unwatched(
     survey: Registers, rigs: frozenset[str] | None = None
 ) -> list[Unwatched]:
-    """Cutoffs naming a firing condition nothing will reach.
+    """Cutoffs and preconditions naming a firing condition nothing will reach.
 
-    #282's second loud section.
+    #282's second loud section, with #417's arm on it.
 
     `uncut` wearing a disguise, and **strictly worse than `uncut`**, because it
     does not read as a debt: the page says the problem is watched, and nothing
@@ -934,6 +1020,17 @@ def unwatched(
     * `event`, naming an issue the tracker does not have, so there is nothing
       that can close; or a real issue that has not moved since the problem was
       minted.
+
+    **A `@when` precondition is read by the same arms, and the row says which
+    field is stuck** (#417). Both states above apply to it unchanged -- a rig
+    with no script, a rig nobody has run, an issue the tracker does not have, an
+    issue that has not moved -- so this gains an arm rather than the register
+    gaining a third loud section. What the row must newly state is *which* of
+    the two fields it is talking about, because the fix differs: a stuck cutoff
+    wants somebody to run the rig or push the issue, and a stuck precondition
+    wants that too but leaves a row that is **worse than a stuck cutoff**, since
+    it shows a real bar underneath and still nothing will ever fire. #341 is the
+    live instance.
 
     **The event arm is listed, not demoted.** `docs/agents/registers.md` is
     explicit that the event may be exactly the right moment and the listing
@@ -970,32 +1067,66 @@ def unwatched(
     known = available_rigs() if rigs is None else rigs
     found = []
     for problem in survey.problems:
-        cutoff = problem.cutoff
-        if cutoff.kind == "measurement":
-            if cutoff.rig not in known:
-                found.append(Unwatched(problem, NO_SCRIPT))
-            elif cutoff.rig not in problem.reports and not problem.overdue:
-                found.append(Unwatched(problem, NO_RUN))
-        elif cutoff.kind == "event":
-            seen = survey.activity.get(cutoff.issue)
-            if seen is None:
-                found.append(Unwatched(problem, NO_ISSUE))
-            elif not problem.minted:
-                # A payload that did not carry `createdAt` has no bar, and an
-                # unknown bar is not a crossed one. Comparing against the empty
-                # string -- which every timestamp sorts above -- would list
-                # every event cutoff in the register at once, on a field nobody
-                # wrote.
-                pass
-            elif seen.closed and seen.closed <= problem.minted:
-                found.append(Unwatched(problem, ALREADY_CLOSED))
-            elif seen.moved <= problem.minted:
-                # ISO-8601 in UTC, off the same API on both sides, so the
-                # string order is the time order. An issue that closed *after*
-                # the mint bumped its `moved` past it and does not reach here:
-                # that cutoff fired, which is `register:overdue`'s question and
-                # #284's rather than this section's.
-                found.append(Unwatched(problem, NO_ACTIVITY))
+        for which in ("cutoff", "precondition"):
+            bar = problem.cutoff if which == "cutoff" else problem.precondition
+            if bar is None:
+                continue
+            found.extend(_stuck(survey, problem, bar, which, known))
+    return found
+
+
+def _stuck(
+    survey: Registers,
+    problem: Problem,
+    bar: Cutoff,
+    field: str,
+    known: frozenset[str],
+) -> list[Unwatched]:
+    """:func:`unwatched`, for one of a problem's two fields.
+
+    **The two fields share every state**, which is why they share this reader
+    and the section they render into (#417): a rig with no script and a rig
+    nobody has run are the same two failures whether the bar underneath obliges
+    anything or not. What differs is the fix, and that is carried by
+    :attr:`Unwatched.field` rather than by a third loud section.
+    """
+    found = []
+    reports = problem.reports if field == "cutoff" else problem.precondition_reports
+    if bar.kind == "measurement":
+        if bar.rig not in known:
+            found.append(Unwatched(problem, NO_SCRIPT, field))
+        elif bar.rig not in reports and not (field == "cutoff" and problem.overdue):
+            # `register:overdue` counts as a run for the cutoff and for nothing
+            # else: the label means *that* bar was crossed, which cannot have
+            # happened without the rig running, and it says nothing at all about
+            # whether the precondition above it was ever read.
+            found.append(
+                Unwatched(
+                    problem,
+                    NO_RUN if field == "cutoff" else NO_PRECONDITION_RUN,
+                    field,
+                )
+            )
+    elif bar.kind == "event":
+        seen = survey.activity.get(bar.issue)
+        if seen is None:
+            found.append(Unwatched(problem, NO_ISSUE, field))
+        elif not problem.minted:
+            # A payload that did not carry `createdAt` has no bar, and an
+            # unknown bar is not a crossed one. Comparing against the empty
+            # string -- which every timestamp sorts above -- would list
+            # every event cutoff in the register at once, on a field nobody
+            # wrote.
+            pass
+        elif seen.closed and seen.closed <= problem.minted:
+            found.append(Unwatched(problem, ALREADY_CLOSED, field))
+        elif seen.moved <= problem.minted:
+            # ISO-8601 in UTC, off the same API on both sides, so the
+            # string order is the time order. An issue that closed *after*
+            # the mint bumped its `moved` past it and does not reach here:
+            # that cutoff fired, which is `register:overdue`'s question and
+            # #284's rather than this section's.
+            found.append(Unwatched(problem, NO_ACTIVITY, field))
     return found
 
 
@@ -1135,20 +1266,29 @@ def render_problems(survey: Registers, rigs: frozenset[str] | None = None) -> st
         "tracker does not have, an issue that had already closed when the "
         "problem was minted, or a live issue that has not moved since.\n"
     )
+    out.append(
+        "\n**A `@when` precondition is read by the same arms**, which is why this "
+        "section gained an arm rather than the register gaining a third "
+        "([#417](https://github.com/NGL321/patchworks/issues/417)). Every state "
+        "above applies to it unchanged. Each row therefore states **which of the "
+        "two fields is stuck**, because the fix differs — and a stuck "
+        "precondition is worse than a stuck cutoff, since the row shows a real "
+        "bar underneath it and still nothing will ever fire.\n"
+    )
     if phantom:
         out.append(
             "\n".join(
-                f"* {u.problem.link} — {u.problem.cutoff.subject} {u.reason}. "
-                f"*{_cell(u.problem.failure)}*"
+                f"* {u.problem.link} — its **{u.field}** {u.bar.subject} "
+                f"{u.reason}. *{_cell(u.problem.failure)}*"
                 for u in phantom
             )
             + "\n"
         )
     else:
         out.append(
-            "None. Every `measurement` cutoff names a rig that exists and has "
-            "reported, and every `event` cutoff names an issue that has moved "
-            "since.\n"
+            "None. Every `measurement` cutoff and precondition names a rig that "
+            "exists and has reported, and every `event` one names an issue that "
+            "has moved since.\n"
         )
     out.append(
         "\nA run is recorded by a `@rig` field block on a comment on the problem, "
@@ -1203,11 +1343,25 @@ def render_problems(survey: Registers, rigs: frozenset[str] | None = None) -> st
 
 
 def _problem_table(problems: list[Problem]) -> str:
-    rows = ["| problem | failure | cutoff | discovered | issue |", "|---|---|---|---|---|"]
+    """The live rows.
+
+    **`precondition` is its own column, between `failure` and `cutoff`, and it
+    is never folded into the cutoff cell** (#417). The cutoff cell is a parsed
+    contract -- `cutoff_report._CUTOFF_CELL` reads it to answer *which problems
+    cut on me* -- so anything else written into it is a rig watching nothing.
+    Its own column also puts the two bars in reading order: the condition under
+    which the number becomes meaningful, then the number.
+    """
+    rows = [
+        "| problem | failure | precondition | cutoff | discovered | issue |",
+        "|---|---|---|---|---|---|",
+    ]
     for p in problems:
         title = _cell(p.title) + (" **(overdue)**" if p.overdue else "")
         rows.append(
-            f"| {title} | {_cell(p.failure)} | {_cell(p.cutoff.text)} "
+            f"| {title} | {_cell(p.failure)} "
+            f"| {_cell(p.precondition.text if p.precondition else '')} "
+            f"| {_cell(p.cutoff.text)} "
             f"| {_cell(p.discovered)} | {p.link} |"
         )
     return "\n".join(rows) + "\n"

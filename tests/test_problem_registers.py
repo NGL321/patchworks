@@ -269,8 +269,10 @@ class TestAProblemIsReadOffItsIssue:
         second `@cutoff` line and gets no error. What they get is a line
         nothing reads, which is the same failure as a threshold nobody can fire
         on: provenance in appearance and not in fact. Whether the grammar
-        *should* grow a sequenced cutoff is a separate question and is not
-        settled by refusing the silent drop.
+        *should* grow a sequenced cutoff was a separate question, and #417
+        answered it **no**, permanently: what an author reaching for one wants
+        is a `@when` precondition over a single `@cutoff`, which is the class
+        below.
         """
         body = block(
             "@failure a stated failure",
@@ -1083,3 +1085,200 @@ class TestTheWorkflowKeepsTheRegistersFresh:
         permissions = self.load()["permissions"]
         assert permissions["contents"] == "write"
         assert permissions["issues"] == "read"
+
+
+# ---------------------------------------------------------------------------
+# the precondition (#417)
+# ---------------------------------------------------------------------------
+
+
+#: A problem whose bar is only readable once another bar has been crossed —
+#: #329's shape, which is what #417 was minted over. The precondition names a
+#: rig this file pretends exists; the cutoff names another.
+GATED = issue(
+    number=329,
+    title="A wandering K on a graph that does not transmit",
+    body=block(
+        "@failure    the settling time wanders",
+        "@when       measurement detectability conduction ratio >= 1",
+        "@cutoff     measurement alignment_read tau_wander_over_loop >= 1",
+    ),
+)
+
+
+class TestAPreconditionIsWhenAndASecondCutoffStaysRefused:
+    """#417's ruling, at the parse.
+
+    The framing that trapped #353 was *two bars on one row, for or against*: it
+    types both bars as cutoffs, and on #329 they are demonstrably not the same
+    kind of thing. `conduction ratio >= 1` does not say *a wandering K has
+    stopped being tolerable*; it says *until this holds, the number below is not
+    meaningful*. One is intolerability and the other is readability, and the
+    grammar already had a field for the second.
+    """
+
+    def test_a_problem_may_carry_a_precondition(self):
+        problem = registers.read_problem(GATED)
+        assert problem.precondition is not None
+        assert problem.precondition.rig == "detectability"
+        assert problem.cutoff.rig == "alignment_read"
+
+    def test_most_problems_carry_none(self):
+        assert registers.read_problem(issue(number=300, body=PROBLEM)).precondition is None
+
+    def test_a_second_when_is_refused_at_parse(self):
+        """For the same reason a second `@cutoff` is: one statement, one place."""
+        body = block(
+            "@failure a stated failure",
+            "@when measurement detectability conduction ratio >= 1",
+            "@when event #99",
+            "@cutoff uncut",
+        )
+        with pytest.raises(registers.MalformedProvenance, match="written 2 times"):
+            registers.read_problem(issue(number=300, body=body))
+
+    def test_a_second_cutoff_is_still_refused_and_now_permanently(self):
+        """What grew is the precondition. The sequenced cutoff never will."""
+        body = block(
+            "@failure a stated failure",
+            "@cutoff measurement detectability conduction ratio >= 1",
+            "@cutoff measurement alignment_read tau_wander_over_loop >= 1",
+        )
+        with pytest.raises(registers.MalformedProvenance, match="written 2 times"):
+            registers.read_problem(issue(number=300, body=body))
+
+    def test_uncut_is_refused_on_a_precondition(self):
+        """There is no obligation for it to be the absence of."""
+        body = block("@failure a stated failure", "@when uncut", "@cutoff uncut")
+        with pytest.raises(registers.MalformedProvenance, match="@when"):
+            registers.read_problem(issue(number=300, body=body))
+
+    def test_a_precondition_over_an_uncut_cutoff_is_admissible(self):
+        """#325 and #341's expected shape: strictly more informative than today.
+
+        The row shows the bar that has to open before anybody can even state
+        what would make the failure intolerable, and states the debt underneath
+        it in the register's loudest voice.
+        """
+        body = block(
+            "@failure a stated failure",
+            "@when measurement detectability conduction ratio >= 1",
+            "@cutoff uncut",
+        )
+        problem = registers.read_problem(issue(number=300, body=body))
+        assert problem.cutoff.kind == "uncut"
+        assert problem.precondition.rig == "detectability"
+
+    def test_dates_and_judgement_are_refused_here_too(self):
+        """The same reader, so the same two forms and the same refusals."""
+        body = block(
+            "@failure a stated failure",
+            "@when when it feels ready",
+            "@cutoff uncut",
+        )
+        with pytest.raises(registers.MalformedProvenance, match="@cutoff"):
+            registers.read_problem(issue(number=300, body=body))
+
+    def test_an_event_precondition_is_asked_about_in_the_second_round(self):
+        """It goes dormant exactly as an `event` cutoff does."""
+        body = block(
+            "@failure a stated failure", "@when event #99", "@cutoff uncut"
+        )
+        survey = registers.collect([issue(number=300, body=body)], [], [])
+        assert registers.event_refs(survey) == ("#99",)
+
+
+class TestThePreconditionIsItsOwnColumnAndItsOwnArm:
+    """The rendered row, and the second loud section (#417).
+
+    The column is its own because the cutoff cell is a parsed contract — the rig
+    reads it to answer *which problems cut on me* — so a precondition folded
+    into it would be a rig watching nothing. The loud section gains an arm
+    rather than the register gaining a third section, because every state it
+    could be stuck in is a state the two existing arms already name.
+    """
+
+    def loud(self, text):
+        return text.split("## Open problems")[0]
+
+    def test_the_column_sits_between_failure_and_cutoff(self):
+        text = registers.render_problems(registers.collect([GATED], [], []), RIGS)
+        assert "| problem | failure | precondition | cutoff | discovered | issue |" in text
+
+    def test_the_two_bars_render_in_their_own_cells(self):
+        text = registers.render_problems(registers.collect([GATED], [], []), RIGS)
+        row = [line for line in text.split("\n") if "#329" in line and line.startswith("|")]
+        assert len(row) == 1
+        assert "measurement `detectability` — conduction ratio >= 1" in row[0]
+        assert "measurement `alignment_read` — tau_wander_over_loop >= 1" in row[0]
+
+    def test_a_problem_with_no_precondition_leaves_the_cell_empty(self):
+        text = registers.render_problems(registers.collect([CUT], [], []), RIGS)
+        row = [line for line in text.split("\n") if "#300" in line and line.startswith("|")]
+        assert row and "| — |" in row[0]
+
+    def test_a_stuck_precondition_is_in_the_loud_section(self):
+        text = registers.render_problems(registers.collect([GATED], [], []), RIGS)
+        assert "#329" in self.loud(text)
+        assert "**precondition**" in self.loud(text)
+
+    def test_the_row_says_which_of_the_two_fields_is_stuck(self):
+        """The fix differs, so a row that did not say sends a reader to the wrong one."""
+        stuck = registers.unwatched(
+            registers.collect([GATED], [], []), RIGS
+        )
+        assert sorted(u.field for u in stuck) == ["cutoff", "precondition"]
+        assert {u.problem.number for u in stuck} == {329}
+
+    def test_a_reported_precondition_clears_its_arm_and_not_the_other(self):
+        """`@precondition` is the precondition's run record, and only that."""
+        reported = issue(
+            number=329,
+            title=GATED["title"],
+            body=GATED["body"],
+            comments=[comment(block("@precondition detectability", "@verdict shut"), 329)],
+        )
+        stuck = registers.unwatched(registers.collect([reported], [], []), RIGS)
+        assert [u.field for u in stuck] == ["cutoff"]
+
+    def test_a_rig_report_does_not_clear_the_precondition_arm(self):
+        """A `@rig` block says the bar was read, not that it was readable."""
+        reported = issue(
+            number=329,
+            title=GATED["title"],
+            body=GATED["body"],
+            comments=[comment(block("@rig alignment_read", "@verdict clear"), 329)],
+        )
+        stuck = registers.unwatched(registers.collect([reported], [], []), RIGS)
+        assert [u.field for u in stuck] == ["precondition"]
+
+    def test_overdue_counts_as_a_run_for_the_cutoff_and_nothing_else(self):
+        """The label means *that* bar was crossed; it says nothing about the other."""
+        crossed = issue(
+            number=329,
+            title=GATED["title"],
+            body=GATED["body"],
+            labels=("register:problem", "register:overdue"),
+        )
+        stuck = registers.unwatched(registers.collect([crossed], [], []), RIGS)
+        assert [u.field for u in stuck] == ["precondition"]
+
+    def test_a_precondition_naming_no_rig_has_nothing_to_run(self):
+        body = block(
+            "@failure a thing",
+            "@when measurement no_such_rig bar < 1",
+            "@cutoff uncut",
+        )
+        stuck = registers.unwatched(
+            registers.collect([issue(number=305, body=body)], [], []), RIGS
+        )
+        assert [(u.field, u.reason) for u in stuck] == [
+            ("precondition", registers.NO_SCRIPT)
+        ]
+
+    def test_a_stuck_precondition_says_it_is_not_yet_a_readable_number(self):
+        """`NO_RUN`'s wording is the cutoff's: a precondition opens, it does not fire."""
+        stuck = registers.unwatched(registers.collect([GATED], [], []), RIGS)
+        precondition = [u for u in stuck if u.field == "precondition"][0]
+        assert precondition.reason == registers.NO_PRECONDITION_RUN
+        assert "opened it" in precondition.reason

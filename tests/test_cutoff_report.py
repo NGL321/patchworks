@@ -52,6 +52,7 @@ def problem(
     title="The sandbox is too slow to train on",
     failure="training stalls when the sandbox falls under a tick a millisecond",
     cutoff="measurement sandbox_throughput ticks_per_second < 300",
+    precondition="",
     state="OPEN",
     overdue=False,
 ):
@@ -62,6 +63,9 @@ def problem(
         state=state,
         failure=failure,
         cutoff=registers.read_cutoff(cutoff, f"#{number}"),
+        precondition=(
+            registers.read_when(precondition, f"#{number}") if precondition else None
+        ),
         discovered="#230",
         overdue=overdue,
         reports=frozenset(),
@@ -520,3 +524,216 @@ class TestTheFilingArmDoesTwoThingsAndOnlyOnACrossingBoth:
 
         monkeypatch.setattr(hook, "gh", refuse)
         assert "not filed" in hook.file_report(self._verdict({"ticks_per_second": 210}))
+
+
+# ---------------------------------------------------------------------------
+# the precondition (#417)
+# ---------------------------------------------------------------------------
+
+GATE = "measurement detectability conduction ratio >= 1"
+
+
+class TestAPreconditionIsReadOffItsOwnColumn:
+    """`@when` renders beside the cutoff and never inside it.
+
+    The cutoff cell is a parsed contract — it is what answers *which problems
+    cut on me* — so a precondition written into it would be a rig watching
+    nothing. Its own column also puts the two bars in reading order: the
+    condition under which the number is meaningful, then the number.
+    """
+
+    def test_the_precondition_has_a_column_of_its_own(self):
+        text = rendered(problem(precondition=GATE))
+        assert "| precondition | cutoff |" in text
+        assert "measurement `detectability` — conduction ratio >= 1" in text
+
+    def test_a_row_with_no_precondition_still_reads(self):
+        """Most problems have none, and the cutoff column must not shift."""
+        assert hook.watching(rendered(problem()), "sandbox_throughput")[0].number == 101
+
+    def test_the_cutoff_cell_is_untouched_by_a_precondition(self):
+        found = hook.watching(rendered(problem(precondition=GATE)), "sandbox_throughput")
+        assert [w.threshold for w in found] == ["ticks_per_second < 300"]
+
+    def test_a_rig_finds_the_problems_its_precondition_gates(self):
+        text = rendered(problem(precondition=GATE))
+        found = hook.watching(text, "detectability", field=hook.PRECONDITION_FIELD)
+        assert [w.number for w in found] == [101]
+        assert [w.threshold for w in found] == ["conduction ratio >= 1"]
+        assert not found[0].obliges
+
+    def test_gating_a_problem_is_not_cutting_on_it(self):
+        """`detectability` gates #325, #329 and #341 and cuts on none of them."""
+        text = rendered(problem(precondition=GATE))
+        assert hook.watching(text, "detectability") == []
+
+    def test_the_cutoff_watch_carries_the_precondition_cell(self):
+        found = hook.watching(rendered(problem(precondition=GATE)), "sandbox_throughput")
+        assert hook.gate_subject(found[0].precondition) == "detectability"
+
+    def test_a_row_with_no_precondition_names_no_subject(self):
+        found = hook.watching(rendered(problem()), "sandbox_throughput")
+        assert hook.gate_subject(found[0].precondition) == ""
+
+
+class TestACrossingBehindAShutPreconditionCarriesNoObligation:
+    """Recorded, and `register:overdue` withheld (#417).
+
+    The `@rig` block files as normal, so the row never sits in *no recorded run*
+    while a rig is in fact reading it. What is withheld is the obligation, and
+    the withholding is stamped, so that the first crossing *after* the
+    precondition opens reads as a change rather than as the same verdict again —
+    which is the run that adds the label.
+    """
+
+    def _verdict(self, precondition=GATE):
+        watch = hook.watching(
+            rendered(problem(precondition=precondition)), "sandbox_throughput"
+        )[0]
+        return hook.judge(watch, {"ticks_per_second": 210.0})
+
+    def _calls(self, monkeypatch, verdict, comments=()):
+        made = []
+
+        def stand_in(arguments, stdin=None):
+            made.append((arguments, stdin))
+            if arguments[:2] == ["issue", "view"]:
+                return json.dumps({"comments": list(comments)})
+            return ""
+
+        monkeypatch.setattr(hook, "gh", stand_in)
+        return made, hook.file_report(verdict)
+
+    def _opened(self):
+        """What the gating rig files on the day its bar opens."""
+        watch = hook.watching(
+            rendered(problem(precondition=GATE)),
+            "detectability",
+            field=hook.PRECONDITION_FIELD,
+        )[0]
+        return {"body": hook.comment_body(hook.judge(watch, {"conduction ratio": 1.0}))}
+
+    def test_the_comment_is_filed_and_the_label_is_not(self, monkeypatch):
+        made, done = self._calls(monkeypatch, self._verdict())
+        assert [call[0][:2] for call in made] == [
+            ["issue", "view"],
+            ["issue", "comment"],
+        ]
+        assert "withheld" in done and registers.OVERDUE_LABEL in done
+
+    def test_the_comment_says_the_obligation_was_withheld(self, monkeypatch):
+        self._calls(monkeypatch, self._verdict())
+        body = hook.comment_body(self._verdict(), withheld=True)
+        assert "withheld" in body and "@verdict crossed-withheld" in body
+        assert "conduction ratio >= 1" in body
+
+    def test_a_crossing_with_no_precondition_still_stamps(self, monkeypatch):
+        made, done = self._calls(monkeypatch, self._verdict(precondition=""))
+        assert [call[0][:2] for call in made][-1] == ["issue", "edit"]
+        assert "withheld" not in done
+
+    def test_an_opened_precondition_lets_the_next_crossing_stamp(self, monkeypatch):
+        made, done = self._calls(monkeypatch, self._verdict(), comments=[self._opened()])
+        assert [call[0][:2] for call in made] == [
+            ["issue", "view"],
+            ["issue", "comment"],
+            ["issue", "edit"],
+        ]
+        assert registers.OVERDUE_LABEL in done
+
+    def test_the_withheld_stamp_is_what_makes_that_a_change(self):
+        verdict = self._verdict()
+        assert hook.stamp(verdict, withheld=True) != hook.stamp(verdict)
+        assert hook.worth_filing(
+            verdict, hook.stamp(verdict, withheld=True), withheld=False
+        )
+
+    def test_the_same_withheld_crossing_again_files_nothing(self, monkeypatch):
+        verdict = self._verdict()
+        made, done = self._calls(
+            monkeypatch,
+            verdict,
+            comments=[{"body": hook.comment_body(verdict, withheld=True)}],
+        )
+        assert [call[0][:2] for call in made] == [["issue", "view"]]
+        assert "already on record" in done
+
+    def test_a_shut_precondition_reads_shut_and_a_missing_one_does_not(self):
+        assert hook.precondition_opened([], "detectability") is False
+        assert hook.precondition_opened([], "") is True
+
+    def test_another_rigs_opening_is_not_this_preconditions(self):
+        assert hook.precondition_opened([self._opened()], "floor_split") is False
+        assert hook.precondition_opened([self._opened()], "detectability") is True
+
+
+class TestAPreconditionOpeningIsReportedAndNeverALabel:
+    """Once the bar is nobody's `@cutoff`, no other report mentions it.
+
+    So the day it opens, several problems become live with nothing saying so —
+    unless the rig that takes the reading says it. Filed under `@precondition`,
+    which is a key of its own: opening a precondition imposes nothing, and a
+    `@rig` block would lift the row out of the register's loud section on the
+    strength of a reading about a different bar.
+    """
+
+    def _watch(self):
+        return hook.watching(
+            rendered(problem(precondition=GATE)),
+            "detectability",
+            field=hook.PRECONDITION_FIELD,
+        )[0]
+
+    def test_the_words_are_opened_and_shut_rather_than_crossed_and_clear(self):
+        opened = hook.judge(self._watch(), {"conduction ratio": 1.0})
+        shut = hook.judge(self._watch(), {"conduction ratio": 0.0})
+        assert (opened.word, shut.word) == ("opened", "shut")
+
+    def test_the_block_is_precondition_and_never_rig(self):
+        body = hook.comment_body(hook.judge(self._watch(), {"conduction ratio": 1.0}))
+        assert body.startswith("```\n@precondition detectability\n@verdict opened\n")
+        assert registers.OVERDUE_LABEL not in body
+
+    def test_a_run_that_could_not_read_it_is_not_a_run(self):
+        body = hook.comment_body(hook.judge(self._watch(), {"camera_ms": 1.0}))
+        assert f"@{registers.UNEVALUATED_PRECONDITION_KEY} detectability" in body
+
+    def test_no_label_is_ever_filed_for_a_precondition(self, monkeypatch):
+        made = []
+
+        def stand_in(arguments, stdin=None):
+            made.append(arguments)
+            if arguments[:2] == ["issue", "view"]:
+                return json.dumps({"comments": []})
+            return ""
+
+        monkeypatch.setattr(hook, "gh", stand_in)
+        hook.file_report(hook.judge(self._watch(), {"conduction ratio": 1.0}))
+        assert [call[:2] for call in made] == [["issue", "view"], ["issue", "comment"]]
+
+    def test_the_two_records_do_not_read_as_each_other(self):
+        """A rig that is both a problem's cutoff and its precondition."""
+        both = rendered(problem(precondition="measurement sandbox_throughput camera_ms > 5"))
+        cut = hook.judge(
+            hook.watching(both, "sandbox_throughput")[0], {"ticks_per_second": 412.0}
+        )
+        gate = hook.judge(
+            hook.watching(both, "sandbox_throughput", field=hook.PRECONDITION_FIELD)[0],
+            {"camera_ms": 9.0},
+        )
+        comments = [{"body": hook.comment_body(cut)}, {"body": hook.comment_body(gate)}]
+        assert hook.read_stamps(comments, "sandbox_throughput") == hook.stamp(cut)
+        assert hook.read_stamps(
+            comments, "sandbox_throughput", field=hook.PRECONDITION_FIELD
+        ) == hook.stamp(gate)
+
+    def test_the_report_states_both_passes(self, tmp_path, capsys):
+        path = tmp_path / "open-problems.md"
+        path.write_text(rendered(problem(precondition=GATE)), encoding="utf-8")
+        hook.report(
+            "detectability", {"conduction ratio": 1.0}, register=path, file=False
+        )
+        printed = capsys.readouterr().out
+        assert "no open problem cuts on `detectability`" in printed
+        assert "preconditions naming `detectability`" in printed
+        assert "OPENED" in printed

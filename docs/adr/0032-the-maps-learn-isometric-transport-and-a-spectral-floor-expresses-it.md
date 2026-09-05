@@ -115,17 +115,69 @@ non-degenerate trajectory**: the same environment drives the whole graph, and di
 pushes toward consistent identification on its own once the trajectory cannot dodge into a subspace.
 [#315](https://github.com/NGL321/patchworks/issues/315) is the read that checks whether it did.
 
-**Amended by [#437](https://github.com/NGL321/patchworks/issues/437): that sentence is struck as
-measured-against, and #315 becomes required rather than confirmatory.**
-[#436](https://github.com/NGL321/patchworks/issues/436) §4 composed the trained surface along 263
-structural rim-to-apex routes and read it **~240x below its own chance-alignment null** — off-channel
-share 2.1e-4 against the null's 0.051 at 100k. The objective is not drifting toward identification
-agreement; it is building a **single composed channel**, which is
-[ADR-0022](./0022-a-hop-is-an-operator-norm-along-a-learned-channel.md)'s *"14.20x taught against
-3.66x untrained"* doing what it is documented to do. The null bounds what *chance* alignment buys and
-not what composition permits, so this is a **direction and not a ceiling**: it is filed as a standing
-problem, [#454](https://github.com/NGL321/patchworks/issues/454), and
-[#453](https://github.com/NGL321/patchworks/issues/453) is the holonomy read that puts a sign on it.
+> **Struck by [#480](https://github.com/NGL321/patchworks/issues/480), and kept rather than deleted so
+> that the bet and its resolution are both legible.** This was
+> [#437](https://github.com/NGL321/patchworks/issues/437)'s amendment, written before the instrument
+> had run:
+>
+> **Amended by #437: that sentence is struck as measured-against, and #315 becomes required rather
+> than confirmatory.** [#436](https://github.com/NGL321/patchworks/issues/436) §4 composed the trained
+> surface along 263 structural rim-to-apex routes and read it **~240x below its own chance-alignment
+> null** — off-channel share 2.1e-4 against the null's 0.051 at 100k. The objective is not drifting
+> toward identification agreement; it is building a **single composed channel**, which is
+> [ADR-0022](./0022-a-hop-is-an-operator-norm-along-a-learned-channel.md)'s *"14.20x taught against
+> 3.66x untrained"* doing what it is documented to do. The null bounds what *chance* alignment buys
+> and not what composition permits, so this is a **direction and not a ceiling**: it is filed as a
+> standing problem, [#454](https://github.com/NGL321/patchworks/issues/454), and
+> [#453](https://github.com/NGL321/patchworks/issues/453) is the holonomy read that puts a sign on it.
+>
+> That null was a **full-rank object priced against a rank-1 one**, so most of its columns measured
+> directions carrying nothing. #453 read the same surface on the channel and found it far *above*
+> chance rather than below it. #454 is **withdrawn** on #480; what survived it is
+> [#497](https://github.com/NGL321/patchworks/issues/497), a **rank** failure rather than an alignment
+> one. This ADR no longer rests on the retracted reading — which is what
+> [#345](https://github.com/NGL321/patchworks/issues/345)'s class asks of a decision citing a ground
+> later withdrawn.
+
+**Amended by [#498](https://github.com/NGL321/patchworks/issues/498), on
+[#480](https://github.com/NGL321/patchworks/issues/480)'s ruling: the bet above has been read, and on
+the channel it is won.** [#453](https://github.com/NGL321/patchworks/issues/453) ran #315's
+instrument over 260 independent interior cycles. **Where a direction is live, the objective buys
+route-free identification of it — by the transport rule alone, with no local rule added.** That is
+this ADR's own mechanism confirmed: the second constraint it declined to reach for was not needed for
+the part that landed. Holonomy channel return **0.9881 floored and 0.9941 unfloored at 100k**, against
+a chance null of **0.399** and — the null that makes this a statement about alignment rather than
+about spectra — a **rewired** null of **0.457**, built from the same trained maps of the same
+checkpoint permuted among endpoints of the same block shape. It holds at every cycle length from 3 to
+14, at both horizons, in both arms: 237 of 260 floored and 258 of 260 unfloored cycles above 0.9, and
+on the unfloored surface the worst cycle in the graph reads 0.876. #453's table is not restated here.
+
+**Surface for every figure in this amendment** (`docs/agents/domain.md`, *An ADR quoting a measured
+figure names its surface*): the post-[ADR-0031](./0031-the-sparsity-pressure-is-deleted.md) surface,
+`main`, seed 42, `benchmarks/holonomy_read.py` at
+[#479](https://github.com/NGL321/patchworks/pull/479), both arms trained in one process. The **single
+seed** is a stated limit, not an omission.
+
+**What is not reached, and is the limit rather than a caveat.** The antecedent above is a
+**non-degenerate** trajectory, and this trajectory is **degenerate**: the surface has one direction
+([#497](https://github.com/NGL321/patchworks/issues/497)). Identification departure on the whole
+operator moves 0.997 → 0.888 and no further, and off the channel the surface is at chance. **So the
+general claim is not available**, and nothing here may be read as making it. What is won is the
+conditional form and only that — the mechanism confirmed on the one direction the surface offers.
+
+**The floor is credited with none of this.** The **unfloored** arm returns its channel *slightly
+better* (0.9941 against 0.9881) and on more cycles. What the floor buys is the other half — flatness
+around a cycle four orders better with it — and **neither arm comes near 1**, so metric agreement does
+not survive composition even where the floor holds it per map.
+[#435](https://github.com/NGL321/patchworks/issues/435)'s effective rank 4.000 is a **per-map** reading
+and composes to nothing like it. A sentence crediting the floor with identification would be wrong
+twice.
+
+**The relocation, which is the substantive move.** The remaining gap is a **rank** problem, not an
+**alignment** problem: alignment is fine, and there is one thing to align. Remedy families aimed at
+cross-edge alignment are aimed at something that is not failing, and #497 rather than #454 is the row
+to read them against. **#315 stays `open`** — running a proposal's instrument is not adopting it, and
+this amendment adopts nothing.
 
 ### The reframe, which is the ruling's real answer
 
@@ -359,6 +411,15 @@ a pre-registration reporting back rather than a ground collapsing, and the decis
 the composed benefit was an aspiration attached to it, never a ground of it. **What the amendment
 forbids is the reverse citation: ADR-0032 may not be cited as buying anything rim-to-apex.**
 
+*Sharpened by [#498](https://github.com/NGL321/patchworks/issues/498) on
+[#480](https://github.com/NGL321/patchworks/issues/480): what is unmet in that conditional is the
+**rank**, not the alignment.* #453 measured the alignment term itself — 0.9881 on the channel against
+a 0.399 chance null and a 0.457 rewired null, on the surface named under *The target splits into a
+local half and a global half* above. The composed object is rank-1 regardless
+([#497](https://github.com/NGL321/patchworks/issues/497)), so the two-sided bound stays underivable;
+but it stays underivable for the reason #497 names, and this paragraph may not be cited as evidence
+that adjacent carried subspaces fail to align.
+
 **The floor does not transfer to `K`, and the want inverts.** Ruled on
 [#420](https://github.com/NGL321/patchworks/issues/420) §3, and stated here because the two spectra
 sit one sentence apart in the record:
@@ -386,6 +447,12 @@ lower-ceiling cost also dissolves, because ADR-0031 already ruled `H⁰` a floor
 **[#315](https://github.com/NGL321/patchworks/issues/315) is promoted to build, with its sign
 flipped.** Loops are still what make the reading possible; departure of holonomy from the identity is
 now a **defect measure**, not a prize. The instrument is unchanged.
+
+*Amended by [#498](https://github.com/NGL321/patchworks/issues/498): the instrument has run —
+[#453](https://github.com/NGL321/patchworks/issues/453), 260 interior cycles — and #315's own status
+is **untouched by that**.* It stays `open` in `proposed-solutions`: running a proposal's rig is not
+adopting the proposal, and neither #453 nor this amendment adopts it. What the read returned is
+recorded under *The target splits into a local half and a global half* above.
 
 **The `H⁰` bound tightens, and that makes an open problem worse rather than better.** `dim H⁰ ≥ Σ_v
 max(0, n − Σ_e m_e)` is a *lower* bound, and both `05-timescales.md` and `06-graph-topology.md` lean on
