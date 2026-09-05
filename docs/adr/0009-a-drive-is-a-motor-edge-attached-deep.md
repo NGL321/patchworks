@@ -201,6 +201,46 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
   rejects. A hard clamp is retained in exactly one role, as an **instrument**: pinning a stalk to debug,
   and to isolate whether the drive edge is doing the work. The same status ADR-0005 gives the clock
   divisor. Instrument, never mechanism.
+
+  **Extended from a held-still pin to a schedule across a learning run**, on
+  [#495](https://github.com/NGL321/patchworks/issues/495), 2026-09-04. The clause above was written
+  with a *counterfactual* probe in view — run to the fixed point, hold the world still, re-run from the
+  same state under an altered write, difference the settled node stalks, **rules off**. That is the
+  licence `benchmarks/untrained_fixed_point.py` already exercises by name, and `prototypes/drive-reach/`
+  with it. #495's probe is different in kind: it varies the assertion **while both local rules run**,
+  across a whole learning run, so the write enters the evidence stream the transport rule learns from.
+  The clause names no horizon and no rules-off condition, so it *could* have been read as already
+  covering that. It is extended on purpose instead, because a generous reading discovered later is
+  worth less than a stated one.
+
+  **What carries the extension is the three-part test that tells a drive from a reward**, made here
+  rather than assumed. A reward (a) enters the learning rule, (b) needs credit assignment, and (c)
+  needs a satisfaction detector. **A task-blind schedule has none of the three.** It needs no credit
+  assignment. Nothing reads whether the goal is met, so there is no detector —
+  `info.goal_satisfied` stays privileged and for logging only, exactly as *Release needs no mechanism,
+  and no detector* above already has it. And it enters the learning rule the way the render does, as
+  **evidence**, rather than as a term modifying how an update is computed. What disqualifies a reward
+  is the triple, not mere presence in the rule.
+
+  **The condition is `exogenous drive`, and its content is task-blindness by construction.** The
+  schedule is drawn from a seed *before* the run and reads **nothing**: not `info.goal_satisfied`, not
+  prediction error, not `travel`, not the reconciliation residual. A metronome and a coach both make
+  noise at you; only one is telling you whether you are doing well. It also never visits zero, since
+  zero makes the drive inert and would periodically delete the dark-room answer — a different
+  experiment wearing this one's clothes. **The bright line, so no later session re-derives it: a
+  schedule contingent on satisfaction is [#5](https://github.com/NGL321/patchworks/issues/5)**, a
+  second architecture rather than a channel swap, and not an instrument at all.
+
+  **What the extension costs, on the record rather than absorbed.** The standing *no reward channel*
+  inspection argument has a capacity-zero half — a constant carries no bits, so specification cannot
+  ride the signal — and a schedule carries bits, so that half does not survive as stated. What survives
+  is narrower, and is the claim to make: **the architecture's drive is a constant and therefore carries
+  no bits**, while the probe is an instrument on a diagnostic run and not part of the build. A
+  thermometer in the soup is not an ingredient. `DRIVE_ASSERTION` is **not** retuned — it stays `1.0`,
+  which is what keeps this an instrument — and this is neither the ramp declined under *Known exposure*
+  below nor a reopening of [#137](https://github.com/NGL321/patchworks/issues/137)'s fixing of the
+  constant. A probe is not a ramp: the ramp was rejected as a **mechanism** that would supply
+  something, and this supplies nothing.
 - **Graph topology gains one cell and its mask entries** — a revision against `06-graph-topology.md`,
   small because it is an ordinary boundary cell, not a new category. **Done in
   [#36](https://github.com/NGL321/patchworks/issues/36):** the drive attaches at the **apex level,

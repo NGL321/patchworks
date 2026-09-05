@@ -62,7 +62,7 @@ class _Unset:
 _UNSET = _Unset()
 
 #: @type chosen
-#: @flexibility any non-zero constant; zero makes the drive inert, and a schedule is not a drive
+#: @flexibility any non-zero constant; zero makes the drive inert, and a schedule is not a drive -- but an `exogenous drive` probe is an instrument on a diagnostic run, not a counterexample (#495)
 #: @warrant docs/adr/0009-a-drive-is-a-motor-edge-attached-deep.md
 #: What the drive boundary cell asserts, every tick, forever. The record fixes
 #: the stalk's width and its content — one dimension carrying *valence, not
@@ -81,6 +81,21 @@ _UNSET = _Unset()
 #: the apex either, because `m_e = 1` leaves no direction to scale. Width is the
 #: axis with leverage (#188). No ceiling bounds this number and none is
 #: derivable today; a constant needs none.
+#:
+#: **An instrument may vary it; that is not a counterexample.** *A schedule is
+#: not a drive* stands exactly as written — it is the standing line against this
+#: assertion being read as something richer than a valence, and #495 does not
+#: weaken it. What #495 added is that a **task-blind** schedule, run as an
+#: instrument on a diagnostic run under the `exogenous drive` condition, is
+#: admissible: it is drawn from a seed before the run, reads nothing (not
+#: `info.goal_satisfied`, not prediction error, not `travel`, not the
+#: reconciliation residual), and never visits zero. It therefore has none of the
+#: three properties that make a reward — no credit assignment, no satisfaction
+#: detector, and it enters the learning rule as *evidence* rather than as a term
+#: modifying the update. ADR-0009's *"Clamp" is retired as vocabulary* clause
+#: carries the extension and the argument. The constant itself is **not**
+#: retuned, which is what keeps the probe an instrument, and a schedule
+#: contingent on satisfaction is #5 rather than an instrument.
 DRIVE_ASSERTION = 1.0
 
 #: @type stipulated
