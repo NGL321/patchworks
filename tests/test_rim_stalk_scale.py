@@ -223,6 +223,40 @@ class TestTheBarItIsWatched_On:
         assert rim_stalk_scale.readings([{"geometry": {"edges": []}, "frames": []}]) == {}
 
 
+class TestAKilledRunIsNotThrownAway:
+    """A retry may not truncate a deeper attempt. This rig learned it the hard way."""
+
+    def test_a_run_in_flight_writes_beside_the_final_name(self, tmp_path):
+        target = tmp_path / "468-full-seed0-30000.json"
+        assert rim_stalk_scale.stage(target) == tmp_path / "468-full-seed0-30000.inflight.json"
+
+    def test_a_killed_attempt_is_moved_aside_rather_than_overwritten(self, tmp_path):
+        target = tmp_path / "468-full-seed0-30000.json"
+        inflight = rim_stalk_scale.stage(target)
+        inflight.write_text('{"reached": 10000}', encoding="utf-8")
+
+        again = rim_stalk_scale.stage(target)
+        assert again == inflight
+        assert not inflight.exists()
+        kept = target.with_suffix(".killed-0.json")
+        assert kept.read_text(encoding="utf-8") == '{"reached": 10000}'
+
+    def test_a_second_kill_does_not_overwrite_the_first(self, tmp_path):
+        target = tmp_path / "468-full-seed0-30000.json"
+        for attempt in range(3):
+            rim_stalk_scale.stage(target).write_text(str(attempt), encoding="utf-8")
+        rim_stalk_scale.stage(target)
+        assert [
+            target.with_suffix(f".killed-{i}.json").read_text(encoding="utf-8")
+            for i in range(3)
+        ] == ["0", "1", "2"]
+
+    def test_a_completed_run_claims_the_final_name(self, tmp_path):
+        rim_stalk_scale.one(0, 4, "train", "small", tmp_path / "r.json")
+        assert (tmp_path / "r.json").is_file()
+        assert not (tmp_path / "r.inflight.json").exists()
+
+
 class TestTheScriptRuns:
     def test_read_runs_without_touching_the_tracker(self, capsys, tmp_path):
         assert (

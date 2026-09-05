@@ -274,15 +274,42 @@ def magnitudes(sheaf) -> dict[str, list[float]]:
     return {"norm": norms, "rms": rms}
 
 
+def stage(target: pathlib.Path) -> pathlib.Path:
+    """Where a run in flight writes, and what happens to the last one that died.
+
+    The checkpoint write is inside the tick loop because a 100,000-tick run is
+    over an hour on this dome, long enough that a kill part way through is a real
+    outcome rather than a hypothetical — and an all-or-nothing write loses every
+    checkpoint it already passed.
+
+    That much is not enough on its own, and this rig learned it the expensive
+    way: writing each checkpoint straight to the final name means a **re-run**
+    truncates the file from its first frame, so a retry killed at tick 300
+    destroys a previous attempt that had reached 10,000. The partial record is
+    exactly what checkpointing is for, and the retry is exactly when it gets
+    thrown away.
+
+    So a run in flight writes to `<name>.inflight.json` and only becomes
+    `<name>.json` when it finishes. Anything left in flight by a kill is moved
+    aside under a `.killed-<n>.json` name rather than overwritten, so the deepest
+    attempt survives however many times the run is retried.
+    """
+    inflight = target.with_suffix(".inflight.json")
+    if inflight.exists():
+        index = 0
+        while True:
+            kept = target.with_suffix(f".killed-{index}.json")
+            if not kept.exists():
+                break
+            index += 1
+        inflight.replace(kept)
+    return inflight
+
+
 def one(
     seed: int, ticks: int, split: str, dome_name: str, out: pathlib.Path | None
 ) -> dict:
-    """One seed, writing its record **as each checkpoint lands**.
-
-    The write is inside the loop on purpose: a 100,000-tick run is around an hour
-    on this dome, long enough that a kill part way through is a real outcome, and
-    an all-or-nothing write loses every checkpoint it already passed.
-    """
+    """One seed, writing its record as each checkpoint lands. See :func:`stage`."""
     started = time.time()
     env, agent = ufp.build(dome_name, split, seed)
     record: dict[str, object] = {
@@ -293,6 +320,7 @@ def one(
         "geometry": None,
         "frames": [],
     }
+    inflight = stage(out) if out is not None else None
     try:
         dome = agent.dome
         record["geometry"] = geometry(dome)
@@ -302,8 +330,8 @@ def one(
         def keep(tick: int) -> None:
             frames.append({"tick": tick, **magnitudes(agent.sheaf)})
             record["seconds"] = round(time.time() - started, 1)
-            if out is not None:
-                out.write_text(json.dumps(record), encoding="utf-8")
+            if inflight is not None:
+                inflight.write_text(json.dumps(record), encoding="utf-8")
 
         if 0 in wanted:
             keep(0)
@@ -317,6 +345,11 @@ def one(
                 keep(index + 1)
     finally:
         env.close()
+    if inflight is not None and inflight.exists():
+        # The run reached its horizon, so the record is complete and claims the
+        # final name. A kill leaves the `.inflight.json` behind instead, which is
+        # what `stage` preserves on the next attempt.
+        inflight.replace(out)
     return record
 
 
