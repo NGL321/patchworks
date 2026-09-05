@@ -1,0 +1,123 @@
+{
+  "arm_check": {
+    "arm": "preclamp",
+    "c_v_actuator": 2.0,
+    "gain_actuator": 0.5,
+    "gain_over_gamma": 0.5,
+    "cells_differing_from_preclamp": []
+  },
+  "actuator": 262,
+  "world_loop": 3,
+  "commanded": 3,
+  "stalk": 6,
+  "elapsed_s": 1043.264582157135,
+  "checkpoints": [
+    {
+      "operator_identity": {
+        "draws": 4,
+        "relative_residual": [
+          3.298274616348485e-07,
+          1.2618330210706173e-07,
+          2.858848208559633e-07,
+          2.82307827411214e-07
+        ],
+        "relative_residual_max": 3.298274616348485e-07
+      },
+      "arm": "preclamp",
+      "seed": 1,
+      "ticks": 30000,
+      "actuator": 262,
+      "world_loop": 3,
+      "gain": 0.5,
+      "commanded": 3,
+      "M_eigenvalues": [
+        0.1557936178455347,
+        0.2993779212146006,
+        0.4754658850536142,
+        0.6432293595538194,
+        0.676867114656687,
+        0.7492662657006717
+      ],
+      "M_trace": 3.0000001640249283,
+      "M_lambda_min": 0.1557936178455347,
+      "M_lambda_max": 0.7492662657006717,
+      "A_commanded_eigenvalues": [
+        [
+          0.6302252695894599,
+          0.0
+        ],
+        [
+          0.7766454253238878,
+          0.0
+        ],
+        [
+          0.8278656274845027,
+          0.0
+        ]
+      ],
+      "rho_A_commanded": 0.8278656274845027,
+      "rho_A_full": 0.9221031910772326,
+      "tau_closed": 5.293682286157147,
+      "tau_full_stalk": 12.330738909425767,
+      "conduction_ratio_closed": 1.7645607620523824,
+      "trials": 8,
+      "window": 64,
+      "tau_stalk_per_trial": [
+        3.0,
+        9.0,
+        18.0,
+        5.0,
+        9.0,
+        10.0,
+        2.0,
+        3.0
+      ],
+      "tau_stalk_median": 7.0,
+      "neighbours": {
+        "327": {
+          "tau_hat_per_trial": [
+            7.0,
+            3.0,
+            17.0,
+            4.0,
+            6.0,
+            8.0,
+            6.0,
+            18.0
+          ],
+          "tau_hat_median": 6.5,
+          "p_v": 6
+        },
+        "329": {
+          "tau_hat_per_trial": [
+            4.0,
+            14.0,
+            5.0,
+            2.0,
+            4.0,
+            4.0,
+            3.0,
+            4.0
+          ],
+          "tau_hat_median": 4.0,
+          "p_v": 6
+        },
+        "331": {
+          "tau_hat_per_trial": [
+            3.0,
+            1.0,
+            8.0,
+            1.0,
+            6.0,
+            4.0,
+            4.0,
+            9.0
+          ],
+          "tau_hat_median": 4.0,
+          "p_v": 6
+        }
+      },
+      "conduction_ratio_stalk": 2.3333333333333335
+    }
+  ]
+}
