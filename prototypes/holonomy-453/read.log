@@ -1,0 +1,277 @@
+dome real: 414 cells, 682 edges
+260 independent interior cycles; checkpoints (30000, 100000)
+
+=== free arms: the draw, and chance ===
+    untrained floored = flat, independent (chance null): 8 draws x 260 cycles
+    untrained, unfloored: 8 draws x 260 cycles
+
+=== training floored, seed 42 ===
+    checkpoint 30000 read (floored, seed 42)
+    checkpoint 100000 read (floored, seed 42)
+
+=== training unfloored, seed 42 ===
+    checkpoint 30000 read (unfloored, seed 42)
+    checkpoint 100000 read (unfloored, seed 42)
+
+=== the cycles ===
+    414 cells and 682 edges; cycle rank 269
+    interior only: 150 cells and 409 edges; 260 independent cycles
+    (a hop through a boundary cell is not transport -- ADR-0016)
+    cycle length: min 3, median 5, max 14
+
+=== untrained floored = flat, independent (chance null) ===
+
+    untrained floored = flat, independent (chance null)        5th     median       95th
+    identification departure (0=I, 1=chance)     0.7767     0.9966      1.185
+    channel return |<u1,v1>| (1 = comes back)    0.03779      0.399     0.8831
+    flatness of H (1 = inside O(m))           5.364e-08  0.0003334    0.02404
+    sigma_max of H                            2.239e-12  7.384e-06   0.001772
+    cycles below the relative zero                    1 of 2080
+
+    untrained floored = flat, independent (chance null): by cycle length
+      length  cycles  median ident.  median flatness
+           3     368         1.0017         0.005877
+           4     448         0.9890         0.001509
+           5     376         0.9994        0.0004762
+           6     168         1.0061        0.0002431
+           7     136         0.9867        8.257e-05
+           8     128         0.9913        2.116e-05
+           9     192         0.9972        1.113e-05
+          10      48         0.9866        1.843e-06
+          11     128         0.9800        2.175e-06
+          12      48         1.0342        1.205e-07
+          13      32         1.0004        9.186e-08
+          14       8         0.9446        4.073e-08
+
+=== untrained, unfloored ===
+
+    untrained, unfloored                            5th     median       95th
+    identification departure (0=I, 1=chance)     0.7793     0.9977       1.19
+    channel return |<u1,v1>| (1 = comes back)    0.03581     0.4019     0.8764
+    flatness of H (1 = inside O(m))           1.998e-08  0.0001674    0.01579
+    sigma_max of H                            1.079e-12  6.463e-06   0.001805
+    cycles below the relative zero                    2 of 2080
+
+    untrained, unfloored: by cycle length
+      length  cycles  median ident.  median flatness
+           3     368         1.0079         0.004022
+           4     448         0.9895        0.0008951
+           5     376         1.0016        0.0002439
+           6     168         0.9979        0.0001201
+           7     136         0.9870         2.07e-05
+           8     128         1.0001        4.299e-06
+           9     192         1.0003        4.978e-06
+          10      48         0.9874        5.015e-07
+          11     128         0.9952        9.578e-07
+          12      48         1.0087        3.943e-08
+          13      32         0.9952        3.342e-08
+          14       8         0.9952        1.487e-09
+
+=== trained, floored, 30000 ===
+
+    trained, floored, 30000                         5th     median       95th
+    identification departure (0=I, 1=chance)     0.6721     0.8954      1.107
+    channel return |<u1,v1>| (1 = comes back)     0.8269     0.9815     0.9982
+    flatness of H (1 = inside O(m))           5.319e-12  1.735e-05   0.004554
+    sigma_max of H                              0.02528     0.1874     0.6407
+    cycles below the relative zero                   11 of 260
+
+    trained, floored, 30000: by cycle length
+      length  cycles  median ident.  median flatness
+           3      46         0.8787         0.001223
+           4      56         0.8990        0.0001928
+           5      47         0.9158        4.162e-05
+           6      21         0.8542        4.511e-06
+           7      17         0.9181        6.926e-07
+           8      16         0.9481        1.054e-07
+           9      24         0.8296        8.865e-10
+          10       6         0.8396        4.567e-09
+          11      16         0.9442        4.033e-11
+          12       6         0.7559        4.651e-10
+          13       4         0.9959        6.804e-12
+          14       1         0.8527        1.061e-10
+
+=== rewired null, floored, 30000 ===
+
+    rewired null, floored, 30000                    5th     median       95th
+    identification departure (0=I, 1=chance)     0.7128     0.9715      1.196
+    channel return |<u1,v1>| (1 = comes back)    0.04123      0.397     0.8832
+    flatness of H (1 = inside O(m))            3.96e-08  0.0002353    0.03175
+    sigma_max of H                            3.166e-06   0.005477    0.07273
+    cycles below the relative zero                    0 of 260
+
+    rewired null, floored, 30000: by cycle length
+      length  cycles  median ident.  median flatness
+           3      46         0.9832         0.006898
+           4      56         0.9688         0.001451
+           5      47         0.9653        0.0005182
+           6      21         1.0034        7.395e-05
+           7      17         0.9972        5.242e-05
+           8      16         0.9343        8.399e-06
+           9      24         0.9601        8.131e-06
+          10       6         0.8827        1.879e-06
+          11      16         1.0593        2.038e-07
+          12       6         0.8324         3.43e-05
+          13       4         1.0010        6.468e-08
+          14       1         1.0156        1.012e-08
+
+=== trained, floored, 100000 ===
+
+    trained, floored, 100000                        5th     median       95th
+    identification departure (0=I, 1=chance)     0.6454      0.888      1.095
+    channel return |<u1,v1>| (1 = comes back)     0.8603     0.9881     0.9994
+    flatness of H (1 = inside O(m))           2.454e-11  1.527e-05   0.003639
+    sigma_max of H                               0.1447     0.4995     0.8345
+    cycles below the relative zero                    5 of 260
+
+    trained, floored, 100000: by cycle length
+      length  cycles  median ident.  median flatness
+           3      46         0.8374         0.001087
+           4      56         0.8864        9.733e-05
+           5      47         0.8917        5.568e-05
+           6      21         0.9371        6.484e-06
+           7      17         0.9538        3.652e-07
+           8      16         0.9045        7.383e-08
+           9      24         0.8454        4.674e-09
+          10       6         0.9410        6.328e-10
+          11      16         0.8260        2.365e-10
+          12       6         0.8259        1.202e-11
+          13       4         0.9492         5.17e-12
+          14       1         0.9604         2.46e-11
+
+=== rewired null, floored, 100000 ===
+
+    rewired null, floored, 100000                   5th     median       95th
+    identification departure (0=I, 1=chance)      0.763     0.9829       1.17
+    channel return |<u1,v1>| (1 = comes back)     0.0257     0.4569     0.8753
+    flatness of H (1 = inside O(m))           5.944e-07  0.0004065    0.02347
+    sigma_max of H                            1.284e-05    0.00889     0.1061
+    cycles below the relative zero                    0 of 260
+
+    rewired null, floored, 100000: by cycle length
+      length  cycles  median ident.  median flatness
+           3      46         0.9782          0.00708
+           4      56         0.9944         0.000966
+           5      47         0.9969        0.0009794
+           6      21         1.0014        9.184e-05
+           7      17         0.9816        3.272e-05
+           8      16         0.9929        0.0001528
+           9      24         0.9406        3.817e-05
+          10       6         1.0094        2.417e-05
+          11      16         0.9820        1.918e-06
+          12       6         0.9837        1.214e-05
+          13       4         1.0171        1.127e-06
+          14       1         1.0672        1.067e-07
+
+=== trained, unfloored, 30000 ===
+
+    trained, unfloored, 30000                       5th     median       95th
+    identification departure (0=I, 1=chance)     0.6646     0.8632      1.064
+    channel return |<u1,v1>| (1 = comes back)     0.9592     0.9936     0.9991
+    flatness of H (1 = inside O(m))           6.232e-18  3.461e-09  1.772e-05
+    sigma_max of H                               0.1803      1.411      7.941
+    cycles below the relative zero                   78 of 260
+
+    trained, unfloored, 30000: by cycle length
+      length  cycles  median ident.  median flatness
+           3      46         0.8651        8.064e-06
+           4      56         0.8670        1.038e-07
+           5      47         0.9395        8.504e-09
+           6      21         0.7841        1.179e-10
+           7      17         0.9488        2.622e-12
+           8      16         0.8377        3.959e-14
+           9      24         0.7808        3.002e-16
+          10       6         0.7235        4.179e-17
+          11      16         0.8550        7.891e-18
+          12       6         0.7644        4.072e-18
+          13       4         0.8330        8.563e-18
+          14       1         0.9668        2.998e-18
+
+=== rewired null, unfloored, 30000 ===
+
+    rewired null, unfloored, 30000                  5th     median       95th
+    identification departure (0=I, 1=chance)     0.7691      1.002      1.183
+    channel return |<u1,v1>| (1 = comes back)    0.05228     0.3884     0.8381
+    flatness of H (1 = inside O(m))           9.371e-10  6.277e-05    0.00779
+    sigma_max of H                            2.821e-07   0.001893    0.05573
+    cycles below the relative zero                    1 of 260
+
+    rewired null, unfloored, 30000: by cycle length
+      length  cycles  median ident.  median flatness
+           3      46         1.0170          0.00144
+           4      56         1.0030        0.0004862
+           5      47         1.0071        0.0001276
+           6      21         1.0025        3.816e-05
+           7      17         1.0356        2.264e-07
+           8      16         0.9928        6.937e-07
+           9      24         1.0265        8.001e-08
+          10       6         0.9439        6.593e-08
+          11      16         0.9822        1.169e-08
+          12       6         1.0762        5.291e-08
+          13       4         1.0634        6.605e-10
+          14       1         0.9976        4.441e-11
+
+=== trained, unfloored, 100000 ===
+
+    trained, unfloored, 100000                      5th     median       95th
+    identification departure (0=I, 1=chance)     0.6522     0.8957      1.076
+    channel return |<u1,v1>| (1 = comes back)     0.9494     0.9941     0.9991
+    flatness of H (1 = inside O(m))           4.943e-18  8.459e-10  3.094e-05
+    sigma_max of H                              0.08744      1.152      8.118
+    cycles below the relative zero                   90 of 260
+
+    trained, unfloored, 100000: by cycle length
+      length  cycles  median ident.  median flatness
+           3      46         0.8799        1.005e-05
+           4      56         0.9206        1.038e-07
+           5      47         0.9177        2.092e-09
+           6      21         0.8830        1.436e-12
+           7      17         0.9517        2.568e-13
+           8      16         0.8204        5.508e-16
+           9      24         0.9036        1.637e-17
+          10       6         0.8194        2.539e-17
+          11      16         0.8183        1.213e-17
+          12       6         0.7477        8.134e-18
+          13       4         0.8294        1.382e-18
+          14       1         0.9567        1.381e-17
+
+=== rewired null, unfloored, 100000 ===
+
+    rewired null, unfloored, 100000                 5th     median       95th
+    identification departure (0=I, 1=chance)     0.7712     0.9991      1.175
+    channel return |<u1,v1>| (1 = comes back)    0.04304     0.4332     0.8633
+    flatness of H (1 = inside O(m))           9.665e-09  0.0001139    0.01098
+    sigma_max of H                            1.066e-05   0.009469     0.1292
+    cycles below the relative zero                    0 of 260
+
+    rewired null, unfloored, 100000: by cycle length
+      length  cycles  median ident.  median flatness
+           3      46         0.9869         0.002803
+           4      56         1.0037          0.00095
+           5      47         1.0022        0.0002783
+           6      21         0.9320        3.788e-05
+           7      17         1.0262        2.694e-06
+           8      16         0.9833        1.984e-06
+           9      24         1.0271        3.564e-07
+          10       6         1.0950        1.012e-06
+          11      16         1.0238        1.954e-08
+          12       6         0.9234        1.491e-08
+          13       4         1.0766        1.733e-08
+          14       1         0.7398        3.493e-12
+
+=== the ends of the distribution, on the shipped surface ===
+
+    nearest the identity
+      cycle  200 len 9  ident 0.1873  flat 5.18e-09  L2/vision(0, 3) -> L2/vision(0, 2) -> L2/vision(0, 1) -> L2/vision(0, 0) ...
+      cycle   10 len 6  ident 0.3362  flat 1.18e-06  L1/vision(1, 2) -> L1/vision(1, 1) -> L2/vision(0, 0) -> L2/vision(0, 1) ...
+      cycle   17 len 4  ident 0.4053  flat 0.000112  L1/vision(3, 1) -> L2/vision(1, 0) -> L2/vision(2, 0) -> L1/vision(4, 1)
+
+    furthest from it
+      cycle  169 len 8  ident 1.1655  flat 2.72e-07  L2/vision(2, 0) -> L2/vision(1, 0) -> L2/vision(0, 0) -> L2/vision(0, 1) ...
+      cycle  178 len 5  ident 1.1893  flat 0.000148  L1/vision(5, 0) -> L2/vision(2, 0) -> L2/vision(3, 0) -> L1/vision(7, 0) ...
+      cycle  173 len 11  ident 1.1962  flat 1.75e-10  L2/vision(2, 2) -> L2/vision(1, 2) -> L2/vision(0, 2) -> L2/vision(0, 1) ...
+
+    identification departure is ||U V^T - I||_F/sqrt(2m): 0 at the identity, 1 at chance, sqrt(2) maximally opposed.
+    This rig asserts nothing and rules on no remedy (#396 stays superseded; #315 stays open).
+
+wrote C:\Users\noahl\patchworks\.claude\worktrees\holonomy-453\prototypes\holonomy-453\read.json
