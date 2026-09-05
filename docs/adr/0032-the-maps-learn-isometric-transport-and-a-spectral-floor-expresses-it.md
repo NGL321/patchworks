@@ -186,6 +186,19 @@ maps, where it is attainable everywhere and free, and the nine are a **named exc
 silent one. At `m = 1` — the drive's eight edges — the floor is vacuous, since one singular value is
 `‖F‖_F/√1` identically.
 
+**And ADR-0010's incoherence bound now covers those nine cells by construction rather than by
+measurement**, so the two exclusions are one story. [#228](https://github.com/NGL321/patchworks/issues/228)
+ruled `c_v = deg(v)` wherever every one of a cell's incident maps is pinned: at such a cell the exact
+gauge makes `Σ_e ‖F‖_F² = deg(v)` an equality, which is the fully-coherent bound and true whatever
+arrangement the maps reach. That closes the one cell where the smaller count had been left standing on
+a reading — the actuator's three `m = 8, k = 6` maps, three of the nine named above, which
+[#439](https://github.com/NGL321/patchworks/issues/439) measured drifting to 99.6% of that ceiling by
+100k taught ticks. **The breach is not this ADR's doing**: it reads the same in the `--no-floor` arm,
+and marginally worse (1.322 at 30k, 1.399 at 100k), which the structure predicts, since the floor
+never writes these masks (`floored = False`) and the cap never writes them (`pinned = True`). What
+changes is only that the same nine masks are now out of *both* projections' reach and covered by a
+bound that needs neither.
+
 ## What this costs, priced here rather than discovered later
 
 **The projection preserves `‖F‖_F` and therefore moves `σ_max`.** Setting every `σᵢ = ‖F‖_F/√m` makes
