@@ -249,6 +249,116 @@ reports the three separately.
 three are [#439](https://github.com/NGL321/patchworks/issues/439)'s maps — pinned *and* outside the
 floor — and are **not a second problem**.
 
+**Reversed by [#488](https://github.com/NGL321/patchworks/issues/488): `ρ = 1` is adopted on all 273
+boundary-incident edges, on two separate warrants.** #429's decline above rested on a single ground,
+and that ground was recorded provisional in the same breath, with
+[#468](https://github.com/NGL321/patchworks/issues/468) named as the read that would expire it. It
+has been read. **The pressure is half-realised, and the missing half is the one the refusal rested
+on:** the stalks have absorbed the `2x`, and connectivity has not chained it.
+
+**The surface**, per `docs/agents/domain.md`: every figure in this block is from
+`prototypes/rim-stalk-scale-468/` on `main` — `DEFAULT_SPEC` (414 cells, 682 edges), `train` split,
+both rules stepping, post-[ADR-0031](./0031-the-sparsity-pressure-is-deleted.md) and post-ADR-0032's
+spectral floor, seeds 0/1/2 to 30,000 ticks and seed 3 to 100,000. The **bus figures are
+construction quantities**, read off those same records' `geometry` block, so they are properties of
+`DEFAULT_SPEC` rather than of any trajectory.
+
+**Absorbed.** The oriented stalk-scale ratio climbs monotonically to **1.564** at 100,000 ticks
+against a full-absorption 2, while the 409-edge interior control never leaves 1 (0.970).
+
+**Not chained, and the non-chaining is structural rather than an artifact of the horizon.** Every
+depth rung past the rim sits at about 1 on **all four seeds** — the rim rung reads 1.359 / 1.373 /
+1.381 at 30k and 1.606 at 100k, every rung beyond it lands within about 0.15 of 1, and the depth-1
+dip recovers by depth 3 on all four — so what rests on the single long-horizon seed is the
+*magnitude*, never the absence of chaining. The construction says why. A cell's **communication
+bus** is its set of incident lanes (`Σ_e m_e`), and the boundary's share of it by depth is 98.9% at
+the sensory rim, **61.4%** one hop in, and **0% at every depth beyond**. A boundary-incident edge
+appears in the bus of depth 0 and depth 1 and **nowhere else**: the `2x` has a carrier for exactly
+one hop and is invisible by construction past it —
+[#385](https://github.com/NGL321/patchworks/issues/385)'s `4 · boundary_m = n` seen from the other
+side.
+
+**The warrant is the bus-share condition, not a rule about rim edges.** The exact gauge is
+admissible at an edge whose boundary end is pinned **and** whose pressure has no onward carrier —
+the boundary's share of the neighbour's bus falling to zero one hop in. On this dome that holds by
+construction. **A second domain re-checks it rather than inheriting it**, which is
+[ADR-0004](./0004-linear-restriction-maps-assume-local-flatness.md)'s warrant structure exactly as
+[#440](https://github.com/NGL321/patchworks/issues/440) ruled it: one want, and the overlap's
+geometry selects the clause. The dome stays the only thing on the domain-specific side.
+
+**The population split is hard now, and it splits on mechanism.** The soft unification recorded
+above ends here. The three populations carry **different warrants**, and a warrant that later fails
+reopens only its own population.
+
+**Sensory (262 edges): the freedom being removed is measurably not in use.** The band buys `ρ²` of
+ratio freedom so the *maps* can absorb an honest difference in two neighbours' belief magnitudes,
+keeping that pressure off the stalks. On a boundary-incident edge that freedom is not merely unused
+— it is **captured**: one end is pinned at 1 for the world's sake, the free end drifts up under
+Lemma 2.4 because nothing has an opinion about it, and the projection catches it at `ρ`. #416
+measured all 273 within **0.2% of the face** (`prototypes/edge-scale-ratio-416/`, 30k on three seeds
+and 100k on one, **pre-floor**). The freedom is fully consumed storing a drift artifact and is **not
+responsive to the data anywhere**, so the band's full cost is paid on this population and none of
+its benefit collected — and the cost is charged onward, to 78 interior cells carrying an imposed
+scale grade. This ADR's own consequence *a cell's own metric space is its own in basis and scale* is
+what the band exists to protect, and here the band is the thing violating it. Under `ρ = 1` what
+replaces a manufactured, uninformative 2 is an **honest** mismatch — the real difference between
+what a rim cell and an interior cell hold — with the same one-hop reach, and the edge pair gets an
+actual shot at ADR-0032's isometric transport, which a construction-guaranteed `2x` permanently
+denies it.
+
+**Drive and actuator (11 edges): a gauge artifact between an owned constant and its effect.**
+Different situation, different reason. Here **nothing absorbs** — 5.9% and 20% bus share — so the
+`2x` produces a standing `1/3` relative disagreement that neither the maps (the projection restores
+it) nor the stalks (outvoted) can null. The sharper problem is `DRIVE_ASSERTION`. The record says
+the drive asserts at **1.0** (`agent.py:99`), and
+[#495](https://github.com/NGL321/patchworks/issues/495) leans on exactly that constant; between it
+and the graph sits a construction `2x` nobody chose and nobody has defended, so **the stated
+constant is not the operative one** — a defect independent of which value is right. Under `ρ = 1`
+the owned constant becomes operative, and if 2.0 is wanted it gets set and owned in the place that
+already exists for it. **The amplitude consequence is stated, not silent:** this changes the
+amplitude at which the drive reaches into the graph. Amplitude has not been the operative bar since
+[#242](https://github.com/NGL321/patchworks/issues/242), and #127's *invented constants are deferred
+until necessary* is what makes an undefended 2 the thing to remove rather than keep — but the change
+is real, and it is pre-registered on the implementation ticket as a consequence to watch rather than
+discovered there.
+
+**The reversal condition, named rather than remarked.** The ground for adopting is that the ratio
+freedom **is not in use** — all 273 edges within 0.2% of the face, nothing responsive to the data. A
+future session that finds it wants ratio freedom at a boundary-incident edge comes back to *this*
+ruling first, and the question it must answer is whether the freedom would be **exercised**, not
+whether it would be nice to have. If the answer is yes, the band is what it reaches for and this
+ruling is what it reopens — on the affected population alone, the two warrants being separate.
+
+**The price, stated here rather than left to the build: this is not the cheap act the `ρ = 1`
+consequence below called it.** `pinned` does three jobs, not one. It sets the gauge bounds
+(`restriction.py:250`), and it also determines `hold_pairs` (`:287`) and what `_push_apart` corrects
+(`:297`) — *"a pinned map is out of the projection's reach"* (`:263`). So pinning the interior end
+of a boundary-incident edge moves those 273 maps out of the incoherence projection's Gram while
+`patchworks.tick`'s `reconciliation_gain` keeps dividing by the full-cell target `g_v² · c_v` every
+tick. That is [#439](https://github.com/NGL321/patchworks/issues/439)'s failure — a denominator that
+is not a bound — extended from wholly-pinned cells to **partly**-pinned ones, and it lands on a
+guarantee `project()`'s own docstring calls *"exactly and by construction"*. The blast radius is a
+construction quantity off the same `geometry` block: **78 interior cells** hold at least one
+boundary-incident map — 67 sensory-only, 8 drive, 3 mixed motor and sensory — at a median of
+**44.4%** of their incident maps becoming pinned, **max 57.1%**, and **no cell becomes wholly
+pinned**, so #439's exact case is not recreated. It also falsifies `pinned_incidence`'s docstring in
+terms: *"Nothing on `DEFAULT_SPEC` is partly pinned"* becomes false at 78 cells, which is the
+code-side statement of the same finding. [#502](https://github.com/NGL321/patchworks/issues/502)
+owns what bounds the incoherence Gram at a partly-pinned cell, and it **blocks the implementation**
+— it is a decision and not a build detail, because it moves a denominator
+[#190](https://github.com/NGL321/patchworks/issues/190) ruled.
+
+**Sequencing is on the record, and it is confounding rather than doubt.** Implementation waits on
+#502, on [#496](https://github.com/NGL321/patchworks/issues/496) — whose six 100k runs instrument
+the apex, which is the drive edges' own free ends, and use vision L1, the sensory edges' free ends,
+as the ceiling in `g`'s denominator — and, for the 3 motor edges only, on
+[#487](https://github.com/NGL321/patchworks/issues/487), because
+[#228](https://github.com/NGL321/patchworks/issues/228)'s `c_v` 2→3 lands on the same cell and a
+second unmeasured change there would make either uninterpretable. The delay costs nothing: no closed
+loop can see the `2x` (the prohibition above), and amplitude has not been the operative bar since
+#242. The build is [#504](https://github.com/NGL321/patchworks/issues/504); this amendment is the
+record, and it is deliberately not blocked on it.
+
 Reparameterising as `F = G/‖G‖_F` was rejected: it costs no
 more, but it leaves a shadow parameter `G` that the sparsity term can drive toward zero, reintroducing
 collapse as numerical ill-conditioning in a parameter no diagnostic watches.
@@ -468,12 +578,38 @@ concentration, effective rank is the only thing that says which regime the maps 
 - **A new contributor to the static floor.** With both ends bounded, an edge's representable scale ratio
   is `ρ²` times the `√m` range rank concentration affords. Genuine mismatch beyond that is irreducible
   and appears as static floor. ADR-0007's static-floor list is amended.
+
+  *Checked by [#470](https://github.com/NGL321/patchworks/issues/470) and re-checked by
+  [#488](https://github.com/NGL321/patchworks/issues/488). ADR-0007 stays untouched, and now for a
+  different reason.* #470 asked whether the rim's `1/3` relative disagreement belongs on ADR-0007's
+  static-floor list beside this bullet's entry, and answered **no**, on the ground that the quantity
+  is not irreducible: the maps cannot close it, but the **beliefs** can, by the interior stalk
+  shrinking toward half its boundary neighbour. #488's bus-share reading **falsifies that ground on
+  11 of the 273 edges** — at the drive (5.9% bus share) and the actuator (20%) the stalks are
+  outvoted and nothing absorbs, so there the `1/3` is uncorrectable by *either* variable and would
+  meet ADR-0007's stated entry condition. It is still not filed there, on the narrower ground that
+  **the ruling above deletes the quantity rather than tolerating it**: a floor list books what the
+  architecture must live with, and adding a contributor whose removal is already ruled would
+  misdescribe it as accepted. #470's second ground survives untouched — the rim `2x` is manufactured
+  by the gauge while the two stalks may be perfectly matched, which is the mirror image of #37's
+  entry above and would collide with it rather than extend it. **The reopening path is named:** if
+  the drive-and-actuator warrant is later reversed, or #504 abandoned, the `1/3` on those 11 edges
+  is a genuine static-floor contributor and ADR-0007's list is where it goes.
 - **A cell's own metric space is its own in basis *and* scale** — but the scale that stays private is an
   **edge's ratio**, not a map's magnitude. `CONTEXT.md`'s *Node stalk* previously said only "whose basis
   its restriction maps fix", which a reader could satisfy with the exact gauge everywhere. The band
   exists precisely so scale stays private; since the joint scale rides the ceiling, the `ρ²` of ratio
   freedom is the whole of what it protects, and the previous bullet's `ρ²` scale-ratio figure is the
   load-bearing one rather than an incidental cost.
+
+  *Amended by [#488](https://github.com/NGL321/patchworks/issues/488): the `ρ²` figure is a
+  statement about interior edges and must be read as one.* On the 273 boundary-incident edges the
+  protected ratio freedom was never `ρ²` but `ρ` — one end pinned, only the other free — and after
+  #488 it is **1: zero protection, by decision**. What this bullet calls *the whole of what it
+  protects* is therefore what this ADR now declines to protect on 40% of its edges, on the finding
+  that the freedom there was captured by a drift artifact rather than spent on anything the data
+  moves. The sentence stands unchanged for the 409 interior edges, which is the population it was
+  written about.
 - **`ρ = 1` is the exact gauge.** If fixing scale turns out to be a beneficial special case rather than
   a restriction, adopting it is tightening a constant, not redesigning anything. Held open deliberately —
   and held open on this ADR's own terms, not on an analogy to attention. Under the only rigorous sheaf
@@ -498,6 +634,22 @@ concentration, effective rank is the only thing that says which regime the maps 
   condition is scoped to those 273 edges and **does not widen to this bullet's global clause**, which
   #429 did not rule on: globally, `ρ = 1` remains held open on the terms stated above and on nothing
   else.
+
+  *Amended by [#488](https://github.com/NGL321/patchworks/issues/488): the condition fired, and this
+  clause's own cost estimate is struck as false on the population it fired on.* #468 came back
+  positive — the stalks have absorbed the `2x`, and connectivity has not chained it — so `ρ = 1` is
+  **adopted on the 273 boundary-incident edges**, on the two warrants recorded above. The clause is
+  no longer held open there; it is spent. **Globally it stays open on the terms stated above**, and
+  *the exact gauge everywhere* below stays rejected: what is adopted is a population selected by a
+  stated condition, not that alternative.
+
+  **And *"adopting it is tightening a constant, not redesigning anything"* is false here.** That
+  estimate assumed `pinned` only sets the gauge bounds. It also gates `hold_pairs` and
+  `_push_apart`, so pinning an interior end moves 273 maps out of the incoherence projection's Gram
+  while `reconciliation_gain` keeps dividing by the full-cell target —
+  [#502](https://github.com/NGL321/patchworks/issues/502), which blocks the build. The estimate is
+  struck **for the boundary-incident case only**; nothing here is claimed about what `ρ = 1`
+  globally would cost, which would pin every map and is a different arithmetic.
 - **Over-smoothing is named for what it is here** in `01-cell-and-sheaf.md`'s *Known exposure*: the
   error signal vanishing, not a quality loss. Bodnar et al.'s result that a rich harmonic space resists
   collapse is cited as **orientation, not authority** — per `docs/research/015-sheaf-geometry.md` those
@@ -549,6 +701,26 @@ concentration, effective rank is the only thing that says which regime the maps 
   accidentally. **The corrected drift direction sharpens this rather than unsettling it:** since the joint
   scale rides the ceiling anyway, the band and the exact gauge differ in exactly one thing — whether an
   edge's ends may sit at different norms — which is the compensation this alternative removes.
+
+
+  **Annotated by [#488](https://github.com/NGL321/patchworks/issues/488), and not struck: the
+  rejection ground is upheld as a mechanism and bounded in reach.** The ground stated above is that
+  the pressure lands on the stalks and *"connectivity chains it into near-uniform stalk scale across
+  the graph"*. [#468](https://github.com/NGL321/patchworks/issues/468) and #488 read both halves on
+  the boundary-incident population. The pressure **does** land on the stalks — the oriented ratio
+  reaches 1.564 against a full-absorption 2, while the interior control never leaves 1 — so the
+  mechanism is real and this entry's first clause is confirmed rather than doubted. The **chaining**
+  is absent: measured absent past one hop on 4/4 seeds, and structurally absent, because a
+  boundary-incident edge sits in the communication bus of depth 0 and depth 1 and nowhere else. So
+  the side effect this entry refuses to decide accidentally is, on this population, **one ring
+  deep** — a local accommodation rather than the graph-wide regrade the rejection anticipated.
+
+  **The alternative stays rejected everywhere.** What #488 adopts is not this entry. It is the
+  boundary-incident case, selected by a **stated condition** — the boundary end pinned, and the
+  pressure having no onward carrier — which is checked per graph and holds on this dome by
+  construction. Applied interior-to-interior the condition simply fails, every interior edge having
+  a carrier at every depth, and this entry's rejection is what stands. A second domain re-checks the
+  condition rather than inheriting the adoption.
 - **Recording route one as *Known exposure* only** (R1's option b), with instrumentation and no
   mechanism. This is the posture ADR-0007 takes toward the disagreement floor, and it is the wrong one
   here for a specific reason: the floor leaves its own instrument intact, and this failure **erases the
