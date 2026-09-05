@@ -201,7 +201,7 @@ class DomeSpec:
     """Arm joints, one proprioceptive and one touch boundary cell each."""
 
     #: @type stipulated
-    #: @flexibility free, and the thinnest number in the design: #32 found n, k and m = 8 comfortable and m = 4 thin, with no source either way on whether it is enough. It is the first rung on #14's constraint ladder and the one to pull first if a piece turns out not to fit through it. Never varied in any run; widening it trades directly against private dimension, since every interior stalk widened raises the sum of m_e at every cell
+    #: @flexibility free, and the thinnest number in the design: #32 found n, k and m = 8 comfortable and m = 4 thin, with no source either way on whether it is enough. Never varied in any run; widening it trades directly against private dimension, since every interior stalk widened raises the sum of m_e at every cell. It is the first rung on #14's constraint ladder wherever it reaches, and #385 bounds that reach: of the 82 predicting cells at private dimension 0 it clears 15 at 3 and all 18 at 2, and the other 64 -- every L1 vision cell -- stay at 0 at any value including 0, because 4 rim edges x boundary_m = 32 = n fills the bus before an interior edge is counted. On that failure narrowing this is not a rung, and the knobs are boundary_m, n or patches per L1 cell (#474)
     #: @warrant docs/spec/06-graph-topology.md, Dimensions
     interior_m: int = 4
 
