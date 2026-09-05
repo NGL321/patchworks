@@ -335,29 +335,38 @@ consequence below called it.** `pinned` does three jobs, not one. It sets the ga
 (`:297`) — *"a pinned map is out of the projection's reach"* (`:263`). So pinning the interior end
 of a boundary-incident edge moves those 273 maps out of the incoherence projection's Gram while
 `patchworks.tick`'s `reconciliation_gain` keeps dividing by the full-cell target `g_v² · c_v` every
-tick. That is [#439](https://github.com/NGL321/patchworks/issues/439)'s failure — a denominator that
-is not a bound — extended from wholly-pinned cells to **partly**-pinned ones, and it lands on a
-guarantee `project()`'s own docstring calls *"exactly and by construction"*. The blast radius is a
+tick. That reads as [#439](https://github.com/NGL321/patchworks/issues/439)'s failure — a denominator
+that is not a bound — extended from wholly-pinned cells to **partly**-pinned ones, and it puts at
+risk a guarantee `project()`'s own docstring calls *"exactly and by construction"*. The blast radius is a
 construction quantity off the same `geometry` block: **78 interior cells** hold at least one
 boundary-incident map — 67 sensory-only, 8 drive, 3 mixed motor and sensory — at a median of
 **44.4%** of their incident maps becoming pinned, **max 57.1%**, and **no cell becomes wholly
 pinned**, so #439's exact case is not recreated. It also falsifies `pinned_incidence`'s docstring in
 terms: *"Nothing on `DEFAULT_SPEC` is partly pinned"* becomes false at 78 cells, which is the
 code-side statement of the same finding. [#502](https://github.com/NGL321/patchworks/issues/502)
-owns what bounds the incoherence Gram at a partly-pinned cell, and it **blocks the implementation**
-— it is a decision and not a build detail, because it moves a denominator
-[#190](https://github.com/NGL321/patchworks/issues/190) ruled.
+took what bounds the incoherence Gram at a partly-pinned cell, because it moves a target
+[#190](https://github.com/NGL321/patchworks/issues/190) ruled and so is a decision rather than a
+build detail. **It is ruled, and the answer is narrower than the worry**: the guarantee survives,
+and `reconciliation_gain`'s denominator does **not** move — the pinned maps contribute the
+construction constant `tr(G_P) = |P_v|`, so the projection enforces the derived target `g_v² · c_v −
+|P_v|` on the held subset and Weyl returns the total to `g_v² · c_v`. The general statement, its
+cost, the sharper bound it refuses, and the `T_H = 0` reading that makes #439 its degenerate case
+are in *Incoherence is gauge-fixed too* below. What the act still costs, and what makes *tightening
+a constant* the wrong description of it, is that `overlap_target` and `gain_denominators` stop being
+one number and must be **derived** in one place rather than implemented twice — #220's own
+constraint applied to its successor, binding on the build.
 
-**Sequencing is on the record, and it is confounding rather than doubt.** Implementation waits on
-#502, on [#496](https://github.com/NGL321/patchworks/issues/496) — whose six 100k runs instrument
-the apex, which is the drive edges' own free ends, and use vision L1, the sensory edges' free ends,
-as the ceiling in `g`'s denominator — and, for the 3 motor edges only, on
-[#487](https://github.com/NGL321/patchworks/issues/487), because
-[#228](https://github.com/NGL321/patchworks/issues/228)'s `c_v` 2→3 lands on the same cell and a
-second unmeasured change there would make either uninterpretable. The delay costs nothing: no closed
-loop can see the `2x` (the prohibition above), and amplitude has not been the operative bar since
-#242. The build is [#504](https://github.com/NGL321/patchworks/issues/504); this amendment is the
-record, and it is deliberately not blocked on it.
+**Sequencing is on the record, and it is confounding rather than doubt.** Implementation waited on
+three things and **two are discharged**: [#502](https://github.com/NGL321/patchworks/issues/502),
+ruled above, and — for the 3 motor edges — [#487](https://github.com/NGL321/patchworks/issues/487),
+which read what [#228](https://github.com/NGL321/patchworks/issues/228)'s `c_v` 2→3 does to the
+actuator's conduction ratio, a second unmeasured change on that cell having been the objection. What
+remains is [#496](https://github.com/NGL321/patchworks/issues/496), whose six 100k runs instrument
+the apex — the drive edges' own free ends — and use vision L1, the sensory edges' free ends, as the
+ceiling in `g`'s denominator. The delay costs nothing: no closed loop can see the `2x` (the
+prohibition above), and amplitude has not been the operative bar since #242. The build is
+[#504](https://github.com/NGL321/patchworks/issues/504); this amendment is the record, and it is
+deliberately not blocked on it.
 
 Reparameterising as `F = G/‖G‖_F` was rejected: it costs no
 more, but it leaves a shadow parameter `G` that the sparsity term can drive toward zero, reintroducing
@@ -505,6 +514,73 @@ there rather than competing. The interior is untouched: the projection holds eve
 exactly, verified at every cell on the real dome
 ([#220](https://github.com/NGL321/patchworks/issues/220)), and the water-fill keeps running there.
 
+**The partly-pinned case this section reserved is now live, and it is ruled: the bound holds and the
+denominator does not move.** *Added by [#502](https://github.com/NGL321/patchworks/issues/502),
+2026-09-05, on [#488](https://github.com/NGL321/patchworks/issues/488)'s adoption of `ρ = 1` at the
+boundary-incident edges.* The paragraph above reserved *partly pinned* as a question someone would
+have to ask rather than a silent pass, and records that nothing on this dome is partly pinned. Under
+#488 that stops being true at **78 cells**, so the question is asked here rather than left to the
+build.
+
+Stated once, for the general cell. Write `P_v` for the **pinned incidence** — the maps at `v`
+carrying the exact gauge — and `H_v` for the rest, so `G = G_P + G_H`. By Weyl and `G_P ⪰ 0`,
+
+> `λ_max(G_P + G_H) ≤ λ_max(G_P) + λ_max(G_H) ≤ tr(G_P) + T_H`
+
+where `T_H` is what `_push_apart` enforces on the held subset. The exact gauge pins every map in
+`P_v` at 1 and `project()` restores that before `_push_apart` runs, so `tr(G_P) = |P_v|`
+**exactly**. Setting
+
+> `T_H = g_v² · c_v − |P_v|`
+
+returns the total to `g_v² · c_v`. **So `patchworks.tick.reconciliation_gain`'s denominator is
+unchanged and [#190](https://github.com/NGL321/patchworks/issues/190) is untouched** — stated
+plainly, because the natural reading of #488 is that the denominator moves, and it does not. What
+moves is the target the projection enforces on the *held* maps, and it is **derived** from the
+denominator rather than invented.
+
+**It stays a construction guarantee and does not degrade to a measurement.** The pinned count is
+read off the built graph and each pinned norm is exactly 1 by the exact gauge, so nothing measured
+enters and `project()`'s docstring keeps its word. That is what
+[#220](https://github.com/NGL321/patchworks/issues/220) requires, and it is why the answer is a
+reduced target rather than an enlarged denominator. The bound is **conservative twice over** — it
+assumes the pinned block fully coherent *and* the two blocks mutually aligned — which is the price
+of being construction-true rather than tight. #220 requires it true, not sharp.
+
+**The cost is nil at the modal cell and 10% at worst.** All 78 partly-pinned cells sit at `c_v = 2`
+and `g_v = ρ = 2`, so `g_v² · c_v = 8` at every one of them, and the pinned count is at most 4: the
+residual never falls below 4.0. The per-held-map budget is **unchanged** at the 27 degree-8 cells
+and tightens from 0.889 to 0.800 at the 36 degree-9 cells. **The surface**, per
+`docs/agents/domain.md`: the `geometry` block of
+`prototypes/rim-stalk-scale-468/468-full-seed3-100000.json` on `origin/main` — construction
+quantities of `DEFAULT_SPEC`, not trajectory readings.
+
+**The sharper bound is refused, and the refusal is what protects `project()`'s ordering.**
+ADR-0032's floor leaves every reachable map flat, so `λ_max(G_P) ≤ Σ_{e∈P_v} 1/m_e` would hold and
+would lift the residual to ≥ 7.0. It is refused because it makes the incoherence cap's guarantee
+depend on that floor, inverting the ordering argument that lets the cap hold the last slot while the
+floor is allowed to hold only approximately where the cap bites — weakening the floor would then
+silently falsify the gain's denominator. It buys headroom the measurement already calls abundant, at
+the cost of the one property the denominator must have. The two coincide on the drive's eight `m =
+1` edges, where nothing is given up at all.
+
+**One implementation constraint is binding rather than advisory, and it lands on #220's own nerve.**
+`overlap_target` and `gain_denominators` stop being the same number: the gain and the fold-margin
+check keep `g_v² · c_v`, while the projection takes `g_v² · c_v − |P_v|`. The split is admissible
+**only as a derivation** — `overlap_target` computed *from* `gain_denominators` by subtracting the
+pinned incidence, in one place. One expression and one stated offset is not what #220 forbids; two
+independently-written expressions for `g_v² · c_v` is.
+
+**[#439](https://github.com/NGL321/patchworks/issues/439) is this statement's degenerate case, not a
+second problem.** At a **wholly**-pinned cell `H_v` is empty, `T_H = 0`, and the bound collapses to
+`λ_max(G) ≤ tr(G_P) = deg(v)` — #439 verbatim. So the partly-pinned fix structurally cannot reach
+it: there is no held subset to spend, which is the same reason `_push_apart` skips those cells at
+all. **The only lever at a wholly-pinned cell is the denominator**, and that is #228's `c_v` 2 → 3
+above. On this dome exactly two boundary cells carry `deg > 1` — the drive's cell 413, where the
+pigeonhole floor already raises `c_v` to `deg` and the bound is true unaided, and the actuator's
+cell 262, where it is assumed and #439 reads 2.99 at 100k. #439 is amended in place and stays open:
+this ruling ships nothing to that cell.
+
 ### Frobenius, not spectral — and therefore no rank floor
 
 Unit **spectral** norm pins only the largest singular value; every other direction may shrink to zero at
@@ -645,11 +721,13 @@ concentration, effective rank is the only thing that says which regime the maps 
 
   **And *"adopting it is tightening a constant, not redesigning anything"* is false here.** That
   estimate assumed `pinned` only sets the gauge bounds. It also gates `hold_pairs` and
-  `_push_apart`, so pinning an interior end moves 273 maps out of the incoherence projection's Gram
-  while `reconciliation_gain` keeps dividing by the full-cell target —
-  [#502](https://github.com/NGL321/patchworks/issues/502), which blocks the build. The estimate is
-  struck **for the boundary-incident case only**; nothing here is claimed about what `ρ = 1`
-  globally would cost, which would pin every map and is a different arithmetic.
+  `_push_apart`, so pinning an interior end moves 273 maps out of the incoherence projection's Gram.
+  [#502](https://github.com/NGL321/patchworks/issues/502) ruled what that costs, and the guarantee
+  survives with `reconciliation_gain`'s denominator **unmoved** — but reaching that took a derived
+  reduced target on the held subset, and it splits `overlap_target` from `gain_denominators`, which
+  #220 permits only as a derivation. A constant is not what got tightened. The estimate is struck
+  **for the boundary-incident case only**; nothing here is claimed about what `ρ = 1` globally would
+  cost, which would pin every map and is a different arithmetic.
 - **Over-smoothing is named for what it is here** in `01-cell-and-sheaf.md`'s *Known exposure*: the
   error signal vanishing, not a quality loss. Bodnar et al.'s result that a rich harmonic space resists
   collapse is cited as **orientation, not authority** — per `docs/research/015-sheaf-geometry.md` those
