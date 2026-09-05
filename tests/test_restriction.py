@@ -5,6 +5,8 @@ gauge, and the endpoint indexing the tick's unit delay is built on. Nothing
 here trains anything; the transport rule is #89's.
 """
 
+import collections
+
 import pytest
 import torch
 
@@ -15,7 +17,9 @@ from patchworks.restriction import (
     RestrictionMaps,
     cell_gauges,
     gain_denominators,
+    map_is_pinned,
     overlap_counts,
+    pinned_incidence,
     pair_index,
 )
 
@@ -326,6 +330,67 @@ class TestTheDenominatorTheGainDividesBy:
         counts = overlap_counts(dome)
         interior = [c.id for c in dome.cells if not c.is_boundary]
         assert {float(counts[i]) for i in interior} == {float(GAUGE_C)}
+
+    def test_a_wholly_pinned_incidence_takes_deg(self):
+        # #228. The projection spends scale freedom and a pinned map has none,
+        # so where a cell has none anywhere on its incidence nothing enforces a
+        # count below deg(v) -- while the exact gauge makes it true unaided.
+        dome = build_graph()
+        counts = overlap_counts(dome)
+        pinned = pinned_incidence(dome)
+        assert any(pinned), "no cell with a wholly pinned incidence"
+        for cell in dome.cells:
+            if pinned[cell.id]:
+                assert float(counts[cell.id]) == dome.degrees[cell.id]
+
+    def test_the_actuator_is_the_one_cell_the_rule_moves_on_this_dome(self):
+        # deg = 3 on a stalk of 6, so the pigeonhole floor leaves it at the
+        # global c = 2 while nothing pushes its three maps apart. Every other
+        # boundary cell already agreed with deg(v), by deg = 1 or by the floor.
+        dome = build_graph()
+        counts = overlap_counts(dome)
+
+        def superseded(cell):
+            degree = dome.degrees[cell.id]
+            return min(degree, max(GAUGE_C, -(-degree // cell.stalk)))
+
+        moved = [c.id for c in dome.cells if float(counts[c.id]) != superseded(c)]
+        assert len(moved) == 1
+        actuator = moved[0]
+        assert dome.degrees[actuator] == 3 and dome.cells[actuator].stalk == 6
+        assert float(counts[actuator]) == 3.0
+        assert float(gain_denominators(dome)[actuator]) == 3.0
+
+    def test_the_boundary_correction_is_uniform(self):
+        # Both denominators are proportional to deg(v) on a lane 8 wide -- the
+        # superseded `sum_e m_e` is 8.deg, the new `g_v^2.c_v` is deg -- so the
+        # correction is 8.00x at every such cell and the actuator is no longer
+        # the graded exception (`02-tick-semantics.md`). The drive is the one
+        # boundary cell outside the figure, and for a reason about lane width
+        # rather than about the clamp: its eight lanes are m = 1, so the two
+        # denominators already agreed there.
+        dome = build_graph()
+        denominators = gain_denominators(dome)
+        corrections = collections.Counter(
+            dome.stalk_sums[cell_id] / float(denominators[cell_id])
+            for cell_id in dome.boundary
+        )
+        assert corrections == {8.0: 263, 1.0: 1}
+        drive = [
+            c.id for c in dome.cells if c.stalk == 1 and dome.degrees[c.id] > GAUGE_C
+        ]
+        assert len(drive) == 1
+        assert dome.stalk_sums[drive[0]] / float(denominators[drive[0]]) == 1.0
+
+    def test_the_condition_is_read_one_map_at_a_time(self):
+        # The rule is stated over pinned incidence rather than `is_boundary` so
+        # that a partly-pinned cell is visibly uncovered on a graph that is not
+        # this dome. Nothing here is partly pinned, and that is the claim.
+        dome = build_graph()
+        for cell in dome.cells:
+            per_map = [map_is_pinned(dome, e, cell.id) for e in dome.incident[cell.id]]
+            assert all(per_map) or not any(per_map)
+            assert pinned_incidence(dome)[cell.id] == all(per_map)
 
     def test_the_denominator_is_the_two_terms_multiplied(self, dome):
         assert torch.allclose(
