@@ -379,20 +379,22 @@ def main() -> None:
         for c in CONDITIONS:
             if not runs_at[c]:
                 continue
-            cells, ok_all = [], True
+            cells, ok_all, seen_any = [], True, False
             for cls in CLASSES:
                 m = class_medians(runs_at[c], lambda d: post(d, POST), cls)
                 if not m[2]:
                     cells.append("—")
                     continue
+                seen_any = True
                 spread = max(m[1], base[cls][1])
                 delta = m[0] - base[cls][0]
                 ok = delta >= -spread
                 if cls in ("apex", "soma"):
                     ok_all &= ok
                 cells.append(f"{fmt(m[0])} ± {fmt(m[1])} ({delta:+.3f}{'' if ok else ' **FAIL**'})")
-            guard[c] = ok_all
-            print(f"| {LABEL[c]} | " + " | ".join(cells) + f" | {'**passes**' if ok_all else '**FAILS**'} |")
+            if seen_any:
+                guard[c] = ok_all
+            print(f"| {LABEL[c]} | " + " | ".join(cells) + f" | {('**passes**' if ok_all else '**FAILS**') if seen_any else '—'} |")
         print("\nApex ρ(K) through the run, so the phase's own effect is visible beside the post-phase state:\n")
         print("| condition | end of phase | +1k | +5k | +10k | +20k | +30k |")
         print("|---|---|---|---|---|---|---|")
