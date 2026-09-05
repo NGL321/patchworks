@@ -74,13 +74,32 @@ A solve trades a local rule for a global loop, and the record has priced that re
   in the model term. [#214](https://github.com/NGL321/patchworks/issues/214) corroborates from the
   far end: the binding edges are `L6/core—L7/core` and `L1/vision—L2/vision`, not the cut the spec
   predicted. **The deficit is temporal, not spatial.** Every edge costs exactly one tick and a tick
-  is one relaxation step — this decision — while every cell's effective timescale is about one tick,
-  flat graph-wide at 0.91 at the apex against 0.99 at the rim
-  ([`05-timescales.md`](../spec/05-timescales.md)). The perturbation needs seven ticks to cross a
-  graph that holds nothing for more than about one, so what a future engineer reaches for is a
-  **stability gradient**: retention, the resource
-  [ADR-0005](./0005-timescale-is-persistence-not-a-schedule.md) already spends, priced against it in
-  [#235](https://github.com/NGL321/patchworks/issues/235).
+  is one relaxation step — this decision — while a cell's effective timescale is short against the
+  loops it has to span. *The magnitudes that stood here were read on the wrong surface:* **"every
+  cell's effective timescale is about one tick, flat graph-wide at 0.91 at the apex against 0.99 at
+  the rim"** was the chart's **direct round trip**, which
+  [#274](https://github.com/NGL321/patchworks/issues/274) found omits the stalk relay and re-read on
+  the full loop `ρ(K · (J_chart + J_stalk · A_v · D))`. The **absence of a depth gradient survives**
+  — under the corrected operator the apex is not the slow end but the **fastest**, on all three long
+  runs — while the magnitudes do not: the median predicting cell's `τ` is **2.9 to 10.3 ticks**
+  ([`05-timescales.md`](../spec/05-timescales.md)).
+
+  **What a future engineer reaches for is a per-cell retention floor, not a stability gradient.**
+  *Superseded by [#235](https://github.com/NGL321/patchworks/issues/235)*, which found both halves of
+  what stood here — *"a **stability gradient**: retention, the resource ADR-0005 already spends"* —
+  false. [ADR-0005](./0005-timescale-is-persistence-not-a-schedule.md) does **not spend** retention:
+  [#143](https://github.com/NGL321/patchworks/issues/143) retired placement and left `a` global, so
+  the gradient is learning's hope rather than the design's claim, and
+  [#276](https://github.com/NGL321/patchworks/issues/276) found `select()` never ran in any Sheaf that
+  ticks. And what is reached for is **`τ_c ≥ world_loop(c)`, per cell** — #242's bar, moved onto
+  `world_loop(c)` by [#383](https://github.com/NGL321/patchworks/issues/383) — which is **silent about
+  profile**: a flat `τ` clearing the floor at every cell passes it, and a textbook depth gradient with
+  one thin mid-level cell fails it there, where the `min` over cells in #242's predicate kills the
+  path. That is [#181](https://github.com/NGL321/patchworks/issues/181)'s *measure the graph, not the
+  shape imposed on it* landing on stage 2's own recharter: 150 independent comparisons, implying no
+  monotone profile whatever. **This ADR's own conclusion is untouched** — the deficit is still
+  temporal, and reopening this decision is still not the remedy; only the account of what the remedy
+  looks like moves.
 - **Neither lever is a reason to add rounds back**, which is the half of the superseded sentence that
   survives it unchanged. Slow propagation is not remedied by reopening this decision under the
   topological reading or the temporal one, and the three grounds above are what say so.

@@ -195,10 +195,14 @@ draw a slow cell* to *will anything make one*** — which is what the falsificat
   [#383](https://github.com/NGL321/patchworks/issues/383)'s divisor): the lower end is ADR-0026's
   bar, so it reads the **world loop** and not the graph's own round trip, with `|loop(c)|` kept and
   demoted.
-- **Enforcement is one-sided, and it is the one real interaction with the band.** ADR-0015 restores
+- **Enforcement is one-sided, and it is the one real interaction with the band.** ADR-0015 enforces
   the band by *rescaling the whole operator*, which moves every eigenvalue by the same factor — so
-  when the projection fires, **all of that cell's retention constants shorten together**. Enforcement
-  can only make a cell faster, never slower. Recorded; no mechanism is added for it.
+  where the rescale binds, **all of that cell's retention constants shorten together**. Enforcement
+  can only make a cell faster, never slower. Recorded; no mechanism is added for it. *Unchanged in
+  kind by [#433](https://github.com/NGL321/patchworks/issues/433), which moved the enforcement from a
+  post-step projection into the forward path: the rescale is still radial, so a cell's constants
+  still move together. It is now continuous rather than a firing, and the prediction rule's gradient
+  sees it.*
 - **Attributability is now precise rather than rhetorical.**
   [#27](https://github.com/NGL321/patchworks/issues/27) found biases and operating point spreading
   `τ` by 7.7× and 7.3×, *"statistically indistinguishable"*, so under the bias mechanism no per-cell

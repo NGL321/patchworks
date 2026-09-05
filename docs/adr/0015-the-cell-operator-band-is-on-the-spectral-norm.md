@@ -28,9 +28,18 @@ and buy only stability.
 
 ## Decision
 
-**`σ_max(K)` is bounded in a construction-time band `[1/ρ_K, 1]`, restored by projection after each
-prediction-rule step.** `ρ_K` is a single number for the whole graph, mirroring
+**`σ_max(K)` is bounded in a construction-time band `[1/ρ_K, 1]`, enforced by normalising the
+operator inside the forward path.** The *used* operator is the raw `K` rescaled to bring `σ(K)` into
+the band — above the upper face, exactly `K / max(1, σ(K))` — while the raw `K` is what the prediction
+rule trains. `ρ_K` is a single number for the whole graph, mirroring
 [ADR-0010](./0010-restriction-map-scale-is-gauge-fixed.md)'s `ρ = 2`.
+
+*Amended by [#433](https://github.com/NGL321/patchworks/issues/433), 2026-09-04. Until then the band
+was **restored by projection after each prediction-rule step**, outside the gradient. **Only the
+mechanism moved.** `σ_max(K) ∈ [1/ρ_K, 1]` is the same constraint, two-sided, the lower face `1/ρ_K`
+kept; the band, both faces, the `a` rule, the norm choice against ADR-0010, the composed bound, the
+contact-cell carve-out and the `ρ(K) = 1` honesty clause are all unchanged. Why it moved, and what
+it is bought on, is in* Consequences.
 
 Bounding the norm bounds the radius for free, since `ρ(K) ≤ σ_max(K)`. **`ρ(K)` survives as the
 *reported* spectral quantity** — it is what timescale wants — but it is not the constrained one.
@@ -73,6 +82,19 @@ over that is microseconds, and warm-started power iteration is the cheaper fallb
 **So the two gauges match in mechanism and differ in norm, for a stated reason.** ADR-0010 is not
 amended, not weakened, and not cited as precedent for the norm — only for the shape.
 
+*Superseded in its first clause by the 2026-09-04 amendment, and the reason is priced rather than
+lost.* ADR-0010's gauge stays a **post-step projection** and the body's is now a **forward
+normalisation**, so the two gauges diverge in mechanism as well as in norm. Keeping them the same
+kind of object was one of [#318](https://github.com/NGL321/patchworks/issues/318)'s four grounds for
+dense-with-projection, and it **expires rather than falls**: it was protecting a reasoning
+convenience for an argument that had not yet been made, and
+[#423](https://github.com/NGL321/patchworks/issues/423) has since made it. What the ground was for
+has been spent. #318's other three grounds survive intact, because the constraint is unchanged — the
+enforcement is still **local**, `σ(K)` being a function of the cell's own parameters and nothing
+else; a `12x12` normalisation is still cheap, and the warm-started power iteration priced below is
+now priced for exactly the per-forward-pass case; and the composed bound still reasons about both
+gauges at once, since `σ_max(K) ≤ 1` is untouched. ADR-0010 remains unamended.
+
 ### One global band, not one per level
 
 A per-level gauge would be a second timescale mechanism competing with the one the biases already
@@ -104,15 +126,40 @@ the fastest `a` available.
 
 ## Consequences
 
-**The projection is enforcement, not an objective.** It runs after the step and outside the gradient
-transform, exactly as ADR-0010's does: it is not in the objective, has no gradient, and reads nothing
-the cell did not already own — a cell owns its own `K` outright and needs nothing from a neighbour to
-take its norm. This is why it was **not** grounds for making `K` a third learning rule
-([ADR-0008](./0008-the-local-rule-splits-by-parameter-not-by-cell.md), as amended): a projection is
-not an objective.
+**The normalisation is enforcement, not an objective.** It lives in the model's **forward path**,
+not in the objective: no term is added to what the prediction rule minimises, and the rule still
+trains the raw `K` and nothing else. This is why it is **not** grounds for making `K` a third learning
+rule ([ADR-0008](./0008-the-local-rule-splits-by-parameter-not-by-cell.md), as amended). That ADR
+ruled *a projection is not an objective*, and the ruling does not need re-arguing here, because the
+mechanism is no longer a projection. It still reads nothing the cell did not already own: a cell owns
+its own `K` outright and needs nothing from a neighbour to take its norm.
 
-**It restores the band by rescaling the whole operator**, which moves the norm proportionally and so
-needs no SVD reconstruction. What the band restores is magnitude, never structure.
+**It enforces the band by rescaling the whole operator**, which moves the norm proportionally and so
+needs no SVD reconstruction. What the band restores is magnitude, never structure. The rescale is
+**radial** — a scalar multiplying `K` moves every singular value *and every eigenvalue* by the same
+factor — and the move does not change that. What the move changes is *when*: the rescale is applied
+continuously to the used operator instead of intermittently to the stored one, so **nothing fires**,
+and the prediction rule's gradient sees the constraint and optimises the normalised object.
+
+**Why the enforcement moved, and what it is bought on.**
+[#422](https://github.com/NGL321/patchworks/issues/422) measured the post-step projection's
+correction over a horizon ladder on the real dome: it does not shrink over training, it **grows**,
+monotonically, on both clauses and all three seeds, and hardest at the apex — 4.41x the rim's firing
+rate at 100k ticks, which is where the architecture needs retention most. The move is bought on the
+enforcement being **radial**, not on the band forbidding amplification. Those are two complaints and
+have been read as one: a radial rescale shortens all of a cell's retention constants together, which
+is [#335](https://github.com/NGL321/patchworks/issues/335)'s failure verbatim and is what moving the
+enforcement addresses; the prohibition on amplification is
+[#318](https://github.com/NGL321/patchworks/issues/318)'s stated mechanism and survives untouched,
+below. It is **not** bought on attribution — whether the excursions are the projection's doing or
+the prediction gradient's, the rescale is the same object and does the same damage in both worlds,
+so what attribution changes is how much removing it buys, not whether removing it is an improvement.
+#335 is therefore untouched, open and unruled by this amendment, and its 4.41 was taken on the build
+this supersedes.
+
+**It closes a gap this ADR already had.** The upper face is grounded on Miyato, who normalises in the
+**forward pass**; the enforcement was nevertheless implemented post-hoc. It no longer is. No new
+source is cited and none is needed.
 
 **ADR-0007 is demoted in one clause**, and this decision is why: with `γ` already at its global
 ceiling of 1.0 and timescale no longer living in activation regions, the `γ × floor <` fold margin
@@ -187,13 +234,49 @@ directional, so the expectation is the same reading — but expectation is not m
 
 ### The falsification, pre-registered
 
-**A band on `σ_max` forbids non-normal transient amplification, which is a real expressive loss.** If
-cells prove to need transient growth to move content within a piece, the band is wrong. This is
-expected to *show up* as a standing fight between the gradient and the projection, and that fight is
-deliberately not damped by an additive penalty term: it is the observable that triggers the fallback
-from a dense `K` to a structured one, since the right template for a stability constraint is a direct
-parameterisation rather than a penalty (Fan et al.,
+**A band on `σ_max` forbids non-normal transient amplification, which is a real expressive loss.**
+If cells prove to need transient growth to move content within a piece, the band is wrong.
+`σ_max(K) ≤ 1` means `‖Kz‖ ≤ ‖z‖` for every `z` — no transient growth, ever. **The 2026-09-04
+amendment does not repair this and was never bought on it**: a forward normalisation of the same
+band forbids exactly what the projection forbade, and a direct parameterisation of the same set
+would not have returned it either. What would answer this clause is a contraction in a *learned
+metric*, which is declined under *Alternatives considered* with its trigger recorded on
+[#357](https://github.com/NGL321/patchworks/issues/357). #357 is whose it is to report on.
+
+**The loss has a price this band makes explicit.** `ρ(K) ≤ σ_max(K) ≤ 1`, with equality exactly when
+`K` is normal, so **under this band non-normality is bought with retention**: every unit of it
+drives `ρ` below `σ_max`, and `ρ` is what `τ` is read off
+([#143](https://github.com/NGL321/patchworks/issues/143),
+[ADR-0028](./0028-a-cell-holds-a-spectrum-of-retention-constants.md)). So #335's scarce resource and
+#357's are **competitors** rather than one fight seen from two sides, and the band is what makes
+them so. [#166](https://github.com/NGL321/patchworks/issues/166)'s near-normal `K` with a sequence
+memory of 1 reads differently in that light: not only learning failing to reach non-normality, but
+learning sitting at the one corner of the band where retention is cheap. #357 accordingly reads
+non-normality as a **trade** and not a rate — a plateau may be learning declining a bad bargain
+rather than learning failing to reach.
+
+**The observable this section pre-registered has fired, and was acted on.** It read a standing fight
+between the gradient and the projection — deliberately not damped by an additive penalty term — as
+the observable that would trigger the fallback from a dense `K` to a structured one (Fan et al.,
 [arXiv:2110.06509](https://arxiv.org/abs/2110.06509)).
+[#422](https://github.com/NGL321/patchworks/issues/422) measured it firing, and the response was the
+enforcement move above rather than the fallback. What replaces it is that amendment's own read,
+stated before the build rather than after:
+
+> **Pre-registered.** `rim τ / apex τ` and median apex `λ(K)`, at **100,000 ticks on seeds 0, 1, 2**,
+> with **both builds re-run** rather than the new one differenced against stored JSON. The amendment
+> is falsified if apex `λ(K)` does not rise materially above **0.529 / 0.415 / 0.289** *and*
+> `rim τ / apex τ` does not fall materially below **12.87**. Those three figures and that ratio are
+> #422's, taken on the **post-hoc-projection build**, at 100k ticks on three seeds — the surface named
+> per [#437](https://github.com/NGL321/patchworks/issues/437).
+
+The horizon is not negotiable downward: #422 established that at the rig's own 3k default this
+measurement reads CLEAR and reverses by 100k, so a short read is not a cheap version of this one but a
+different and misleading one. **Firing rate is not the metric** — under the amendment nothing fires,
+so a firing ratio is undefined rather than improved, and reading it as *0, fixed* would be measuring
+the instrument's own removal. And **a falsifying read is not a null result**: it would say the
+gradient was never fighting the scale and simply wants a fast apex, which is the strongest attribution
+evidence anyone has offered for #335, arriving from the other side.
 
 ### Contact cells: the carve-out is discharged
 
@@ -216,3 +299,28 @@ reasons behind ADR-0010's choice reverse on the body.
 excludes it exactly. Any margin is transmission given away for a stability the band already has.
 
 **Per-level bands.** Rejected as a second timescale mechanism, above.
+
+**A direct parameterisation of a stable `K`** (Fan et al.,
+[arXiv:2110.06509](https://arxiv.org/abs/2110.06509)), which is
+[#318](https://github.com/NGL321/patchworks/issues/318)'s proposal. **Declined rather than
+refused**, on [#433](https://github.com/NGL321/patchworks/issues/433). Its completeness result does
+not transfer — it holds over the embedding and the operator jointly, and `encode`/`decode` are
+frozen — so what was on offer was the mechanical property of needing no projection step, and the
+forward normalisation above supplies that at no cost. Fan et al.'s *actual* template, contraction
+under a learned per-cell metric, is the only construction on the table that answers the expressive
+loss above, and it is declined on three grounds: it un-spends the quantity this ADR exists to bound,
+since `σ_max(K)` would then be bounded only by the metric's conditioning and `body` by a **learned**
+rather than a construction-time quantity — recoverable by banding the conditioning, but that is a
+new invented constant; it would consume the composed bound above, which uses `σ_max(K) ≤ 1` as a
+factor; and nothing has measured that cells need amplification. **The decline has a trigger,
+recorded on [#357](https://github.com/NGL321/patchworks/issues/357)**: if non-normality is reached
+*and* is visibly being paid for in retention, it expires and the metric parameterisation is live.
+
+**An additive penalty on `σ_max(K)`.** Refused, and re-read rather than assumed on #433. Two
+standing grounds hold unchanged: `docs/research/148` §9 rules it out because it wants a global
+objective, and ADR-0008 splits the rule by parameter, so a penalty on `K` is a second term inside a
+local rule. #422 supplies a third the earlier rulings did not have — the fight is **depth-graded and
+not even uniform within a level** (4.41x apex over rim; on seed 0, cell `408` fires 0.071 against
+cell `412`'s 0.511), so one weight is wrong across that spread in exactly the way *measure the
+graph, not the shape imposed on it* ([#181](https://github.com/NGL321/patchworks/issues/181))
+forbids, and a per-cell weight is an invented constant per cell with nothing deriving it.

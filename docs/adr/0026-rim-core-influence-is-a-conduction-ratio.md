@@ -495,6 +495,33 @@ by construction. The gate is what carries that pressure rather than hiding it.
   [#329](https://github.com/NGL321/patchworks/issues/329), and it does not disturb
   [#379](https://github.com/NGL321/patchworks/issues/379)'s repointing, which settled *which
   quantity* wears the name and is untouched by *what it divides by*.
+- **The pin is construction-owned and correctly read, and the predicate is untouched.** Ruled by
+  [#385](https://github.com/NGL321/patchworks/issues/385), written by
+  [#475](https://github.com/NGL321/patchworks/issues/475). `τ̂ = 0` at a cell with `p_v = 0` is a
+  **true reading of an absence, not a domain error**: `H⁰` is what insulates what `K` holds
+  ([#406](https://github.com/NGL321/patchworks/issues/406) — a per-cell floor, never a fleet
+  aggregate), and a cell with no private width has no direction reconciliation cannot move, so there
+  is no insulated retention to read. Calling it *undefined* would invent one level up the exclusion
+  #379 refused to invent in the rig, and an invented exclusion would be a second predicate wearing
+  this ADR's name. Three things follow, and all three are the ADR **as written**:
+  - **The reading site stays `H⁰`.** Reading the deviation on the whole node stalk, or on
+    [ADR-0032](./0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md)'s
+    carried subspace, would measure a quantity the neighbours can overwrite — arrival rather than
+    retention, which is the amplitude reading this ADR was written to replace.
+  - **Zero-private cells are not skipped in the `min`.** The boundary exclusion above is about
+    **consequence** — the world's write voids what arrives — and nothing analogous is true of L1.
+    Skipping them would make the bar passable by declining to look at the cells where the claim is
+    weakest.
+  - **The outbound universal keeps all 70 L1 predicting cells.** Narrowing the population to the
+    cells that happen to have private width would let the bar pass on the mask rather than on
+    conduction.
+
+  **No numerator change was made here, and none is owed.** The floor is the **mask's** to supply —
+  `p_v = max(0, n − Σ_e m_e)` is a construction quantity the spec has never been asked to set, and
+  `06-graph-topology.md`'s *Private dimension is a gradient, and it falls out* now carries which
+  cells `interior_m` can and cannot reach. A session arriving here looking for an amendment to the
+  numerator should stop: the predicate, the reduction, the quantifiers and the loop enumeration are
+  exactly as they stand above.
 
 ## Alternatives considered
 

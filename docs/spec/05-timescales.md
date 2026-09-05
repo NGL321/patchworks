@@ -289,10 +289,15 @@ outright: *"`ρ(K)` survives as the reported spectral quantity — it is what ti
 is not the constrained one."* **Transmission spends the norm; retention reads the radius.**
 `06-graph-topology.md`'s *"already spoken for three times over"* does not arrive here.
 
-**One real interaction, and it is one-sided.** ADR-0015 restores the band by *rescaling the whole
-operator*, which moves every eigenvalue by the same factor — so when the projection fires, **all of
+**One real interaction, and it is one-sided.** ADR-0015 enforces the band by *rescaling the whole
+operator*, which moves every eigenvalue by the same factor — so where the rescale binds, **all of
 that cell's retention constants shorten together**. Enforcement can make a cell faster and never
-slower. Recorded; no mechanism is added for it.
+slower. Recorded; no mechanism is added for it. *Unchanged in kind by
+[#433](https://github.com/NGL321/patchworks/issues/433), which moved the enforcement out of a
+post-step projection and into the forward path: the rescale is still radial, so the constants still
+move together. What changes is that it is continuous rather than an intermittent firing, and that
+the prediction rule's gradient now sees it — which is what the move was bought on, a rescale the
+gradient cannot see being an uncorrelated shove after every step.*
 
 **And the target is reachable for the first time.** ADR-0015's upper face of exactly 1 permits
 `ρ(K) = 1`, which it already flags as *"a memory that never fades. For a cell that is arguably
@@ -396,6 +401,37 @@ independent of the operator controversy that moved every number in this section.
 comparison than the one this paragraph used to carry, by 1 to 7 ticks at every one of the 150 cells;
 the reason for carrying it is unchanged, and the old sentence's confidence does not ride along with
 the new quantity.
+
+**Three consequences follow from *one bar plus a licence*, and they are stated because the notation
+invites reading them the other way** ([#235](https://github.com/NGL321/patchworks/issues/235)). The
+band's two ends are **not two claimants on one resource**: the quantity between them is bounded below
+by the graph and above by nothing.
+
+- **The ceiling bounds retention not at all.** `τ_c < dwell_c` is the condition for substituting the
+  cheap proxy, so a cell whose `τ` outruns its region dwell violates **nothing architecturally** — it
+  is only unreadable by that instrument, because `encode` is piecewise linear and the cheap reading
+  stands in for the expensive one just while the operator holds still. **Longer retention is free
+  from [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md)'s side at every cell,
+  without limit.**
+- **The staleness ceiling is named and unmade.** There is a plausible architectural ceiling hiding
+  under the notation — a cell holding content past its piece's residency holds a belief about a piece
+  that has left its chart. It is **nowhere argued in the record**, and
+  [#344](https://github.com/NGL321/patchworks/issues/344) reports the two quantities measurably
+  independent (`corr(log τ, log dwell) = −0.110` live, matching #42's construction-time `−0.006`), so
+  nothing couples them anyway. It is recorded here as **available and unmade**: anyone wanting that
+  ceiling must argue it as a fresh claim rather than read it out of the band's notation.
+- **The floor is per-cell and profile-silent.** `world_loop(c)` is not graded by depth, so what
+  conduction requires is that **each cell out-hold its own world loop** — 150 independent
+  comparisons, implying no monotone profile whatever. **A flat `τ` passes**: retention flat at 16
+  graph-wide clears the floor at every cell, so flatness is not the disease. **A gradient can fail**:
+  a textbook depth gradient with one thin mid-level cell fails the floor there, and the `min` over
+  cells in #242's predicate means the path dies at that cell. This is
+  [#181](https://github.com/NGL321/patchworks/issues/181)'s *measure the graph, not the shape imposed
+  on it* landing on stage 2's own recharter, and it retires
+  [#230](https://github.com/NGL321/patchworks/issues/230)'s *"the disease is that there is no
+  stability gradient"* **as a statement of what conduction requires**. The gradient survives only as
+  the mechanism ADR-0005 hopes learning produces — a hope conduction is indifferent to, since any
+  profile clearing the per-cell floor is admissible.
 
 [#361](https://github.com/NGL321/patchworks/issues/361) has since enumerated `|loop(c)|` from the
 mask and paired it with dwell across seeds; its reading is *What the live read says today* below. The
@@ -650,8 +686,10 @@ one divisor, so its conduction row is held against the demoted `|loop(c)|` and i
 
 **`τ_full` falls monotonically across the run** — 17.29 → 4.69 over 100k ticks on seed 42, matching
 #274's `ρ` falling on all nine seeds. **Learning is making cells faster.** Handed to
-[#335](https://github.com/NGL321/patchworks/issues/335), whose one-sided band projection predicts
-exactly that; it is a positive reading, not a diagnosis, since other causes are live. #361 sees the
+[#335](https://github.com/NGL321/patchworks/issues/335), whose one-sided band enforcement predicts
+exactly that; it is a positive reading, not a diagnosis, since other causes are live. *Read on the
+post-hoc-projection build, which [#433](https://github.com/NGL321/patchworks/issues/433) supersedes;
+the enforcement is still radial and still one-sided, and #335 is open and unruled.* #361 sees the
 same fall across all twelve of its runs.
 
 **Two caveats bind on every figure in this section that is quoted from a single run** (#361, and both
