@@ -215,9 +215,29 @@ def babble(agent, seed: int):
     return command
 
 
+def stage(target: Path) -> Path:
+    """Where a run in flight writes, so a retry cannot destroy a deeper attempt.
+
+    Borrowed from `benchmarks/rim_stalk_scale.py:297`, which exists because
+    checkpointing straight to the final name means a **re-run truncates the file
+    from its first frame** -- a retry killed at tick 300 destroys a previous
+    attempt that reached 10,000. It also makes "did this run finish?" answerable
+    from the filesystem: only a completed run has the final name, which is the
+    check a watcher wants and the one this rig got wrong on 2026-09-05.
+    """
+    inflight = target.with_suffix(".inflight.json")
+    if inflight.exists():
+        index = 0
+        while (kept := target.with_suffix(f".killed-{index}.json")).exists():
+            index += 1
+        inflight.replace(kept)
+    return inflight
+
+
 def run_seed(condition: str, name: str, split: str, seed: int, ticks: int,
              out: Path) -> dict:
     started = time.time()
+    inflight = stage(out)
     env, agent = build(name, split, seed)
     schedule = DriveSchedule(seed, ticks) if condition == "drive" else None
     baseline_assertion = agent_module.DRIVE_ASSERTION
@@ -298,9 +318,10 @@ def run_seed(condition: str, name: str, split: str, seed: int, ticks: int,
             record["checkpoints"].append(entry)
             record["elapsed_minutes"] = (time.time() - started) / 60.0
 
-            # Written as it lands, not at the end: six 100k runs is many hours
+            # Written as it lands, not at the end: nine 100k runs is many hours
             # and the map's standing rule is to checkpoint rather than lose one.
-            out.write_text(json.dumps(record, indent=1))
+            # To the in-flight name, so a retry displaces rather than truncates.
+            inflight.write_text(json.dumps(record, indent=1))
 
             print(
                 f"  [{condition}] seed {seed} @ {target:>6}: "
@@ -310,6 +331,10 @@ def run_seed(condition: str, name: str, split: str, seed: int, ticks: int,
                 f"({record['elapsed_minutes']:.1f} min)",
                 flush=True,
             )
+        # Only a run that reached its horizon earns the final name. A kill
+        # leaves `.inflight.json` behind, which is how a reader -- or a watcher
+        # -- tells a finished run from a partial one.
+        inflight.replace(out)
         return record
     finally:
         agent_module.DRIVE_ASSERTION = baseline_assertion

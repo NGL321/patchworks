@@ -84,7 +84,15 @@ def groups() -> dict[str, list[int]]:
 def load(condition: str) -> dict[int, dict]:
     out = {}
     for seed in SEEDS:
-        hits = sorted(HERE.glob(f"496-{condition}-real-train-seed{seed}-*.json"))
+        # A `.inflight.json` is a run that did not reach its horizon and a
+        # `.killed-<n>.json` is one a later attempt displaced; neither is a
+        # reading, so neither is loaded. Same exclusion as
+        # `benchmarks/rim_stalk_scale.py:653`.
+        hits = sorted(
+            p
+            for p in HERE.glob(f"496-{condition}-real-train-seed{seed}-*.json")
+            if not p.name.endswith(".inflight.json") and ".killed-" not in p.name
+        )
         if hits:
             out[seed] = json.loads(hits[-1].read_text())
     return out
