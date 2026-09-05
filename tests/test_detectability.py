@@ -467,23 +467,55 @@ class TestTheTwoQuantitiesAreNotOneKey:
 
 
 class TestTheStructuralZero:
-    """A cell with no private dimension reads `0` by construction (#385)."""
+    """There is no structural zero any more, and this class is why (#385, #474).
 
-    def test_every_l1_cell_of_the_default_dome_holds_no_private_features(self):
-        """So the inbound predicate is pinned at `0` before any retention is read.
+    #385 ruled that `tau_hat = 0` at a zero-private cell was a true reading of an
+    absence and that the floor was the **mask's** to supply. #474 supplied it:
+    `interior_m` 4 -> 3 and `boundary_m` 8 -> 4, derived from the construction
+    invariant `sum_e m_e <= n - 1` at every predicting cell. These tests were
+    written to stop the pin being rediscovered a third time and are kept, with
+    their sense inverted, to stop the *release* being lost the same way.
 
-        Not a decision here — ADR-0026 is settled and this is its literal
-        reading — but it is the fact `report` prints and #385 owns, and a test is
-        what stops it being rediscovered a third time.
+    ADR-0026's predicate is untouched by any of this. What moved is the graph it
+    is read on.
+    """
+
+    def test_every_l1_cell_of_the_default_dome_now_holds_private_features(self):
+        """So the inbound predicate is no longer pinned before retention is read.
+
+        Every one of the 70 L1 predicting cells reads at least 1, where all 70
+        read exactly 0 at `(interior_m, boundary_m) = (4, 8)`. The worst case is
+        the 36 L1 vision cells of degree 9, which sit at exactly 1 -- a derived
+        non-zero, not a chosen margin.
         """
         from patchworks.graph import DEFAULT_SPEC
 
         dome = build_graph(DEFAULT_SPEC)
         dimensions = dome.private_dimensions
         levels = [c.index.level for c in dome.cells if not c.is_boundary]
-        assert [
-            int(dimensions[row]) for row, level in enumerate(levels) if level == 1
-        ] == [0] * 70
+        l1 = [int(dimensions[row]) for row, level in enumerate(levels) if level == 1]
+        assert len(l1) == 70
+        assert min(l1) == 1
+        assert all(p >= 1 for p in l1)
+
+    def test_no_predicting_cell_anywhere_is_zero_private(self):
+        """The invariant is graph-wide, not an L1 fact: `sum_e m_e <= n - 1`.
+
+        82 of the 150 predicting cells read 0 before #474 -- all 70 of L1 and 12
+        of L2. The population is now empty, which is the whole content of that
+        ruling.
+        """
+        from patchworks.body import NODE_STALK_DIM
+        from patchworks.graph import DEFAULT_SPEC
+
+        dome = build_graph(DEFAULT_SPEC)
+        dimensions = dome.private_dimensions
+        assert int(dimensions.min()) >= 1
+        assert not [c for c in dome.predicting if dimensions[dome.predicting.index(c)] == 0]
+        # Stated as the invariant rather than as the outcome, so that a session
+        # moving either lane width fails here rather than in a benchmark.
+        for cell in dome.predicting:
+            assert dome.stalk_sums[cell] <= NODE_STALK_DIM - 1
 
     def test_the_rim_touches_nothing_but_l1(self):
         """Which is what makes the pin structural: every path starts through one."""
@@ -497,15 +529,16 @@ class TestTheStructuralZero:
         }
         assert touched == {1}
 
-    def test_no_path_between_the_rim_and_the_apex_avoids_a_zero_private_cell(self):
-        """So **both** directions are pinned, not only the inbound one.
+    def test_no_path_between_the_rim_and_the_apex_crosses_a_zero_private_cell(self):
+        """So **neither** direction is pinned any more, where both used to be.
 
         The reduction is a `min` over the cells of a path. Every predicting cell
-        adjacent to the rim is zero-private, and no apex cell is adjacent to the
-        rim, so any walk between the two ends crosses one of them — whichever way
-        it is walked. That makes the pin independent of retention, training,
-        seed, stimulus and horizon, which is the claim #385 rests on and the one
-        a reader would otherwise have to take on trust.
+        adjacent to the rim used to be zero-private, and no apex cell is adjacent
+        to the rim, so any walk between the two ends crossed one of them --
+        whichever way it was walked, which is what made the pin independent of
+        retention, training, seed, stimulus and horizon. The geometry is
+        unchanged and is re-asserted here; what changed is that the cells the
+        walk crosses are no longer zero, so the `min` runs over a live quantity.
         """
         from patchworks.graph import DEFAULT_SPEC
 
@@ -518,8 +551,11 @@ class TestTheStructuralZero:
             for cell in det.rim(dome)
             for e in dome.incident[cell]
         }
-        assert adjacent and adjacent <= zero
-        assert not adjacent & set(det.apex(dome))
+        # The geometry that made the pin structural, unchanged.
+        assert adjacent and not adjacent & set(det.apex(dome))
+        # And the pin itself, gone: there is nothing for the walk to hit.
+        assert not zero
+        assert min(int(dimensions[rows[c]]) for c in adjacent) >= 1
 
 
 class TestTheFork:

@@ -389,19 +389,27 @@ class TestTheSpectralFloor:
         real_maps.project()
         assert torch.all(real_maps.maps[~real_maps.support] == 0)
 
-    def test_the_nine_unattainable_masks_are_excluded_by_name(self, real, real_maps):
+    def test_the_six_unattainable_masks_are_excluded_by_name(self, real, real_maps):
         # ADR-0032's mask-attainability read: `k < m` means the mask cannot
         # contain a co-isometry at all, so `σ_min = 0` whatever the projection
         # does and the projection would shrink `‖F‖_F` by `√(k/m)`, fighting the
-        # exact gauge. Three touch, three proprioceptive, the actuator's three.
+        # exact gauge. Three touch and three proprioceptive.
+        #
+        # **They were nine, and #474 released three of them.** The actuator's
+        # three maps sat at `(m = 8, k = 6)` and were unattainable by two
+        # columns; `boundary_m` 8 -> 4 puts them at `(4, 6)`, where the mask
+        # does contain a co-isometry, so they take the floor like any other map.
+        # Nothing in `RestrictionMaps` was edited to do that -- the population is
+        # computed from the mask, which is the property #415 built it for.
+        # ADR-0032's ledger names nine, read on the `boundary_m = 8` surface.
         unattainable = []
         for edge in real.edges:
             for side, cell_id in enumerate((edge.u, edge.v)):
                 k = int(real.restriction_mask(edge.id, cell_id).sum())
                 if k < edge.m:
                     unattainable.append((edge.m, k, pair_index(edge.id, side)))
-        assert sorted({(m, k) for m, k, _ in unattainable}) == [(8, 1), (8, 2), (8, 6)]
-        assert len(unattainable) == 9
+        assert sorted({(m, k) for m, k, _ in unattainable}) == [(4, 1), (4, 2)]
+        assert len(unattainable) == 6
         where = [i for _m, _k, i in unattainable]
         assert not bool(real_maps.floored[where].any())
         # And they are all pinned, which is why the ADR could state the floor on
@@ -414,7 +422,10 @@ class TestTheSpectralFloor:
         # because it preserves `‖F‖_F`. Skipping them would leave the rim's own
         # end of 256 sensory edges unflattened, and isometry is a property of
         # the edge *pair*, so one flat end buys nothing.
-        assert int((real_maps.floored & real_maps.pinned).sum()) == 256
+        # 256 sensory edge-ends, plus the actuator's three, which #474 made
+        # attainable when `boundary_m` went 8 -> 4 (see the exclusion test
+        # above). It read 256 on the `boundary_m = 8` surface.
+        assert int((real_maps.floored & real_maps.pinned).sum()) == 259
 
     def test_a_pinned_map_still_leaves_the_projection_at_exactly_one(self, real_maps):
         real_maps.project()
@@ -444,9 +455,11 @@ class TestTheSpectralFloor:
         widths = torch.tensor(
             [[float(edge.m)] * 2 for edge in real_maps.dome.edges]
         ).reshape(-1)
-        nine = ~real_maps.floored & real_maps.pinned & (widths > 1)
-        assert int(nine.sum()) == 9
-        assert torch.all(real_maps.flatness()[nine] < 1e-5)
+        unreachable = ~real_maps.floored & real_maps.pinned & (widths > 1)
+        # Six since #474, and nine before it: the actuator's three left this set
+        # for the floored one when `boundary_m` went 8 -> 4.
+        assert int(unreachable.sum()) == 6
+        assert torch.all(real_maps.flatness()[unreachable] < 1e-5)
 
     def test_where_the_cap_bites_the_floor_is_given_up_and_recovered(self, real_maps):
         # The price of the ordering, measured rather than asserted away. Under

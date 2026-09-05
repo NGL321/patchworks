@@ -254,10 +254,20 @@ class RestrictionMaps(torch.nn.Module):
         # `σ_min = 0` there whatever the projection does and the projection
         # would shrink `‖F‖_F` by `√(k/m)` — fighting the exact gauge rather
         # than sitting beside it. Those masks are excluded by name, computed
-        # here from the mask rather than listed: on `DEFAULT_SPEC` they are the
-        # nine ADR-0032 names, all pinned — three touch (`m = 8, k = 1`), three
-        # proprioceptive (`8, 2`) and the actuator's three (`8, 6`); see
-        # `prototypes/mask-attainability-415/`.
+        # here from the mask rather than listed: on `DEFAULT_SPEC` they are
+        # **six**, all pinned — three touch (`m = 4, k = 1`) and three
+        # proprioceptive (`4, 2`); see `prototypes/mask-attainability-415/`.
+        #
+        # **They were nine, and `boundary_m` 8 → 4 released three of them**
+        # ([#474](https://github.com/NGL321/patchworks/issues/474), written by
+        # #483). The actuator's three maps sat at `(m = 8, k = 6)` and were
+        # unattainable by one column short; at `(4, 6)` the mask contains a
+        # co-isometry and they now take the floor like any other map. Nothing
+        # here was edited to do that — the population is computed from the mask,
+        # which is the property #415 built it for. ADR-0032's ledger names nine;
+        # that figure was read on the `boundary_m = 8` surface and is a fact
+        # about a build that no longer exists (`docs/agents/domain.md`, *An ADR
+        # quoting a measured figure names its surface*).
         #
         # **`m = 1` is skipped because the floor is vacuous there**, not
         # because it is unattainable: one singular value is `‖F‖_F/√1`

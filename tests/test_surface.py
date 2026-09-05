@@ -203,9 +203,21 @@ class TestWhatTheTwoArraysHold:
         assert np.allclose(record.private_delta, expected.numpy())
         assert not torch.equal(before, after)
 
-    def test_a_cell_with_no_private_dimension_never_moves(self, agent, dome):
-        record = run_watched(Recorder(agent))[-1]
-        none = (dome.private_dimensions == 0).numpy()
+    def test_a_cell_with_no_private_dimension_never_moves(self, env):
+        """Kept on a dome built to have such a cell, because the default has none.
+
+        #474 set `(interior_m, boundary_m) = (3, 4)` from `sum_e m_e <= n - 1`,
+        so every predicting cell on `DEFAULT_SPEC` now has private width and this
+        property has nothing to bite on there. It is still a property of the
+        surface rather than of that spec -- a cell whose bus fills its stalk has
+        no direction reconciliation cannot move -- so it is exercised on the
+        widths the default carried until #474 rather than deleted.
+        """
+        from patchworks.graph import DomeSpec
+
+        wide = build_graph(DomeSpec(interior_m=4, boundary_m=8))
+        record = run_watched(Recorder(started(env, wide)))[-1]
+        none = (wide.private_dimensions == 0).numpy()
         assert none.any(), "this dome has no cell without private dimension"
         assert (record.private_delta[none] == 0.0).all()
 
