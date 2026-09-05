@@ -155,6 +155,19 @@ retains to survive reconciliation and be readable — and a fleet sum can be lar
 cells sit at zero
 ([#385](https://github.com/NGL321/patchworks/issues/385), which owns the floor itself).
 
+**The bound is unchanged, and what changed is that it now binds.**
+[#474](https://github.com/NGL321/patchworks/issues/474) set `interior_m = 3` and `boundary_m = 4`
+from the construction invariant **`Σ_e m_e ≤ n − 1` at every predicting cell**, which is this bound
+read as a floor of 1 rather than as a total. Until then the `max(0, ·)` was doing real work: it
+clipped to zero at **82 of the 150** predicting cells, so at more than half the fleet the bound was
+**vacuous** — true, and saying nothing, because a cell with no private width has no insulated
+retention to bound. It is now **binding by construction at every predicting cell**, worst case
+`p_v = 1` at the 36 L1 vision cells of degree 9. That is the difference between a bound that holds
+and a bound that constrains, and this section's *capacity for slow state is a construction quantity*
+only ever meant the second. The per-level figures are `06-graph-topology.md`'s to publish
+(*Private dimension is a gradient, and it falls out*) and they moved with the pair; nothing is quoted
+here, so that this file has one fewer copy of a number that ages.
+
 The design move is a step out from published work rather than a leap: neural sheaf diffusion
 engineers `dim ker(Δ_F)` deliberately so that information survives what would otherwise be
 oversmoothing, making stalk width the construction quantity that governs how much survives —
@@ -855,7 +868,8 @@ clock divisor and the persistence mechanism stay interchangeable only while that
 moment anything branches on rate, the cheap fallback is gone.
 
 **The gradient is not placed, so the taper does not supply it.** `06-graph-topology.md`'s
-private-dimension gradient (0 at the rim, ~8 through L3–L6, 15 at the apex) still says how much
+private-dimension gradient (1–11 at the vision levels, 14 through L3–L6, 19 at the apex, since
+[#474](https://github.com/NGL321/patchworks/issues/474); it read 0 / ~8 / 15 before) still says how much
 protected state a cell has room for — **capacity, not rate**. It is a **step rather than a ramp**
 anyway, degree falling at the apex and nowhere else in the core. Where the retention gradient is to
 come from is *The gradient is learning's job*, below. The demo's sharpest falsifiable form — two
@@ -1043,6 +1057,12 @@ both hard:
   [ADR-0032](../adr/0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md): a
   floored map has rank exactly `m`, so the contingent half largely closes and high degree buys zero
   rather than an unknown ([#385](https://github.com/NGL321/patchworks/issues/385)).*
+  ***And [#474](https://github.com/NGL321/patchworks/issues/474) discharged the constraint rather than
+  loosening it.*** *`Σ_e m_e` is now **meaningfully below `n` at every predicting cell** by
+  construction — that is exactly what `Σ_e m_e ≤ n − 1` says — so the highest-degree cell in the graph
+  buys 1 rather than 0. This constraint was handed to graph topology and graph topology has now met
+  it; what a floor of 1 is worth at the thinnest cells is [#326](https://github.com/NGL321/patchworks/issues/326)'s
+  question, not this one's.*
 - **Integration and holding may need to be separate cells.** Nothing is disqualified by the above —
   a relay cell performs no prediction and so has no slow state to hold, which is most of what
   high-degree cells are for. The tension bites only for cells that both *predict* and *integrate

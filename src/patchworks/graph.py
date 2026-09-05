@@ -129,11 +129,13 @@ class Cell:
 class Edge:
     """One edge, carrying a communication lane of dimension `m`.
 
-    `m` is fixed here and never changes: 4 between two predicting cells, 8 on a
+    `m` is fixed here and never changes: 3 between two predicting cells, 4 on a
     boundary-incident edge, 1 on a drive edge. Boundary edges are wider because
     a patch cell's edges are the only route that patch's information ever takes;
     the drive edge is narrower because a map out of a one-dimensional stalk has
-    rank at most one.
+    rank at most one. The boundary/interior pair is 4 against 3 rather than the
+    2x it used to be: #474 derived both from `Σ_e m_e ≤ n − 1`, and the reason
+    above buys the *ordering*, not the multiple.
     """
 
     id: int
@@ -201,14 +203,14 @@ class DomeSpec:
     """Arm joints, one proprioceptive and one touch boundary cell each."""
 
     #: @type stipulated
-    #: @flexibility free, and the thinnest number in the design: #32 found n, k and m = 8 comfortable and m = 4 thin, with no source either way on whether it is enough. Never varied in any run; widening it trades directly against private dimension, since every interior stalk widened raises the sum of m_e at every cell. It is the first rung on #14's constraint ladder wherever it reaches, and #385 bounds that reach: of the 82 predicting cells at private dimension 0 it clears 15 at 3 and all 18 at 2, and the other 64 -- every L1 vision cell -- stay at 0 at any value including 0, because 4 rim edges x boundary_m = 32 = n fills the bus before an interior edge is counted. On that failure narrowing this is not a rung, and the knobs are boundary_m, n or patches per L1 cell (#474)
+    #: @flexibility free, and the thinnest number in the design: #32 found n, k and m = 8 comfortable and m = 4 thin, with no source either way on whether it is enough. Widening it trades directly against private dimension, since every interior stalk widened raises the sum of m_e at every cell. It is the first rung on #14's constraint ladder and the one to pull first if a piece turns out not to fit through it -- and #474 pulled it, downward rather than up, 4 to 3, to supply the private-dimension floor #385 ruled the mask's to give. Never varied within a run; the value moved once, on #474. Not free-standing: it and boundary_m are jointly derived from the construction invariant sum_e m_e <= n - 1 at every predicting cell, by taking the largest feasible interior_m and then the largest boundary_m that clears. The feasible frontier is exactly (3, 4), (2, 5) and (1, 6), so a session re-deriving the pair lands on (3, 4) rather than on one of the other two; interior_m = 4 is infeasible at every boundary_m whatsoever, because the 12 L2 vision cells sit at 8 x interior_m with no boundary edge at all. #385 bounds this knob's reach acting alone, and that bound stands as read: of the 82 predicting cells at private dimension 0 it cleared 15 at 3 and all 18 at 2, and the other 64 -- every L1 vision cell -- stayed at 0 at any value including 0, because 4 rim edges x boundary_m = 32 = n filled the bus before an interior edge was counted. What released those 64 was boundary_m moving with it. The delay-embedding reading moves with the value: twice the box-counting dimension of the piece carried puts a lane of 3 at a piece of box dimension under 1.5, where a lane of 4 stood at 2. #440 is the live reason that number matters -- it split `piece` from `situation set` and left open whether the piece has a box dimension at all
     #: @warrant docs/spec/06-graph-topology.md, Dimensions
-    interior_m: int = 4
+    interior_m: int = 3
 
     #: @type stipulated
-    #: @flexibility free, and twice the interior's deliberately: a boundary cell's edges are the only route its information ever takes, unlike an interior cell, which is reachable many ways. Never varied in any run
+    #: @flexibility free, and wider than the interior's deliberately: a boundary cell's edges are the only route its information ever takes, unlike an interior cell, which is reachable many ways. It was twice the interior's, and #474 demoted the 2x from a multiple to an ordering -- 4 against 3 is still wider, and the reason above is unchanged and buys the ordering rather than the multiple. The multiple was demoted deliberately, not dropped by accident: (2, 5) would have preserved a ratio above 2 by spending a second unit on the thinnest dimension in the design, and the ratio is an implementation of the reason rather than the reason. Never varied within a run; the value moved once, on #474, 8 to 4. Not free-standing: it and interior_m are jointly derived from the construction invariant sum_e m_e <= n - 1 at every predicting cell, by taking the largest feasible interior_m and then the largest boundary_m that clears. The binding cell is L1 vision at degree 9 -- 4 rim + 4 lateral + 1 up -- where the invariant reads 4 x boundary_m + 5 x interior_m <= 31; the feasible frontier is exactly (3, 4), (2, 5) and (1, 6), so a session re-deriving the pair lands on (3, 4) rather than on one of the other two. The cost is stated at docs/spec/06-graph-topology.md, Dimensions: a patch cell's restriction goes 48 -> 4, a 12:1 compression that file has never ruled on
     #: @warrant docs/spec/06-graph-topology.md, Dimensions
-    boundary_m: int = 8
+    boundary_m: int = 4
 
     #: @type stipulated
     #: @flexibility free, and pinned to drive_stalk from above: the drive asserts one number, and a lane wider than the stalk it carries carries nothing extra. Never varied in any run
@@ -659,7 +661,7 @@ class Dome:
         #
         # A boundary cell is not masked. Its stalk is world-shaped rather than
         # `n`-shaped and its restriction is the compression of what the world
-        # wrote — a patch cell's 48 -> 8 is that compression, and masking it
+        # wrote — a patch cell's 48 -> 4 is that compression, and masking it
         # would throw the patch away instead of compressing it.
         permitted = [
             c.stalk if c.is_boundary else min(c.stalk, stalk_sums[c.id]) for c in cells
