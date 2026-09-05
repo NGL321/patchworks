@@ -152,6 +152,24 @@ def main() -> None:
                 vals.append(fmt(r2(y, fn(cp))))
             print(f"| {name} | " + " | ".join(vals) + " |")
         print()
+    print("Context, unregistered — the mechanism's own variables on the same regression (R² on log ρ_used at 20k): the direction stability of `ē` and of `h` across consecutive windows, and the persistent fraction `‖ē‖ / RMS‖e‖`.\n")
+    mech = {
+        "ē direction stability": lambda cp: np.nan_to_num(arr(cp, "p3_direction_stability"))[:, None],
+        "h direction stability": lambda cp: np.nan_to_num(arr(cp, "h_direction_stability"))[:, None],
+        "log ‖ē‖": lambda cp: np.log(arr(cp, "p3_ebar_norm"))[:, None],
+        "log (‖ē‖ / RMS‖e‖)": lambda cp: np.log(arr(cp, "p3_ebar_norm") / arr(cp, "e_rms"))[:, None],
+        "ē stability + log ‖ē‖": lambda cp: np.column_stack([np.nan_to_num(arr(cp, "p3_direction_stability")), np.log(arr(cp, "p3_ebar_norm"))]),
+        "column (#477) + ē stability": lambda cp: np.column_stack([drive_adj, columns == "somatomotor", np.nan_to_num(arr(cp, "p3_direction_stability"))]).astype(float),
+    }
+    print("| design | " + " | ".join(f"seed {s}" for s in seeds) + " |")
+    print("|---|" + "---|" * len(seeds))
+    for name, fn in mech.items():
+        vals = []
+        for s in seeds:
+            cp = at(runs[s], 20000)
+            vals.append(fmt(r2(np.log(arr(cp, "rho_used")), fn(cp))))
+        print(f"| {name} | " + " | ".join(vals) + " |")
+    print()
     print("Excitation rank per group (uncentred / centred), medians, seed 42, tick 20k:\n")
     print("| group | PR total | PR total centred | PR private | PR exposed | PR interior | energy share private / interior / drive | variance share private / interior / drive |")
     print("|---|---|---|---|---|---|---|---|")
@@ -220,10 +238,12 @@ def main() -> None:
             if tick == 20000:
                 p4[s] = (m("p4_ebar_share_drive"), m("p4_ebar_share_private"), m("p4_ebar_share_interior_rowspace"))
     print()
+    print("The exposed block is 13-dimensional and the four interior maps' rows span up to 12 of it, so *interior rowspace* is not a complement of the drive lane and is reported as context only. The comparator is the drive lane against **everything else in the exposed block** (its orthogonal complement, `1 − drive − private`):\n")
     for s in seeds:
         dr, pr, ir = p4[s]
-        largest = dr > max(pr, ir)
-        print(f"- seed {s} @ 20k: drive lane {dr:.3f} vs private {pr:.3f} vs interior rowspace {ir:.3f} → drive lane carries the largest share: **{largest}**")
+        rest = 1.0 - dr - pr
+        largest = dr > max(pr, rest)
+        print(f"- seed {s} @ 20k: drive lane {dr:.3f} vs private {pr:.3f} vs rest of exposed {rest:.3f} → drive lane carries the largest share: **{largest}**")
     print("\nPer apex cell at 20k, seed 42 (ē share drive / private / interior-rowspace; ‖ē‖; ρ_used; PR total):\n")
     cp = at(runs[seeds[0]], 20000)
     for i in g["apex"]:
@@ -262,7 +282,7 @@ def main() -> None:
     print("## Branch table")
     p1_all = all(p1_verdict[s]["holds"] for s in seeds)
     p1_42 = p1_verdict[seeds[0]]["holds"]
-    p4_42 = p4[seeds[0]][0] > max(p4[seeds[0]][1], p4[seeds[0]][2])
+    p4_42 = p4[seeds[0]][0] > max(p4[seeds[0]][1], 1.0 - p4[seeds[0]][0] - p4[seeds[0]][1])
     a20, per_a = p5[(20000, "apex")]
     c20, per_c = p5[(20000, "core")]
     surprise = not all(x < y for x, y in zip(per_a, per_c))
