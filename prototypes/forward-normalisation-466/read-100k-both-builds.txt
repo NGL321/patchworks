@@ -1,0 +1,62 @@
+
+== #433's pre-registered read: both builds, 100k ticks, seeds 0/1/2 ==
+
+-- post-hoc projection --
+   seed   apex lambda   rim lambda   apex tau   rim tau   rim tau / apex tau
+      0      0.438019      0.84634      1.212     5.995                4.948
+      1      0.361066     0.872747      1.003     7.347                7.326
+      2      0.374208     0.863601      1.018     6.819                6.702
+
+-- forward normalisation --
+   seed   apex lambda   rim lambda   apex tau   rim tau   rim tau / apex tau
+      0      0.666899     0.959635      2.473     24.27                9.817
+      1      0.751341     0.955109      3.499     21.78                6.223
+      2      0.691767     0.960073      2.722     24.54                9.017
+   median raw sigma(K) per seed: 0: 1.309, 1: 1.272, 2: 1.315   (diagnostic; sigma_max(used) is in band regardless)
+
+-- apex cells, per cell rather than per level (#181, as #422 did) --
+
+   seed 0   cell   projection lambda   normalisation lambda
+               405            0.445904               0.679205
+               406            0.651795               0.744224
+               407            0.397845                0.64678
+               408            0.604957               0.869787
+               409            0.430134               0.654594
+               410            0.317043               0.643985
+               411            0.557264               0.737772
+               412            0.156039               0.632068
+
+   seed 1   cell   projection lambda   normalisation lambda
+               405            0.272713               0.675041
+               406            0.437626               0.692982
+               407            0.284506               0.771768
+               408            0.472482               0.820854
+               409            0.469132               0.704982
+               410            0.272004               0.764013
+               411            0.745697               0.755856
+               412              0.2828               0.746827
+
+   seed 2   cell   projection lambda   normalisation lambda
+               405            0.366598               0.786416
+               406            0.381817                0.66383
+               407            0.341979                0.67642
+               408            0.234868               0.707115
+               409            0.314218               0.666067
+               410            0.518896               0.767336
+               411             0.41774               0.620381
+               412            0.528194               0.713908
+
+-- the pre-registered verdict --
+   Falsified if apex lambda(K) does not rise materially above #422's
+   0.529 / 0.415 / 0.289 AND rim tau / apex tau does not fall materially
+   below 12.87. Both builds re-run; #422's stored figures are shown for
+   reference only, and the comparison that counts is the two columns.
+
+   seed 0: apex lambda 0.438019 -> 0.666899   (+0.22888, #422 recorded 0.529)
+            rim tau / apex tau 4.948 -> 9.817   (#422 recorded 12.87 across seeds)
+
+   seed 1: apex lambda 0.361066 -> 0.751341   (+0.390276, #422 recorded 0.415)
+            rim tau / apex tau 7.326 -> 6.223   (#422 recorded 12.87 across seeds)
+
+   seed 2: apex lambda 0.374208 -> 0.691767   (+0.31756, #422 recorded 0.289)
+            rim tau / apex tau 6.702 -> 9.017   (#422 recorded 12.87 across seeds)
