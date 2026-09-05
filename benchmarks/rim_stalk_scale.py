@@ -457,45 +457,78 @@ def graded(record: dict, frame: dict) -> list[dict]:
     return rows
 
 
-def readings(records: list[dict]) -> dict[str, float]:
-    """What this read has to offer a `measurement` cutoff, by name.
+def at_horizon(records: list[dict], tick: int) -> dict[str, float]:
+    """Fleet medians per population, over every record that reached `tick`.
 
-    `rim_stalk_ratio` is #469's bar and is the **raw** norm ratio the ticket asks
-    for, medianed over the 273 boundary-incident edges and then over seeds —
-    fleet medians first, then the across-seed median, the way
-    `benchmarks/floor_split.py` and `benchmarks/detectability.py` take theirs.
-
-    `rim_stalk_ratio_rms` is the same reading with the stalk-width confound
-    divided out. It is offered so that a session moving the bar has the
-    dimension-controlled number under the same name discipline, and **not** as a
-    substitute: the metric a bar is written on is the problem's to choose.
+    Fleet median first, then the across-seed median — the way
+    `benchmarks/floor_split.py` and `benchmarks/detectability.py` take theirs, and
+    for their reason: a per-edge ratio has a denominator that can be arbitrarily
+    small on one edge, and a median of such ratios is a median of noise.
     """
     per_seed: dict[str, list[float]] = collections.defaultdict(list)
     for record in records:
-        if not record["frames"]:
+        frame = next((f for f in record["frames"] if f["tick"] == tick), None)
+        if frame is None:
             continue
-        frame = record["frames"][-1]
         ratios = edge_ratios(record, frame)
         for name, mask in populations(record).items():
             for column in ("norm", "rms"):
                 per_seed[f"{name}|{column}"].append(
                     float(np.nanmedian(ratios[column][mask]))
                 )
-    if not per_seed:
+    return {key: float(np.median(values)) for key, values in per_seed.items()}
+
+
+def horizons(records: list[dict]) -> list[int]:
+    """Every checkpoint tick any record reached, deepest last."""
+    return sorted({f["tick"] for r in records for f in r["frames"] if f["tick"] > 0})
+
+
+def readings(records: list[dict]) -> dict[str, float]:
+    """What this read has to offer a `measurement` cutoff, by name.
+
+    **The horizon is part of the metric, and pooling two of them is a bug this
+    rig committed once.** The first full run took three seeds to 30,000 and one to
+    100,000, and taking each record's *last* frame medianed 1.343/1.360/1.352 in
+    with 1.564 to report 1.356 — a number that is neither horizon's, and that
+    read CLEAR of #469's bar while the only seed at the long horizon had crossed
+    it. That is [#178](https://github.com/NGL321/patchworks/issues/178)'s trap
+    arriving through the aggregation rather than through the reading, on the axis
+    #416 already demonstrated it on.
+
+    So `rim_stalk_ratio` is read **at the deepest horizon any seed reached, over
+    the seeds that reached it** — the long horizon carries the headline on this
+    axis, which is #416's own precedent, its 100,000-tick result resting on a
+    single seed for the same reason. `rim_stalk_ratio_30k` is published beside it
+    as the wider-fleet reading at the shorter horizon, so the two are visible as
+    two numbers rather than averaged into one.
+
+    `rim_stalk_ratio_rms` is the same reading with the stalk-width confound
+    divided out. It is offered so a session moving the bar has the
+    dimension-controlled number under the same name discipline, and **not** as a
+    substitute: the metric a bar is written on is the problem's to choose.
+    """
+    reached = horizons(records)
+    if not reached:
         return {}
-
-    def across(key: str) -> float:
-        return float(np.median(per_seed[key])) if per_seed.get(key) else float("nan")
-
-    return {
-        "rim_stalk_ratio": across("boundary-incident|norm"),
-        "rim_stalk_ratio_rms": across("boundary-incident|rms"),
-        "rim_stalk_ratio_sensory": across("sensory|norm"),
-        "rim_stalk_ratio_drive": across("drive|norm"),
-        "rim_stalk_ratio_actuator": across("actuator|norm"),
-        "interior_stalk_ratio": across("interior (control)|norm"),
-        "interior_stalk_ratio_rms": across("interior (control)|rms"),
+    deepest = at_horizon(records, reached[-1])
+    out = {
+        "rim_stalk_ratio": deepest["boundary-incident|norm"],
+        "rim_stalk_ratio_rms": deepest["boundary-incident|rms"],
+        "rim_stalk_ratio_sensory": deepest["sensory|norm"],
+        "rim_stalk_ratio_drive": deepest["drive|norm"],
+        "rim_stalk_ratio_actuator": deepest["actuator|norm"],
+        "rim_stalk_ratio_drive_rms": deepest["drive|rms"],
+        "rim_stalk_ratio_actuator_rms": deepest["actuator|rms"],
+        "interior_stalk_ratio": deepest["interior (control)|norm"],
+        "interior_stalk_ratio_rms": deepest["interior (control)|rms"],
+        "rim_stalk_horizon": float(reached[-1]),
     }
+    if 30000 in reached and reached[-1] != 30000:
+        shorter = at_horizon(records, 30000)
+        out["rim_stalk_ratio_30k"] = shorter["boundary-incident|norm"]
+        out["rim_stalk_ratio_30k_rms"] = shorter["boundary-incident|rms"]
+    return out
 
 
 def show(record: dict) -> None:
@@ -608,10 +641,44 @@ def read(
     return records
 
 
+def load(out: pathlib.Path) -> list[dict]:
+    """Every completed record in `out`, seed order. In-flight and killed ones are skipped.
+
+    A `.inflight.json` is a run that did not reach its horizon and a
+    `.killed-<n>.json` is one a later attempt displaced; neither is a reading, and
+    summarising one would quietly publish a truncated ladder as a result.
+    """
+    records = []
+    for path in sorted(out.glob("468-*.json")):
+        if path.name.endswith((".inflight.json",)) or ".killed-" in path.name:
+            continue
+        records.append(json.loads(path.read_text(encoding="utf-8")))
+    return sorted(records, key=lambda r: (r["ticks"], r["seed"]))
+
+
+def summarise(out: pathlib.Path, *, file: bool = True) -> list[dict]:
+    """The tables and the cutoff report, off the records rather than off a run.
+
+    The run is three hours on the real dome and the reduction is not; keeping the
+    whole per-cell population in the record is what lets the reduction be
+    re-chosen without paying for the ticks again. `prototypes/edge-scale-ratio-416/`
+    splits the same way, into `read.py` and `summarise.py`.
+    """
+    records = load(out)
+    print(
+        "\n== the rim's 2x, and whether the stalks have taken it =="
+        f"\n   {len(records)} records from {out}"
+    )
+    for record in records:
+        show(record)
+    report_cutoffs("rim_stalk_scale", readings(records), file=file)
+    return records
+
+
 def main(argv: list[str] | None = None) -> int:
     torch.set_num_threads(2)
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("mode", choices=("read",))
+    parser.add_argument("mode", choices=("read", "summarise"))
     parser.add_argument("--dome", choices=("full", "small"), default="full")
     parser.add_argument("--split", default="train")
     parser.add_argument("--ticks", type=int, default=TICKS)
@@ -630,12 +697,18 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
     arguments = parser.parse_args(argv)
+    out = None if arguments.out == "-" else pathlib.Path(arguments.out)
+    if arguments.mode == "summarise":
+        if out is None:
+            parser.error("summarise reads records from a directory; `--out -` has none")
+        summarise(out, file=not arguments.no_file)
+        return 0
     read(
         tuple(arguments.seeds),
         arguments.ticks,
         arguments.split,
         arguments.dome,
-        None if arguments.out == "-" else pathlib.Path(arguments.out),
+        out,
         file=not arguments.no_file,
     )
     return 0

@@ -223,6 +223,75 @@ class TestTheBarItIsWatched_On:
         assert rim_stalk_scale.readings([{"geometry": {"edges": []}, "frames": []}]) == {}
 
 
+def _record(seed, ticks, geometry, per_tick):
+    """A record engineered so the boundary-incident ratio *is* the named value.
+
+    Pinned cells carry `value` and every other cell carries 1, so a
+    boundary-incident edge — pinned end over free end — reads exactly `value`
+    while an interior edge reads 1. That makes the horizon arithmetic checkable
+    against a number chosen here rather than against whatever a run produced.
+    """
+    frames = []
+    for tick, value in per_tick.items():
+        column = [value if c["pinned"] else 1.0 for c in geometry["cells"]]
+        frames.append({"tick": tick, "norm": list(column), "rms": list(column)})
+    return {"seed": seed, "ticks": ticks, "geometry": geometry, "frames": frames}
+
+
+class TestTheHorizonIsPartOfTheMetric:
+    """Pooling two horizons into one median is a bug this rig committed once."""
+
+    def test_the_reading_is_taken_at_the_deepest_horizon_reached(self, geometry):
+        # Three seeds stopping at 30k and one going on to 100k: the metric is the
+        # long horizon's, not a median across the two.
+        records = [
+            _record(s, 30000, geometry, {30000: 1.0}) for s in range(3)
+        ] + [_record(3, 100000, geometry, {30000: 1.0, 100000: 9.0})]
+        found = readings = rim_stalk_scale.readings(records)
+        assert found["rim_stalk_horizon"] == 100000
+        assert readings["rim_stalk_ratio"] == pytest.approx(9.0)
+
+    def test_the_shorter_horizon_is_published_beside_it_not_averaged_in(
+        self, geometry
+    ):
+        records = [
+            _record(s, 30000, geometry, {30000: 1.0}) for s in range(3)
+        ] + [_record(3, 100000, geometry, {30000: 1.0, 100000: 9.0})]
+        found = rim_stalk_scale.readings(records)
+        # All four seeds have a 30k frame, so the shorter reading is the fleet's.
+        assert found["rim_stalk_ratio_30k"] == pytest.approx(1.0)
+        assert found["rim_stalk_ratio"] != found["rim_stalk_ratio_30k"]
+
+    def test_one_horizon_alone_publishes_no_second_number(self, geometry):
+        records = [_record(s, 30000, geometry, {30000: 1.0}) for s in range(3)]
+        found = rim_stalk_scale.readings(records)
+        assert found["rim_stalk_horizon"] == 30000
+        assert "rim_stalk_ratio_30k" not in found
+
+    def test_a_seed_that_never_reached_the_horizon_is_not_counted(self, geometry):
+        records = [
+            _record(0, 100000, geometry, {30000: 1.0, 100000: 4.0}),
+            _record(1, 30000, geometry, {30000: 99.0}),
+        ]
+        # Seed 1 stopped short, so it may not move the long horizon's reading.
+        assert rim_stalk_scale.readings(records)["rim_stalk_ratio"] == pytest.approx(4.0)
+
+    def test_tick_zero_is_not_a_horizon(self, geometry):
+        records = [_record(0, 30000, geometry, {0: 0.0, 30000: 2.0})]
+        assert rim_stalk_scale.horizons(records) == [30000]
+
+
+class TestSummarisingReadsOnlyFinishedRecords:
+    def test_an_inflight_or_killed_record_is_not_a_reading(self, tmp_path, geometry):
+        import json
+
+        done = _record(0, 30000, geometry, {30000: 1.0})
+        (tmp_path / "468-full-seed0-30000.json").write_text(json.dumps(done))
+        (tmp_path / "468-full-seed1-30000.inflight.json").write_text(json.dumps(done))
+        (tmp_path / "468-full-seed2-30000.killed-0.json").write_text(json.dumps(done))
+        assert [r["seed"] for r in rim_stalk_scale.load(tmp_path)] == [0]
+
+
 class TestAKilledRunIsNotThrownAway:
     """A retry may not truncate a deeper attempt. This rig learned it the hard way."""
 
