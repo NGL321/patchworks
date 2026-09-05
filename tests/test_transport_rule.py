@@ -305,13 +305,20 @@ class TestTheObjectiveIsRelativeDisagreement:
             if (outgoing[pair, 0] * incoming[pair, 0]).item() < 0
         ]
         assert opposed, "this fixture has no opposed one-dimensional edge"
+        rest = set(narrow_pairs) - set(opposed)
+        for pair in rest:
+            assert gradient[pair] > 0
+        # The flat point is exact in real arithmetic and float32-noisy here, so
+        # it is asserted as *negligible against the lanes that do descend*
+        # rather than as a literal zero. #474's narrower lanes moved the
+        # absolute magnitudes and an `== 0.0` began reading 2.8e-06; the claim
+        # was never about that constant.
+        floor = min(gradient[pair].item() for pair in rest)
         for pair in opposed:
             assert relative_disagreement(outgoing, incoming)[pair].item() == (
                 pytest.approx(1.0, abs=1e-6)
             )
-            assert gradient[pair] == 0.0
-        for pair in set(narrow_pairs) - set(opposed):
-            assert gradient[pair] > 0
+            assert gradient[pair] < floor * 1e-3
 
 
 class TestTheObjectiveExcludesTheTrivialSolution:
@@ -711,11 +718,24 @@ class TestTheBatchedGradientEqualsThePerEndpointLocalGradient:
         rule = TransportRule(running)
         parameters, arguments = in_precision(rule, dtype)
         batched = transport_gradient(parameters, *arguments)[MAPS_PARAMETER]
+        # The relative bound needs a noise floor, because some endpoints have a
+        # gradient that is *exactly zero* in real arithmetic and so have no own
+        # scale to be relative to: the opposed `m = 1` lanes, whose flat point
+        # is the subject of
+        # `test_a_one_dimensional_lane_is_flat_where_it_is_worst` above. On this
+        # fixture that is the three drive edges. Comparing an endpoint at
+        # rounding noise against itself asks the two routes to agree to a
+        # relative precision neither has -- endpoint 105 read 2.928e-7 against a
+        # scale of 2.928e-7 -- so the floor is taken from the *batch's* largest
+        # entry, which is the scale the arithmetic actually ran at. It changes
+        # nothing for an endpoint with a gradient of its own, where the first
+        # term dominates.
+        floor = tolerance * float(batched.abs().max())
         for pair in range(running.maps.pairs):
             reference = batched[pair]
             slack = float((local_gradient(rule, pair, dtype) - reference).abs().max())
             scale = float(reference.abs().max())
-            assert slack <= tolerance * scale, (
+            assert slack <= tolerance * scale + floor, (
                 f"endpoint {pair}: {slack:.3e} against a scale of {scale:.3e}"
             )
 

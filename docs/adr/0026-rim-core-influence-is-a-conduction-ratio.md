@@ -522,6 +522,34 @@ by construction. The gate is what carries that pressure rather than hiding it.
   cells `interior_m` can and cannot reach. A session arriving here looking for an amendment to the
   numerator should stop: the predicate, the reduction, the quantifiers and the loop enumeration are
   exactly as they stand above.
+- **The pin is released, and `conduction_ratio` becomes readable in both directions for the first
+  time.** Ruled by [#474](https://github.com/NGL321/patchworks/issues/474), written by
+  [#483](https://github.com/NGL321/patchworks/issues/483). `DomeSpec.interior_m` goes 4 → 3 and
+  `DomeSpec.boundary_m` goes 8 → 4, derived from the construction invariant `Σ_e m_e ≤ n − 1` at
+  every predicting cell, and the zero-private population goes **82 → 0**. The `min` over a path no
+  longer runs over a structural zero: every cell on every rim-to-apex path now has private width for
+  the deviation to be read in, worst case `p_v = 1` at 36 L1 vision cells.
+
+  **The predicate is untouched.** The reading site, the reduction, the quantifiers and the loop
+  enumeration are exactly as they stand above — again, in those words. What moved is the graph the
+  predicate is read on, not the predicate. The bullet above is the record of why the reading was
+  pinned and is kept as written; this one records that the condition it describes no longer holds.
+
+  **No published ratio is rescaled** ([#383](https://github.com/NGL321/patchworks/issues/383),
+  [#274](https://github.com/NGL321/patchworks/issues/274), and
+  [#206](https://github.com/NGL321/patchworks/issues/206)'s precedent). The point is that future
+  reads are no longer pinned, **not that past ones were wrong**: `conduction_ratio = 0` was a true
+  reading of an absence on the graph it was taken on, and a rescaled figure would have no run behind
+  it. Every figure in this ADR — the 15.4x, the ~3.8x, the 1.1x to 8.5x, #361's 40-to-85-of-150 and
+  the per-cell ladder — **was read at `interior_m = 4`, `boundary_m = 8`, `n = 32`**, which is the
+  surface `docs/agents/domain.md` requires named and is now a build that no longer exists. **They
+  stand as published and none of them is a reading of the current graph.** The first reading on the
+  new surface is owed and unmade.
+
+  **`|loop(c)|` moves with `DomeSpec` and this is a `DomeSpec` change** (*`|loop(c)|` is a
+  construction-time quantity*, above). The lane widths changed and the edge set did not, so the loop
+  enumeration is unchanged in structure — but the rule is that the divisor is recomputed, never
+  quoted, and no session should quote 14 at a dome it has not checked.
 
 ## Alternatives considered
 

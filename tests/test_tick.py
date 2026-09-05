@@ -252,11 +252,22 @@ class TestReconciliationGain:
     def test_the_formula(self, dome):
         # `gain_v = gamma / (g_v^2 . c_v)`, spelled out here rather than read
         # from the helper the gain calls, so that the two have to agree.
+        #
+        # `c_v` is `deg(v)` where the whole of a cell's incidence is pinned
+        # (#228), and on this dome that is exactly the boundary cells -- which
+        # is why `is_boundary` may stand in for the condition *here*, in a test
+        # whose point is to reconstruct the formula without the helper. That
+        # the two coincide on this graph is itself pinned, by
+        # test_restriction.py's test_the_condition_is_read_one_map_at_a_time.
         gain = reconciliation_gain(dome)
         for cell in dome.cells:
             gauge = 1.0 if cell.is_boundary else GAUGE_RHO
             degree = dome.degrees[cell.id]
-            overlap = min(degree, max(GAUGE_C, -(-degree // cell.stalk)))
+            overlap = (
+                degree
+                if cell.is_boundary
+                else min(degree, max(GAUGE_C, -(-degree // cell.stalk)))
+            )
             assert float(gain[cell.id]) == pytest.approx(
                 DEFAULT_GAMMA / (gauge**2 * overlap)
             )

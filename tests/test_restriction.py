@@ -5,6 +5,8 @@ gauge, and the endpoint indexing the tick's unit delay is built on. Nothing
 here trains anything; the transport rule is #89's.
 """
 
+import collections
+
 import pytest
 import torch
 
@@ -15,7 +17,9 @@ from patchworks.restriction import (
     RestrictionMaps,
     cell_gauges,
     gain_denominators,
+    map_is_pinned,
     overlap_counts,
+    pinned_incidence,
     pair_index,
 )
 
@@ -327,6 +331,67 @@ class TestTheDenominatorTheGainDividesBy:
         interior = [c.id for c in dome.cells if not c.is_boundary]
         assert {float(counts[i]) for i in interior} == {float(GAUGE_C)}
 
+    def test_a_wholly_pinned_incidence_takes_deg(self):
+        # #228. The projection spends scale freedom and a pinned map has none,
+        # so where a cell has none anywhere on its incidence nothing enforces a
+        # count below deg(v) -- while the exact gauge makes it true unaided.
+        dome = build_graph()
+        counts = overlap_counts(dome)
+        pinned = pinned_incidence(dome)
+        assert any(pinned), "no cell with a wholly pinned incidence"
+        for cell in dome.cells:
+            if pinned[cell.id]:
+                assert float(counts[cell.id]) == dome.degrees[cell.id]
+
+    def test_the_actuator_is_the_one_cell_the_rule_moves_on_this_dome(self):
+        # deg = 3 on a stalk of 6, so the pigeonhole floor leaves it at the
+        # global c = 2 while nothing pushes its three maps apart. Every other
+        # boundary cell already agreed with deg(v), by deg = 1 or by the floor.
+        dome = build_graph()
+        counts = overlap_counts(dome)
+
+        def superseded(cell):
+            degree = dome.degrees[cell.id]
+            return min(degree, max(GAUGE_C, -(-degree // cell.stalk)))
+
+        moved = [c.id for c in dome.cells if float(counts[c.id]) != superseded(c)]
+        assert len(moved) == 1
+        actuator = moved[0]
+        assert dome.degrees[actuator] == 3 and dome.cells[actuator].stalk == 6
+        assert float(counts[actuator]) == 3.0
+        assert float(gain_denominators(dome)[actuator]) == 3.0
+
+    def test_the_boundary_correction_is_uniform(self):
+        # Both denominators are proportional to deg(v) on a lane 8 wide -- the
+        # superseded `sum_e m_e` is 8.deg, the new `g_v^2.c_v` is deg -- so the
+        # correction is 8.00x at every such cell and the actuator is no longer
+        # the graded exception (`02-tick-semantics.md`). The drive is the one
+        # boundary cell outside the figure, and for a reason about lane width
+        # rather than about the clamp: its eight lanes are m = 1, so the two
+        # denominators already agreed there.
+        dome = build_graph()
+        denominators = gain_denominators(dome)
+        corrections = collections.Counter(
+            dome.stalk_sums[cell_id] / float(denominators[cell_id])
+            for cell_id in dome.boundary
+        )
+        assert corrections == {8.0: 263, 1.0: 1}
+        drive = [
+            c.id for c in dome.cells if c.stalk == 1 and dome.degrees[c.id] > GAUGE_C
+        ]
+        assert len(drive) == 1
+        assert dome.stalk_sums[drive[0]] / float(denominators[drive[0]]) == 1.0
+
+    def test_the_condition_is_read_one_map_at_a_time(self):
+        # The rule is stated over pinned incidence rather than `is_boundary` so
+        # that a partly-pinned cell is visibly uncovered on a graph that is not
+        # this dome. Nothing here is partly pinned, and that is the claim.
+        dome = build_graph()
+        for cell in dome.cells:
+            per_map = [map_is_pinned(dome, e, cell.id) for e in dome.incident[cell.id]]
+            assert all(per_map) or not any(per_map)
+            assert pinned_incidence(dome)[cell.id] == all(per_map)
+
     def test_the_denominator_is_the_two_terms_multiplied(self, dome):
         assert torch.allclose(
             gain_denominators(dome), cell_gauges(dome) ** 2 * overlap_counts(dome)
@@ -389,19 +454,27 @@ class TestTheSpectralFloor:
         real_maps.project()
         assert torch.all(real_maps.maps[~real_maps.support] == 0)
 
-    def test_the_nine_unattainable_masks_are_excluded_by_name(self, real, real_maps):
+    def test_the_six_unattainable_masks_are_excluded_by_name(self, real, real_maps):
         # ADR-0032's mask-attainability read: `k < m` means the mask cannot
         # contain a co-isometry at all, so `σ_min = 0` whatever the projection
         # does and the projection would shrink `‖F‖_F` by `√(k/m)`, fighting the
-        # exact gauge. Three touch, three proprioceptive, the actuator's three.
+        # exact gauge. Three touch and three proprioceptive.
+        #
+        # **They were nine, and #474 released three of them.** The actuator's
+        # three maps sat at `(m = 8, k = 6)` and were unattainable by two
+        # columns; `boundary_m` 8 -> 4 puts them at `(4, 6)`, where the mask
+        # does contain a co-isometry, so they take the floor like any other map.
+        # Nothing in `RestrictionMaps` was edited to do that -- the population is
+        # computed from the mask, which is the property #415 built it for.
+        # ADR-0032's ledger names nine, read on the `boundary_m = 8` surface.
         unattainable = []
         for edge in real.edges:
             for side, cell_id in enumerate((edge.u, edge.v)):
                 k = int(real.restriction_mask(edge.id, cell_id).sum())
                 if k < edge.m:
                     unattainable.append((edge.m, k, pair_index(edge.id, side)))
-        assert sorted({(m, k) for m, k, _ in unattainable}) == [(8, 1), (8, 2), (8, 6)]
-        assert len(unattainable) == 9
+        assert sorted({(m, k) for m, k, _ in unattainable}) == [(4, 1), (4, 2)]
+        assert len(unattainable) == 6
         where = [i for _m, _k, i in unattainable]
         assert not bool(real_maps.floored[where].any())
         # And they are all pinned, which is why the ADR could state the floor on
@@ -414,7 +487,10 @@ class TestTheSpectralFloor:
         # because it preserves `‖F‖_F`. Skipping them would leave the rim's own
         # end of 256 sensory edges unflattened, and isometry is a property of
         # the edge *pair*, so one flat end buys nothing.
-        assert int((real_maps.floored & real_maps.pinned).sum()) == 256
+        # 256 sensory edge-ends, plus the actuator's three, which #474 made
+        # attainable when `boundary_m` went 8 -> 4 (see the exclusion test
+        # above). It read 256 on the `boundary_m = 8` surface.
+        assert int((real_maps.floored & real_maps.pinned).sum()) == 259
 
     def test_a_pinned_map_still_leaves_the_projection_at_exactly_one(self, real_maps):
         real_maps.project()
@@ -444,9 +520,11 @@ class TestTheSpectralFloor:
         widths = torch.tensor(
             [[float(edge.m)] * 2 for edge in real_maps.dome.edges]
         ).reshape(-1)
-        nine = ~real_maps.floored & real_maps.pinned & (widths > 1)
-        assert int(nine.sum()) == 9
-        assert torch.all(real_maps.flatness()[nine] < 1e-5)
+        unreachable = ~real_maps.floored & real_maps.pinned & (widths > 1)
+        # Six since #474, and nine before it: the actuator's three left this set
+        # for the floored one when `boundary_m` went 8 -> 4.
+        assert int(unreachable.sum()) == 6
+        assert torch.all(real_maps.flatness()[unreachable] < 1e-5)
 
     def test_where_the_cap_bites_the_floor_is_given_up_and_recovered(self, real_maps):
         # The price of the ordering, measured rather than asserted away. Under

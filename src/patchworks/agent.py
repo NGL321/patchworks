@@ -29,7 +29,7 @@ out-of-graph module that does, because that specific act is what cells exist to
 do. What this module does instead is layout and unit conversion: a 4×4 patch of
 the render laid into a patch cell's 48 components raw, and radians, radians per
 second, a contact scalar and a normalised torque laid into their own stalks. The
-compression is the patch cell's own 48 → 8 restriction, performed by a cell,
+compression is the patch cell's own 48 → 4 restriction, performed by a cell,
 inside the graph, costing a tick.
 """
 

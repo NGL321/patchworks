@@ -293,6 +293,20 @@ about their magnitude: the relative objective is computed edge by edge and no te
 incident maps together. So this is again *fixing an unidentified parameter*, not capping a learned one,
 and the argument this ADR already makes for `ρ` carries over unchanged.
 
+*Corrected by [#228](https://github.com/NGL321/patchworks/issues/228), 2026-09-04, and the correction
+is narrower than it looks. **The premise is measurably false at a cell whose whole incidence is
+pinned.** At the actuator the three incident maps reach **99.6% of the fully-coherent ceiling
+`g_v²·deg`** by 100k taught ticks ([#439](https://github.com/NGL321/patchworks/issues/439)) — so
+something does have an opinion about their arrangement, and it arrives through **shared data** rather
+than through any term that sees two incident maps together, which is exactly why no such term had to
+exist for it to happen. The paragraph above survives **for the cells the projection reaches**: there
+the maps have scale freedom, the projection spends it, and fixing `c` is still fixing an unidentified
+parameter. Where it does not survive, the answer is not to enforce the arrangement anyway — a
+projection there would be capping a learned parameter every tick against a pressure that keeps
+re-applying, which is the thing this paragraph says the term is not doing — but to stop asserting the
+arrangement and read the one the surface actually reaches. See* ***Pinned maps are out of reach***
+*below, which is where that reading now lives.*
+
 **Why 2, and why not tighter.** `c = 2` is conservative on purpose: it is the value **levels 4–7
 already satisfy untouched**, so the term does corrective work at three levels rather than fighting the
 whole surface. The measured spread leaves headroom down to a practical floor of ~1.05, set by the
@@ -324,7 +338,8 @@ load-bearing half.*
 **The floor is not optional, and the drive cell is why.** `c` is applied as
 
 ```
-c_v  =  min( deg(v), max( c, ⌈deg(v) / n_v⌉ ) )
+c_v  =  deg(v)                                     where every incident map of v is pinned (#228)
+     =  min( deg(v), max( c, ⌈deg(v) / n_v⌉ ) )    otherwise
 ```
 
 The drive cell carries `deg = 8` incident maps on a stalk of dimension 1. Eight directions cannot be
@@ -340,6 +355,45 @@ graph that is not this one, and the clamp is kept for that reason rather than fo
 gauge, so there is no freedom for a projection to spend: no incoherence term applies to a pinned map.
 Those cells gain from the gain's correction — their bound was `deg(v)` all along while `8 · deg(v)` was
 applied — but they gain it from `g_v = 1`, not from this section.
+
+**So `c_v = deg(v)` wherever every one of a cell's incident maps is pinned.** Added by
+[#228](https://github.com/NGL321/patchworks/issues/228), 2026-09-04; the choice of the clamp over a
+rotation projection, and the phrasing of the condition, were **ceded** — the same incoherence
+machinery whose value and pigeonhole floor were ceded at
+[#194](https://github.com/NGL321/patchworks/issues/194), and the recommendations taken unchanged.
+
+Where a cell has no scale freedom anywhere on its incidence, nothing runs and **no smaller count is
+enforced by anything**, so a smaller count is an assertion the ADR has no mechanism behind. `deg(v)` is
+the fully-coherent bound and the exact gauge makes `Σ_e ‖F‖_F² = deg(v)` an equality, so it is true
+whatever arrangement the maps reach — the same argument that already makes the bound true at the 263
+boundary cells the global `c` never bound. **On this dome it moves exactly one cell**, the actuator:
+`deg = 3` on a stalk of 6, `c_v` 2 → 3, reconciliation gain `0.5γ → 0.333γ`, and
+[#190](https://github.com/NGL321/patchworks/issues/190)'s credit there 12.0x → 8.0x, which makes that
+correction 8.00x uniformly across the 263 boundary cells whose lanes are 8 wide rather than 8.00x with
+one graded exception. (The drive is the fourth case and is untouched: its eight lanes are `m = 1`, so
+`Σ_e m_e = deg(v)` there already and the swap was worth 1.00x before this ruling and after it.)
+
+**A rotation projection was the alternative and it is declined.** A per-map *orthogonal* right-transform
+preserves `‖F‖_F` exactly, so it costs a pinned map nothing, and the objection in `_push_apart`'s note —
+that a per-map transform "would have no such common support" — does not bite, since all of a cell's
+incident maps share one structural mask. It is declined on the reading rather than the mechanics: at a
+cell where the objective drives the maps coherent, capping the arrangement every tick is capping a
+learned parameter, which falsifies this section's stated warrant while keeping its number. See the
+correction under *`c` is a constant of the gauge* above. The clamp instead runs no mechanism at all.
+
+**The condition is pinned incidence, not `is_boundary` and not the actuator.** The three coincide on
+`DEFAULT_SPEC` and diverge off it, and stage 5's graph is not this dome. Stated structurally, a
+**partly** pinned cell — some scale freedom, but not at every incident map — is visibly *not* covered
+and becomes a question someone has to ask, rather than a silent pass under a rule phrased as *boundary
+cells*. Nothing on this dome is partly pinned; the phrasing is what keeps that from being assumed
+forever. `patchworks.restriction.pinned_incidence` is the condition, read one map at a time through the
+single `map_is_pinned` definition this ADR's pinning test lives in.
+
+**What it does not touch.** `c` itself stays 2, and nothing here reopens the value or the pigeonhole
+floor ceded at #194 — at the drive the floor already produces `c_v = deg`, and this rule agrees with it
+there rather than competing. The interior is untouched: the projection holds every predicting cell
+exactly, verified at every cell on the real dome
+([#220](https://github.com/NGL321/patchworks/issues/220)), and the water-fill keeps running there.
 
 ### Frobenius, not spectral — and therefore no rank floor
 

@@ -49,8 +49,10 @@ __all__ = [
     "RestrictionMaps",
     "cell_gauges",
     "gain_denominators",
+    "map_is_pinned",
     "overlap_counts",
     "pair_index",
+    "pinned_incidence",
 ]
 
 #: @type stipulated
@@ -104,8 +106,42 @@ def cell_gauges(dome: Dome, *, rho: float = GAUGE_RHO) -> torch.Tensor:
     )
 
 
+def map_is_pinned(dome: Dome, edge_id: int, cell_id: int) -> bool:
+    """Whether the map `cell_id` holds into `edge_id` carries the exact gauge.
+
+    The one definition of *pinned*, read per **map** rather than per cell.
+    ADR-0010 pins a boundary cell's own maps and lets every other map carry the
+    band, so the test is who *holds* the map and not what the edge connects: the
+    predicting end of a sensory edge is an ordinary interior map.
+    :class:`RestrictionMaps`, :func:`cell_gauges` and :func:`pinned_incidence`
+    all read pinnedness through here, so a graph that pins on some finer test
+    changes this function and nothing else.
+    """
+    dome.edges[edge_id].other(cell_id)  # raises if the cell is not an endpoint
+    return dome.cells[cell_id].is_boundary
+
+
+def pinned_incidence(dome: Dome) -> tuple[bool, ...]:
+    """`[cells]`: whether **every one** of a cell's incident maps is pinned.
+
+    The condition :func:`overlap_counts` raises `c_v` to `deg(v)` on, ruled by
+    [#228](https://github.com/NGL321/patchworks/issues/228). It is stated over
+    the incidence one map at a time on purpose. A cell with scale freedom
+    somewhere on its incidence but not everywhere — **partly** pinned — is
+    neither covered here nor silently swept in, so it becomes a question someone
+    has to ask rather than a case that passes under a rule phrased as *boundary
+    cells*. Nothing on `DEFAULT_SPEC` is partly pinned; stage 5's graph is not
+    this dome.
+    """
+    return tuple(
+        all(map_is_pinned(dome, edge_id, cell.id) for edge_id in dome.incident[cell.id])
+        for cell in dome.cells
+    )
+
+
 def overlap_counts(dome: Dome, *, c: int = GAUGE_C) -> torch.Tensor:
-    """`[cells]`: `c_v = min(deg(v), max(c, ceil(deg(v) / n_v)))`.
+    """`[cells]`: `deg(v)` where the whole incidence is pinned, else
+    `min(deg(v), max(c, ceil(deg(v) / n_v)))`.
 
     The effective overlap count the gain divides by, with both of its clamps
     (`docs/adr/0010-restriction-map-scale-is-gauge-fixed.md`, *The floor is not
@@ -115,17 +151,28 @@ def overlap_counts(dome: Dome, *, c: int = GAUGE_C) -> torch.Tensor:
     bound at the drive, which carries 8 maps on a stalk of dimension 1. The
     outer `min` keeps the result inside the bound the band alone already gave.
 
-    **Where `c_v < deg(v)` at a boundary cell, nothing enforces it.**
+    **`c_v = deg(v)` wherever every one of a cell's incident maps is pinned**,
+    ruled by [#228](https://github.com/NGL321/patchworks/issues/228).
     :meth:`RestrictionMaps.project` reaches only the maps with scale freedom to
-    spend, which is the predicting cells'. On this dome that is one cell, the
-    actuator, and it is measured rather than constructed; the note on
-    :meth:`RestrictionMaps._push_apart` carries the reading and #228 carries the
-    question.
+    spend, so at such a cell no smaller count is enforced by anything — and the
+    exact gauge makes `Σ_e ‖F‖_F² = deg(v)` an equality, which is the
+    fully-coherent bound and true unaided. It is not a hedge: at the actuator
+    the three maps reach 99.6% of that ceiling by 100k taught ticks
+    ([#439](https://github.com/NGL321/patchworks/issues/439)), so a smaller
+    count there is not loose but **false**. The condition is *pinned incidence*
+    rather than `is_boundary` or *the actuator* — see :func:`pinned_incidence`
+    for why the three are not interchangeable off this dome.
+
+    On `DEFAULT_SPEC` this moves exactly one cell, the actuator, from 2 to 3;
+    every other boundary cell already sat at `deg(v)`, by `deg = 1` or, at the
+    drive, by the pigeonhole floor.
     """
     return torch.tensor(
         [
-            float(min(deg, max(c, -(-deg // cell.stalk))))
-            for cell, deg in zip(dome.cells, dome.degrees, strict=True)
+            float(deg if pinned else min(deg, max(c, -(-deg // cell.stalk))))
+            for cell, deg, pinned in zip(
+                dome.cells, dome.degrees, pinned_incidence(dome), strict=True
+            )
         ],
         dtype=torch.float32,
     )
@@ -189,8 +236,9 @@ class RestrictionMaps(torch.nn.Module):
         )
         owner = torch.zeros(self.pairs, dtype=torch.long, device=device)
         # A boundary cell's own maps are pinned; every other map carries the
-        # band. The test is who *holds* the map, not what the edge connects, so
-        # the predicting end of a sensory edge is an ordinary interior map.
+        # band. The test is :func:`map_is_pinned`, which is also what
+        # :func:`overlap_counts` reads when it asks whether a cell's *whole*
+        # incidence is pinned -- one definition, so the two cannot drift apart.
         pinned = torch.zeros(self.pairs, dtype=torch.bool, device=device)
         blocks: list[tuple[int, int]] = [(0, 0)] * self.pairs
         for edge in dome.edges:
@@ -199,7 +247,7 @@ class RestrictionMaps(torch.nn.Module):
                 permitted = dome.restriction_mask(edge.id, cell_id).to(device)
                 support[i, : edge.m, : permitted.numel()] = permitted
                 owner[i] = cell_id
-                pinned[i] = dome.cells[cell_id].is_boundary
+                pinned[i] = map_is_pinned(dome, edge.id, cell_id)
                 # The active block, which is what the spectral floor is stated
                 # on: `m_e` rows against the `k_v` columns the mask leaves open.
                 # The mask is a prefix and it is applied to every row alike, so
@@ -254,10 +302,20 @@ class RestrictionMaps(torch.nn.Module):
         # `σ_min = 0` there whatever the projection does and the projection
         # would shrink `‖F‖_F` by `√(k/m)` — fighting the exact gauge rather
         # than sitting beside it. Those masks are excluded by name, computed
-        # here from the mask rather than listed: on `DEFAULT_SPEC` they are the
-        # nine ADR-0032 names, all pinned — three touch (`m = 8, k = 1`), three
-        # proprioceptive (`8, 2`) and the actuator's three (`8, 6`); see
-        # `prototypes/mask-attainability-415/`.
+        # here from the mask rather than listed: on `DEFAULT_SPEC` they are
+        # **six**, all pinned — three touch (`m = 4, k = 1`) and three
+        # proprioceptive (`4, 2`); see `prototypes/mask-attainability-415/`.
+        #
+        # **They were nine, and `boundary_m` 8 → 4 released three of them**
+        # ([#474](https://github.com/NGL321/patchworks/issues/474), written by
+        # #483). The actuator's three maps sat at `(m = 8, k = 6)` and were
+        # unattainable by one column short; at `(4, 6)` the mask contains a
+        # co-isometry and they now take the floor like any other map. Nothing
+        # here was edited to do that — the population is computed from the mask,
+        # which is the property #415 built it for. ADR-0032's ledger names nine;
+        # that figure was read on the `boundary_m = 8` surface and is a fact
+        # about a build that no longer exists (`docs/agents/domain.md`, *An ADR
+        # quoting a measured figure names its surface*).
         #
         # **`m = 1` is skipped because the floor is vacuous there**, not
         # because it is unattainable: one singular value is `‖F‖_F/√1`
@@ -501,20 +559,18 @@ class RestrictionMaps(torch.nn.Module):
         cells get their correction from `g_v = 1` instead, which is
         :func:`cell_gauges`' business and not this one.
 
-        **And that leaves exactly one cell on this dome whose target is held by
-        measurement rather than by construction: the actuator.** Every other
-        boundary cell has `deg(v) = 1` or, at the drive, a pigeonhole floor that
-        raises `c_v` to `deg(v)`, and at `c_v = deg(v)` the exact gauge makes
-        `Σ_e ‖F‖_F² = deg(v)` an equality and the bound true unaided. The
-        actuator carries `deg = 3` on a stalk of 6, so `c_v` is the global `c`
-        of 2 while nothing pushes its three maps apart; the fully-coherent
-        arrangement would put `λ_max` at 3. Measured, it is **1.0164 at
-        construction and 1.0029 after 5,000 taught ticks, against a target of
-        2.0** — it holds with 1.97x to spare and does not drift toward coherence
-        over a run, so nothing here is unsafe today. It is recorded rather than
-        quietly corrected because the correction would be a change to a ruled
-        denominator (#190) and this is a build, not a ruling; :meth:`gram_peaks`
-        is what reads it. See #228.
+        **And no cell on this dome is left holding its target by measurement.**
+        Where a cell's whole incidence is pinned, :func:`overlap_counts` sets
+        `c_v = deg(v)`, and at `c_v = deg(v)` the exact gauge makes
+        `Σ_e ‖F‖_F² = deg(v)` an equality: that is the fully-coherent bound, so
+        it is true unaided whatever arrangement the maps reach. #228 ruled it
+        after the actuator — `deg = 3` on a stalk of 6, the one boundary cell
+        the old `c_v = 2` did not already agree with `deg(v)` on — was measured
+        drifting **into** coherence rather than away from it, 99.6% of the
+        `g_v²·deg` ceiling by 100k taught ticks
+        ([#439](https://github.com/NGL321/patchworks/issues/439)). The 5,000-tick
+        reading that once stood here inverted; :meth:`gram_peaks` is what reads
+        it, and there is no longer a cell for it to catch.
         """
         if self.hold_pairs.numel() == 0 or self.hold_width == 0:
             return

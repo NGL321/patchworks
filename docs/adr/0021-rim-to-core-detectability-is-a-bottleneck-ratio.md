@@ -175,8 +175,10 @@ accumulated along the path up to that edge is cumulative. There is no per-hop nu
 
 The "~0.37 per hop" was an artifact of assuming a single floor and a uniform hop, and both are known
 false: #158's floors are non-monotonic across levels, and after
-[#190](https://github.com/NGL321/patchworks/issues/190) the gain is graded 2.50x at the apex to 12.0x
-at the actuator.
+[#190](https://github.com/NGL321/patchworks/issues/190) the gain is graded 2.50x at the apex to 8.00x
+at the boundary. (The actuator read 12.0x until
+[#228](https://github.com/NGL321/patchworks/issues/228) removed its exception; the grading, which is
+all this paragraph rests on, is unchanged.)
 
 **Per-edge, not per-level, and the reason generalises past this decision:**
 
@@ -213,7 +215,8 @@ derivation, and a `k = 3` chosen today would be that number's successor by anoth
 ### Two predicates, not one fourteen-hop chain
 
 Rim→apex and apex→rim are stated and evaluated **separately**. The two directions do not share a
-gain: #190 priced the denominator swap at 2.50x at the apex against 12.0x at the actuator, so the path
+gain: #190 priced the denominator swap at 2.50x at the apex against 8.00x at the actuator (12.0x until
+[#228](https://github.com/NGL321/patchworks/issues/228)), so the path
 is **asymmetric by construction**, and a single chain would hide which half failed.
 
 Forward-only was rejected because it cannot express the claim being made. That claim was *reaches the

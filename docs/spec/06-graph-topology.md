@@ -145,7 +145,7 @@ rather than to this one.
 - **Drive.** One edge from the drive boundary cell to each of the eight L7 cells — see *Where the
   drive attaches*, below.
 - **Actuator.** One motor edge from the actuator boundary cell to the L1 somatomotor cell covering
-  **each** joint's proprioception — three, at `m = 8`. Every other sensorimotor boundary cell has
+  **each** joint's proprioception — three, at `m = 4`. Every other sensorimotor boundary cell has
   exactly one edge; the actuator is the single exception, and it is what makes the reflex loop three
   ticks at every joint rather than at whichever one happened to share the actuator's L1 cell
   ([#83](https://github.com/NGL321/patchworks/issues/83)).
@@ -275,8 +275,8 @@ hand-specified wiring for something that should follow from position.
 |---|---|
 | node stalk of a predicting cell, `n` | 32 |
 | chart, `k` | 12 |
-| typical interior lane, `m` | 4 |
-| boundary lane, `m` | 8 |
+| typical interior lane, `m` | 3 |
+| boundary lane, `m` | 4 |
 | drive lane, `m` | 1 |
 | sensory patch | 4×4 px RGB → node stalk **48** |
 | proprioceptive cell | node stalk **2** (angle, velocity) |
@@ -308,24 +308,67 @@ the batch. See [ADR-0006](../adr/0006-boundary-cell-stalks-are-world-shaped.md).
 **The world only ever touches node stalks.** There is no edge between the world and the graph; the
 world is not a cell and holds no restriction map. Every lane in the graph, including those
 incident on boundary cells, is ordinary and `m`-sized, reached by an ordinary linear masked
-restriction map. A patch cell's 48 → 8 restriction *is* the compression of that patch, performed by a
+restriction map. A patch cell's 48 → 4 restriction *is* the compression of that patch, performed by a
 cell, inside the graph, costing a tick.
 
-Boundary edges are given `m = 8` against the interior's 4 for a specific reason: a patch cell's edges
+Boundary edges are given `m = 4` against the interior's 3 for a specific reason: a patch cell's edges
 are the only route that patch's information ever takes, unlike an interior cell, which is reachable
 many ways.
 
-**Of the four committed dimensions, `m = 4` has the least theoretical headroom.**
-[#32](https://github.com/NGL321/patchworks/issues/32) found `n = 32`, `k = 12` and `m = 8` all
-comfortable and `m = 4` thin: the one dimensionally commensurate body of theory (delay embedding) puts
-the governing quantity at **twice the box-counting dimension** of the piece being carried, so an
-interior lane of 4 supports a shared piece of box dimension under 2, and **no source was found
-either way** on whether that is enough. Recorded rather than acted on, for two reasons: `m` is the
-*first* rung on [#14](https://github.com/NGL321/patchworks/issues/14)'s constraint ladder, so it is the
-cheapest exposure in the design to carry; and widening it trades against delay and size directly —
-every interior lane widened raises `Σ_e m_e` — the cell's communication bus — at every cell, which
-lowers the per-cell reconciliation gain and eats the private dimension the taper exists to produce.
-If a piece turns out not to fit through 4, that is the rung to pull first.
+**Neither number is free-standing, and both are derived from one invariant.**
+[#474](https://github.com/NGL321/patchworks/issues/474) set them jointly, from the construction
+invariant this file now owns — **`Σ_e m_e ≤ n − 1` at every predicting cell**, which is
+`05-timescales.md`'s `dim H⁰` bound read as a floor of 1 rather than as a total. The rule that picks
+a point on it is *spend the least possible on the thinnest dimension*: **take the largest feasible
+`interior_m`, then the largest `boundary_m` that clears.** The binding cell is L1 vision at degree 9 —
+4 rim + 4 lateral + 1 up — where the invariant reads `4·boundary_m + 5·interior_m ≤ 31`, and the
+feasible frontier is exactly three points: **(3, 4)**, (2, 5) and (1, 6). A session re-deriving the
+pair should land on (3, 4) and not on the other two. `interior_m = 4` appears nowhere on that
+frontier — not because `boundary_m` cannot be made small enough, but because the 12 L2 vision cells
+sit at `8 × interior_m` with **no boundary edge at all**, so `boundary_m` cannot reach them at any
+value.
+
+**The 2x was demoted, not dropped by accident.** These lanes were `8` against `4`, *twice the
+interior's deliberately*, and the **reason above is unchanged and still stated in the same words**:
+a boundary cell's edges are the only route its information ever takes. What #474 changed is what that
+reason buys — an **ordering** rather than a multiple. 4 against 3 is still wider. (2, 5) would have
+preserved a ratio above 2 by spending a second unit on the thinnest dimension in the design, and the
+ratio is an implementation of the reason rather than the reason itself.
+
+**Of the four committed dimensions, `m` has the least theoretical headroom, and this ruling spent
+some of it.** [#32](https://github.com/NGL321/patchworks/issues/32) found `n = 32`, `k = 12` and
+`m = 8` all comfortable and `m = 4` thin: the one dimensionally commensurate body of theory (delay
+embedding) puts the governing quantity at **twice the box-counting dimension** of the piece being
+carried, so an interior lane of 4 supported a shared piece of box dimension under 2 — and at 3 that
+reading is **1.5**, with **no source found either way** on whether either is enough. `m` is the
+*first* rung on [#14](https://github.com/NGL321/patchworks/issues/14)'s constraint ladder and the rung
+to pull first if a piece turns out not to fit through it. #474 pulled it, **downward**: the ladder was
+priced for widening, and the private floor was worth one unit in the other direction. One unit, not
+two — [#440](https://github.com/NGL321/patchworks/issues/440) has re-opened whether the piece has a
+box dimension at all, having split `piece` from `situation set`, so the quantity this reading governs
+is itself live. The trade runs both ways and is the same trade: every interior lane widened raises
+`Σ_e m_e` — the cell's communication bus — at every cell, which lowers the per-cell reconciliation
+gain and eats the private dimension the taper exists to produce; every lane narrowed buys that
+dimension back.
+
+**The exposure this takes, stated rather than buried: the patch's compression goes 6:1 to 12:1.**
+This file accepted `48 → 8` and **rejected 24:1 in this same section**, when it rejected 8×8 patches
+on the ground that *the boundary restriction map would be squeezing 192 → 8 in a single linear step*
+(*Tiling granularity*, below). **12:1 sits between the two and has never been ruled on**, and that is
+the honest statement of what #474 knowingly took. The counterweight is aggregate rather than
+per-patch: rim bandwidth halves, 2048 lanes to 1024, against this file's own yardstick of *a world
+whose state is about twenty numbers* — so the aggregate is still ~50x the world's state, and what is
+exposed is the single patch cell's linear step, not the fleet's bandwidth. If the 12:1 later proves to
+be what breaks, the thing to reach for is **one patch per L1 cell**, which #474 declined on the route
+rather than ruling out of scope: it attacks the actual cause, the fan-in of four rim edges into each
+L1 vision cell, and it was declined because that fan-in is the patchwork thesis at the seam
+(*Tiling granularity*) rather than because it does not work.
+
+**Narrowing lanes is transmission-neutral, and buys no gain.** Worth stating because the arithmetic
+invites the opposite conclusion: an older form of the per-cell gain divided by `Σ_e m_e`, under which
+this edit would read as a free 1.44x. [#189](https://github.com/NGL321/patchworks/issues/189)/[#190](https://github.com/NGL321/patchworks/issues/190)
+removed `Σ_e m_e` from the gain outright, and `02-tick-semantics.md` reads
+`gain_v = γ / (g_v² · c_v)`. No transmission bonus is claimed here.
 
 **The drive edge is the exception, and in the other direction.** It is a boundary edge at `m = 1`,
 because the argument above is about *bandwidth the world needs* and the drive is not the world: it
@@ -348,31 +391,53 @@ simple to need division.
 exactly the way that lets the architecture pass without being tested, and the boundary restriction
 map would be squeezing 192 → 8 in a single linear step.
 
+**The second half of that rejection was read at `boundary_m = 8` and has since got stronger, not
+weaker.** At today's `boundary_m = 4` an 8×8 patch would be 192 → 4, **48:1**, against the 24:1 this
+section refused. The rejection stands on its own first ground regardless; what moved is that
+[#474](https://github.com/NGL321/patchworks/issues/474) narrowed the lane the argument measures, and
+in doing so took the 4×4 patch itself from 6:1 to **12:1** — halfway to the compression this
+paragraph calls too much (*Dimensions*, above). That is the one place in this file where #474's
+exposure and this section's own bar are the same quantity, and nothing reconciles them yet.
+
 ### Private dimension is a gradient, and it falls out
 
 `05-timescales.md`'s bound `dim H⁰ ≥ Σ_v max(0, n − Σ_{e∋v} m_e)` applied to the levels above:
 
 | cell | degree | `Σ_e m_e` | guaranteed private dimension |
 |---|---|---|---|
-| L1 vision (interior) | 4 down + 4 lateral + 1 up = 9 | 4×8 + 4×4 + 4 = 52 | 0 |
-| L1 vision (lattice corner) | 4 + 2 + 1 = 7 | 32 + 8 + 4 = 44 | 0 |
-| L2 vision (interior) | 4 + 4 + 1 = 9 | 4×4 + 4×4 + 4 = 36 | 0 |
-| L2 vision (lattice corner) | 4 + 2 + 1 = 7 | 16 + 8 + 4 = 28 | **4** |
-| L3–L6 core | ~6 | ~24 | ~8 |
-| L7 apex | ~4 + 1 drive edge | ~16 + 1 = 17 | **15** |
+| L1 vision (interior) | 4 down + 4 lateral + 1 up = 9 | 4×4 + 4×3 + 3 = 31 | **1** |
+| L1 vision (lattice edge) | 4 + 3 + 1 = 8 | 16 + 9 + 3 = 28 | **4** |
+| L1 vision (lattice corner) | 4 + 2 + 1 = 7 | 16 + 6 + 3 = 25 | **7** |
+| L1 somatomotor | 7–8 | 22–26 | **6 and 10** |
+| L2 vision (interior) | 4 + 4 + 1 = 9 | 4×3 + 4×3 + 3 = 27 | **5** |
+| L2 vision (lattice edge) | 4 + 3 + 1 = 8 | 12 + 9 + 3 = 24 | **8** |
+| L2 vision (lattice corner) | 4 + 2 + 1 = 7 | 12 + 6 + 3 = 21 | **11** |
+| L3–L6 core | ~6 | ~18 | **14** |
+| L7 apex | ~4 + 1 drive edge | ~12 + 1 = 13 | **19** |
 
-**Guaranteed private dimension is zero at the rim and rises to about fifteen at the apex.** Slow state
-lives deep by construction, which is precisely the gradient `05-timescales.md` wanted and did not have
-a mechanism for.
+Measured from the built graph on `DEFAULT_SPEC`, `n = 32`, at `interior_m = 3`, `boundary_m = 4`.
 
-Two corrections to how that sentence used to read, neither of which moves the headline:
+**Guaranteed private dimension is one at the thinnest cell in the graph and rises to nineteen at the
+apex.** Slow state lives deep by construction, which is precisely the gradient `05-timescales.md`
+wanted and did not have a mechanism for.
 
-- **"Zero at the rim" has exceptions at the corners.** The four corner cells of the 4×4 L2 lattice
-  have only two lateral neighbours, which leaves them `Σ_e m_e = 28` and a guaranteed private
-  dimension of **4**. Small, and it argues nothing — but the unqualified "zero at the rim" was false,
-  and the four cells with structural privacy at L2 are worth knowing about if the private-component
-  readout is ever run per-cell rather than per-level.
-- **It is a step, not a ramp.** 0 at the vision levels, ~8 flat across L3–L6, 15 at the apex. Degree
+**It is nowhere zero, and that is [#474](https://github.com/NGL321/patchworks/issues/474)'s doing.**
+This table used to read `0` for every vision row, and 82 of the 150 predicting cells had no private
+width at all. The lanes above were `8` and `4`; they are now `4` and `3`, derived from
+`Σ_e m_e ≤ n − 1` — the invariant whose whole content is that this column is never zero. The floor is
+**`p_v ≥ 1`** and nothing above 1 is claimed: the 36 binding cells sit exactly at 1, which is a
+derived non-zero rather than a chosen margin.
+
+Two corrections to how the headline used to read, neither of which moves it:
+
+- **The rim's exceptions are no longer exceptional.** The four corner cells of the 4×4 L2 lattice
+  have only two lateral neighbours, which used to leave them the graph's only structural privacy
+  outside the core, at **4** against a rim of zeroes. They now sit at **11**, and every cell around
+  them is non-zero too, so the corner is a high point on a gradient rather than an exception to a
+  flat zero. Still worth knowing about if the private-component readout is run per-cell rather than
+  per-level, and for the opposite reason: it is where the rim has the most, not the only place it has
+  any.
+- **It is a step, not a ramp.** 1–11 at the vision levels, 14 flat across L3–L6, 19 at the apex. Degree
   falls at the apex and nowhere else in the core, so nothing about this gradient is smooth.
   [#41](https://github.com/NGL321/patchworks/issues/41) already half-said this from the other
   direction — the gradient is one in *means*, with adjacent depths overlapping per tick — and the
@@ -380,59 +445,85 @@ Two corrections to how that sentence used to read, neither of which moves the he
   through the core. It is not designed here; it falls out of the taper, because rim-adjacent cells are
 necessarily high-degree — an L1 vision cell must read four patches — and depth reduces degree.
 
-Zero *guaranteed* private dimension is not zero private dimension: the bound is a lower bound, and
-learned rank-deficiency enlarges `H⁰` past it. What the gradient says is that near the rim a cell's
-privacy is contingent on learning, and deep it is structural.
+A *guaranteed* private dimension is a lower bound, and learned rank-deficiency used to be read as
+enlarging `H⁰` past it. What the gradient says is that near the rim a cell's privacy is thin, and deep
+it is broad — but at every cell it is now **structural**, which is the change #474 made.
 
 *Amended by [ADR-0032](../adr/0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md):
 the slack this paragraph leans on largely closes.* A map held to the spectral floor has rank exactly
 `m`, so no single map contributes a dead direction to `H⁰` any more. What excess can survive comes from
 misalignment across a cell's **incident** maps rather than from deficiency within one of them — and
 `GAUGE_C` pushes that the other way, because incoherence raises the stacked operator's rank. So near
-the rim privacy stops being contingent on learning and becomes what construction says it is, which for
-the cells with `Σ_e m_e ≥ n` is zero. [#385](https://github.com/NGL321/patchworks/issues/385) owns what
-follows.
+the rim privacy stops being contingent on learning and becomes what construction says it is.
+**#474 is why that is now a floor rather than a cliff**: with the maps' slack closed, `p_v` is all a
+rim cell has, and construction sets it to at least 1 everywhere rather than to 0 at 82 cells.
+[#385](https://github.com/NGL321/patchworks/issues/385) ruled that this was the mask's to supply and
+[#474](https://github.com/NGL321/patchworks/issues/474) supplied it.
 
-#### The zero row is two populations, and only one of them is reachable from the interior
+#### The zero row was two populations, and what released each of them
 
-*Written by [#475](https://github.com/NGL321/patchworks/issues/475), on
-[#385](https://github.com/NGL321/patchworks/issues/385)'s ruling.* The table above carries **one**
-zero row for L1 vision, and it hides the fact that matters: **82 of the 150 predicting cells have
-`p_v = 0`, and `interior_m` reaches 18 of them and cannot reach the other 64 at any value.**
+*Written by [#475](https://github.com/NGL321/patchworks/issues/475) on
+[#385](https://github.com/NGL321/patchworks/issues/385)'s ruling, while the zero stood; amended by
+[#474](https://github.com/NGL321/patchworks/issues/474), which released it.* **There is no zero row
+now** — the table above reads 1 at its thinnest. This subsection is kept as the record of **why the
+pin existed and what released it**, because the analysis is what selected the pair of knobs, and a
+session re-deriving `interior_m` and `boundary_m` needs it.
 
-| population | cells | what fills the bus | of which non-interior | does `interior_m` reach it? |
+**The pin, as it stood.** 82 of the 150 predicting cells had `p_v = 0`, and they were two
+populations, not one: **`interior_m` reached 18 of them and could not reach the other 64 at any
+value.**
+
+| population | cells | what filled the bus | of which non-interior | did `interior_m` reach it? |
 |---|---|---|---|---|
 | **L1 vision** | **64** | 4 rim edges × `boundary_m` = 8, plus lateral and up | 44–52, of which **32 is rim-side alone** | **No**, at 4, 1 or 0 alike |
-| L1 somatomotor | 6 | 1–2 rim edges plus interior | 0–16 | Yes — `interior_m` 3 clears 3 of them, 2 clears all 6 |
-| L2 vision (lattice edge and interior) | 12 | interior only, degree 8–9 | 0 | Yes — `interior_m` 3 clears all 12 |
+| L1 somatomotor | 6 | 1–2 rim edges plus interior | 0–16 | Yes — `interior_m` 3 cleared 3 of them, 2 cleared all 6 |
+| L2 vision (lattice edge and interior) | 12 | interior only, degree 8–9 | 0 | Yes — `interior_m` 3 cleared all 12 |
 
-**For the 64 the communication bus is full before a single interior edge is counted.**
-`4 × boundary_m = 4 × 8 = 32 = n`, so `p_v = max(0, n − Σ_e m_e)` is `0` whatever the interior does:
-dropping `interior_m` to 1, or to 0, leaves all 64 exactly where they are. **Lateral degree is
+**For the 64 the communication bus was full before a single interior edge was counted.**
+`4 × boundary_m = 4 × 8 = 32 = n`, so `p_v = max(0, n − Σ_e m_e)` was `0` whatever the interior did:
+dropping `interior_m` to 1, or to 0, left all 64 exactly where they were. **Lateral degree was
 powerless there too** — the lattice corner, edge and interior cells differ by two lateral neighbours
-and all three read 0, because the rim edges alone have already exhausted the stalk.
+and all three read 0, because the rim edges alone had already exhausted the stalk.
 
-**So this section's own framing is right and incomplete.** *Rim-adjacent cells are necessarily
+**So this section's own framing was right and incomplete.** *Rim-adjacent cells are necessarily
 high-degree — an L1 vision cell must read four patches* is true, and it points at the **count** of
 neighbours when the binding quantity is the rim edges' **width**. A cell reading four patches through
-lanes of 2 would have `p_v = 24`; it is `boundary_m = 8`, deliberately *twice the interior's*, that
-makes four of them fill `n` exactly.
+lanes of 2 would have `p_v = 24`; it was `boundary_m = 8`, deliberately *twice the interior's*, that
+made four of them fill `n` exactly.
 
-**What is left, for `p_v ≥ 1` at those 64**, at today's L1 degree of 4 rim + 4 lateral + 1 up:
+**What released it was neither knob alone.** The three candidates this subsection first listed —
+`boundary_m ≤ 2`, `n ≥ 53`, one patch per L1 cell — read as exhaustive and were not. They are the
+**`boundary_m`-only slice of a two-variable constraint**, and the constraint is:
 
-- `boundary_m ≤ 2` — a 24x compression of a 48-dimensional patch, against this file's deliberate
-  *twice the interior's*.
-- `n ≥ 53` with `boundary_m` held — every cell's node stalk and every `K` widened, not just L1's.
-- **one patch per L1 cell** — `p_v = 4` outright, and four times as many L1 cells.
+> **`4·boundary_m + 5·interior_m ≤ n − 1 = 31`** at the binding cell, L1 vision at degree 9.
 
-Three knobs, each a rebuild of the rim's compression rather than a constant to re-price, which is
-why **none of them is chosen here**. `n`, `boundary_m` and `interior_m` are untouched by #475;
-[#474](https://github.com/NGL321/patchworks/issues/474) is the decision that moves one or rules that
-none moves. What this section now records is the constraint: **`p_v` at the rim is a construction
-quantity nobody has set**, not a residual, and the first rung on
-[#14](https://github.com/NGL321/patchworks/issues/14)'s constraint ladder does not reach it.
+Its feasible frontier is exactly **`(interior_m, boundary_m) ∈ {(3,4), (2,5), (1,6)}`**, and #474 took
+`(3, 4)` by *spend the least possible on the thinnest dimension*. Two things follow that the
+`boundary_m`-only reading could not see:
 
-`χ = Σ_v n − Σ_e m_e` over predicting cells is **+1036**, measured from the built graph. The eight
+- **`interior_m = 4` is infeasible at *every* `boundary_m`**, not merely awkward. The 12 L2 vision
+  cells in the table above sit at `8 × interior_m` with **no boundary edge at all** — the row is
+  already here, and its consequence was not drawn. `4·boundary_m + 20 ≤ 31` needs `boundary_m ≤ 2`,
+  and `boundary_m = 2` still strands those 12. So `interior_m` had to move whatever else happened.
+- **`boundary_m ≤ 2` was an artifact of holding `interior_m` at 4.** With the pair swept jointly the
+  boundary lane clears at 4, and the 24:1 patch compression that number implied is not the price
+  anyone actually pays; 12:1 is (*Dimensions*, above).
+
+`n` is **refused**, not un-chosen: `body.py` declares it *fixed and intended to stay fixed*, absent
+from `01-cell-and-sheaf.md`'s Flex priority ladder, and this file's own argument against 8×8 patches
+applies verbatim — at `n = 53` the apex would carry `p_v = 36` in a world whose state is about twenty
+numbers. One patch per L1 cell is **declined on the route** and preserved as the thing to reach for if
+the 12:1 breaks (*Dimensions*, above).
+
+**What this section records now is the invariant, not the constraint.** `p_v` at the rim was *a
+construction quantity nobody had set* — a residual of `interior_m` and the lateral fill's degree
+targets. It is now **set**, by `Σ_e m_e ≤ n − 1` at every predicting cell, and the first rung on
+[#14](https://github.com/NGL321/patchworks/issues/14)'s constraint ladder reaches it after all — by
+being pulled downward, in company, rather than alone.
+
+`χ = Σ_v n − Σ_e m_e` over predicting cells is **+2505**, measured from the built graph at
+`interior_m = 3`, `boundary_m = 4`. It was **+1036** at `(4, 8)`; `χ` is not a target and the move is
+the mask's arithmetic, not a finding. The eight
 drive edges move it by 8; the drive's cost is local to the apex cells, not to the diagnostic.
 
 **`χ` restricts the node sum only. Every edge in the graph still counts.** The node term runs over
@@ -441,15 +532,22 @@ private state that the world overwrites every tick and no cell holds — but the
 **all** edges, boundary-incident ones included, because those lanes are ordinary and are the
 route the boundary's information actually takes (*The world only ever touches node stalks*, above).
 The rule was previously stated as "computed over predicting cells only", which licensed the wrong
-computation: dropping boundary edges as well as boundary nodes gives χ ≈ +3200, three times the figure
-this section carries. This is a correction to the diagnostic as recorded in `01-cell-and-sheaf.md`.
+computation: dropping boundary edges as well as boundary nodes gives **+3573** against this section's
+**+2505**. This is a correction to the diagnostic as recorded in `01-cell-and-sheaf.md`. The two
+figures were **+3164** against **+1036** on the `boundary_m = 8` surface, where the wrong rule read
+three times the right one; at `boundary_m = 4` it reads 1.4x, because narrowing the boundary lanes is
+most of what the wrong rule was dropping. **The gap narrowed and the error did not** — a reader who
+finds the two figures close should not conclude the rule matters less.
 
 The value is edge-count sensitive and is not a target. This section used to carry ~980 against a
 ~698-edge estimate and note that a ~663-edge count would give ~+1096 — a spread it owned in advance
-and declared not to matter. The built graph's 682 edges land inside that band at **+1036**, so the
-estimates are simply retired in favour of the measurement
-([#83](https://github.com/NGL321/patchworks/issues/83)). Nothing is contradicted, because what is
-load-bearing about `χ` is its **invariance under learning**, not its value.
+and declared not to matter. The built graph's 682 edges landed inside that band at **+1036**, so the
+estimates were retired in favour of the measurement
+([#83](https://github.com/NGL321/patchworks/issues/83)). **Every figure in that history was read at
+`interior_m = 4`, `boundary_m = 8`**, and [#474](https://github.com/NGL321/patchworks/issues/474)
+moved the surface: the edge count is unchanged at 682 and the value is **+2505**. Nothing is
+contradicted, because what is load-bearing about `χ` is its **invariance under learning**, not its
+value — and that is exactly why a construction change moves it freely.
 
 ## No edge is ever removed
 
@@ -520,10 +618,20 @@ the finding — it is a reason not to let it borrow the authority of the cited m
   in the one unit the field uses.
 
   The quantitative form is the **per-tick capacity of each cut**, which is this section's own best
-  evidence: `12,288 → 2,120 → 280 → 80`. The entire sensory boundary reaches the core through
-  **eighty numbers per tick**, a 154:1 squeeze at a single cut, while the two farthest predicting
+  evidence: `12,288 → 1,060 → 210 → 60`. The entire sensory boundary reaches the core through
+  **sixty numbers per tick**, a 205:1 squeeze at a single cut, while the two farthest predicting
   cells are only ~9 hops apart. Both readings live in that number and the tension is owned rather
   than resolved by choosing a favourable metric.
+
+  **These were `12,288 → 2,120 → 280 → 80` and a 154:1 squeeze**, read at `interior_m = 4`,
+  `boundary_m = 8`. [#474](https://github.com/NGL321/patchworks/issues/474) narrowed both lanes to buy
+  the private-dimension floor, and the cuts moved with them — the taper's capacities are set by `m`
+  ([ADR-0030](../adr/0030-the-conversion-buys-a-design-variable-and-the-price-is-booked.md)), so this
+  is arithmetic rather than a new finding. **It is the honest cost of that ruling recorded where the
+  bottleneck is argued**: #474 priced the trade at the cell, per-patch, and it also tightens the
+  graph's worst cut by a third. Nothing here was re-measured against a transmission reading, because
+  narrowing lanes is transmission-neutral under `gain_v = γ / (g_v² · c_v)` (*Dimensions*, above) —
+  what moves is capacity, not gain.
 
   What still holds is the conclusion, on arithmetic rather than on the discarded distinction.
   Effective resistance from rim to rim is a **series** quantity, and it is dominated by the single
@@ -702,7 +810,7 @@ measure, and `n` being a global constant means no predicting cell can be dimensi
 
   Two things answer it, and one does not. **The body is shared**: the nonlinearity is weight-shared
   across every cell in the graph (ADR-0001, for the unrelated reason that it must batch), and what
-  varies per position is a thin linear change of basis — a masked 32→4 restriction map is 128
+  varies per position is a thin linear change of basis — a masked 32→3 restriction map is 96
   parameters. That is the same *strategy* as the low-rank locally connected layer Elsayed et al.
   propose, whose whole finding is that partial relaxation of spatial invariance beats **both**
   convolution and full local connectivity, though it is not their construction (they vary combining
@@ -719,8 +827,10 @@ measure, and `n` being a global constant means no predicting cell can be dimensi
   argument for pulling per-cell adapters off
   [#14](https://github.com/NGL321/patchworks/issues/14)'s constraint ladder early.
 - **The taper is the real bottleneck**, and *distance is not a separate thing from it*: the cut
-  capacities run `12,288 → 2,120 → 280 → 80`, so the whole sensory boundary reaches the core through
-  eighty numbers per tick. In the literature's own units that single narrow cut **is** the high
+  capacities run `12,288 → 1,060 → 210 → 60`, so the whole sensory boundary reaches the core through
+  sixty numbers per tick — down from eighty, because
+  [#474](https://github.com/NGL321/patchworks/issues/474) narrowed both lane widths (*Broadcast
+  subspaces*, above). In the literature's own units that single narrow cut **is** the high
   effective resistance between distant cells, which is why this document no longer argues that reach
   and squeeze are different problems (*Broadcast subspaces*, above). Nothing here fixes it; the relays
   that could are the ones rejected for collapsing the abstraction measure, and the deep relays that
