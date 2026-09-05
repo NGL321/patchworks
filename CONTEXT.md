@@ -946,6 +946,16 @@ emergently* becomes *resolve this now*. Either an event or a measurement against
 and never a judgement, because it must be checkable by someone who is not its author.
 _Avoid_: deadline, due date, SLA, expiry, trigger (bare)
 
+**Precondition**:
+The condition under which an open problem's **cutoff** becomes a *readable* number — written `@when`,
+in the same two forms a cutoff takes and with the opposite polarity. Defined against the cutoff and
+distinguished from it by what it says: a cutoff says when the problem stops being tolerable, a
+precondition says when its cutoff can be read at all, and it **carries no obligation**. A crossing
+behind a shut precondition is recorded and withholds `register:overdue`; a precondition opening is
+reported and labels nothing.
+_Avoid_: gate (reserve for a blocking wayfinder ticket, ADR-0007's and ADR-0026's verbal use, and
+#240's reconciliation gate), sequenced cutoff, second cutoff, guard, prerequisite (bare)
+
 **Proposal**:
 A solution on the shelf, arguing at least one shape it would answer, binding nothing. May be attached
 to a problem, to several, or to none — an orphan is a first-class proposal, and stating a shape
