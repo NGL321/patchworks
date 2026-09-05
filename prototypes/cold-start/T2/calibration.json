@@ -1,0 +1,48 @@
+{
+ "issue": 522,
+ "what": "RMS deviation of the render (stalk units, PIXEL_SCALE applied) from its time mean under smooth motor babble at the bound; the sensory wall's small amplitude is set so the front's time-averaged RMS over the render equals it",
+ "seed": 42,
+ "ticks": 2000,
+ "loops": {
+  "tau_motor": 3.5,
+  "soma_l1_world_loops": [
+   3,
+   4,
+   3,
+   4,
+   3,
+   4
+  ],
+  "tau_vision": 6.0,
+  "vision_l1_world_loops_hist": {
+   "5": 12,
+   "6": 27,
+   "7": 25
+  },
+  "world_tick": 1
+ },
+ "babble": {
+  "tau": 3.5,
+  "phi": 0.751477293075286,
+  "innovation_scale": 0.6597589544615827,
+  "marginal_rms_of_bound": 0.5773502691896258
+ },
+ "babble_render_rms": 0.0798572227358818,
+ "babble_render_change_rms": 0.022101594135165215,
+ "render_mean": 0.6595147848129272,
+ "render_std_over_components": 0.39231976866722107,
+ "fraction_components_moving": 0.4769694010416667,
+ "arm_travel_per_tick": 0.06858565658330917,
+ "applied_rms": 0.5430284378873427,
+ "front_rms_at_peak_one": 0.27386127875258304,
+ "small_peak_derived": 0.2915973365306854,
+ "surface": {
+  "commit": "082800d6eaa072248793d60f0dbc4b88a9d2ad59",
+  "describe": "082800d 2026-09-05 Land T1's runs (#521): twelve 30k seeds on the shallow dome, the 2x2 read",
+  "branch": "cs/522",
+  "dirty": false,
+  "interior_m": 3,
+  "boundary_m": 4,
+  "band": "forward normalisation in CellOperators.used (#466, PR #513)"
+ }
+}
