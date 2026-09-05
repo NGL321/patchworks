@@ -343,9 +343,9 @@ class PredictionRule:
         )
 
     def step(self) -> dict[str, torch.Tensor]:
-        """Take the gradient, descend it, then project. Returns the gradient.
+        """Take the gradient and descend it. Returns the gradient.
 
-        `b ← b − η · ∇b` and `K ← Π(K − η_K · ∇K)`, under one global `η` and the
+        `b ← b − η · ∇b` and `K ← K − η_K · ∇K`, under one global `η` and the
         construction constant `c`. There is no optimiser here and nothing to
         give up by receiving gradients as a pytree instead of on `.grad`.
 
@@ -353,20 +353,27 @@ class PredictionRule:
         attribute name on :class:`ForwardPath` — `biases.` and `operators.` —
         which is why the descent iterates the two modules rather than one.
 
-        `Π` is #140's band restored by
-        :meth:`~patchworks.body.CellOperators.project`, and it takes ADR-0010's
-        placement unchanged: **after** the step and **outside** the transform.
-        It carries no signal whatever — it is not in the objective, it has no
-        gradient, and it reads nothing the cell did not already own — which is
-        exactly why #139 found it no ground for a third rule. A projection is
-        not an objective.
+        **There is no projection here, and #433 is why.** #140's band used to be
+        restored by a `CellOperators.project()` after the step and outside the
+        transform; it is now enforced inside the forward path by
+        :meth:`~patchworks.body.CellOperators.used`, so the descent writes the
+        raw `K` and stops. The band is unchanged as a constraint —
+        `sigma_max(used) in [1/rho_K, 1]` holds identically rather than between
+        steps — and what moved is only when it is applied.
 
-        **It is expected to fight the gradient**, since the band forbids
-        non-normal transient amplification and transient growth is *how* linear
-        systems move content. That fight is not damped by an additive term: the
-        prediction rule's objective is prediction error and nothing else, and a
-        projection that binds every step is instead the observable that calls
-        #138's named fallback from a dense `K` to a structured one.
+        **The rule still trains the raw `K` and nothing else.** The
+        normalisation is in the model's forward path, not in the objective: no
+        term is added to what this minimises, so ADR-0008's *a projection is not
+        an objective* is untouched and this is still no ground for a third rule.
+        What the change buys is that the gradient now **sees** the constraint —
+        the normalisation's Jacobian removes the component that merely inflates
+        scale, instead of an uncorrelated radial shove landing after every step.
+
+        **It is no longer expected to fight the gradient**, and the observable
+        that fight supplied is gone with it: nothing fires, so the firing rate
+        that #138's named fallback was triggered on is undefined rather than
+        zero. #422 measured that fight growing rather than shrinking, hardest at
+        the apex, which is what #433 ruled on.
 
         The `no_grad` is a context manager rather than a decorator, for the
         reason :mod:`patchworks.tick` gives: a guard a test cannot remove is a
@@ -378,7 +385,6 @@ class PredictionRule:
                 parameter.sub_(self.learning_rate * gradients[f"biases.{name}"])
             for name, parameter in self.sheaf.operators.named_parameters():
                 parameter.sub_(self.operator_rate * gradients[f"operators.{name}"])
-        self.sheaf.operators.project()
         # The rule reads the tick's state and writes only the cell's own
         # inference parameters, so this should be untouched -- which is exactly
         # why it is cheap to say so.

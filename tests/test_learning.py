@@ -226,6 +226,19 @@ class TestPredictionErrorIsRecomputedLive:
         # rule to prediction error rather than to something that merely moves
         # when the biases do.
         body, biases, operators = population(running, torch.float64)
+        # **`K` is moved off the construction point first, and #433 is why.**
+        # The used operator is `K` normalised into the band, so the objective
+        # has two non-smooth sets: the band's faces, and the matrices whose top
+        # singular value is repeated, where `sigma_max` is not differentiable at
+        # all. Construction sits on *both* -- `K = a.I` has every singular value
+        # equal, and the default `a` is 1.0, the upper face exactly. A central
+        # difference straddles a kink and matches neither one-sided derivative
+        # there, which is a fact about the probe rather than about the rule.
+        # Away from those sets the two agree exactly, which is what this holds.
+        # The kink itself is held by
+        # `TestTheUsedOperatorIsNotSmoothAtTheBandFace` below.
+        with torch.no_grad():
+            operators.K.normal_(0.0, 0.4, generator=torch.Generator().manual_seed(3))
         path = ForwardPath(body, biases, operators)
         arguments = (path, *rule_inputs(running, torch.float64))
         parameters = path.trained_parameters()
@@ -250,9 +263,34 @@ class TestPredictionErrorIsRecomputedLive:
                 up = prediction_error(shifted, *arguments)
                 probe[at] -= 2 * step
                 down = prediction_error(shifted, *arguments)
+                # Relative rather than absolute since #433: the used operator
+                # puts a spectral norm on the forward path, so evaluating the
+                # objective carries the SVD's roundoff and the central
+                # difference inherits it divided by `step`. Measured at ~2e-8
+                # relative on `K` here, against an exact analytic gradient --
+                # the old purely-linear path could afford `abs=1e-8` and this
+                # one cannot. `rel=1e-6` is still four orders tighter than any
+                # difference a wrong gradient would produce.
                 assert (up - down).item() / (2 * step) == pytest.approx(
-                    taken[name][at].item(), abs=1e-8
+                    taken[name][at].item(), rel=1e-6
                 )
+
+    def test_the_gradient_is_finite_at_the_construction_point(self, running):
+        """#433's one sharp edge, held rather than left to be rediscovered.
+
+        `K = a.I` has every singular value equal, so `sigma_max` is not
+        differentiable there, and the default `a = 1.0` puts it on the band's
+        upper face as well. Autograd returns *a* subgradient at such a point
+        rather than raising, and what matters for a run starting there is that
+        it is **finite and non-zero** — a NaN would poison `K` on the first
+        step and a zero would leave it unable to move at all. The spectrum
+        splits under the first update and the objective is smooth from then on,
+        which is why nothing downstream special-cases this.
+        """
+        gradients = PredictionRule(running).gradient()
+        taken = gradients["operators.K"]
+        assert torch.isfinite(taken).all()
+        assert taken.abs().sum() > 0
 
     def test_the_whole_forward_path_carries_gradient(self, running):
         # The missing-gradient failure the transform is chosen to make loud:

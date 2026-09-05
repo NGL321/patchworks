@@ -77,6 +77,7 @@ construction has to answer it as much as one bound at import.
 | `DRIVE_ASSERTION` | `1.0` | chosen | any non-zero constant; zero makes the drive inert, and a schedule is not a drive | docs/adr/0009-a-drive-is-a-motor-edge-attached-deep.md | — | `src/patchworks/agent.py` |
 | `DomeSpec.touch_stalk` | `1` | chosen | free, and the one stalk the spec does not size: ADR-0006 settles the rule (a boundary cell's stalk is whatever the thing writing it gives it) rather than the number, and the sandbox's touch observation is one scalar per joint. Never varied in any run | here | — | `src/patchworks/graph.py` |
 | `INITIAL_NORM` | `1.0` | chosen | unknown | here | — | `src/patchworks/restriction.py` |
+| `NORM_FLOOR` | `1e-12` | chosen | unknown; any value far below the band's floor and far above float32's epsilon does the same job, and nothing has swept it | docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md; carried over from the post-step projection this replaced (#433) | — | `src/patchworks/body.py` |
 | `NORM_FLOOR` | `1e-24` | chosen | unknown; 1e-12 in the norm itself, far below anything the maps or stalks carry | here | — | `src/patchworks/learning.py` |
 
 ## Marked `@register none`
