@@ -362,20 +362,25 @@ class TestTheDenominatorTheGainDividesBy:
         assert float(gain_denominators(dome)[actuator]) == 3.0
 
     def test_the_boundary_correction_is_uniform(self):
-        # Both denominators are proportional to deg(v) on a lane 8 wide -- the
-        # superseded `sum_e m_e` is 8.deg, the new `g_v^2.c_v` is deg -- so the
-        # correction is 8.00x at every such cell and the actuator is no longer
-        # the graded exception (`02-tick-semantics.md`). The drive is the one
-        # boundary cell outside the figure, and for a reason about lane width
-        # rather than about the clamp: its eight lanes are m = 1, so the two
+        # Both denominators are proportional to deg(v) on a boundary lane -- the
+        # superseded `sum_e m_e` is boundary_m.deg, the new `g_v^2.c_v` is deg --
+        # so the correction is boundary_m at every such cell and the actuator is
+        # no longer the graded exception (`02-tick-semantics.md`). The drive is
+        # the one boundary cell outside the figure, and for a reason about lane
+        # width rather than about the clamp: its lanes are m = 1, so the two
         # denominators already agreed there.
+        #
+        # Read off the spec rather than written as a literal. The figure is
+        # `boundary_m` and nothing else, so a literal is a second place that
+        # number lives: it was 8 until #474 moved it to 4, and this assertion
+        # went red on `main` still asking for 8.
         dome = build_graph()
         denominators = gain_denominators(dome)
         corrections = collections.Counter(
             dome.stalk_sums[cell_id] / float(denominators[cell_id])
             for cell_id in dome.boundary
         )
-        assert corrections == {8.0: 263, 1.0: 1}
+        assert corrections == {float(dome.spec.boundary_m): 263, 1.0: 1}
         drive = [
             c.id for c in dome.cells if c.stalk == 1 and dome.degrees[c.id] > GAUGE_C
         ]
