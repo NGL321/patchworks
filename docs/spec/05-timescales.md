@@ -289,10 +289,15 @@ outright: *"`ρ(K)` survives as the reported spectral quantity — it is what ti
 is not the constrained one."* **Transmission spends the norm; retention reads the radius.**
 `06-graph-topology.md`'s *"already spoken for three times over"* does not arrive here.
 
-**One real interaction, and it is one-sided.** ADR-0015 restores the band by *rescaling the whole
-operator*, which moves every eigenvalue by the same factor — so when the projection fires, **all of
+**One real interaction, and it is one-sided.** ADR-0015 enforces the band by *rescaling the whole
+operator*, which moves every eigenvalue by the same factor — so where the rescale binds, **all of
 that cell's retention constants shorten together**. Enforcement can make a cell faster and never
-slower. Recorded; no mechanism is added for it.
+slower. Recorded; no mechanism is added for it. *Unchanged in kind by
+[#433](https://github.com/NGL321/patchworks/issues/433), which moved the enforcement out of a
+post-step projection and into the forward path: the rescale is still radial, so the constants still
+move together. What changes is that it is continuous rather than an intermittent firing, and that
+the prediction rule's gradient now sees it — which is what the move was bought on, a rescale the
+gradient cannot see being an uncorrelated shove after every step.*
 
 **And the target is reachable for the first time.** ADR-0015's upper face of exactly 1 permits
 `ρ(K) = 1`, which it already flags as *"a memory that never fades. For a cell that is arguably
@@ -650,8 +655,10 @@ one divisor, so its conduction row is held against the demoted `|loop(c)|` and i
 
 **`τ_full` falls monotonically across the run** — 17.29 → 4.69 over 100k ticks on seed 42, matching
 #274's `ρ` falling on all nine seeds. **Learning is making cells faster.** Handed to
-[#335](https://github.com/NGL321/patchworks/issues/335), whose one-sided band projection predicts
-exactly that; it is a positive reading, not a diagnosis, since other causes are live. #361 sees the
+[#335](https://github.com/NGL321/patchworks/issues/335), whose one-sided band enforcement predicts
+exactly that; it is a positive reading, not a diagnosis, since other causes are live. *Read on the
+post-hoc-projection build, which [#433](https://github.com/NGL321/patchworks/issues/433) supersedes;
+the enforcement is still radial and still one-sided, and #335 is open and unruled.* #361 sees the
 same fall across all twelve of its runs.
 
 **Two caveats bind on every figure in this section that is quoted from a single run** (#361, and both
