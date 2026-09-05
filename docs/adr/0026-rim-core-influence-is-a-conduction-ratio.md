@@ -88,8 +88,10 @@ has had a visible route rather than a deficit.
 
 For a cell `c`, fork a perturbed and an unperturbed run from a common state — ADR-0021's **paired
 counterfactual, unchanged and not re-derived**. Read the paired deviation restricted to `c`'s
-**private features** (`H⁰`, where retained state lives by construction, and the one place
-reconciliation cannot move it) and take its e-fold decay time `τ̂_c`. The **conduction ratio** is
+**reading site** (`H⁰` at a predicting cell — where retained state lives by construction, and the one
+place reconciliation cannot move it; the `commanded` block at the actuator, under the
+write-complement rule stated in *The outbound population* below) and take its e-fold decay time
+`τ̂_c`. The **conduction ratio** is
 
 > `τ̂_c / world_loop(c)`
 
@@ -310,6 +312,52 @@ boundary cells are excluded, and **the ground is consequence, not reception**:
 This is not a softening of the universal. It is the universal stated over the cells at which arriving
 influence has a consequence at all.
 
+#### The reading site is the write-complement, and it derives the three verdicts above
+
+Amended by [#506](https://github.com/NGL321/patchworks/issues/506), written by
+[#509](https://github.com/NGL321/patchworks/issues/509). This section named a population without
+naming what `τ̂` is read **on** at the boundary member of it, and *The predicate* says *private
+features* — which the actuator, by arithmetic, has none of. The site is the **three `commanded`
+components of its node stalk**, and the general rule it instances is:
+
+> **A cell's reading site is the complement of what overwrites it from outside its own retention.**
+
+This is one rule, not two, and it **reproduces the three verdicts above rather than replacing them**:
+
+- At a **predicting** cell what overwrites is reconciliation, and the complement is
+  `p_v = max(0, n − Σ_e m_e)` — the private component, `H⁰`. *How it is read* is unchanged.
+- At a **sensory boundary** cell the world's write covers the whole stalk, so the complement is
+  `{0}` and there is nothing to read. **The exclusion above is now derived rather than stipulated**,
+  and it lands on the same answer.
+- At the **actuator**, `Agent.write` sets the three *efference* components at the end of every tick,
+  byte-identically in both branches of a paired fork, and the three *commanded* components are
+  written by nobody (`src/patchworks/agent.py`, *the motor pathway is untouched*). The complement is
+  the commanded block, of dimension `joints`.
+- The **drive** is excluded on the *other* half of this section's ground, which this rule does not
+  touch: `m = 1` and nothing reads it, so it fails the **consequence** test rather than the retention
+  test. Both halves stand — membership is *consequence* **and** a non-trivial write-complement.
+
+The split is already in the record independently —
+[`docs/registers/architecture.md`](../registers/architecture.md) carries `DomeSpec.actuator_stalk =
+6` as *three commanded and three efference* — which is why this names a site the ADR left unnamed
+rather than minting a second predicate beside the one above.
+
+**The instrument is unchanged and the statistic stays `τ̂`.** With a projection named, *How it is
+read* runs at the actuator exactly as at every other cell of the population: paired counterfactual,
+project onto the site, peak-to-`1/e` in integer ticks, then `τ̂_c / world_loop(c)`. The reduction is a
+`min` over the cells of a path, so a population read with two instruments would be taking a minimum
+across units. In particular it is **not** `−1/ln ρ`:
+[#487](https://github.com/NGL321/patchworks/issues/487)'s `1.615–4.886` are that closed form, read on
+the surface `boundary_m = 8`, and they are **indicative only** — evidence that this cell is unlikely
+to be the binding one, and not its conduction ratio. `world_loop(262) = 0 + w + 2 = 3` on
+`DEFAULT_SPEC` is a construction-time integer off the mask rather than a reading, and does not age
+the same way.
+
+**Widening the population is necessary and it is not sufficient.** The published
+`outbound_conduction_ratio` is a `max` over the population where this clause asks for a `min`, which
+is the existential *Alternatives considered* rejects by name. That defect is
+[#508](https://github.com/NGL321/patchworks/issues/508) and is not fixed here.
+
 ### *An apex stable enough to conduct it* is this predicate's subject, not a third reading
 
 `τ̂ ≥ |loop|` at the apex **is** the stability-to-conduct claim. #127's *Done when* names three
@@ -354,10 +402,13 @@ to stand while the reading is zero.
   after one tick, so the decay that follows is clean; a sustained clamp confounds decay with drive.
 - **Private-feature projection.** The masks give it: `Dome.private_projection` is fixed at
   construction and invariant under learning, and it keeps exactly the directions reconciliation
-  cannot move.
-- **`τ̂` is peak-to-`1/e` in ticks.** Per trial, project the paired deviation onto the cell's private
-  features, find its peak tick, and read `τ̂` as the ticks from that peak until it falls to `1/e` of
-  peak.
+  cannot move. **At the actuator the site is the `commanded` block instead** — the same
+  write-complement rule, stated under *The outbound population* above, and the projection cannot be
+  one rectangular tensor because a boundary stalk is world-shaped
+  ([ADR-0006](./0006-boundary-cell-stalks-are-world-shaped.md)).
+- **`τ̂` is peak-to-`1/e` in ticks.** Per trial, project the paired deviation onto the cell's reading
+  site, find its peak tick, and read `τ̂` as the ticks from that peak until it falls to `1/e` of
+  peak. Same statistic at every cell of the population, so the `min` is over one unit.
 - **Median over trials**, with the quantiles alongside.
 
 **No new instrument.** [`benchmarks/detectability.py`](../../benchmarks/detectability.py) already
