@@ -339,8 +339,13 @@ node stalk, rather than as anything per-edge.
 _Avoid_: linear (bare), local flatness, linear decoder, gauge (bare — reserve for the scale gauge)
 
 **Operator band**:
-The construction-time bound on a cell operator's **spectral** norm: `σ_max(K) ∈ [1/ρ_K, 1]`, restored
-by projection after each prediction step. One global band, not one per level. The upper face is
+The construction-time bound on a cell operator's **spectral** norm: `σ_max(K) ∈ [1/ρ_K, 1]`, enforced
+by normalising the operator inside the forward path — the *used* operator is the raw `K` rescaled into
+the band, `K / max(1, σ(K))` above the upper face, while the prediction rule trains the raw `K` (#433,
+2026-09-04; it was restored by projection after each prediction step until then, and the band itself
+is unchanged). The rescale is radial either way, which is why it shortens all of a cell's retention
+constants together — but nothing *fires*, so a firing rate is undefined rather than zero. One global
+band, not one per level. The upper face is
 exactly 1 because what it forbids is *amplification*, and a cell sitting at 1 is non-expansive rather
 than divergent — so it permits `ρ(K) = 1` and is **not** the claim `|λ| < 1`. Spectral rather than
 Frobenius, and deliberately unlike the scale gauge. It also runs **opposite to the spectral floor**,
@@ -726,7 +731,9 @@ _Avoid_: learning rule (bare), the rule
 **Prediction rule**:
 The half of the local learning rule that updates a cell's own inference parameters — its biases
 **and** its operator `K`: a local gradient step through the cell's own forward path, on its
-prediction error, followed by projection back into the operator band. The predictive-coding element;
+prediction error. The operator band is enforced **inside** that forward path rather than by a
+projection after the step (#433), so the step is one step and nothing follows it. The
+predictive-coding element;
 trains inference — the cell's operating point and its chart's dynamics — never transport. Named for
 its signal, which is what ADR-0008 splits on; it was the **bias rule** until the Koopman conversion
 widened what it trains.
