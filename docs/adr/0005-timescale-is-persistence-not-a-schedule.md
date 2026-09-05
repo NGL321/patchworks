@@ -182,7 +182,10 @@ capability depends on timescale at all — and thereby becomes an already-valida
   [#383](https://github.com/NGL321/patchworks/issues/383) moved that bar to `world_loop(c)`, and this
   composition moved with it — on the strength of the *one bar plus a licence* sentence above, which
   leaves the floor nowhere else to stand. `|loop(c)|` is kept and demoted, and the consequence is a
-  **harder** comparison than it was, by 1 to 7 ticks at every cell.
+  **harder** comparison than it was, by 1 to 7 ticks at every cell. *And it follows from* licence, not
+  a bar *that **this ADR places no upper bound on retention at all** — a cell whose `τ` outruns its
+  dwell is unreadable by the cheap instrument, not in breach of anything
+  ([#235](https://github.com/NGL321/patchworks/issues/235)).*
 
   ~~**A collapse of median `dwell/τ` below 1 falsifies the claim that placing biases is *sufficient*
   to buy a timescale.**~~ ***Retired by #226. This ADR's falsification clause is withdrawn, not
