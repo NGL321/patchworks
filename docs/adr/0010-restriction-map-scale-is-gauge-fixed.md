@@ -181,10 +181,73 @@ toward it"* rules out ratio → 0, and says nothing about the ceiling the dynami
 interior population's ratio of 1 is not evidence either way, because both ends grow together into the
 same face.
 
-**Recorded, not ruled here.** The measured cost is a `2x` unmatched endpoint scale across the whole
-sensorimotor rim, the drive and the actuator;
-[#429](https://github.com/NGL321/patchworks/issues/429) owns the remedy, because naming one is a
-ruling and ADR-0029's deferral rule says a read does not get to make it.
+**Ruled by [#429](https://github.com/NGL321/patchworks/issues/429): the `2x` is booked, not bought.**
+The measured cost is a `2x` unmatched endpoint scale across the whole sensorimotor rim, the drive and
+the actuator. **Nothing is added to the transport rule, the gauge, or the projection**, and the
+mismatch is booked as a named defect —
+[#469](https://github.com/NGL321/patchworks/issues/469) — rather than paid for. The remedy on offer
+was `ρ = 1` at boundary-incident edges, or equivalently a matched-scale constraint on the edge pair:
+with the boundary end pinned at `‖F‖_F = 1`, matching the pair's scale **is** forcing the free end to
+1, and on the interior population the constraint is already satisfied by construction. One move, not
+two.
+
+**It is declined on this ADR's own rejected alternative, and the ground is stated plainly rather than
+paraphrased.** *The exact gauge everywhere* is rejected below because *"the pressure then lands on the
+**stalks**, and connectivity chains it into near-uniform stalk scale across the graph"* — too large a
+thing to decide by side effect. Pinning the interior end of a boundary-incident edge is that
+alternative applied to **40% of the graph**, and the rim, the drive and the actuator are where
+connectivity would chain it hardest, not most mildly. ADR-0006's environment contract does not own the
+`2x` either: that contract converts world units to stalk units, a quantity that varies with the world,
+and this is a constant 2 identical on all 273 edges, manufactured by the composition of this ADR's own
+two clauses and carrying no information about any world.
+
+**What makes that ground provisional, recorded here because it is not visible from the ground itself.**
+The band as chosen already puts the same pressure on the same edges. `learning.py` takes ADR-0007's
+relative objective normalised by `‖F_u x_u‖ + ‖F_v x_v‖`, so two restricted beliefs perfectly aligned
+in direction and a factor of 2 apart in scale read a relative disagreement of **`1/3`** against a
+maximum of 1 — and the maps cannot close it, because the projection sits outside the objective and
+restores the mismatch after every step. The **beliefs** can, by the interior stalk shrinking toward
+half its boundary neighbour. So the two options are distinguishable only if the band's pressure on the
+stalks is the *smaller* one, and **nobody has read the stalks**: no rig reports the quantity.
+[#468](https://github.com/NGL321/patchworks/issues/468) is the read that would expire this ground. If
+the stalks have already absorbed the `2x`, the rejection ground has expired on this population and
+`ρ = 1` at boundary-incident edges becomes the cheaper of two equal costs.
+
+**The distortion is exactly `2x` in every direction, and that sharpening is derived rather than
+measured.** #416 read on the **unfloored** surface and carried `σ_max` at 1.49x as its robustness
+column, explicitly because the spectra were not flat then. ADR-0032's floor is on `main` at `a3df197`,
+and [#435](https://github.com/NGL321/patchworks/issues/435) measured flatness at a **median of 1** on
+1339 floored endpoints. Under flat spectra an edge's two ends share one `m` — flatness is a property
+of the lane — so `σ_u/σ_v ≡ ‖F_u‖_F/‖F_v‖_F` identically, the top-direction escape hatch closes, and
+the ratio at the band face is the isotropic distortion in every direction. **This is derived from the
+floor's definition, not re-measured**, per `docs/agents/domain.md`'s rule that an ADR quoting a
+measured figure names the surface it was taken on. The `2x` itself is #416's:
+`prototypes/edge-scale-ratio-416/`, 30k on three seeds and 100k on one, **pre-floor**.
+
+**The prohibition: no closed loop can see this, and it may not be charged against one.** The `σ` ratios
+telescope, so the scale component of holonomy around any cycle is identically 1, whatever the band.
+ADR-0026's conduction ratio reads a loop; identification agreement
+([#315](https://github.com/NGL321/patchworks/issues/315),
+[#453](https://github.com/NGL321/patchworks/issues/453)) reads a cycle. **Neither is exposed to this,
+and the `2x` may not be cited against either, nor as an amplitude cost** — since
+[#242](https://github.com/NGL321/patchworks/issues/242) the operative bar reads time rather than
+amplitude. Same shape as the prohibition
+[#455](https://github.com/NGL321/patchworks/issues/455) wrote for ADR-0032 rim-to-apex. What *can* see
+it is the one-hop relative disagreement, and that is where #469 states the defect.
+
+**The population is three, and the unification is soft.** One ruling covers all three, and that is
+deliberately **not** a claim they are equivalent — the record leaves the split takeable, and #468
+reports the three separately.
+
+| population | edges | floor | direction of the `2x` |
+|---|---|---|---|
+| sensory | 262 (256 floored; 3 touch and 3 proprioceptive unattainable) | yes | **attenuates** inbound |
+| drive | 8 | vacuous (`m = 1`, trivially flat) | **amplifies** outbound |
+| actuator | 3 | excluded (unattainable) | **amplifies** outbound |
+
+*"Exactly `2x` in every direction"* above is true only of the 256 floored sensory maps. The actuator's
+three are [#439](https://github.com/NGL321/patchworks/issues/439)'s maps — pinned *and* outside the
+floor — and are **not a second problem**.
 
 Reparameterising as `F = G/‖G‖_F` was rejected: it costs no
 more, but it leaves a shadow parameter `G` that the sparsity term can drive toward zero, reintroducing
@@ -369,6 +432,18 @@ concentration, effective rank is the only thing that says which regime the maps 
   domain of a scale-invariant parameter (Kodryan et al.,
   [arXiv:2209.03695](https://arxiv.org/abs/2209.03695), abstract only). If the per-node form is ever
   wanted, it is a *different* constraint from `ρ = 1` and would be reached for separately.
+
+  *Amended by [#429](https://github.com/NGL321/patchworks/issues/429): the clause stays open and now
+  has a **firing condition**, where before it had none.*
+  [#416](https://github.com/NGL321/patchworks/issues/416) removed the reading that had been supporting
+  it — the interior population's ratio of 1 is **not** evidence the objective matches scale, because
+  both ends grow together into the same face — and #429 supplied a condition in its place. **A positive
+  read on [#468](https://github.com/NGL321/patchworks/issues/468)** — the stalks found to have already
+  absorbed the rim's `2x` — expires the rejection ground recorded above on the boundary-incident
+  population, and makes `ρ = 1` **on boundary-incident edges** the cheaper of two equal costs. That
+  condition is scoped to those 273 edges and **does not widen to this bullet's global clause**, which
+  #429 did not rule on: globally, `ρ = 1` remains held open on the terms stated above and on nothing
+  else.
 - **Over-smoothing is named for what it is here** in `01-cell-and-sheaf.md`'s *Known exposure*: the
   error signal vanishing, not a quality loss. Bodnar et al.'s result that a rich harmonic space resists
   collapse is cited as **orientation, not authority** — per `docs/research/015-sheaf-geometry.md` those
