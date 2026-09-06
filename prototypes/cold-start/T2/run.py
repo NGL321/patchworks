@@ -163,6 +163,15 @@ CONDITIONS = {
     "B": {"wall": "sensory", "amplitude": "large", "structure": "ordered"},
     "C": {"wall": "sensory", "amplitude": "large", "structure": "shuffled"},
     "D": {"wall": "sensory", "amplitude": "small", "structure": "ordered"},
+    # **The zero-supply control, and it is not one of the ticket's four.** The
+    # ticket's priming read is each ordered condition against its *shuffled*
+    # control, which says whether structure bought anything but cannot separate
+    # *nothing was laid down* from *all four laid down the same amount*. Z is
+    # the motor wall at `A0 = 0`: T1's frozen baseline exactly -- the graph's own
+    # command, the world stepped every tick, no supply at any point -- carrying
+    # T2's extra reads (composed rank, per-edge rank), which T1 did not record.
+    # It runs `T_b + 30k` ticks so its horizon matches the arm it controls.
+    "Z": {"wall": "motor", "amplitude": "none", "structure": "none"},
 }
 
 
@@ -289,7 +298,10 @@ class Supply:
         self.front = None
         if self.wall == "motor":
             self.bound = float(np.max(agent.action_high))
-            self.a0 = self.bound
+            # The zero-supply control asks for no supply at all, not for a small
+            # one: `A0 = 0` makes every `amplitude()` zero, so the command that
+            # reaches `act()` is the graph's own and nothing is added to it.
+            self.a0 = 0.0 if self.amplitude_class == "none" else self.bound
             self.babble = Babble(agent.joints, loops["tau_motor"], seed)
         else:
             if calibration is None:
