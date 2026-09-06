@@ -131,11 +131,28 @@ one direction* — which is §1.2, and the answer is uniformly bad news for ADR-
 
 ### 1.2 Every classical fix is an additive decorrelating term on the update
 
-The named family — Oja's subspace rule (1989), Sanger's Generalized Hebbian Algorithm (1989), Földiák's
-anti-Hebbian lateral inhibition (1990), Rubner–Tavan, the APEX network — all buy `k` directions the same
-way: **more than one output unit per cell, plus a term in the update that decorrelates them.**
-[CITE for the individual papers; the family structure is standard and is stated here as such rather than
-quoted]
+The named family all buy `k` directions the same way: **more than one output unit per cell, plus a term
+in the update that decorrelates them.** Three of them, with the bibliographic record confirmed and the
+mechanism taken from authoritative secondary statements rather than from the papers' own equations:
+
+- **Oja, E. (1989), "Neural networks, principal components, and subspaces", *International Journal of
+  Neural Systems* 1:61–68.** [ABS+] A two-stage linear network with **interneurons connected between the
+  output units**, trained by *local Hebbian and anti-Hebbian learning*. It preserves a `k`-dimensional
+  **subspace** — not a basis, which is the well-known limitation: the subspace rule does not separate the
+  principal directions within it.
+- **Sanger, T. D. (1989), "Optimal unsupervised learning in a single-layer linear feedforward neural
+  network", *Neural Networks* 2(6):459–473.** [ABS+] The Generalized Hebbian Algorithm — *"similar to
+  Oja's rule in its formulation and stability, except it can be applied to networks with multiple
+  outputs"*, with the update *"implement[ing] a Gram–Schmidt orthogonalization process"*. That
+  orthogonalisation is a **subtracted term inside the update**, and it is the whole of what buys rank
+  beyond one.
+- **Földiák, P. (1990), "Forming sparse representations by local anti-Hebbian learning", *Biological
+  Cybernetics* 64:165–170.** [ABS+] Anti-Hebbian **lateral** connections within a layer, plus Hebbian
+  feed-forward connections and a local threshold control, reduce statistical dependency between the
+  representation's elements while preserving information. Note the units are **nonlinear** and the
+  decorrelation is **lateral** — two costs beyond the additive term.
+
+Rubner–Tavan and the APEX network (Kung–Diamantaras) are the same shape and are cited no further.
 
 Three costs, and they compound:
 
@@ -463,11 +480,13 @@ Ranked by how much it weakens what is above.
   direction is *larger* weight scale — is from the abstract's own *"principled guideline for weight
   normalization"* plus the paper's title. A follow-up wanting to price candidate 4 properly must read
   the theorem.
-- **The classical Hebbian papers** (Oja 1989 subspace rule; Sanger 1989; Földiák 1990; Rubner–Tavan;
-  APEX). Marked [CITE] throughout: the family's *structure* — extra output units plus an additive
-  decorrelating term — is textbook and is stated as such, but no individual paper's update equation was
-  read at source in this pass. §1.2's ADR-0008 cost turns on that structure, so a session that wanted to
-  contest the cost should start here.
+- **The classical Hebbian papers' own equations.** Oja (1989), Sanger (1989) and Földiák (1990) have
+  their bibliographic records confirmed and their mechanisms taken from authoritative secondary
+  statements — Springer/ScienceDirect landing pages and reference works — but **no update equation was
+  read at source** in this pass. §1.2's ADR-0008 cost turns on one structural claim (the decorrelating
+  term is *subtracted inside the update*), which is uncontroversial and is corroborated for GHA by the
+  Gram–Schmidt wording. A session wanting to contest the cost should read the equations. Rubner–Tavan
+  and APEX are [CITE] and nothing rests on them.
 
 **Moderate.**
 
@@ -495,7 +514,10 @@ sub-stochastic matrices and consensus, which is oversmoothing's older sibling.
 | Source | Depth | Access |
 | --- | --- | --- |
 | Oja (1982), *Simplified neuron model as a principal component analyzer*, J. Math. Biol. 15:267–273 | [ABS+] | landing page + secondary; primary PDF located, not extracted |
-| Oja (1989) subspace rule; Sanger (1989) GHA; Földiák (1990); Rubner–Tavan; APEX | [CITE] | family structure only — see §6 |
+| Oja (1989), *Neural Networks, Principal Components, and Subspaces*, Int. J. Neural Systems 1:61–68 | [ABS+] | dblp + Semantic Scholar; mechanism from secondary |
+| Sanger (1989), *Optimal unsupervised learning in a single-layer linear feedforward neural network*, Neural Networks 2(6):459–473 | [ABS+] | landing page + reference works; Gram–Schmidt wording corroborated |
+| Földiák (1990), *Forming sparse representations by local anti-Hebbian learning*, Biol. Cybern. 64:165–170, [doi:10.1007/BF02331346](https://doi.org/10.1007/BF02331346) | [ABS+] | Springer landing page + Scholarpedia |
+| Rubner–Tavan; APEX (Kung–Diamantaras) | [CITE] | nothing rests on them |
 | Journé, Rodriguez, Guo & Moraitis (2023), *Hebbian Deep Learning Without Feedback* (SoftHebb), ICLR, [arXiv:2209.11883](https://arxiv.org/abs/2209.11883) | [ABS] | landing page + repo |
 | Bardes, Ponce & LeCun (2022), *VICReg*, [arXiv:2105.04906](https://arxiv.org/abs/2105.04906) | [ABS] | **already read**, `docs/research/394` §2.4(a); not re-fetched |
 | Zbontar, Jing, Misra, LeCun & Deny (2021), *Barlow Twins*, [arXiv:2103.03230](https://arxiv.org/abs/2103.03230) | [CITE] | — |
