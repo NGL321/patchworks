@@ -453,6 +453,27 @@ def main() -> None:
             if seen_any:
                 guard[c] = ok_all
             print(f"| {LABEL[c]} | " + " | ".join(cells) + f" | {('**passes**' if ok_all else '**FAILS**') if seen_any else '—'} |")
+        print("\n**The same, against the zero-supply control instead of T1.** Z has run the identical number of "
+              "total ticks, so this comparison carries none of the horizon mismatch above — the difference is the "
+              "supply's and nothing else. This is the honest per-class read; the T1 table above is the "
+              "pre-registered one, and both are published.\n")
+        zbase = {cls: class_medians(runs_at["Z"], lambda d: post(d, POST), cls) for cls in CLASSES}
+        print("| condition | " + " | ".join(CLASS_LABEL[c] for c in CLASSES) + " |")
+        print("|---|" + "---|" * len(CLASSES))
+        print("| **Z — no supply at all** | " + " | ".join(f"{fmt(zbase[cls][0])} ± {fmt(zbase[cls][1])}" for cls in CLASSES) + " |")
+        for c in SWEEP:
+            if not runs_at[c]:
+                continue
+            cells = []
+            for cls in CLASSES:
+                m = class_medians(runs_at[c], lambda d: post(d, POST), cls)
+                if not m[2] or not zbase[cls][2]:
+                    cells.append("—")
+                    continue
+                spread = max(m[1], zbase[cls][1])
+                delta = m[0] - zbase[cls][0]
+                cells.append(f"{fmt(m[0])} ({delta:+.3f}{'' if delta >= -spread else ' **below Z**'})")
+            print(f"| {LABEL[c]} | " + " | ".join(cells) + " |")
         print("\nApex ρ(K) through the run, so the phase's own effect is visible beside the post-phase state:\n")
         print("| condition | end of phase | +1k | +5k | +10k | +20k | +30k |")
         print("|---|---|---|---|---|---|---|")
