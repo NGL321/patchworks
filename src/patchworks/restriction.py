@@ -66,7 +66,7 @@ __all__ = [
 GAUGE_RHO = 2.0
 
 #: @type stipulated
-#: @flexibility measured: the overlap count runs 2.42 at the rim to 1.75-1.98 in the core (#182) against a ~1.05 floor set by effective rank, so 2 is conservative -- it is what levels 4-7 already satisfy untouched, and tightening it wants the cost to cross-edge alignment measured first (#184)
+#: @flexibility measured: the overlap count runs 2.42 at the rim to 1.75-1.98 in the core (#182) against a ~1.05 floor set by effective rank, so 2 is conservative -- it is what levels 4-7 already satisfy untouched; the cost to cross-edge alignment that #184 wanted measured before tightening is now measured and the pre-registered condition **fired** -- 3.49x taught against a 14.20x baseline, below its own 4.04x untrained arm (#538, `prototypes/falsifier-538/`), on a surface where ADR-0032's floor moved the sender-side half too, so `c` is indicted but not isolated (#537 holds the control)
 #: @warrant docs/adr/0010-restriction-map-scale-is-gauge-fixed.md, Incoherence is gauge-fixed too
 #: `c`, the **effective overlap count**: how many of a cell's incident maps load
 #: the same input direction. Declared globally alongside `ρ` and held by the same

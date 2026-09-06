@@ -440,6 +440,22 @@ cell's incident maps apart could eat it. That is the pre-registered falsificatio
 run, and it is why [#184](https://github.com/NGL321/patchworks/issues/184) must re-size its own 2.15x
 after this term is in circuit rather than before.
 
+*Taken by [#538](https://github.com/NGL321/patchworks/issues/538) on 2026-09-06, and it **fired**.
+The named quantity reads **3.49x / 3.50x taught** at seeds 0 and 1 against the pre-registered 14.20x
+— a **4.06x regression** — while the untrained arm reads 4.04x / 4.08x against 3.66x and does not
+fire. Taught cross-edge alignment is now **below** its own untrained arm: on the surface this
+paragraph was written against, training multiplied the quantity by 3.88; it now multiplies it by
+0.86. The receiver's contribution, which is the half this paragraph named, falls **2.57x → 1.10x**,
+and #184's unspent 2.15x re-sizes to **2.90x** — larger, because what shrank is the part already
+built. **The surface**: `main` at `2bce07d`, full dome, `split=train`, 30,000 ticks, seeds 0 and 1,
+with `c = 2` in circuit, ADR-0032's spectral floor on and ADR-0031's sparsity pressure deleted —
+three changes since the baseline, so this reading establishes that the cost **was incurred** and does
+**not** isolate `c` as its sole cause. The sender-side half of the fall (`σ_max` against isotropic,
+5.53x → 3.18x) is what a co-isometry's flat spectrum predicts and is ADR-0032's, not this term's.
+Instrument, logs and the split:* `prototypes/falsifier-538/`. *The `c`-only control is
+[#537](https://github.com/NGL321/patchworks/issues/537)'s. This paragraph's decision is untouched —
+`c` as a gauge constant enforced by projection stands; what is now on the record is its price.*
+
 **The sparsity term gains a rationale it did not have.** L1 on the normalised map was adopted for
 pruning within the mask (`06-graph-topology.md`). Concentrating a map onto fewer, more nearly disjoint
 sets of directions is also what makes a cell's incident maps mutually incoherent, so the term the ADR

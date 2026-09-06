@@ -1,0 +1,24 @@
+C:\Users\noahl\patchworks\.claude\worktrees\falsifier-538\benchmarks\untrained_fixed_point.py:628: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at C:\actions-runner\_work\pytorch\pytorch\pytorch\torch\csrc\autograd\generated\python_variable_methods.cpp:837.)
+  ceilings.append(moved * sheaf.maps.rho / float(norms[partner]))
+
+full dome, split 'train', seed 1, after 30000 ticks with both rules on
+  nudge 0.001, over 150 predicting cells and 1091 edge endpoints whose far end runs a body
+  restrict  d|belief|     / d|node stalk|  mean   0.2668  median   0.2408  max   1.0000
+  edge      d|node stalk| / d|belief|      mean   0.1256  median   0.1249  max   0.2500
+  body      d|prediction| / d|evidence|    mean   0.5541  median   0.5361  max   1.1729
+  one hop, one tick: mean 0.01857  (the three, multiplied)
+  interior map norms mean 1.786 against rho = 2 (1091 of 1364 maps;
+  the rest are boundary cells' and pinned at 1 by the exact gauge). Grown to rho, restrict would
+  reach 0.2899, edge 0.1404, and the hop 0.02255 -- on the body's
+  present gain, which the gauge does not bound and nothing here predicts.
+
+  interior maps, 1091 of them: sigma_max mean 1.0049 against an isotropic
+  mean of 0.3157 -- a factor of 3.183 the nudge above discards.
+  Grown to rho = 2, sigma_max would reach 1.1255.
+  the hop's two maps, sender nudged along its own top singular
+  direction:      mean   0.1174  median   0.1246  max   0.2501
+  against 0.03352 from random nudges -- alignment across the edge is worth 3.50x.
+  the gain's denominator, over 150 cells of mean degree 7.27:
+  bound / true lambda_max  mean    4.985  median    4.901  min    2.910
+  -- the factor `gain_v` gives away by bounding the block instead of reading it.

@@ -39,6 +39,18 @@ transport rule builds when it aligns adjacent maps to reduce disagreement, and i
 measured fact about a trained surface rather than a guarantee of the contract: cross-edge alignment
 reads **14.20x taught against 3.66x untrained**, so the channel is largely a thing training makes.
 
+*Surface, and a conflict flagged rather than resolved
+([#538](https://github.com/NGL321/patchworks/issues/538), 2026-09-06). Those two figures were read
+before `c` entered the projection (#220), before ADR-0032's spectral floor, and while ADR-0031's
+sparsity pressure still existed. Re-read on `main` at `2bce07d` — full dome, `split=train`, 30,000
+ticks, seeds 0 and 1 — the same instrument gives **3.49x / 3.50x taught against 4.04x / 4.08x
+untrained**. Taught is now* below *untrained, so on the live surface the sentence above does not
+hold: training moves cross-edge alignment by 0.86x rather than 3.88x, and the channel is no longer
+largely a thing training makes.* **Whether this ADR's decision survives that is not #538's call** —
+*the hop being an operator norm along a channel is independent of how the channel got there, and this
+note deliberately decides nothing.* [#532](https://github.com/NGL321/patchworks/issues/532) *is where
+the consequence is being worked. Reading and logs:* `prototypes/falsifier-538/`.
+
 ### This is what licenses `gain = γ / λ_max`
 
 The reconciliation gain divides by a bound on `λ_max(Σ_e F_evᵀF_ev)`
