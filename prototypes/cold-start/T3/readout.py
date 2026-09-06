@@ -21,6 +21,14 @@ Done-when, read exactly as the map writes it:
    the frozen world), arm travel per window stays **> 0** and composed
    rim-to-apex effective rank is **> 1.5**.
 
+`travel > 0` is read against the **frozen baseline's own last-window travel**
+rather than against literal zero -- T2's ceded reading, on the ground that a
+stopped arm registers 1e-6 to 1e-3 and literal zero is not the question the
+clause asks. T2 had to borrow that baseline from a shorter run and flagged the
+confound; T3's baseline arm is re-run here at the same horizon, on the same
+seeds and the same dome, so the comparator is native and the confound does not
+arise. Both readings are published.
+
 Only the falsifying end of each clause is a verdict; a pass is a magnitude with
 a spread (#481's idiom).
 
@@ -327,8 +335,17 @@ def section_verdict(data: dict) -> list[str]:
         # "Not below": falsified only when apex sits below core beyond the larger spread.
         margin = max(asd, csd)
         one_holds = am >= cm - margin
-        trav = per_seed(runs, tick, travel_window)
+        trav = per_seed(runs, tick, travel_per_tick)
         tm, tsd = spread(trav)
+        # T2's comparator, inherited: a stopped arm registers 1e-6 to 1e-3, so
+        # *travel > 0* is read against the frozen baseline's own last-window
+        # travel and not against literal zero. T2 had to borrow that baseline
+        # from a shorter run and said so; T3 has its own, at the same horizon
+        # on the same seeds and the same dome, which is the whole point of
+        # re-running the baseline arm here.
+        base = per_seed(data[BASELINE], tick, travel_per_tick)
+        bm, bsd = spread(base)
+        above = tm > bm + max(tsd, bsd) if base else None
         comp = per_seed(runs, tick, composed_median)
         km, ksd = spread(comp)
         cmax = per_seed(runs, tick, composed_max)
@@ -338,8 +355,10 @@ def section_verdict(data: dict) -> list[str]:
             "",
             f"- **(1)** apex ρ **{am:.3f} ± {asd:.3f}** against core L3–L6 **{cm:.3f} ± {csd:.3f}** "
             f"(gap {cm - am:+.3f}, larger spread {margin:.3f}) → **{'holds' if one_holds else 'FAILS'}**",
-            f"- **(2a)** arm travel this window **{tm:.4f} ± {tsd:.4f}** → "
-            f"**{'holds (> 0)' if tm > 0 else 'FAILS (= 0)'}**",
+            f"- **(2a)** arm travel per tick, last window **{tm:.3e} ± {tsd:.3e}**; "
+            f"literally > 0: **{'yes' if tm > 0 else 'no'}**; against the frozen baseline's own "
+            f"stopped-arm level {bm:.3e} ± {bsd:.3e} (T2's comparator): "
+            f"**{'above it' if above else 'not above it — the arm is parked'}**",
             f"- **(2b)** composed rim-to-apex ER **{km:.3f} ± {ksd:.3f}** (max over chains {xm:.3f}) "
             f"against the bar {RANK_BAR} → **{'holds' if km > RANK_BAR else 'FAILS'}**",
             "",
