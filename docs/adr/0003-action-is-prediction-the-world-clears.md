@@ -41,6 +41,27 @@ missing either; it is `H⁰` insulation, which makes a losing route structurally
 through message passing. See [`04-action-and-the-boundary.md`](../spec/04-action-and-the-boundary.md),
 *Route selection*. The claim is unchanged; what changes is that it is no longer an apology.
 
+*Amended by [#548](https://github.com/NGL321/patchworks/issues/548), writing
+[#540](https://github.com/NGL321/patchworks/issues/540)'s ruling.* **`H⁰` insulation is what this
+amendment rests commitment on, so it is this ADR that the construction invariant is protecting, and
+the invariant has now been spent against.** `Σ_e m_e ≤ n − 1` at every predicting cell is what makes
+the guaranteed private dimension `p_v = max(0, n − Σ_e m_e)` non-zero; a cell with `p_v = 0` has no
+direction message passing cannot move, and *"structurally unable to re-assert"* becomes a claim about
+learned rank rather than about construction.
+
+Per-edge lane allocation spends idle budget on lane width, and the total `dim H⁰` floor over the dome
+falls **1278 → 914**. The floor of 1 **holds at every cell** — nothing here is zero, and the claim
+above survives intact — but it is thinner than it was, and where it thinned is worth knowing: the deep
+core gives up privacy it held by accident (L4–L6 go 14 → 1–3) while the rim gains privacy it never had
+(L1 vision 1 → 7–9). **Commitment is now insulated most where routes converge and least where they
+run**, which is the opposite of the previous shape and has not been argued for on this ADR's own terms.
+
+> **The doubling #540 ruled is not shipped, and this clause is one of the reasons.** At
+> `Σ_e m_e ≤ 2n − 1`, `p_v` reads **zero at 104 of 150 predicting cells** and the floor falls to 54 —
+> at which point commitment-as-`H⁰`-insulation is no longer available to most of the graph.
+> [#556](https://github.com/NGL321/patchworks/issues/556) weighs that against the composed-rank the
+> doubling buys; whichever way it goes, **this amendment is what it costs.**
+
 *Amended by [ADR-0009](./0009-a-drive-is-a-motor-edge-attached-deep.md).* The sensory/motor split
 above is exhaustive over the *world's* edges but not over the graph's: a **drive edge** is written from
 outside and cleared by the world moving, which makes it a motor edge attached far from the rim rather

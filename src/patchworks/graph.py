@@ -34,7 +34,7 @@ internal wiring and the touch cell's stalk dimension.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 
 import torch
@@ -129,13 +129,22 @@ class Cell:
 class Edge:
     """One edge, carrying a communication lane of dimension `m`.
 
-    `m` is fixed here and never changes: 3 between two predicting cells, 4 on a
-    boundary-incident edge, 1 on a drive edge. Boundary edges are wider because
-    a patch cell's edges are the only route that patch's information ever takes;
-    the drive edge is narrower because a map out of a one-dimensional stalk has
-    rank at most one. The boundary/interior pair is 4 against 3 rather than the
-    2x it used to be: #474 derived both from `Σ_e m_e ≤ n − 1`, and the reason
-    above buys the *ordering*, not the multiple.
+    `m` is fixed at construction and never changes afterwards, but it is no
+    longer one constant per edge *kind*. Since
+    [#548](https://github.com/NGL321/patchworks/issues/548) wrote
+    [#540](https://github.com/NGL321/patchworks/issues/540)'s ruling, an
+    interior lane is **allocated per edge** — the largest width both its
+    endpoints can afford under `Σ_e m_e ≤ n − 1` — so five of the six relay
+    hops are no longer held narrow to satisfy a limit that binds only at the
+    sixth. See :func:`allocate_lane_widths`.
+
+    Three widths are still set rather than allocated, each for its own reason:
+    4 on a boundary-incident edge, because a patch cell's edges are the only
+    route that patch's information ever takes; 1 on a drive edge, because a map
+    out of a one-dimensional stalk has rank at most one; and 1 on a lateral
+    edge, which is #540's (c1) — **a consequence of this dome's lateral count,
+    not a general claim that lateral lanes are cheap** (see
+    :attr:`DomeSpec.lateral_m`).
     """
 
     id: int
@@ -203,12 +212,26 @@ class DomeSpec:
     """Arm joints, one proprioceptive and one touch boundary cell each."""
 
     #: @type stipulated
-    #: @flexibility free, and the thinnest number in the design: #32 found n, k and m = 8 comfortable and m = 4 thin, with no source either way on whether it is enough. Widening it trades directly against private dimension, since every interior stalk widened raises the sum of m_e at every cell. It is the first rung on #14's constraint ladder and the one to pull first if a piece turns out not to fit through it -- and #474 pulled it, downward rather than up, 4 to 3, to supply the private-dimension floor #385 ruled the mask's to give. Never varied within a run; the value moved once, on #474. Not free-standing: it and boundary_m are jointly derived from the construction invariant sum_e m_e <= n - 1 at every predicting cell, by taking the largest feasible interior_m and then the largest boundary_m that clears. The feasible frontier is exactly (3, 4), (2, 5) and (1, 6), so a session re-deriving the pair lands on (3, 4) rather than on one of the other two; interior_m = 4 is infeasible at every boundary_m whatsoever, because the 12 L2 vision cells sit at 8 x interior_m with no boundary edge at all. #385 bounds this knob's reach acting alone, and that bound stands as read: of the 82 predicting cells at private dimension 0 it cleared 15 at 3 and all 18 at 2, and the other 64 -- every L1 vision cell -- stayed at 0 at any value including 0, because 4 rim edges x boundary_m = 32 = n filled the bus before an interior edge was counted. What released those 64 was boundary_m moving with it. The delay-embedding reading moves with the value: twice the box-counting dimension of the piece carried puts a lane of 3 at a piece of box dimension under 1.5, where a lane of 4 stood at 2. #440 is the live reason that number matters -- it split `piece` from `situation set` and left open whether the piece has a box dimension at all
-    #: @warrant docs/spec/06-graph-topology.md, Dimensions
-    interior_m: int = 3
+    # `interior_m` stood here until #548 wrote #540's ruling. It is not
+    # replaced by another value: interior lane width is allocated per edge by
+    # `allocate_lane_widths`, as the largest width both endpoints can afford,
+    # so there is nothing left here to set. The two fields below are what
+    # survives of it -- the widths the allocation does not choose, and the
+    # invariant it allocates under. See `allocate_lane_widths` for the rule and
+    # `docs/spec/06-graph-topology.md`, *Dimensions*, for the record.
 
     #: @type stipulated
-    #: @flexibility free, and wider than the interior's deliberately: a boundary cell's edges are the only route its information ever takes, unlike an interior cell, which is reachable many ways. It was twice the interior's, and #474 demoted the 2x from a multiple to an ordering -- 4 against 3 is still wider, and the reason above is unchanged and buys the ordering rather than the multiple. The multiple was demoted deliberately, not dropped by accident: (2, 5) would have preserved a ratio above 2 by spending a second unit on the thinnest dimension in the design, and the ratio is an implementation of the reason rather than the reason. Never varied within a run; the value moved once, on #474, 8 to 4. Not free-standing: it and interior_m are jointly derived from the construction invariant sum_e m_e <= n - 1 at every predicting cell, by taking the largest feasible interior_m and then the largest boundary_m that clears. The binding cell is L1 vision at degree 9 -- 4 rim + 4 lateral + 1 up -- where the invariant reads 4 x boundary_m + 5 x interior_m <= 31; the feasible frontier is exactly (3, 4), (2, 5) and (1, 6), so a session re-deriving the pair lands on (3, 4) rather than on one of the other two. The cost is stated at docs/spec/06-graph-topology.md, Dimensions: a patch cell's restriction goes 48 -> 4, a 12:1 compression that file has never ruled on
+    #: @flexibility free, and the whole of #540's lever (c1): a lateral edge joins two cells at the same level, and no lateral edge lies on any rim-to-apex chain -- 0 of the 405 edges the 263 chains use -- yet at the one cell where the invariant binds, laterals eat 12 of 31, 39% of the privacy budget at the bottleneck, on edges the composed object never traverses. Narrowing them to 1 rather than deleting them keeps within-level communication for the 0.055 of median composed rank it costs (1.341 against 1.396 deleted). THIS RULING IS CONTINGENT, NOT GENERAL. The user agreed to it tentatively and the caveat is load-bearing: this dome is a placeholder, and a different implementation may have far more lateral edges, or lateral edges that do lie on chains. It is a consequence of THIS dome's lateral count and not a standing claim that lateral lanes are cheap -- anyone replacing the dome must re-derive it rather than inherit it. Never varied within a run; the value has moved once, on #548, from whatever interior_m happened to be to 1
+    #: @warrant docs/spec/06-graph-topology.md, Connectivity
+    lateral_m: int = 1
+
+    #: @type stipulated
+    #: @flexibility free in principle and held here: it is the constant in the construction invariant sum_e m_e <= privacy_budget at every predicting cell, which is 05-timescales.md's dim H^0 bound read as a floor of 1 rather than as a total. What the invariant is FOR, which the record did not carry until #548 wrote it: a cell will likely need more features to compute its own dynamics than it holds an authoritative position on network-wide, so the budget reserves the difference. That is why #540 refused to abolish it -- doubling changes the number, abolition changes the framing. #540 ruled it doubled to 2n - 1 = 63, and #548 DID NOT SHIP THAT: at 63 the guaranteed private dimension max(0, n - sum_e m_e) reads zero at 104 of 150 predicting cells and the dim H^0 floor falls 914 to 54, reinstating the zero row #474 was opened to remove and #385 ruled the mask must supply. The number and its own stated reason collide, and which gives is the user's, on #556. Held at n - 1 meanwhile
+    #: @warrant docs/spec/06-graph-topology.md, Dimensions
+    privacy_budget: int = NODE_STALK_DIM - 1
+
+    #: @type stipulated
+    #: @flexibility free, and the one lane width still set rather than allocated: a boundary cell's edges are the only route its information ever takes, unlike an interior cell, which is reachable many ways, so this width is a claim about the boundary rather than a residual of what a relay cell could afford. It was twice the interior's, and #474 demoted the 2x from a multiple to an ordering. #548 finished that demotion by dissolving the other half of the pair: with interior lanes allocated per edge there is no global interior width to be wider than, and this number now stands alone on its own reason. It is also why it is not allocated -- a patch cell carries no privacy budget, so water-filling the rim edge would let it take whatever the L1 cell could spare (43 of 63 at #540's doubled budget), which is a number about the relay cell rather than about the patch. #540 priced raising it to 6 as its own row and did not choose it, so it is held. Never varied within a run; the value moved once, on #474, 8 to 4. Not free-standing in one direction still: it is an input to the allocation, since the 4 rim edges it fixes at every L1 vision cell are subtracted from that cell's budget before its interior lanes are water-filled. The cost is stated at docs/spec/06-graph-topology.md, Dimensions: a patch cell's restriction goes 48 -> 4, a 12:1 compression that file has never ruled on
     #: @warrant docs/spec/06-graph-topology.md, Dimensions
     boundary_m: int = 4
 
@@ -381,7 +404,13 @@ class _Builder:
         return cell.id
 
     def edge(self, u: int, v: int) -> None:
-        """Add one edge, sizing its stalk and sorting its kind from its endpoints."""
+        """Add one edge and sort its kind from its endpoints.
+
+        Interior lanes are left at `0` here and sized afterwards, by
+        :func:`allocate_lane_widths` — an interior width is a property of the
+        whole neighbourhood rather than of one edge, so it cannot be known until
+        every edge exists.
+        """
         kinds = (self.cells[u].kind, self.cells[v].kind)
         if CellKind.DRIVE in kinds:
             m, kind = self.spec.drive_m, EdgeKind.DRIVE
@@ -390,8 +419,109 @@ class _Builder:
         elif any(k.is_boundary for k in kinds):
             m, kind = self.spec.boundary_m, EdgeKind.SENSORY
         else:
-            m, kind = self.spec.interior_m, EdgeKind.INTERIOR
+            m, kind = 0, EdgeKind.INTERIOR
         self.edges.append(Edge(id=len(self.edges), u=u, v=v, m=m, kind=kind))
+
+
+def allocate_lane_widths(
+    cells: list[Cell], edges: list[Edge], spec: DomeSpec
+) -> tuple[Edge, ...]:
+    """Size every interior lane: the largest width both endpoints can afford.
+
+    This is [#540](https://github.com/NGL321/patchworks/issues/540)'s levers (d)
+    and (c1), written by
+    [#548](https://github.com/NGL321/patchworks/issues/548). The construction
+    invariant `Σ_e m_e ≤ spec.privacy_budget` is a budget **per predicting
+    cell**, and it binds at exactly one of the six relay cells — L1 vision, at
+    degree 9 — while L3–L6 idle 13 of their 31. A single global `interior_m` had
+    to satisfy the tightest cell, so every other lane in the graph was narrow
+    for a reason that did not apply to it.
+
+    The allocation is max-min fair (progressive filling), which is what *largest
+    both endpoints can afford* means when the two endpoints can afford
+    different amounts:
+
+    1. Boundary, motor, drive and lateral lanes are **fixed** first, at
+       `boundary_m`, `drive_m` and `lateral_m`, and charged to their endpoints'
+       budgets. Each is set by its own reason rather than by what is spare.
+    2. Every remaining lane rises together. At each round a predicting cell
+       offers each of its unsized lanes an equal share of what is left of its
+       budget; a lane's ceiling is the smaller of its two endpoints' offers.
+    3. The lanes at the lowest ceiling are fixed there and their spend charged,
+       which frees budget at their *other* endpoint for the next round. Repeat
+       until every lane is sized.
+
+    Step 3 is why this is worth doing: an L2 cell whose down-edge is pinned to 3
+    by the L1 cell below it gets to spend the rest of its 31 on the seven lanes
+    that are not, rather than holding all eight at 3.
+
+    A boundary cell carries no budget of its own — it holds no `H⁰` to protect,
+    since the world overwrites its stalk every tick — so it makes no offer and
+    constrains nothing. That is why rim lanes are fixed rather than allocated:
+    otherwise they would take whatever the relay cell above could spare.
+
+    The result satisfies `Σ_e m_e ≤ spec.privacy_budget` at every predicting
+    cell by construction — `build_graph` asserts it — so the private-dimension
+    floor `p_v = n − Σ_e m_e ≥ 1` that
+    [#385](https://github.com/NGL321/patchworks/issues/385) ruled the mask's to
+    give survives the reallocation at every cell.
+
+    **It is not free, and the trade is worth stating.** The total `dim H⁰` floor
+    falls **1278 → 914** on `DEFAULT_SPEC`: the allocation spends idle budget,
+    and idle budget was privacy. Where it falls is the point — the deep core
+    gives up privacy it had by accident (L4–L6 go 14 → 1–3) and the rim gains
+    privacy it never had (L1 vision goes 1 → 7–9, off the back of `lateral_m`).
+    The floor of 1 holds everywhere and no cell reaches zero. Lever (d) alone,
+    without narrowing laterals, would have cost far more — 414 — which is why
+    #540 ruled (c1) alongside it rather than after it.
+
+    Returns the edges with interior widths filled in; other kinds are untouched.
+    """
+    incident: list[list[int]] = [[] for _ in cells]
+    for e in edges:
+        incident[e.u].append(e.id)
+        incident[e.v].append(e.id)
+
+    budgeted = {c.id for c in cells if not c.is_boundary}
+    level = {c.id: c.index.level for c in cells}
+
+    width: dict[int, int] = {}
+    for e in edges:
+        if e.kind is not EdgeKind.INTERIOR:
+            width[e.id] = e.m
+        elif level[e.u] == level[e.v]:
+            width[e.id] = spec.lateral_m
+
+    remaining = {v: spec.privacy_budget for v in budgeted}
+    for v in budgeted:
+        for eid in incident[v]:
+            if eid in width:
+                remaining[v] -= width[eid]
+    unsized = {e.id for e in edges if e.id not in width}
+
+    while unsized:
+        offer = {}
+        for v in budgeted:
+            free = [i for i in incident[v] if i in unsized]
+            if free:
+                offer[v] = remaining[v] // len(free)
+        ceiling = {}
+        for eid in unsized:
+            e = edges[eid]
+            # A lane can carry no more than the node stalk it reads from.
+            bids = [offer[x] for x in (e.u, e.v) if x in offer]
+            ceiling[eid] = min(bids + [NODE_STALK_DIM])
+        lowest = min(ceiling.values())
+        for eid in [i for i in unsized if ceiling[i] == lowest]:
+            width[eid] = lowest
+            for v in (edges[eid].u, edges[eid].v):
+                if v in remaining:
+                    remaining[v] -= lowest
+            unsized.discard(eid)
+
+    return tuple(
+        e if e.kind is not EdgeKind.INTERIOR else replace(e, m=width[e.id]) for e in edges
+    )
 
 
 def _grid_lateral(ids: dict[tuple[int, int], int], side: int) -> list[tuple[int, int]]:
@@ -598,7 +728,24 @@ def build_graph(spec: DomeSpec = DEFAULT_SPEC) -> "Dome":
     for cell in apex:
         b.edge(drive, cell)
 
-    return Dome._assemble(spec, tuple(b.cells), tuple(b.edges))
+    # Interior lanes last: a width is a property of the whole neighbourhood, so
+    # it cannot be sized until every edge exists (#548, writing #540's ruling).
+    sized = allocate_lane_widths(b.cells, b.edges, spec)
+
+    spend: dict[int, int] = {}
+    for e in sized:
+        for endpoint in (e.u, e.v):
+            spend[endpoint] = spend.get(endpoint, 0) + e.m
+    for cell in b.cells:
+        if not cell.is_boundary and spend.get(cell.id, 0) > spec.privacy_budget:
+            raise ValueError(
+                "the construction invariant is what guarantees a predicting "
+                f"cell any private dimension at all: cell {cell.id} spends "
+                f"{spend[cell.id]} of {spec.privacy_budget} "
+                "(docs/spec/06-graph-topology.md, Dimensions)"
+            )
+
+    return Dome._assemble(spec, tuple(b.cells), sized)
 
 
 @dataclass(frozen=True)
@@ -874,8 +1021,19 @@ class Dome:
 
         lines.append("dimensions")
         lines.append(
-            f"  n = {NODE_STALK_DIM}, k = {CHART_DIM}, interior m = {spec.interior_m}, "
-            f"boundary m = {spec.boundary_m}, drive m = {spec.drive_m}"
+            f"  n = {NODE_STALK_DIM}, k = {CHART_DIM}, "
+            f"boundary m = {spec.boundary_m}, lateral m = {spec.lateral_m}, "
+            f"drive m = {spec.drive_m}"
+        )
+        allocated = sorted(
+            e.m
+            for e in self.edges
+            if e.kind is EdgeKind.INTERIOR
+            and self.cells[e.u].index.level != self.cells[e.v].index.level
+        )
+        lines.append(
+            f"  interior m: allocated per edge, {allocated[0]}-{allocated[-1]} "
+            f"over {len(allocated)} lanes, under sum_e m_e <= {spec.privacy_budget}"
         )
         lines.append(
             "  boundary stalks: patch "
