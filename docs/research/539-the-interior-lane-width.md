@@ -425,9 +425,18 @@ it needs no container and ages with nothing. Three scripts, `numpy` and `scipy` 
   `(Σσᵢ²)²/Σσᵢ⁴`, `n = 32`. Reproduced at 3,000 trials with agreement to 0.01 on every median.
 - **The rim-to-apex chain shape** — 20,000 trials, hop 1 `(interior × boundary)`, hops 2–7
   `(interior × interior)`, at `(4, 8)` and `(3, 4)`.
-- **The invariant sweep** — `m = ⌊(n−1)/deg⌋` for each `(degree, n)`, 1,500 trials. Drawn with the
+- **The invariant sweep** — `m = ⌊(n−1)/deg⌋` for each `(degree, n)`, 1,500 trials, drawn with the
   cheaper sampler (QR of an `n × m` Gaussian, a uniform `m`-frame) rather than truncating a full
-  `n × n` Haar draw; the two agree to 0.001 on the shared `deg 9, n = 32` row.
+  `n × n` Haar draw.
+
+**The sweep was run twice, by two samplers, and the tabled numbers are the weaker of the two runs.**
+The independent replication — full `n × n` Haar truncation, 4,000 trials — returns `deg 9, n = 32`
+**1.009** against the tabled 1.010, `deg 9, n = 64` **1.368** against 1.367, `deg 9, n = 128` **2.230**
+against 2.195, `deg 3, n = 32` **1.975** against 1.967, and `deg 2, n = 32` **3.232** against 3.256.
+Every row agrees inside Monte-Carlo noise and **no conclusion in §1.4 moves**; the largest discrepancy,
+0.035 at `deg 9, n = 128`, is in the row furthest from any claim this pass makes. The `deg 9, n = 32`
+row also reproduces §1.2's independently-computed 1.011, so the three ways of getting at today's
+configuration agree to 0.002.
 
 The scripts are short enough to restate from the definitions above and were not committed, since the
 repo keeps rigs under `benchmarks/` for surfaces that read the dome and these read nothing. **If any of
