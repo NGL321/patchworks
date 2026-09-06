@@ -162,11 +162,29 @@ read as a floor of 1 rather than as a total. Until then the `max(0, ·)` was doi
 clipped to zero at **82 of the 150** predicting cells, so at more than half the fleet the bound was
 **vacuous** — true, and saying nothing, because a cell with no private width has no insulated
 retention to bound. It is now **binding by construction at every predicting cell**, worst case
-`p_v = 1` at the 36 L1 vision cells of degree 9. That is the difference between a bound that holds
-and a bound that constrains, and this section's *capacity for slow state is a construction quantity*
-only ever meant the second. The per-level figures are `06-graph-topology.md`'s to publish
-(*Private dimension is a gradient, and it falls out*) and they moved with the pair; nothing is quoted
-here, so that this file has one fewer copy of a number that ages.
+`p_v = 1`. That is the difference between a bound that holds and a bound that constrains, and this
+section's *capacity for slow state is a construction quantity* only ever meant the second. The
+per-level figures are `06-graph-topology.md`'s to publish (*Private dimension is a gradient, and it
+falls out*) and they move with the widths; nothing is quoted here, so that this file has one fewer
+copy of a number that ages.
+
+**The invariant is unchanged; what spends it is not.**
+[#548](https://github.com/NGL321/patchworks/issues/548) wrote
+[#540](https://github.com/NGL321/patchworks/issues/540)'s ruling, and interior lanes are now allocated
+**per edge** — the largest width both endpoints can afford — rather than set by one global constant.
+`Σ_e m_e ≤ n − 1` still holds at every predicting cell, so the bound still binds everywhere and the
+worst case is still `p_v = 1`; what moved is *which* cells sit at the floor and how much total slow
+capacity the dome carries. **Read this as a warning about how to use the bound**: it is a per-cell
+floor, and its graph-wide sum is not conserved by a change that leaves the invariant satisfied. The
+reallocation took the sum from **1278 to 914** without violating anything, because a constant that
+binds at one cell leaves *idle budget* everywhere else, and idle budget reads as private dimension
+until something spends it.
+
+> **#540 also ruled the invariant doubled to `Σ_e m_e ≤ 2n − 1`, and #548 did not ship it, because
+> that is the change this bound cannot absorb.** At 63 against `n = 32` the `max(0, ·)` starts
+> clipping again — **zero at 104 of 150 predicting cells**, a floor sum of 54 — which returns this
+> section to the *vacuous at more than half the fleet* state #474 was written to end. The disposition
+> is [#556](https://github.com/NGL321/patchworks/issues/556)'s.
 
 The design move is a step out from published work rather than a leap: neural sheaf diffusion
 engineers `dim ker(Δ_F)` deliberately so that information survives what would otherwise be

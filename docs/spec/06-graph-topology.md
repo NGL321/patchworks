@@ -311,29 +311,82 @@ incident on boundary cells, is ordinary and `m`-sized, reached by an ordinary li
 restriction map. A patch cell's 48 → 4 restriction *is* the compression of that patch, performed by a
 cell, inside the graph, costing a tick.
 
-Boundary edges are given `m = 4` against the interior's 3 for a specific reason: a patch cell's edges
-are the only route that patch's information ever takes, unlike an interior cell, which is reachable
-many ways.
+Boundary edges are given `m = 4` for a specific reason: a patch cell's edges are the only route that
+patch's information ever takes, unlike an interior cell, which is reachable many ways.
 
-**Neither number is free-standing, and both are derived from one invariant.**
-[#474](https://github.com/NGL321/patchworks/issues/474) set them jointly, from the construction
-invariant this file now owns — **`Σ_e m_e ≤ n − 1` at every predicting cell**, which is
-`05-timescales.md`'s `dim H⁰` bound read as a floor of 1 rather than as a total. The rule that picks
-a point on it is *spend the least possible on the thinnest dimension*: **take the largest feasible
-`interior_m`, then the largest `boundary_m` that clears.** The binding cell is L1 vision at degree 9 —
-4 rim + 4 lateral + 1 up — where the invariant reads `4·boundary_m + 5·interior_m ≤ 31`, and the
-feasible frontier is exactly three points: **(3, 4)**, (2, 5) and (1, 6). A session re-deriving the
-pair should land on (3, 4) and not on the other two. `interior_m = 4` appears nowhere on that
-frontier — not because `boundary_m` cannot be made small enough, but because the 12 L2 vision cells
-sit at `8 × interior_m` with **no boundary edge at all**, so `boundary_m` cannot reach them at any
-value.
+**An interior lane is no longer a number. It is allocated, per edge.**
+[#548](https://github.com/NGL321/patchworks/issues/548) wrote
+[#540](https://github.com/NGL321/patchworks/issues/540)'s ruling, and the rule is: **each interior
+lane gets the largest width both its endpoints can afford**, under the construction invariant this
+file owns — **`Σ_e m_e ≤ n − 1` at every predicting cell**, which is `05-timescales.md`'s `dim H⁰`
+bound read as a floor of 1 rather than as a total. `src/patchworks/graph.py::allocate_lane_widths` is
+the implementation and states the fair-sharing rule in full.
 
-**The 2x was demoted, not dropped by accident.** These lanes were `8` against `4`, *twice the
-interior's deliberately*, and the **reason above is unchanged and still stated in the same words**:
-a boundary cell's edges are the only route its information ever takes. What #474 changed is what that
-reason buys — an **ordering** rather than a multiple. 4 against 3 is still wider. (2, 5) would have
-preserved a ratio above 2 by spending a second unit on the thinnest dimension in the design, and the
-ratio is an implementation of the reason rather than the reason itself.
+**What was wrong with a constant, and it is this file's own rule that says so.** The invariant is a
+budget *per cell*, and it **binds at exactly one of the six relay cells**: L1 vision, at degree 9,
+sits at slack 0, while L3–L6 idle 13 of their 31. A single global `interior_m` had to satisfy the
+tightest cell in the graph, so **five of six hops were held narrow to satisfy a limit that bound only
+at the sixth** — against this project's own standing rule, *per edge, never per level*
+([#181](https://github.com/NGL321/patchworks/issues/181)). Allocating per edge spends the idle budget:
+generic composed rim-to-apex effective rank goes **1.028 → 1.154**, and narrowing lateral lanes as
+well (below) takes it to **1.341**, with zero invariant violations and no ADR value moved.
+
+**#474's feasible frontier is dissolved, not moved along.** #474 derived `interior_m` and
+`boundary_m` jointly, and the frontier it selected from — `(3,4)`, `(2,5)`, `(1,6)`, the solutions of
+`4·boundary_m + 5·interior_m ≤ 31` at the binding cell — **is the solution set of a two-variable
+problem that only exists while `m` is global.** With widths allocated per edge there is no global pair
+to select, so [#483](https://github.com/NGL321/patchworks/issues/483), which wrote that frontier, is
+**superseded and not resumed** (#540 §8). Its text stands as history. Nothing below re-derives it.
+
+**`boundary_m` survives the dissolution and is the one lane width still set.** It is now the *only*
+one, so the reason has to carry it alone, and it does: a boundary cell's edges are the only route its
+information ever takes. Two consequences worth stating. First, this ends #474's demotion of the `2x`
+— there is no global interior width left to be *wider than*, so the ordering the 2x was demoted to
+has nothing to order, and 4 stands on its own reason rather than on a comparison. Second,
+**boundary lanes are deliberately not allocated**: a patch cell carries no privacy budget, so
+water-filling a rim lane would hand it whatever the L1 cell above could spare — a number about the
+relay cell, not about the patch. #540 priced raising it to 6 as its own row and did not choose it.
+
+**Lateral lanes are narrowed to `m = 1`, and this ruling is contingent.** No lateral edge lies on any
+rim-to-apex chain — **0 of the 405 edges the 263 chains use** — yet at the one cell where the
+invariant binds, laterals ate **12 of 31**, 39% of the privacy budget at the bottleneck, on edges the
+composed object never traverses. Narrowing rather than deleting them keeps within-level communication
+for the 0.055 of median composed rank it costs (1.341 against 1.396 deleted).
+
+> **This is a consequence of *this* dome's lateral count, not a standing claim that lateral lanes are
+> cheap.** The user agreed to it **tentatively** and the caveat is load-bearing: **the dome is a
+> placeholder**, and a different implementation may have far more lateral edges, or lateral edges that
+> do lie on chains. Anyone replacing the dome must **re-derive this ruling rather than inherit it**.
+
+#### What the invariant is *for*
+
+*New to the record with [#548](https://github.com/NGL321/patchworks/issues/548). This section carried
+the arithmetic of `Σ_e m_e ≤ n − 1` and never carried its reason.*
+
+The invariant is not a bound someone found convenient. In the user's own framing, ruling on
+[#540](https://github.com/NGL321/patchworks/issues/540):
+
+> any given cell will likely have more features needed to calculate its own dynamics than it has an
+> authoritative position on in the whole network
+
+**That is what the budget reserves.** A cell's node stalk is `n`; what it spends on lanes is what it
+publishes; the remainder is what it keeps to compute with. The claim is that the remainder should
+exist at all, and be substantial — a cell is not a router, and most of what it needs to run itself is
+not something it speaks for network-wide.
+
+This is why #540 **refused to abolish the budget and only doubled it**: *doubling changes the number,
+abolition changes the framing*. Abolition scored highest on composed rank of anything on #540's table
+(3.644 against the ruled stack's 2.193) and was refused anyway, which is the clearest statement
+available of how load-bearing this reason is.
+
+> **The doubling is ruled but not shipped, because it collides with the reason above.**
+> #540 ruled `Σ_e m_e ≤ 2n − 1`. At 63 against `n = 32`, `p_v = max(0, n − Σ_e m_e)` reads **zero at
+> 104 of the 150 predicting cells** and the `dim H⁰` floor falls **914 → 54** — reinstating the zero
+> row [#474](https://github.com/NGL321/patchworks/issues/474) was opened to remove and
+> [#385](https://github.com/NGL321/patchworks/issues/385) ruled the mask must supply. The number and
+> its own stated reason cannot both stand on this mask layout, and which gives is
+> [#556](https://github.com/NGL321/patchworks/issues/556)'s. `DomeSpec.privacy_budget` is held at
+> `n − 1` meanwhile, and it is a field, so the doubling is one line once that is ruled.
 
 **Of the four committed dimensions, `m` has the least theoretical headroom, and this ruling spent
 some of it.** [#32](https://github.com/NGL321/patchworks/issues/32) found `n = 32`, `k = 12` and
