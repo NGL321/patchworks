@@ -34,8 +34,8 @@ ARMS = [
     (3, _T4 / "537-baseline-seed42-100000.json"),
     (6, _HERE / "546-baseline-m6-seed42-20000.json"),
     (10, _HERE / "546-baseline-m10-seed42-20000.json"),
-    (10, _HERE / "546-baseline-m10-seed42-100000.json"),
     (14, _HERE / "546-baseline-m14-seed42-20000.json"),
+    (14, _HERE / "546-baseline-m14-seed42-100000.json"),
 ]
 
 #: The replication arms, kept apart so a seed is never silently averaged into a
