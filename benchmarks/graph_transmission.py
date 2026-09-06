@@ -444,7 +444,16 @@ def stalk_section() -> None:
     argument that the trade is priced, and the price is here. The `H^0` column
     is the other side of the same coin: `private = max(0, n - sum_e m_e)`, so
     widening spends the private features `01-cell-and-sheaf.md` makes slow state
-    out of, and at `interior_m = 8` there are none left in the graph at all.
+    out of, and at a wide enough lane there are none left in the graph at all.
+
+    **The sweep's x-axis moved with #548.** It used to run over
+    `(interior_m, boundary_m)`, and interior lane width is no longer a value
+    anyone sets — it is allocated per edge under `Σ_e m_e ≤ privacy_budget`
+    (`graph.py::allocate_lane_widths`). So the knobs that remain are the two the
+    allocation reads: the invariant it spends against, and the boundary width it
+    takes as given. `privacy_budget = 63` is #540's ruled doubling, shown here
+    priced rather than shipped — it is the row where the private-dimension
+    column collapses, which is why #548 held it and sent it to #556.
     """
     import dataclasses
 
@@ -452,23 +461,30 @@ def stalk_section() -> None:
 
     print("\n### what the stalk widths are worth, at the construction level\n")
     print(
-        f"  {'interior_m':>10} {'boundary_m':>10} | {'hop':>10} {'vs built':>9} | "
+        f"  {'budget':>10} {'boundary_m':>10} | {'hop':>10} {'vs built':>9} | "
         f"{'private dim':>11} {'chi':>8}"
     )
-    as_built = (DEFAULT_SPEC.interior_m, DEFAULT_SPEC.boundary_m)
+    as_built = (DEFAULT_SPEC.privacy_budget, DEFAULT_SPEC.boundary_m)
     built = analytic_hop(build_graph(DEFAULT_SPEC))
-    for interior_m, boundary_m in ((2, 8), (4, 4), (4, 8), (4, 16), (6, 8), (8, 8)):
+    for privacy_budget, boundary_m in (
+        (15, 4), (31, 4), (31, 6), (31, 8), (47, 4), (63, 4)
+    ):
         dome = build_graph(
             dataclasses.replace(
-                DEFAULT_SPEC, interior_m=interior_m, boundary_m=boundary_m
+                DEFAULT_SPEC, privacy_budget=privacy_budget, boundary_m=boundary_m
             )
         )
         hop = analytic_hop(dome)
         print(
-            f"  {interior_m:>10} {boundary_m:>10} | {hop:10.4g} {hop / built:8.3f}x | "
+            f"  {privacy_budget:>10} {boundary_m:>10} | {hop:10.4g} "
+            f"{hop / built:8.3f}x | "
             f"{float(dome.private_dimensions.float().mean()):11.2f} "
             f"{dome.euler_characteristic:8d}"
-            + ("   <- as built" if (interior_m, boundary_m) == as_built else "")
+            + (
+                "   <- as built"
+                if (privacy_budget, boundary_m) == as_built
+                else ""
+            )
         )
 
 

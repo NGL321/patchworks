@@ -210,12 +210,19 @@ class TestWhatTheTwoArraysHold:
         so every predicting cell on `DEFAULT_SPEC` now has private width and this
         property has nothing to bite on there. It is still a property of the
         surface rather than of that spec -- a cell whose bus fills its stalk has
-        no direction reconciliation cannot move -- so it is exercised on the
-        widths the default carried until #474 rather than deleted.
+        no direction reconciliation cannot move -- so it is exercised on a dome
+        built to have such a cell rather than deleted.
+
+        The dome it is exercised on is now #540's ruled-but-unshipped
+        `privacy_budget = 2n - 1`, which is the cheapest way to build one: at 63
+        against `n = 32` a cell's lanes can fill its whole stalk, and 104 of the
+        150 predicting cells do. That the budget which reaches this property is
+        exactly the one #556 is weighing is not a coincidence -- it is the same
+        fact from the other side.
         """
         from patchworks.graph import DomeSpec
 
-        wide = build_graph(DomeSpec(interior_m=4, boundary_m=8))
+        wide = build_graph(DomeSpec(privacy_budget=63))
         record = run_watched(Recorder(started(env, wide)))[-1]
         none = (wide.private_dimensions == 0).numpy()
         assert none.any(), "this dome has no cell without private dimension"

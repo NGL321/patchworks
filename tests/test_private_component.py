@@ -171,10 +171,15 @@ class TestTheAxisIsHopDistanceFromTheSensorimotorRim:
             ),
         )
         edges = (
+            # A hand-strung graph, so the interior widths are literals rather
+            # than `allocate_lane_widths`'s: this fixture goes straight to
+            # `_assemble` and never runs the allocation. 3 is what a global
+            # `interior_m` carried before #548, and the quantity under test is
+            # hop distance, which no lane width reaches.
             Edge(0, 0, 1, spec.boundary_m, EdgeKind.SENSORY),
-            Edge(1, 1, 2, spec.interior_m, EdgeKind.INTERIOR),
-            Edge(2, 2, 3, spec.interior_m, EdgeKind.INTERIOR),
-            Edge(3, 3, 4, spec.interior_m, EdgeKind.INTERIOR),
+            Edge(1, 1, 2, 3, EdgeKind.INTERIOR),
+            Edge(2, 2, 3, 3, EdgeKind.INTERIOR),
+            Edge(3, 3, 4, 3, EdgeKind.INTERIOR),
             Edge(4, 5, 1, spec.drive_m, EdgeKind.DRIVE),
             Edge(5, 5, 4, spec.drive_m, EdgeKind.DRIVE),
         )

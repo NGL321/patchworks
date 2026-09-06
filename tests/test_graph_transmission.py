@@ -182,11 +182,15 @@ class TestAnalyticHop:
         """
         import dataclasses
 
+        # Since #548 the lane is widened by raising the invariant it is
+        # allocated under rather than by setting it: a bigger budget is spent
+        # on wider lanes, so this is the same sweep through the knob that
+        # survives.
         hops = [
             transmission.analytic_hop(
-                build_graph(dataclasses.replace(SMALL, interior_m=interior_m))
+                build_graph(dataclasses.replace(SMALL, privacy_budget=budget))
             )
-            for interior_m in (2, 4, 6)
+            for budget in (15, 31, 63)
         ]
         assert hops == sorted(hops, reverse=True)
 

@@ -200,15 +200,33 @@ class TestTheGauge:
                     block = maps.maps[i][: edge.m].clone()
                     maps.maps[i][: edge.m] = frame @ block
         after = hr.read_surface(dome, maps, cycles)
+        checked = 0
         for old, new in zip(before, after):
             # Exact in exact arithmetic. The maps are stored in float32 and the
             # read casts to float64, so the re-framed surface is the same
             # surface to float32 and no closer -- the tolerance is the storage's
             # and not the measure's.
+            #
+            # `identification` is only *observable* where the polar factor is
+            # conditioned. It is `U V^T` off the SVD, and `U` and `V` are
+            # arbitrary on a numerical null space, so on a holonomy whose
+            # `sigma_min/sigma_max` is at float32's resolution the quantity is
+            # noise and asserting its invariance asserts nothing. Before #548
+            # every cycle here read flatness 4e-4 to 0.19 and the guard would
+            # have been inert; the allocation widened the interior lanes 3 -> 7
+            # on this spec, so flatness is now the 7th singular value where it
+            # was the 3rd, and it reads ~5e-19. **That is a deeper tail, not a
+            # new degeneracy** -- the operator is as rank-1 as it always was,
+            # and there are simply more directions below the leading one.
+            assert new["sigma_max"] == pytest.approx(old["sigma_max"], rel=1e-4)
+            assert new["flatness"] == pytest.approx(old["flatness"], rel=1e-4)
+            if old["flatness"] < 1e-6:
+                continue
+            checked += 1
             assert new["identification"] == pytest.approx(
                 old["identification"], abs=1e-6
             )
-            assert new["flatness"] == pytest.approx(old["flatness"], rel=1e-4)
+        assert checked, "no cycle was conditioned enough to read identification on"
 
     def test_scaling_a_cell_moves_no_identification(self, dome, cycles):
         """The reconciliation gain cancels out of the polar factor, as claimed."""
@@ -219,7 +237,19 @@ class TestTheGauge:
                 if not dome.cells[edge.u].is_boundary:
                     maps.maps[pair_index(edge.id, 0)] *= 2.5
         after = hr.read_surface(dome, maps, cycles)
+        checked = 0
         for old, new in zip(before, after):
+            # Guarded on conditioning for the same reason as the re-framing
+            # test above: `U V^T` is arbitrary on a numerical null space, so a
+            # holonomy at flatness ~1e-19 carries no polar factor to be
+            # invariant. `flatness` itself is scale-invariant and is checked
+            # unconditionally, which is the half of the claim that survives on
+            # every cycle.
+            assert new["flatness"] == pytest.approx(old["flatness"], rel=1e-4)
+            if old["flatness"] < 1e-6:
+                continue
+            checked += 1
             assert new["identification"] == pytest.approx(
                 old["identification"], abs=1e-6
             )
+        assert checked, "no cycle was conditioned enough to read identification on"
