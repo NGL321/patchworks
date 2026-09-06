@@ -264,6 +264,85 @@ def section_transport(data: dict) -> list[str]:
     return out
 
 
+def r2(y: np.ndarray, X: np.ndarray) -> float:
+    """T0's, verbatim: R² of `y` on `[1, X]` by least squares."""
+    X1 = np.column_stack([np.ones(len(y)), X])
+    beta, *_ = np.linalg.lstsq(X1, y, rcond=None)
+    resid = y - X1 @ beta
+    return 1.0 - resid @ resid / ((y - y.mean()) @ (y - y.mean()))
+
+
+def section_persistent(data: dict) -> list[str]:
+    """Ledger row 1's ask, taken at T3's 100k as the row proposes."""
+    out = [
+        "## The persistent error, and P2's separation at 100k",
+        "",
+        "[Ledger row 1](https://github.com/NGL321/patchworks/issues/520) found excitation rank as",
+        "pre-registered does not discriminate on this surface (uncentred 1.00 nearly everywhere) while",
+        "`log ‖ē‖` reached R² 0.41–0.44 at 20k, and proposed: *read the persistent error beside it as the",
+        "coherence variable the mechanism actually names, and re-read P2's separation at T3's 100k, where",
+        "column identity itself was 0.63–0.68.* This is that read.",
+        "",
+    ]
+    out += header(["class", *[f"{LABEL[c]} — ‖ē‖ @100k" for c in CONDITIONS],
+                   *[f"{LABEL[c]} — ē direction stability @100k" for c in CONDITIONS]])
+    for cls in CLASSES:
+        row = [CLASS_LABEL[cls]]
+        row += [stat_cell(data[c], 100_000, class_median(cls, "p3_ebar_norm"), 6) for c in CONDITIONS]
+        row += [stat_cell(data[c], 100_000, class_median(cls, "p3_direction_stability")) for c in CONDITIONS]
+        out.append(line(row))
+    out.append("")
+    out += [
+        "R² on `log ρ_used` across all predicting cells. Column identity is #477's `apex + somatomotor`",
+        "two dummies, and the 4-way one-hot beside it; every figure is the mean over seeds ± spread.",
+        "",
+    ]
+
+    def design(kind: str):
+        def f(d, cp):
+            ctx = d["context"]
+            columns = np.array(ctx["columns"])
+            drive_adj = np.array(ctx["drive_adjacent"])
+            y = np.log(arr(cp, "rho_used"))
+            if kind == "col2":
+                X = np.column_stack([drive_adj, columns == "somatomotor"]).astype(float)
+            elif kind == "col4":
+                X = np.column_stack([drive_adj, columns == "somatomotor", columns == "vision"]).astype(float)
+            elif kind == "pr":
+                X = arr(cp, "pr_total")[:, None]
+            elif kind == "prc":
+                X = np.log(np.maximum(arr(cp, "pr_total_centred"), 1e-9))[:, None]
+            elif kind == "ebar":
+                X = np.log(np.maximum(arr(cp, "p3_ebar_norm"), 1e-300))[:, None]
+            elif kind == "stab":
+                X = np.nan_to_num(arr(cp, "p3_direction_stability"))[:, None]
+            else:
+                X = np.column_stack([
+                    np.nan_to_num(arr(cp, "p3_direction_stability")),
+                    np.log(np.maximum(arr(cp, "p3_ebar_norm"), 1e-300)),
+                ])
+            return r2(y, X)
+        return f
+
+    labels = [
+        ("column (#477: apex + soma)", "col2"),
+        ("column (4-way one-hot)", "col4"),
+        ("PR total (uncentred)", "pr"),
+        ("log PR total, centred", "prc"),
+        ("**log ‖ē‖**", "ebar"),
+        ("ē direction stability", "stab"),
+        ("ē stability + log ‖ē‖", "both"),
+    ]
+    out += header(["design", *[f"{LABEL[c]} @30k" for c in CONDITIONS], *[f"{LABEL[c]} @100k" for c in CONDITIONS]])
+    for name, kind in labels:
+        row = [name]
+        row += [stat_cell(data[c], 30_000, design(kind)) for c in CONDITIONS]
+        row += [stat_cell(data[c], 100_000, design(kind)) for c in CONDITIONS]
+        out.append(line(row))
+    out.append("")
+    return out
+
+
 def section_edges(data: dict) -> list[str]:
     out = [
         "## Drive edges, and disagreement energy beside per-edge effective rank",
@@ -395,6 +474,7 @@ def main() -> None:
     out += section_retention(data)
     out += section_excitation(data)
     out += section_transport(data)
+    out += section_persistent(data)
     out += section_edges(data)
     out += [
         "## Not read here",
