@@ -110,9 +110,42 @@ incoherence. **It does not.**
 The cap does not move; alignment rises sharply. Width raises alignment where
 tightening `c` destroyed it. `GAUGE_C = 2` is untouched by the stack.
 
-## 5. The trained arm
+## 5. The trained arm — the stack fails the bar, and buys nothing over the width knob
 
-<!-- filled from 555-b_invariant-baseline-seed42-*.json -->
+Baseline, seed 42, dome rebuilt to the full stack.
+
+| ticks | ER median | p90 | max | erosion | cap p90 | cells at cap | `σ_min/σ_max` |
+|---|---|---|---|---|---|---|---|
+| construction | 1.5933 | 2.0521 | 2.6825 | — | 0.3900 | 4 | 0.3203 |
+| 100 | 1.9537 | 2.5625 | 3.1515 | ×0.6 | 0.2500 | 4 | **1.0000** |
+| 1,000 | 1.3023 | 2.1574 | 2.8973 | ×2.0 | 0.3150 | 4 | 1.0000 |
+| 5,000 | 1.1090 | 1.6041 | 2.5667 | ×5.4 | 0.5258 | 4 | 1.0000 |
+| 10,000 | 1.0771 | 1.5280 | 2.7327 | ×7.7 | 0.6581 | 4 | 1.0000 |
+| **20,000** | **1.1099** | 1.6013 | 2.8150 | **×5.4** | **0.9157** | **11** | 1.0000 |
+
+`σ_min/σ_max` closing to 1.0000 by 100 ticks is ADR-0032's band projection, and
+it is why the reading *rises* above construction before it erodes.
+
+**Against B6's uniform `interior_m = 14`, the nearest arm on the record:**
+
+| | construction | 20k | 100k | private dim total | cells at private dim 0 |
+|---|---|---|---|---|---|
+| B6 uniform `m = 14` | 1.6158 | 1.1555 | 1.1379 | — | — |
+| **#540's full stack** | 1.5933 | **1.1099** | *(running)* | **35** | **122 / 150** |
+
+The stack trains to *slightly less* than a single global constant B6 could already
+set, while spending 97% of the graph's private dimension. **Its whole advantage is
+at construction, and training removes it.** The best trained composed rank
+anywhere on the record remains B6's **1.186**, which the stack does not reach.
+
+**The one qualification to §4.** At construction the stack does not raise
+incoherence. Under training it presses the cap harder than any surface on the
+record — p90 **0.9157** and **11** cells at cap by 20k, against `m = 14`'s 0.3827
+at 20k and 0.5241 at 100k. The median stays pinned at 0.2500 throughout, exactly
+as [B7](https://github.com/NGL321/patchworks/issues/547) and
+[B10](https://github.com/NGL321/patchworks/issues/552) found, so nothing here
+re-opens `c` — but B9 showed a binding cap destroys the alignment composed rank is
+made of, and whether that is what caps the stack is the 100k arm's to say.
 
 ## 6. What the doubled invariant costs
 
