@@ -280,6 +280,36 @@ def main() -> None:
                 m, sd, per = reach_medians(runs_at[c], cls)
                 cells.append(f"**{m:.3g}** ± {sd:.2g}" if per else "—")
             print(f"| {LABEL[c]} | {fmt(np.mean(amps), 4) if amps else '—'} | " + " | ".join(cells) + " |")
+        print("\n**Reach through the phase**, apex peak/floor at every in-phase fork. The amplitude falls on the "
+              "anneal *and* the surface trains, so a fall here is the two together; what it shows is that reach is "
+              "not a property of the supply alone.\n")
+        forks = sorted({cp["ticks"] for c in CONDITIONS for s in runs_at[c] for cp in runs_at[c][s]["checkpoints"] if cp["reach"]})
+        print("| condition | " + " | ".join(str(t) for t in forks) + " |")
+        print("|---|" + "---|" * len(forks))
+        for c in CONDITIONS:
+            if not runs_at[c]:
+                continue
+            row = []
+            for t in forks:
+                vals = []
+                for s in sorted(runs_at[c]):
+                    cp = at(runs_at[c][s], t)
+                    if cp and cp["reach"]:
+                        vals.append(cp["reach"]["by_class"]["apex"]["ratio_private_median"])
+                row.append(f"{np.mean(vals):.3g}" if vals else "—")
+            print(f"| {LABEL[c]} | " + " | ".join(row) + " |")
+        print("\nAnd the amplitude at each of those forks (the anneal, so the two can be told apart):\n")
+        amp_row = []
+        for t in forks:
+            vals = []
+            for c in CONDITIONS:
+                for s in sorted(runs_at[c]):
+                    cp = at(runs_at[c][s], t)
+                    if cp and cp["reach"] and runs_at[c][s]["supply"]["a0_peak"] > 0:
+                        vals.append(cp["reach"]["amplitude_at_fork"] / runs_at[c][s]["supply"]["a0_peak"])
+            amp_row.append(f"{np.mean(vals):.3f}" if vals else "—")
+        print("| A(t)/A₀ | " + " | ".join(amp_row) + " |")
+        print("|---|" + "---|" * len(forks))
         print("\nFraction of a class's cells whose peak cleared the floor, and the apex's peak in absolute terms:\n")
         print("| condition | apex above-floor fraction | apex peak ‖Δ‖ | apex floor | apex peak tick (of 64) |")
         print("|---|---|---|---|---|")
