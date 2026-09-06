@@ -431,7 +431,9 @@ already satisfy untouched**, so the term does corrective work at three levels ra
 whole surface. The measured spread leaves headroom down to a practical floor of ~1.05, set by the
 residual effective rank (1.02–1.06, #182) — a map that transmits one direction cannot be made
 incoherent with anything. `c` can be tightened toward that floor once the cost below is measured; the
-first edit deliberately does not spend the whole 2.4x.
+first edit deliberately does not spend the whole 2.4x. *Superseded on the tightening half by the
+amendment below: the cost was measured, and tightening was then tried in circuit and found
+harmful. The ~1.05 floor is real and unreachable — the headroom is not slack to spend.*
 
 **The stated cost, named here rather than discovered later.** This pressure and a *cross-edge* coherence
 pressure pull the same maps in opposite directions. The transport rule builds cross-edge alignment
@@ -455,6 +457,53 @@ three changes since the baseline, so this reading establishes that the cost **wa
 Instrument, logs and the split:* `prototypes/falsifier-538/`. *The `c`-only control is
 [#537](https://github.com/NGL321/patchworks/issues/537)'s. This paragraph's decision is untouched —
 `c` as a gauge constant enforced by projection stands; what is now on the record is its price.*
+
+***The cost was measured; the pre-registration was correct; and the direction that moved was the
+opposite one.*** *Amended by [#552](https://github.com/NGL321/patchworks/issues/552), 2026-09-06, on
+[#547](https://github.com/NGL321/patchworks/issues/547)'s ruling that `c` is* **kept, unchanged, and
+marked**. *The block directly above is the measurement; this records what it settles.*
+
+*First, that this section* ***called it right***: *right that the two pressures pull the same maps in
+opposite directions, right to name the condition before the run rather than after it, and right to
+make [#184](https://github.com/NGL321/patchworks/issues/184) wait. The pre-registration did its job,
+and #538 closed the control it deferred to —*
+[#537](https://github.com/NGL321/patchworks/issues/537) *reports below.*
+
+***What the pre-registration did not anticipate is the substance of this amendment, not a footnote to
+it.*** *It was written to guard a* **loosening**: *`c = 2` is called conservative above, the headroom
+is measured down to ~1.05, and the tightening is explicitly deferred until "the cost below is
+measured". Both halves of that framing proved inert, in opposite directions.*
+
+- ***Loosening is worthless, not merely unspent.***
+  [#537](https://github.com/NGL321/patchworks/issues/537)*, the `c`-only control the block above
+  defers to, swept `c` over 1, 2, 3, 4, 6, 8 and 12 and found composed rim-to-apex effective rank
+  identical* **to seven significant figures** *at construction and at every checkpoint of both 100k
+  arms. Composed rank is a function of `(m, k_v, hops)` alone — redrawing every carried subspace as a
+  Haar frame of the same shape reproduces the real distribution, tail included — so no rearrangement
+  inside fixed dimensions can move it. The 150 cells `c` governs are slack by 4.4x, and the 4 sitting
+  at the cap are the wholly-pinned ones* ***Pinned maps are out of reach*** *puts beyond its reach
+  anyway. So `c` is not merely* **indicted but not isolated**, *as the block above has it: isolated,
+  it does nothing. There is no 2.4x to spend.*
+- ***Tightening is harmful, and structurally so.***
+  [#551](https://github.com/NGL321/patchworks/issues/551) *ran `c = 1`* **in circuit** — *the
+  projection* **and** *`patchworks.tick.reconciliation_gain`, ungated, 100k, both arms, seed 42 — and
+  composed ER excess over one reads* **1.31e-09** *(baseline) and* **5.20e-10** *(winner) against `c >=
+  2`'s 2.60e-06 and 1.50e-05:* **~1,990x and ~28,800x worse**. *The sign follows from*
+  [#533](https://github.com/NGL321/patchworks/issues/533)*'s mechanism rather than from any tuning: a
+  hop is the matrix of cosines of the principal angles between a relay cell's two incident carried
+  subspaces, and `c` is the* **incoherence** *cap, so tightening it pushes exactly those subspaces
+  apart and destroys the material composed rank is made of (leading cosine 0.818 / 0.794 →* **0.353 /
+  0.370**, *`s2/s1` down 44x). An earlier post-hoc re-projection — a surface trained at `c = 2`,
+  re-projected once, never touching the gain — had put `c = 1` ~1,474x / ~530x* **ahead**; *it
+  overstated by ~2.9e6x / ~1.5e7x. A re-projection is not a run, and the gain is half of what `c`
+  does. The surface stays admissible throughout: `c = 1` is admissible and useless, not inadmissible.*
+
+*So the asymmetry is the finding. This section guarded the direction that cannot hurt and left
+unguarded the direction that does, because it read `c` as a budget with slack in it rather than as a
+cap whose sign matters.* `c` *is* **not a lever in either direction** — *slack when loosened, harmful
+when tightened — and `GAUGE_C = 2` therefore stands* **kept rather than vindicated**. *Nothing in the
+enforcement, the pigeonhole floor, or* [#228](https://github.com/NGL321/patchworks/issues/228)*'s `c_v
+= deg(v)` moves; #228 is* **moot rather than deferred**, *and it survives because `c` does.*
 
 **The sparsity term gains a rationale it did not have.** L1 on the normalised map was adopted for
 pruning within the mask (`06-graph-topology.md`). Concentrating a map onto fewer, more nearly disjoint
@@ -554,6 +603,15 @@ unchanged and [#190](https://github.com/NGL321/patchworks/issues/190) is untouch
 plainly, because the natural reading of #488 is that the denominator moves, and it does not. What
 moves is the target the projection enforces on the *held* maps, and it is **derived** from the
 denominator rather than invented.
+
+*A latent scaling bug in this derivation was found by
+[#551](https://github.com/NGL321/patchworks/issues/551) and is recorded here rather than ruled on.*
+`overlap_target = g_v² · c_v − |P_v|` *subtracts an* **absolute** *count from a budget that `c`*
+**scales**, *so the residual does not track `c` the way the derivation reads as intending: at `c = 1`
+the drive-side apex cells' residual budget falls 7 → 3 and the cap ratio reads 1.107–1.120.*
+***ADR-0010's own bound is not broken*** *— `λ_max / (g_v² · c_v)` reads 0.774–0.836 and
+[#220](https://github.com/NGL321/patchworks/issues/220)'s pairing is intact — and at the shipped `c =
+2` nothing is affected. It is noted because the expression above is where it lives.*
 
 **It stays a construction guarantee and does not degrade to a measurement.** The pinned count is
 read off the built graph and each pinned norm is exactly 1 by the exact gauge, so nothing measured
