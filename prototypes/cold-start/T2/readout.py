@@ -41,7 +41,10 @@ import numpy as np
 
 HERE = Path(__file__).resolve().parent
 T1 = HERE.parent / "T1"
-CONDITIONS = ("A", "B", "C", "D")
+#: Z is a control, not one of the ticket's four, and is listed last everywhere
+#: so no table reads as if the sweep had five members.
+CONDITIONS = ("A", "B", "C", "D", "Z")
+SWEEP = ("A", "B", "C", "D")
 TBS = (5000, 20000)
 POST = 30000
 LABEL = {
@@ -49,6 +52,7 @@ LABEL = {
     "B": "B — sensory, large, ordered (the wave)",
     "C": "C — sensory, large, shuffled",
     "D": "D — sensory, small, ordered",
+    "Z": "**Z — no supply at all (control)**",
 }
 #: The control each condition's priming is read against: the same energy with
 #: the structure removed (B vs C) and the same structure at the other wall (D vs A).
@@ -98,8 +102,21 @@ def post(d: dict, since: int) -> dict | None:
 
 
 def last_on(d: dict) -> dict | None:
-    """The deepest in-phase checkpoint at which the supply was still on."""
+    """The deepest in-phase checkpoint at which the supply was still on (the reach fork)."""
     live = [cp for cp in d["checkpoints"] if cp["phase"] == "induced" and cp["reach"]]
+    return live[-1] if live else None
+
+
+def during(d: dict) -> dict | None:
+    """The deepest in-phase checkpoint strictly before the phase ends.
+
+    Equal to :func:`last_on`'s tick for every condition of the sweep -- the
+    anneal reaches zero exactly at `T_b`, so the last checkpoint carrying a live
+    supply is the last one before it -- and defined for the zero-supply control
+    too, which has no fork to hang a checkpoint off. That is what lets the rank
+    table put Z in the same row space as the four.
+    """
+    live = [cp for cp in d["checkpoints"] if cp["phase"] == "induced" and cp["ticks"] < d["tb"]]
     return live[-1] if live else None
 
 
@@ -286,10 +303,10 @@ def main() -> None:
         for c in CONDITIONS:
             if not runs_at[c]:
                 continue
-            u = stratum_medians(runs_at[c], last_on, "core-apex", "pr_uncentred_median")
-            cm = stratum_medians(runs_at[c], last_on, "core-apex", "pr_centred_median")
-            de = stratum_medians(runs_at[c], last_on, "core-apex", "disagreement_energy_median")
-            me = stratum_medians(runs_at[c], last_on, "core-apex", "map_effective_rank_median")
+            u = stratum_medians(runs_at[c], during, "core-apex", "pr_uncentred_median")
+            cm = stratum_medians(runs_at[c], during, "core-apex", "pr_centred_median")
+            de = stratum_medians(runs_at[c], during, "core-apex", "disagreement_energy_median")
+            me = stratum_medians(runs_at[c], during, "core-apex", "map_effective_rank_median")
             if u[2]:
                 print(f"| {LABEL[c]} | {fmt(u[0])} ± {fmt(u[1])} | **{fmt(cm[0])}** ± {fmt(cm[1])} | 3 | {sci(de[0])} | {fmt(me[0])} |")
         print("\nThe same, at the shallower strata, centred (so the taper by depth is visible):\n")
@@ -301,7 +318,7 @@ def main() -> None:
                 continue
             row = []
             for st in strata:
-                m, sd, per = stratum_medians(runs_at[c], last_on, st, "pr_centred_median")
+                m, sd, per = stratum_medians(runs_at[c], during, st, "pr_centred_median")
                 row.append(f"{fmt(m)} ± {fmt(sd)}" if per else "—")
             print(f"| {LABEL[c]} | " + " | ".join(row) + " |")
         print()
@@ -331,6 +348,17 @@ def main() -> None:
             delta, spread, ok = beyond(a, b)
             primed[c] = ok
             print(f"| {LABEL[c]} | {LABEL[ctrl]} | {fmt(a[0], 4)} | {fmt(b[0], 4)} | {delta:+.4f} | {fmt(spread, 4)} | **{ok}** |")
+        print("\n**Against the zero-supply control**, which is what says whether *anything* was laid down "
+              "rather than which member laid down most:\n")
+        print("| condition | ER at +30k | Z at +30k | Δ vs Z | spread | above Z |")
+        print("|---|---|---|---|---|---|")
+        z = composed_medians(runs_at["Z"], lambda d: post(d, POST))
+        for c in SWEEP:
+            if not runs_at[c]:
+                continue
+            a = composed_medians(runs_at[c], lambda d: post(d, POST))
+            delta, spread, ok = beyond(a, z)
+            print(f"| {LABEL[c]} | {fmt(a[0], 4)} | {fmt(z[0], 4)} | {delta:+.4f} | {fmt(spread, 4)} | **{ok}** |")
         print("\nThe other rim strata at +30k, for the record:\n")
         kinds = ("patch", "proprioceptive", "touch", "actuator")
         print("| condition | " + " | ".join(kinds) + " |")
@@ -429,7 +457,7 @@ def main() -> None:
         # ---- branch table -------------------------------------------------------
         print("## Branch table — which rows fired\n")
         passes = [c for c in CONTROL if primed.get(c) and travelled.get(c, (False, 0))[0]]
-        moving = [c for c in CONDITIONS if travelled.get(c, (False, 0))[0]]
+        moving = [c for c in SWEEP if travelled.get(c, (False, 0))[0]]
         print("| row | reading | consequence |")
         print("|---|---|---|")
         if passes:
@@ -451,7 +479,7 @@ def main() -> None:
         print(f"| C beats A beyond spread and B ≈ C | {'**fired**' if (ca[2] and b_approx_c) else 'did not fire'} "
               f"(C−A {ca[0]:+.4f} / {fmt(ca[1], 4)}; B−C {bc[0]:+.4f}) | "
               f"{'amplitude is what mattered: the structure axis is dropped from T3' if (ca[2] and b_approx_c) else '—'} |")
-        failed = [c for c in CONDITIONS if c in guard and not guard[c]]
+        failed = [c for c in SWEEP if c in guard and not guard[c]]
         print(f"| retention guard fails on the winning condition | {'**fired**' if failed else 'did not fire'} "
               f"({'fails: ' + str(failed) if failed else 'every condition passes'}) | "
               f"{'the winner is the best condition that passes' if failed else '—'} |")
