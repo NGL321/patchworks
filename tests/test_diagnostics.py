@@ -68,15 +68,19 @@ def sheaf(dome):
 
 @pytest.fixture
 def wide_dome():
-    """`SMALL` at the lane widths it carried until #474.
+    """`SMALL` with its lanes opened up, which is what this fixture is for.
 
     `minimum_energy` is only ever positive while the coboundary is row-rank
-    deficient, and at `(interior_m, boundary_m) = (3, 4)` this spec's is onto --
-    see `test_the_floor_is_zero_on_this_dome_because_the_coboundary_is_onto`. The
+    deficient, and at the shipped widths this spec's is onto -- see
+    `test_the_floor_is_zero_on_this_dome_because_the_coboundary_is_onto`. The
     tests that need the floor to *move* need a dome where it is not identically
     zero, so they take this one rather than asserting nothing.
+
+    It used to say `interior_m=4, boundary_m=8`, the widths `SMALL` carried
+    until #474. Since #548 interior width is allocated rather than set, so the
+    way to open the lanes is to raise the budget they are allocated against.
     """
-    return build_graph(replace(SMALL, interior_m=4, boundary_m=8))
+    return build_graph(replace(SMALL, privacy_budget=63, boundary_m=8))
 
 
 @pytest.fixture
@@ -331,8 +335,15 @@ class TestPerEdgeEnergy:
                 stalk = sheaf.stalks[sheaf.layout.slice(cell_id)]
                 ends.append(block[: edge.m, : stalk.numel()] @ stalk)
             want = (ends[0] - ends[1]).pow(2).sum()
+            # 1e-4 rather than 1e-5 since #548. The recomputation here and the
+            # production path sum the same terms in different orders, and the
+            # subtraction is a cancellation between two nearly equal vectors,
+            # so the relative error is set by how many terms are in the sum --
+            # which is `edge.m`, and the allocation widened the interior lanes
+            # from a flat 3 to 5-18. The worst edge reads 1.2e-5; this is float32
+            # accumulation, not a disagreement about the quantity.
             assert float(reading.energy[edge.id]) == pytest.approx(
-                float(want), rel=1e-5
+                float(want), rel=1e-4
             )
 
     def test_the_sum_over_edges_is_the_dirichlet_energy(self, diagnostics):
