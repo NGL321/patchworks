@@ -142,7 +142,11 @@ precisely where a future reader will come looking for permission to assume other
   every other check in this design (`γ × floor <` fold margin, `dim H⁰ ≥ …`, `χ`). The practical
   consequence is that a build satisfying the criterion may *drop* this cause from the reading and
   disambiguate the remaining two by quiescent hold, and a build that does not satisfy it — which
-  `06-graph-topology.md` flags as possible at `m = 4` — knows *which edges* to suspect in advance.
+  `06-graph-topology.md` flags as possible at **`m = 3`**, the value
+  [#474](https://github.com/NGL321/patchworks/issues/474) moved the interior lane to and the value
+  `src/patchworks/graph.py`'s `DomeSpec.interior_m` carries today — knows *which edges* to suspect in
+  advance. *This clause said `m = 4` until [#542](https://github.com/NGL321/patchworks/issues/542);
+  the flag narrowed when the lane did.*
 
   **Further amended by [#138](https://github.com/NGL321/patchworks/issues/138): a fourth cause, which
   arrives with the gauge.** Freezing `decode` ([ADR-0014](./0014-the-linear-readout-is-gauge-fixed.md))
@@ -187,8 +191,13 @@ precisely where a future reader will come looking for permission to assume other
   comfortably satisfied so self-intersection **drops** from the reading — the same *drop this cause*
   move this ADR already licenses above. It is also the number
   [`docs/research/032-dimensioning-small-predictors.md`](../research/032-dimensioning-small-predictors.md)'s
-  capacities are quoted against, so it carries #132's `m = 4` margin (~1.4x, the width with the
-  least margin) into language.
+  capacities are quoted against, so it carries the dome's interior-lane margin — **the width with the
+  least margin in the design** — into language. **That margin is ~1.05x, not the ~1.4x this clause
+  carried until [#542](https://github.com/NGL321/patchworks/issues/542).**
+  [#474](https://github.com/NGL321/patchworks/issues/474) moved `interior_m` from 4 to 3
+  (`src/patchworks/graph.py`, `DomeSpec.interior_m`), which drops the delay-embedding ceiling from box
+  dimension `< 2` to `< 1.5` against #132's median `d_corr` of **1.43**. `06-graph-topology.md`
+  (*Dimensions*) carries the full comparison, its two caveats, and what they do and do not license.
 
 - **Linearity is load-bearing a fourth time: it is the whole of the coupling between pieces.**
   *Added by [#141](https://github.com/NGL321/patchworks/issues/141).* Decomposition creates boundary
