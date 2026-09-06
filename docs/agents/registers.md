@@ -134,9 +134,15 @@ definition site and the row carries a link, exactly as the constants registers w
 
 ```
 @failure    <the named way the architecture is expected to fall short>
+@when       event <issue> | measurement <rig> <threshold>   (optional)
 @cutoff     event <issue> | measurement <rig> <threshold> | uncut
 @discovered <issue, session, or rig this came out of>
 ```
+
+`@when` on a problem is its **precondition**: the condition under which the cutoff below it becomes a
+*readable* number. It is the same field the proposal block carries, doing the same job with the same
+two forms and the same absence of obligation — see *Cutoffs* for the parse rules and what a crossing
+behind a shut precondition does.
 
 **On a `register:proposal` issue, or a proposal comment:**
 
@@ -152,7 +158,8 @@ definition site and the row carries a link, exactly as the constants registers w
 `@status` is edited in place as it changes; the comment thread around it is the history.
 
 `@when` is the mirror of a cutoff, with the opposite polarity and no obligation attached: a cutoff
-says *this problem stops being tolerable*, `@when` says *this proposal starts being relevant*.
+says *this problem stops being tolerable*, `@when` says *this proposal starts being relevant*, and on
+a problem *until this holds, the cutoff below is not a meaningful reading*.
 `@when event <issue>` on the relay cells' attention shape means that the day attention leaves the
 fog, the proposal surfaces on its own rather than being remembered.
 
@@ -203,21 +210,51 @@ author, and "when it becomes a problem" is not a cutoff but the absence of one.
   problem, and a read taken on the small dome to check the code works is not one.
 
   **A problem carries one `@cutoff`, and a sequenced second one cannot be written down.** *This bar,
-  but only once that bar has fired* has no spelling here. #351 met this on
-  [#329](https://github.com/NGL321/patchworks/issues/329), whose settling bar is meaningful only on
-  charts from a graph that already transmits; the bar is measured and reported by
-  `benchmarks/driven_settling.py` and the field on the issue was left at the precondition. Writing a
+  but only once that bar has fired* has no spelling here, and
+  [#417](https://github.com/NGL321/patchworks/issues/417) ruled that it never will. Writing a
   second `@cutoff` line **is refused at parse** since
   [#353](https://github.com/NGL321/patchworks/issues/353): it used to be taken by `_one` and the
   rest dropped in silence, which left a line on the issue that read as provenance and that nothing
-  read — the same failure as a threshold nobody can fire on. Refusal says *only one of these is
-  being read* and settles nothing about whether the grammar should grow a sequenced cutoff; that is
-  [#417](https://github.com/NGL321/patchworks/issues/417)'s, for a grilling session, because a
-  second gate on the same row cuts against *one statement in one place* and the argument for it is a
-  real bar that today lives only in a rig's docstring.
+  read — the same failure as a threshold nobody can fire on. The refusal is now permanent rather
+  than provisional. Sequencing types the second bar **as a cutoff**, and it is not one: on
+  [#329](https://github.com/NGL321/patchworks/issues/329), `conduction ratio >= 1` does not say *a
+  wandering `K` has stopped being tolerable*, it says *until this holds, `tau_wander_over_loop` is
+  not a meaningful number*. One is intolerability, the other is readability. What an author reaching
+  for a second cutoff wants is the **precondition** below.
+
 - **`uncut`** — admitted, and loud. The register sorts these first and states them as a debt, in the
   voice `@flexibility unknown` uses: *nobody has said when this stops being tolerable* is a fact, and
   hiding it is worse than showing it.
+
+**A problem may carry one `@when` precondition, and it is not a second cutoff.** It states the
+condition under which the `@cutoff` becomes a *readable* number, in the field the grammar already
+has on the proposal side — the same two admissible forms, the opposite polarity, and **no obligation
+attached**. `conduction ratio >= 1` had become the register's de-facto spelling for *the graph
+transmits, so this becomes readable*, written into the cutoff slot on three rows at once; the
+register now says that in the field that means it.
+
+- **At most one `@when` on a problem**, a second refused at parse for the same reason a second
+  `@cutoff` is: one statement, one place, and a line nothing reads looks like provenance and is not.
+- **The `event` refusals above carry over verbatim** — no closed issue, no class, no map.
+- **`uncut` is refused on `@when`**, as it always has been: `uncut` is the absence of an obligation,
+  and a precondition carries none for it to be the absence of.
+- **`@when <precondition>` together with `@cutoff uncut` is admissible**, and is the most informative
+  row the register can write for a problem whose real bar nobody has stated yet: it shows the bar
+  that has to open before intolerability can even be stated, and states the debt underneath it.
+- **A crossing behind a shut precondition is recorded, and carries no obligation.** The `@rig` block
+  files as normal — so the row never sits in *no recorded run* while a rig is in fact reading it —
+  but the crossing does **not** stamp `register:overdue`. Once the precondition opens, the next run's
+  crossing does. `@when` governs the obligation, not the measurement.
+- **A precondition opening is reported.** Once a bar is nobody's `@cutoff`, no other report mentions
+  it, and the day it opens several problems become live with nothing saying so. So a rig's report
+  states, for each open problem whose `@when` names that rig, whether the precondition opened —
+  filed as its own `@precondition` field block, **never** as `register:overdue`, because opening a
+  precondition imposes nothing.
+
+The rendered table gives the precondition **its own column**, between `failure` and `cutoff`, and
+never folds it into the cutoff cell: that cell is a parsed contract between
+`tools/problem_registers.py` and `tools/cutoff_report.py`, so anything else written into it is a rig
+watching nothing.
 
 **An `event` cutoff must name an issue that is open at mint time.** Three shapes are refused, and the
 first session to drain the candidate queue produced all three:
@@ -241,6 +278,15 @@ Each is the state where a problem looks cut but nothing will ever fire: `uncut` 
 and strictly worse than `uncut`, because it does not read as a debt. An issue with no activity is
 *listed, not demoted* — the event may be exactly the right moment, and the listing exists to make
 the dormancy visible rather than to judge the cutoff.
+
+**A `@when` precondition is read by the same two arms, and the row states which of the two fields is
+stuck.** Both arms apply to it unchanged — a rig with no script or no recorded run, an issue the
+tracker does not have or one that has not moved — so this section gained an arm rather than the
+register gaining a third. What the row must newly state is **which** field it is talking about,
+because the fix differs. A stuck precondition is **strictly worse than a stuck cutoff**: the row
+shows a real bar underneath it, and still nothing will ever fire.
+[#341](https://github.com/NGL321/patchworks/issues/341) is the live instance — its own prose says
+its cutoff cannot fire while #385's pin stands.
 
 **Dormancy is read against the problem's own minting date**, not against a duration: *has anything
 happened on the named issue since this problem started cutting on it?* Two timestamps the tracker

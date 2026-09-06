@@ -109,13 +109,22 @@ error keeps its name** — it is the signal, and it is unchanged.
 | **The projection** | Fails outright. **A projection is not an objective.** |
 | **Stability under simultaneous learning** | Not a ground for a split at all — an open question about the widened rule, recorded rather than answered. |
 
-**The projection was the weightiest of the three and fails hardest.** ADR-0015 requires `σ_max(K)`
+**The projection was the weightiest of the three and fails hardest.** ADR-0015 required `σ_max(K)`
 restored to its band after each step, which is structurally unlike a bias step — but this ADR does not
 split on *structure*, it splits on **which already-local signal a parameter group trains on**. A
 post-step gauge restoration carries no signal whatever: it is not in the objective, it has no
 gradient, and it reads nothing the cell did not already own. The transport rule has carried exactly
 such a projection since [ADR-0010](./0010-restriction-map-scale-is-gauge-fixed.md) without that making
 it two rules, and `K`'s projection takes that placement unchanged.
+
+*The verdict is untouched by [#433](https://github.com/NGL321/patchworks/issues/433), and its premise
+has moved.* ADR-0015 no longer restores `σ_max(K)` after the step: the band is enforced by
+normalising the operator inside the **forward path**, so `K`'s enforcement is not a projection at
+all. The row above stands as written and needs no re-arguing — a mechanism outside the objective was
+never a ground for a split, and one inside the forward path is even less of one. The prediction rule
+still trains the raw `K` on its own prediction error and nothing else, so the parameter groups and
+the two permitted global signals are unchanged. ADR-0010's projection, and this ADR's use of it as
+precedent, are untouched.
 
 ### The rate: `η_K = c · η`, and why `c` is not a third global signal
 

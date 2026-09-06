@@ -46,7 +46,16 @@ loop is a construction-time graph quantity like its sibling::
     world_loop(c) = min over (a, p), a an actuator, p any sensory boundary cell,
                     a != p, of  d(c, a) + w + d(p, c)
 
-`|loop(c)|` collapses it by allowing `a = p` and setting `w = 0`. The metric this
+`|loop(c)|` collapses it by allowing `a = p` and setting `w = 0`.
+
+**Since [#506](https://github.com/NGL321/patchworks/issues/506), `c` runs over
+ADR-0026's outbound population — the predicting cells *and the actuator*** — and
+:func:`outbound_population` is where that set is enumerated for both this module
+and `benchmarks/detectability.py`. `|loop(c)|` stays over predicting cells and
+says so at :func:`loops`; `world_loop_excess` is their intersection and did not
+move.
+
+The metric this
 arm offers a cutoff is `world_loop_excess`: the largest number of ticks
 `world_loop(c)` exceeds `|loop(c)|` over the predicting fleet, at the world tick
 the sandbox fixes. A reading of 0 would say the two names denote one quantity and
@@ -196,6 +205,15 @@ def loops(dome: Dome, fuse: dict[int, int] | None = None) -> Loops:
     the round trip, states which reading it is, and leaves the other to the ADR
     that checked it — a rig that silently swapped readings between arms would
     make the comparison below meaningless.
+
+    **This stays over predicting cells and does not follow
+    :func:`world_loops` into the outbound population** (#506, #509). The sweep
+    starts *from* the rim, and the rim contains the actuator, so a widened entry
+    would be `2 · d(a, rim) = 2 × 0 = 0`. `|loop(c)|` is no longer ADR-0026's
+    divisor (#383) so nothing divides by it here — but `benchmarks/
+    detectability.py`'s sibling would divide the bar by zero, and the two are
+    kept on the same population for the same reason. The quantity is a distance
+    to the rim, and a rim cell's distance to the rim is not a loop.
     """
     fuse = fuse or {}
     neighbours = adjacency(dome, fuse)
@@ -256,9 +274,32 @@ def motor_fusion(dome: Dome) -> dict[int, int]:
 WORLD_TICK = 1
 
 
+def outbound_population(dome: Dome) -> tuple[int, ...]:
+    """ADR-0026's outbound universal's population: predicting cells **and the actuator**.
+
+    The ADR's clause is a universal over *L1 predicting cells and the actuator
+    boundary cell*, and until [#506](https://github.com/NGL321/patchworks/issues/506)
+    every part of the reduction quantified over `dome.predicting` alone — so the
+    universal's one boundary member could not fail at any gain. #506 ruled the
+    actuator **kept**, with its `τ̂` read on the `commanded` block of its node
+    stalk, and this is the one place the population is enumerated: `world_loops`
+    here and `conduction()` in `benchmarks/detectability.py` both read it, so the
+    two cannot quantify over different sets in silence.
+
+    The actuator is appended rather than merged in id order, so a row index into
+    `Dome.predicting` keeps its meaning and only gains rows on the end.
+
+    **Sensory boundary cells and the drive stay out**, on the ADR's own two
+    grounds: the world's write is the last word at a sensory cell, so nothing
+    arriving there survives to be read, and the drive is read by nothing at all.
+    """
+    actuators = tuple(sorted(c.id for c in dome.cells if c.kind is CellKind.ACTUATOR))
+    return dome.predicting + actuators
+
+
 @dataclass(frozen=True)
 class WorldLoops:
-    """`world_loop(c)` for every predicting cell, and what fixed it."""
+    """`world_loop(c)` for every cell of the outbound population, and what fixed it."""
 
     lengths: dict[int, int]
     world_tick: int
@@ -266,7 +307,7 @@ class WorldLoops:
     sensory: tuple[int, ...]
     """Where the answer is allowed to re-enter: every sensory boundary cell."""
     unreachable: tuple[int, ...]
-    """Predicting cells no actuator-and-sensory pair reaches. Reported."""
+    """Population cells no actuator-and-sensory pair reaches. Reported."""
 
 
 def distances_from(neighbours: dict[int, set[int]], source: int) -> dict[int, int]:
@@ -310,6 +351,14 @@ def world_loops(dome: Dome, world_tick: int = WORLD_TICK) -> WorldLoops:
     are one sweep, and the tick that carries a message up an edge carries one
     down it.
 
+    **`c` ranges over the outbound population, the actuator included** (#506,
+    written by [#509](https://github.com/NGL321/patchworks/issues/509)) — see
+    :func:`outbound_population`. `d(c, a) = 0` when `c` **is** the actuator, so
+    the loop does not degenerate: on `DEFAULT_SPEC` the actuator is 262, its
+    nearest sensory cell is 2 hops away, and `world_loop(262) = 0 + w + 2 = 3`
+    at `w = 1`. The distances are topological, so `#474`'s move of the mask did
+    not touch this and the figure is the surface's rather than a run's.
+
     Like `|loop(c)|` this is an exact integer off the mask — no seed, no run and
     no world — and `world_tick` is the world's only entry into it.
     """
@@ -322,7 +371,7 @@ def world_loops(dome: Dome, world_tick: int = WORLD_TICK) -> WorldLoops:
     }
     lengths: dict[int, int] = {}
     unreachable: list[int] = []
-    for cell in dome.predicting:
+    for cell in outbound_population(dome):
         candidates = [
             reach[a][cell] + world_tick + reach[p][cell]
             for a in actuators
@@ -351,6 +400,10 @@ def excesses(dome: Dome, world_tick: int = WORLD_TICK) -> dict[int, int]:
     kept because the distribution is the thing a later `DomeSpec` moves, and a
     single number would hide a fleet split between cells that sit on both loops
     at once and cells that do not.
+
+    The intersection is what keeps the actuator out of this reading: since #509
+    `world_loop` carries it and `|loop(c)|` does not, so the excess is still the
+    predicting fleet's and #368's metric did not move under #506's widening.
     """
     graph_loop = loops(dome).lengths
     world = world_loops(dome, world_tick).lengths

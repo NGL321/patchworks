@@ -207,8 +207,9 @@ component is the node-stalk directions masked out on every incident edge, known 
 it is a fixed projection computed per tick.
 
 **The panel has a second reading, and it is the one `08` passes on.** `‖Δ private‖` against depth is
-the *picture*; `08`'s depth criterion is the **conduction ratio**, `τ̂_c / |loop(c)| ≥ 1`
-([ADR-0027](../adr/0027-the-demos-depth-criterion-is-a-conduction-time.md)). The amplitude scatter
+the *picture*; `08`'s depth criterion is the **conduction ratio**, `τ̂_c / world_loop(c) ≥ 1`
+([ADR-0027](../adr/0027-the-demos-depth-criterion-is-a-conduction-time.md); the divisor was
+`|loop(c)|` until [#383](https://github.com/NGL321/patchworks/issues/383) moved it). The amplitude scatter
 was the criterion and is not any more, for a reason this panel's own design already knew: the
 channel's attenuation supplies a falling scatter whether or not anything is retained, so the picture
 and the claim were the same number. So the panel draws **two** scatters against depth, both per
@@ -218,9 +219,14 @@ cell — `‖Δ private‖`, the picture, and **`τ̂`**, the quantity that deci
   after an event marker, e-fold time from peak. No fork, so no `restore` and no paired branch — it is
   what a viewer poking a live agent can be shown. It is noisier than the paired version `08`
   establishes on, and confounded by the ongoing task; `05`'s *Demonstrating it* states both.
-- **Draw the bar.** `τ̂ = |loop(c)|` is a line on the panel, per cell, because the criterion is a
+- **Draw the bar.** `τ̂ = world_loop(c)` is a line on the panel, per cell, because the criterion is a
   comparison and a scatter without its bar cannot be read against one. Points above the line are
-  cells whose loop closes.
+  cells whose loop closes. **The line moved with the divisor**
+  ([#383](https://github.com/NGL321/patchworks/issues/383)) and it moved *up* at every cell — from a
+  flat 2 to 3–9 at L1 and from 14 to 15–16 at the apex — so the panel is drawing a harder bar than
+  the one it was specified with. It is also **no longer flat within a level**: `|loop(c)|` was one
+  exact value per level, and `world_loop(c)` is a range whose per-level bands overlap, so the bar is
+  a per-cell line and cannot be drawn as one step per depth column.
 
 **It stays off the dome's marks deliberately.** Folding either scatter in as brightness or dot size
 beside prediction-error-as-hue puts two quantities on one mark and makes neither readable — and

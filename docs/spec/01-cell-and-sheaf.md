@@ -238,11 +238,20 @@ not be emitting. No bias because an affine `K` makes the **dynamics** affine —
 every tick, which is exactly the persistent offset ADR-0004 refuses to let a linear map launder away;
 `decode`'s output bias is the permitted kind, a static readout offset that never accumulates and
 without which a prediction is pinned to a subspace through the origin. Dense because structure is a
-**named fallback** rather than a silent default, and it now has a trigger: a band projection that
-fights the gradient every step is the observable that calls it.
+**named fallback** rather than a silent default, and it had a trigger: a band projection that fights
+the gradient every step was the observable that would call it. **The trigger fired and the fallback
+was not taken.** [#422](https://github.com/NGL321/patchworks/issues/422) measured the projection's
+correction growing rather than shrinking, and
+[#433](https://github.com/NGL321/patchworks/issues/433) moved the enforcement into the forward path
+instead — Fan et al.'s parameterisation declined rather than refused, its trigger now on
+[#357](https://github.com/NGL321/patchworks/issues/357). `K` stays dense.
 
-**`σ_max(K)` is bounded in a construction-time band**, `[1/ρ_K, 1]`, restored by projection after each
-learning step — see [ADR-0015](../adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md). The
+**`σ_max(K)` is bounded in a construction-time band**, `[1/ρ_K, 1]`, enforced by normalising the
+operator inside the forward path: the *used* operator is the raw `K` rescaled into the band, which
+above the upper face is exactly `K / max(1, σ(K))`, while the prediction rule trains the raw `K` —
+see [ADR-0015](../adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md), amended. The band is
+unchanged and only the mechanism enforcing it moved, from a projection after each learning step to a
+normalisation the gradient can see. The
 band is on the **norm, not the radius**: written on the radius it would leave the body's gain an
 unbounded factor, since for a non-normal matrix `ρ = 0.5` is compatible with `σ_max = 50`, and a dense
 `K` trained on a temporal objective finds exactly that. `ρ(K)` survives as the **reported** spectral

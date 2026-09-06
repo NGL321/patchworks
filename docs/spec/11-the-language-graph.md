@@ -150,9 +150,15 @@ rather than *where*.
 **`B = 128` is not derived from turn length, because there is none.** #129 makes turn length
 deliberately not a tick count: the agent emits every tick and must fall silent to be heard. `B` is
 set by the **boundary-cell budget** instead. At `B = 128` the rim is 256 boundary cells against the
-dome's 264, and the L0→L1 cut is 2,048 numbers per tick against the dome's 2,120. It lands on the
+dome's 264, and the L0→L1 cut is 1,024 numbers per tick against the dome's 1,060. It lands on the
 dome's figure because that is the figure the rest of the architecture was sized against, and 128
 ticks is a sentence or two of history.
+
+*These read 2,048 against 2,120 until [#474](https://github.com/NGL321/patchworks/issues/474) took
+`boundary_m` 8 → 4 for the private-dimension floor. **The sizing argument is untouched**: both cuts
+are `boundary cells × boundary_m`, so they moved together and the wedge still lands on the dome's
+figure. `B = 128` is unchanged, and nothing here was re-derived — the ratio this paragraph rests on
+is invariant under the lane width.*
 
 ### A rim's kind is the slot's, not the rim's
 

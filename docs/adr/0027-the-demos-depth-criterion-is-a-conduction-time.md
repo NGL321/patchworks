@@ -5,7 +5,11 @@
 ## Context
 
 Settled in [#241](https://github.com/NGL321/patchworks/issues/241) and written here by
-[#270](https://github.com/NGL321/patchworks/issues/270).
+[#270](https://github.com/NGL321/patchworks/issues/270). The **divisor** was moved to
+`world_loop(c)` by [#383](https://github.com/NGL321/patchworks/issues/383), written into ADR-0026 by
+[#398](https://github.com/NGL321/patchworks/issues/398) and followed through to here by
+[#405](https://github.com/NGL321/patchworks/issues/405); this ADR restates the bar and does not own
+it, so the name moved and nothing this ADR decides did.
 
 [`08-the-acceptance-demo.md`](../spec/08-the-acceptance-demo.md) measured depth as
 [`05-timescales.md`](../spec/05-timescales.md)'s private-component readout: `‖Δ(private component)‖`
@@ -32,7 +36,8 @@ temporal, and every remedy family the map had opened was spatial. The demo inher
 reading from an era the measurements have since left.
 
 **ADR-0026 is the bar; this ADR is the demo's own calls against it.** The conduction ratio, its
-derivation, `|loop(c)|`'s enumeration and the inbound/outbound asymmetry all live there and are not
+derivation, its divisor `world_loop(c)`'s enumeration — beside the demoted `|loop(c)|`'s — and the
+inbound/outbound asymmetry all live there and are not
 restated here. What is decided here is what the *demo* does with them — which population it reads,
 which sources it pokes, what a live single run can still falsify, and what the latency half is now
 allowed to claim. Those are independent decisions with their own alternatives, which is why this is
@@ -42,10 +47,22 @@ its own ADR rather than a section of ADR-0026.
 
 ### The depth criterion is the conduction ratio, read per event
 
-Per cell, the e-fold decay time `τ̂_c` of the paired private-feature deviation, over `|loop(c)|`, with
-the floor at
+Per cell, the e-fold decay time `τ̂_c` of the paired private-feature deviation, over
+`world_loop(c)`, with the floor at
 
-> `τ̂_c / |loop(c)| ≥ 1`
+> `τ̂_c / world_loop(c) ≥ 1`
+
+> **Amended by [#383](https://github.com/NGL321/patchworks/issues/383): the divisor was
+> `|loop(c)|`.** This clause read `τ̂_c / |loop(c)| ≥ 1`, *over `|loop(c)|`, the tick length of the
+> shortest cycle through `c` that reaches the rim and returns*.
+
+*Superseded by #383, and the demo follows the bar rather than restating it.* ADR-0026's divisor is
+now `world_loop(c)` — the shortest loop through `c` that leaves through an **actuator**, crosses the
+world, and re-enters at a **different** sensory boundary cell. `|loop(c)|` is **kept and demoted**:
+an exact construction-time length, still enumerated in ADR-0026 and still published by
+`benchmarks/loop_length.py`, and no longer a denominator anywhere. Nothing else in this ADR's
+decision moves: the demo's population, its single-source read, the quantifiers and the latency half
+are all untouched, because #383 changed the divisor and not the predicate.
 
 Passing, per event, is that **the event's loop closes**: the ratio holds along some path from the
 event's injection site. Read **inbound** for the arm nudge (entering at proprioception and touch) and
@@ -63,13 +80,26 @@ Four properties the swapped clause has and the old one lacked:
   depth. Those figures are read on the chart's **direct** round trip; with the stalk relay
   included ([#274](https://github.com/NGL321/patchworks/issues/274)) the apex's `τ` is 1.6 to 13.1 ticks
   against `|loop|` of 14, a ratio of 0.12 to 0.93 — **still short on every seed**, so what fires
-  here is unchanged and only the margin moves.
-- **The floor is derived, not invented.** It is the loop's own length in ticks —
-  [#143](https://github.com/NGL321/patchworks/issues/143)'s *"`τ` against the cell's own round
-  trip"* — which satisfies the invented-constants rule the way ADR-0021 satisfied it in choosing
-  `k = 1`.
+  here is unchanged and only the margin moves. **Those figures are held against the demoted
+  `|loop(apex)| = 14` and are kept as read, not rescaled** (#383): they were taken against that
+  divisor, and the apex's `world_loop(c)` is 15 or 16 rather than one integer, so re-pointing the
+  ratio would assert a number nobody measured. The direction is not in doubt — the divisor grew at
+  every cell, and a longer divisor cannot rescue a ratio already under 1 — so what fires here is
+  unchanged under the swap as well.
+- **The floor is derived, not invented.** It is the length in ticks of the loop the predicate's own
+  justification names — [#143](https://github.com/NGL321/patchworks/issues/143)'s *"`τ` against the
+  cell's own round trip"*, where that round trip goes out through the actuator and back in through
+  the world — which satisfies the invented-constants rule the way ADR-0021 satisfied it in choosing
+  `k = 1`. **Under the old divisor this bullet was not true**, and #383 says so in ADR-0026's own
+  words: `|loop(c)|` turns around at the rim's inner face and never leaves the graph, so the floor
+  of `1` had no derivation over it. [#368](https://github.com/NGL321/patchworks/issues/368)'s charge
+  is upheld in full, and the property this bullet claims arrives with the swap rather than having
+  been held all along.
 - **[#181](https://github.com/NGL321/patchworks/issues/181) dissolves rather than needing an
-  exception.** The index becomes `|loop(c)|`, a per-cell graph quantity. This was not a near-miss:
+  exception.** The index becomes `world_loop(c)`, a per-cell graph quantity — and per-cell **in
+  substance** and not only in form, because unlike `|loop(c)|`, whose one exact value per level was
+  a ladder in `d(c, rim)`, the world loop's per-level ranges overlap (ADR-0026). This was not a
+  near-miss:
   [`CONTEXT.md`](../../CONTEXT.md) defines *Level* as indexed by hop distance from the sensorimotor
   boundary, so *"against hop distance"* **was** per-level indexing under the glossary's own
   definition.
@@ -189,16 +219,23 @@ The rule is satisfied, not bent. Left unstated, a reader will think it was forgo
   edge delay. The first is what made the old clause unfailable. The second has **no fix on this
   graph**: every edge costs exactly one tick, so an onset ordering is a restatement of hop count and
   no guard separates hierarchy from delay. It is registered, not repaired.
-- **#99 gains real work: `|loop(c)|` is computed nowhere in the tree today.** The shortest cycle
-  through a cell that reaches the rim and returns is new graph machinery. ADR-0026's *"no new
-  instrument"* was true of `benchmarks/detectability.py`'s deviations; it is not true of the loop
-  lengths.
+- **#99 gains real work: the divisor is computed nowhere in the tree today.** The loop through a
+  cell that leaves at the actuator, crosses the world and re-enters elsewhere is new graph
+  machinery. ADR-0026's *"no new instrument"* was true of `benchmarks/detectability.py`'s
+  deviations; it is not true of the loop lengths. *Discharged since:
+  [`benchmarks/loop_length.py`](../../benchmarks/loop_length.py) enumerates both lengths off the
+  mask and `detectability.py` imports the divisor from it rather than re-deriving it
+  ([#398](https://github.com/NGL321/patchworks/issues/398)) — one enumeration, one place. The
+  consequence is kept as the record of what the swap owed at the time it was written.*
 - **`10` owes its event marker to a second consumer.** The marker was already owed for onset; the
   live `τ̂` read needs the same marker as its `t = 0`.
 - **The demo now fails today, and that is the point.** Reading `τ` flat at about one tick against
-  `|loop|` of 2 at L1 and 14 at the apex, no loop closes anywhere — and none closes on the
+  `|loop|` of 2 at L1 and 14 at the apex — the demoted length these readings were taken against,
+  kept as read and not rescaled (#383) — no loop closes anywhere, and none closes on the
   corrected operator either, whose apex ratio tops out at 0.93
-  ([#274](https://github.com/NGL321/patchworks/issues/274)). A pre-registered criterion that
+  ([#274](https://github.com/NGL321/patchworks/issues/274)). The divisor grew at every cell under
+  #383, from 2 to 3–9 at L1 and from 14 to 15–16 at the apex, so nothing here is rescued by the
+  swap. A pre-registered criterion that
   the current architecture fails is what pre-registration is for.
 - **The pre-registration discipline survives intact.** This is a correction made *before* the run —
   the only time it can be made honestly — and it is why the writing was urgent rather than merely

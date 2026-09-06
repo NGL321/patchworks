@@ -154,13 +154,26 @@ class TestPredictor:
         ratios = np.array(ratios)
         assert len(ratios) > 5
         # The identity is exact in `E‖Mu‖²` and approximate in `E‖Mu‖` by the
-        # concentration of the chi distribution, which at these widths is a few
-        # per cent — the same tolerance `graph_transmission`'s own printed check
-        # lands in. A predictor that had the dilution or the gain wrong would
-        # miss by a factor, not by a few per cent.
-        assert ratios.mean() == pytest.approx(1.0, rel=0.15)
-        assert ratios.min() > 0.7
-        assert ratios.max() < 1.4
+        # concentration of the chi distribution; and the predictor is a
+        # **product of Frobenius norms** where the drawn quantity is the norm of
+        # the **product**, so the per-cell ratio also carries the alignment
+        # between the two maps, which is not modelled and is not meant to be.
+        #
+        # Both gaps widen as the lanes narrow -- fewer dimensions, so less
+        # concentration and more alignment scatter -- and #474 took the lanes to
+        # `(interior_m, boundary_m) = (3, 4)`. Measured on this fixture the
+        # ratios run 0.45 to 1.27 about a mean of 0.83, where at (4, 8) they sat
+        # inside +/-15% of 1. The band below is widened to match, and the claim
+        # it is defending is unchanged and is still a real one: **a predictor
+        # that had the dilution or the gain wrong would miss by a factor**, and
+        # a factor is well outside this band.
+        #
+        # Not corrected by a chi factor: that was tried, and it moves the mean
+        # to 0.89 while widening the spread, because the dominant term here is
+        # the alignment rather than the concentration.
+        assert ratios.mean() == pytest.approx(1.0, rel=0.25)
+        assert ratios.min() > 0.4
+        assert ratios.max() < 1.5
 
     def test_the_gauge_tier_is_the_saturated_bound(self):
         """Tier 1 uses `rho` at a predicting cell and the exact gauge at a boundary."""

@@ -1,0 +1,43 @@
+
+== ADR-0032's second pre-registration: the floor's two halves ==
+   682 edges, 1364 endpoints, 150 predicting cells
+   checkpoints 30000, 100000; effective rank reads 1 for a rank-1 map and up to that pair's own m (max 8)
+
+   seed 0 @ 30000:  draining edges 99.9%   effective rank on them 4 -> 4  (1.000 -> 1.000 of m)
+            flatness on the 1339 floored endpoints: median 1, 5th pct 0.999999, worst 0.999999   (25 unattainable, excluded)
+            gram peak / cap: max 1.31991, median 0.125, cells over 1: 1/414 (largest overshoot 2683605.00 eps), biting (>0.99): 7
+            worst cells: cell 262 1.32, cell 261 1, cell 413 1, cell 257 1, cell 259 1
+
+   seed 0 @ 100000:  draining edges 99.9%   effective rank on them 4 -> 4  (1.000 -> 1.000 of m)
+            flatness on the 1339 floored endpoints: median 1, 5th pct 0.999999, worst 0.999975   (25 unattainable, excluded)
+            gram peak / cap: max 1.37786, median 0.125, cells over 1: 1/414 (largest overshoot 3169743.00 eps), biting (>0.99): 12
+            worst cells: cell 262 1.378, cell 343 1, cell 257 1, cell 413 1, cell 258 1
+
+   seed 1 @ 30000:  draining edges 99.7%   effective rank on them 4 -> 4  (1.000 -> 1.000 of m)
+            flatness on the 1339 floored endpoints: median 0.999999, 5th pct 0.999999, worst 0.999999   (25 unattainable, excluded)
+            gram peak / cap: max 1.29297, median 0.125, cells over 1: 1/414 (largest overshoot 2457644.00 eps), biting (>0.99): 5
+            worst cells: cell 262 1.293, cell 259 1, cell 261 1, cell 413 1, cell 257 1
+
+   seed 1 @ 100000:  draining edges 99.9%   effective rank on them 4 -> 4  (1.000 -> 1.000 of m)
+            flatness on the 1339 floored endpoints: median 1, 5th pct 0.999999, worst 0.999983   (25 unattainable, excluded)
+            gram peak / cap: max 1.48166, median 0.125, cells over 1: 1/414 (largest overshoot 4040445.00 eps), biting (>0.99): 11
+            worst cells: cell 262 1.482, cell 259 1, cell 261 1, cell 413 1, cell 257 1
+
+   seed 2 @ 30000:  draining edges 99.9%   effective rank on them 4 -> 4  (1.000 -> 1.000 of m)
+            flatness on the 1339 floored endpoints: median 1, 5th pct 0.999999, worst 0.999999   (25 unattainable, excluded)
+            gram peak / cap: max 1.30858, median 0.125, cells over 1: 1/414 (largest overshoot 2588529.00 eps), biting (>0.99): 5
+            worst cells: cell 262 1.309, cell 413 1, cell 259 1, cell 261 1, cell 257 1
+
+   seed 2 @ 100000:  draining edges 100.0%   effective rank on them 4 -> 4  (1.000 -> 1.000 of m)
+            flatness on the 1339 floored endpoints: median 1, 5th pct 0.999999, worst 0.999997   (25 unattainable, excluded)
+            gram peak / cap: max 1.49456, median 0.125, cells over 1: 1/414 (largest overshoot 4148682.00 eps), biting (>0.99): 10
+            worst cells: cell 262 1.495, cell 338 1, cell 259 1, cell 413 1, cell 257 1
+
+   Half one is the first two rows and half two is the third; neither half
+   carries the reading alone. A cell over 1 is the cap's construction guarantee
+   broken; a cell at 1 is the cap biting, which is where the floor is given up.
+
+   wrote prototypes\spectral-floor-435\read.json
+
+== cutoffs naming `spectral_floor_read` ==
+   no open problem cuts on `spectral_floor_read`. Nothing to evaluate, and that is a statement rather than a silence.

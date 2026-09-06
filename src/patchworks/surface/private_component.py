@@ -5,13 +5,17 @@ of what this module implements, over `docs/spec/05-timescales.md`'s
 *Demonstrating it*. It is displayed during each of the three events.
 
 **This scatter is the picture, and it is no longer the criterion.** `08`'s
-depth criterion is the conduction ratio `tau_hat_c / |loop(c)| >= 1`
+depth criterion is the conduction ratio `tau_hat_c / world_loop(c) >= 1`
 (`docs/adr/0026-...`, `docs/adr/0027-...`), because the amplitude reading below
 cannot fail: the channel's own attenuation supplies a falling scatter whether
 or not anything is retained. The panel keeps `‖Δ private‖` because it is what a
 viewer can read, and `10` now also owes a `tau_hat` scatter with its bar drawn
-at `|loop(c)|`. Neither is built here yet -- #99 owes the loop lengths, which
-are computed nowhere in the tree today.
+at `world_loop(c)`. That scatter is not built here yet. The divisor was
+`|loop(c)|` until #383 moved it, and the bar this panel has to draw is
+per-cell rather than one step per depth column, because `world_loop(c)`'s
+per-level ranges overlap where `|loop(c)|` was one value per level. The loop
+lengths themselves are no longer #99's to build: `benchmarks/loop_length.py`
+enumerates both off the mask and `detectability.py` imports the divisor (#398).
 
 **A second panel, below the dome.** One mark per predicting cell: how far that
 cell's private component moved this tick, against the cell's hop distance from

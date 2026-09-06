@@ -1,12 +1,23 @@
-"""How often ADR-0015's band projection fires, per cell, against depth (#351, for #335).
+"""Retention against depth, per cell — and the projection that used to fire on it (#351, for #335).
 
-[#335](https://github.com/NGL321/patchworks/issues/335) says the band's
-projection **can only shorten retention, never lengthen it**: ADR-0015 restores
-the band by rescaling the whole operator, so every firing moves all of that
-cell's eigenvalues by the same factor and shortens all its retention constants
+**The mechanism this rig was built to watch no longer exists.**
+[#433](https://github.com/NGL321/patchworks/issues/433) moved the band's
+enforcement into the forward path, so there is no post-step projection and
+nothing fires. The firing half of this read is therefore **undefined rather
+than zero**, and reporting it as *0, fixed* would be measuring the instrument's
+own removal. What survives is the half the firing was destroying: **`λ(K)` and
+`τ` per cell against depth**, which is what
+[#335](https://github.com/NGL321/patchworks/issues/335)'s claim was ultimately
+about and what [#433](https://github.com/NGL321/patchworks/issues/433)
+pre-registered a read on. See *What changed, and what this rig is now* below.
+
+[#335](https://github.com/NGL321/patchworks/issues/335) said the band's
+projection **can only shorten retention, never lengthen it**: ADR-0015 restored
+the band by rescaling the whole operator, so every firing moved all of that
+cell's eigenvalues by the same factor and shortened all its retention constants
 together. Long retention at the apex is what ADR-0026's conduction ratio needs
-(`|loop|` = 14 there), so the retention gradient stage 2 exists to produce is
-fought by construction — *if* the mechanism fires hardest where retention is
+(`|loop|` = 14 there), so the retention gradient stage 2 exists to produce was
+fought by construction — *if* the mechanism fired hardest where retention was
 most needed::
 
     python benchmarks/projection_firing.py read
@@ -19,33 +30,57 @@ nothing here had to be invented, which is what
 [#156](https://github.com/NGL321/patchworks/issues/156) found for the
 falsification register's thresholds and what ADR-0029 exists to keep true.
 
-**The two halves are combined by taking the lower**, which is
+**The two halves were combined by taking the lower**, which is
 `benchmarks/detectability.py`'s convention for exactly this reason: a reading
 that could say *the band is fighting retention* while one of its two clauses
-failed is not the claim. So `band_fights_retention` is
+failed is not the claim. So `band_fights_retention` was
 `min(apex_firing / rim_firing, rim_τ / apex_τ)`, at or above 1 exactly when the
-apex both fires at least as often as the rim **and** holds the shorter `τ`. The
-two components are offered by name as well, so a later cutoff meaning one of
-them can say so.
+apex both fired at least as often as the rim **and** held the shorter `τ`.
 
-**What the projection firing is, and where it is read.** #138 initialises
-`K = aI` and the projection runs after every prediction-rule step, outside the
-transform, with no gradient — `patchworks.learning.PredictionRule.step` names the
-firing rate as *the observable that calls #138's named fallback from a dense `K`
-to a structured one*, and until #351 nothing could read it, because
-:meth:`~patchworks.body.CellOperators.project` computed the mask and dropped it.
-It now returns it. This rig records it without touching the rule: the rule is
-documented as holding no state, and an instrument that made it hold some would
-be changing the thing it measures.
+## What changed, and what this rig is now
 
-**The burn-in is a count off the graph, not a level.** #156's fourth trap is
-this one exactly — *entry 4 fires on the architecture working*, because the
-fleet's first excursion against the band is the selection settling rather than
-the cost. The exclusion here is one **apex round trip**, `max |loop(c)|` from
-`benchmarks/loop_length.py`, which is 14 ticks on `DEFAULT_SPEC`: the longest
-path any signal in this graph takes to come back, recomputed per spec rather
-than quoted. Below one loop no cell has yet seen its own consequence, so nothing
-before it is a reading of the mechanism at all.
+Since [#433](https://github.com/NGL321/patchworks/issues/433) this run reports
+**`rim_tau_over_apex_tau` alone**. `apex_firing_over_rim` and the combined
+`band_fights_retention` are **not reported**, and that is deliberate on two
+grounds. The firing rate is not a number this build has: nothing fires, so a
+reported 0 would be the instrument's removal masquerading as a fix. And
+`band_fights_retention` takes the **lower** of two clauses, so supplying it from
+the surviving clause alone would silently change what the name means — the
+opposite of the convention above.
+
+The consequence is stated rather than worked around: **#335's `@cutoff` names a
+metric this rig no longer reports**, so `cutoff_report` prints it as unreported,
+which is exactly the *cutoff nothing can fire on* that `open-problems.md`'s
+second loud section exists to make visible. Re-pointing that bar at the
+surviving clause would be **ruling #335**, which #433 explicitly forbade itself
+and which this rig may not do sideways. #335 stays open, unruled, and is told
+what its instrument now measures.
+
+`recording()` is gone with `CellOperators.project`, and the statelessness note
+it carried is now on
+:meth:`~patchworks.body.CellOperators.used`, where it decided something: it is
+the reason the forward normalisation takes a stateless batched spectral norm
+rather than a warm-started power iteration's per-cell buffer.
+
+**What the projection firing was, and why it is gone.** #138 initialises
+`K = aI`, and the projection used to run after every prediction-rule step,
+outside the transform, with no gradient —
+`patchworks.learning.PredictionRule.step` named the firing rate as *the
+observable that calls #138's named fallback from a dense `K` to a structured
+one*. #422 read it on this rig at 100k ticks and found it **growing** rather
+than shrinking, hardest at the apex, which is what #433 ruled on. The remedy
+removed the observable along with the mechanism.
+
+**The burn-in is a count off the graph, not a level**, and it survives the
+change. #156's fourth trap is this one exactly — *entry 4 fires on the
+architecture working*, because the fleet's first excursion against the band is
+the selection settling rather than the cost. The exclusion here is one **apex
+round trip**, `max |loop(c)|` from `benchmarks/loop_length.py`, which is 14
+ticks on `DEFAULT_SPEC`: the longest path any signal in this graph takes to come
+back, recomputed per spec rather than quoted. Below one loop no cell has yet
+seen its own consequence, so nothing before it is a reading of the mechanism at
+all. It now gates whether the run is long enough to read rather than which steps
+enter a rate, since `λ(K)` is read off the trained operator at the end.
 
 Like every script here **it asserts nothing** and its exit code does not move.
 Pass `--no-file` on any read that is not *the* read — the small dome, a short
@@ -56,7 +91,6 @@ from __future__ import annotations
 
 import argparse
 import collections
-import contextlib
 import math
 import pathlib
 import statistics
@@ -69,7 +103,6 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "tools"))
 
 from patchworks.agent import Agent, run  # noqa: E402
-from patchworks.body import CellOperators  # noqa: E402
 from patchworks.graph import DEFAULT_SPEC, Dome, DomeSpec, build_graph  # noqa: E402
 from patchworks.learning import PredictionRule, TransportRule  # noqa: E402
 from patchworks.sandbox import PlanarPushSandbox  # noqa: E402
@@ -84,9 +117,17 @@ from conftest import SMALL  # noqa: E402
 #: `benchmarks/untrained_fixed_point.py`'s table rather than restating a rule.
 IMAGE_SIZE = {DEFAULT_SPEC.patch_grid: 64, SMALL.patch_grid: 16}
 
-#: Ticks the published read runs. Long enough that a per-cell firing *rate* is a
-#: rate rather than a handful of events, and the same order as the driven reads
-#: #274 and #166 published on this dome.
+#: Ticks the published read runs, and the same order as the driven reads #274
+#: and #166 published on this dome.
+#:
+#: **This default is short for the thing the rig now reads, and #422 measured by
+#: how much.** It ran a horizon ladder and found that at 3k this reading is
+#: **CLEAR** and that it *reverses* by 100k — so a 3k run is not a cheap version
+#: of the long one but a different and misleading one. #433's pre-registered
+#: read is at `--ticks 100000` on seeds 0, 1, 2 for exactly that reason. The
+#: default is left where it is because a rig carrying a cutoff runs often and
+#: 100k is ~80 minutes a seed; a session reading retention against depth to
+#: *decide* something passes the horizon explicitly.
 TICKS = 3000
 
 #: One seed is a reading and three are a spread. #274's driven read published
@@ -94,32 +135,6 @@ TICKS = 3000
 #: and the per-seed rows are printed so the spread is visible rather than
 #: averaged away.
 SEEDS = (0, 1, 2)
-
-
-@contextlib.contextmanager
-def recording(operators: CellOperators):
-    """Capture every mask :meth:`CellOperators.project` returns, without state on the rule.
-
-    :class:`~patchworks.learning.PredictionRule` is documented as holding no
-    state whatsoever — *two calls with the same sheaf state produce the same
-    step* — and hanging the last projection off it would make that false for the
-    convenience of an instrument. So the recorder wraps the projection for the
-    length of the read and unwraps it after: the rule is unchanged, the
-    projection is unchanged, and what the mechanism did is visible.
-    """
-    fired: list[torch.Tensor] = []
-    original = operators.project
-
-    def watched() -> torch.Tensor:
-        mask = original()
-        fired.append(mask.clone())
-        return mask
-
-    operators.project = watched  # type: ignore[method-assign]
-    try:
-        yield fired
-    finally:
-        del operators.project
 
 
 def build(spec: DomeSpec, split: str, seed: int) -> tuple[PlanarPushSandbox, Agent]:
@@ -130,23 +145,28 @@ def build(spec: DomeSpec, split: str, seed: int) -> tuple[PlanarPushSandbox, Age
     return env, agent
 
 
-def taught(agent: Agent, ticks: int, seed: int) -> list[torch.Tensor]:
-    """Run with both rules on and hand back the projection mask from every step.
+def taught(agent: Agent, ticks: int, seed: int) -> int:
+    """Run with both rules on. Returns the number of steps taken.
 
     The loop is `benchmarks/untrained_fixed_point.py`'s `teaching`, unchanged
     and for its reasons: `agent.tick()` then the rules, the prediction rule
     joining on the first tick and the transport rule on the second. The drive is
     asserted by `Agent.tick` itself, so this is a driven run without a second
     writer standing beside the world's.
+
+    It returned the per-step projection masks until #433 removed the projection.
+    A count is what is left, and it is still worth returning: it is what the
+    burn-in is checked against.
     """
     bias = PredictionRule(agent.sheaf)
     transport = TransportRule(agent.sheaf)
-    with recording(agent.sheaf.operators) as fired:
-        for _outcome in run(agent, ticks, seed=seed):
-            bias.step()
-            if agent.sheaf.ticks > 1:
-                transport.step()
-    return fired
+    steps = 0
+    for _outcome in run(agent, ticks, seed=seed):
+        bias.step()
+        if agent.sheaf.ticks > 1:
+            transport.step()
+        steps += 1
+    return steps
 
 
 def burn_in(spec: DomeSpec) -> int:
@@ -181,10 +201,15 @@ def by_depth(dome: Dome, values: dict[int, float]) -> dict[int, list[float]]:
 def _ratio(numerator: float, denominator: float) -> float:
     """A self-ratio that states what a zero denominator means rather than raising.
 
-    A rim that never fires and an apex that does is the failure at its most
-    extreme, so it reads `inf`; an apex that never fires is the failure absent,
-    so it reads 0 whatever the rim did. Neither is a number to quote — both are
-    statements about which side of the bar the run fell.
+    Since #433 its one caller is the `τ` clause, where the degenerate cases are
+    a rim that forgets instantly (`ρ = 0`, so `τ = 0`) against an apex that does
+    not, and its converse. It reads `inf` and `0` respectively. Neither is a
+    number to quote — both are statements about which side of the bar the run
+    fell. `τ` at the band's *upper* face is `inf` rather than zero — ADR-0026's
+    amendment calls that the honest object — and it is **not** this function's
+    case: it arrives as a non-finite argument, so the ratio is `0` when the apex
+    forgets nothing and `nan` when both faces do. The per-level print reports
+    the finite median beside it, so a reader is never left with the ratio alone.
     """
     if numerator == 0.0:
         return 0.0
@@ -194,74 +219,77 @@ def _ratio(numerator: float, denominator: float) -> float:
 
 
 def measure(spec: DomeSpec, split: str, seed: int, ticks: int) -> dict[str, object]:
-    """One seed: per-cell firing rate and `λ(K)`, past the burn-in."""
+    """One seed: per-cell `λ(K)` of the **used** operator, on a run past the burn-in.
+
+    `radii()` reports the used operator since #433, which is the referent every
+    reader of it meant — the band is a statement about what the cell computes
+    with, and under the forward normalisation the raw parameter may sit outside
+    it. `raw_radii()` is the other half if a reader ever wants the parameter.
+    """
     env, agent = build(spec, split, seed)
     try:
-        fired = taught(agent, ticks, seed)
+        steps = taught(agent, ticks, seed)
     finally:
         env.close()
-    skip = burn_in(spec)
-    kept = fired[skip:]
-    dome = agent.dome
-    predicting = list(dome.predicting)
-    if not kept:
+    counted = max(steps - burn_in(spec), 0)
+    predicting = list(agent.dome.predicting)
+    if not counted:
         return {"seed": seed, "counted": 0}
-    stacked = torch.stack(kept).to(torch.float64)
-    rates = stacked.mean(dim=0)
-    radii = agent.sheaf.operators.radii().detach().to(torch.float64)
+    operators = agent.sheaf.operators
+    radii = operators.radii().detach().to(torch.float64)
+    raw = operators.raw_norms.detach().to(torch.float64)
     return {
         "seed": seed,
-        "counted": len(kept),
-        "firing": {cell: float(rates[i]) for i, cell in enumerate(predicting)},
+        "counted": counted,
         "radius": {cell: float(radii[i]) for i, cell in enumerate(predicting)},
+        # Nothing rescales the stored parameter any more, so how far it drifts
+        # out of band is a question this build creates and the last one could
+        # not ask. It is a diagnostic and not a reading: `sigma_max(used)` is in
+        # band whatever this says, and no cutoff names it.
+        "raw_norm": {cell: float(raw[i]) for i, cell in enumerate(predicting)},
     }
 
 
 def readings(results: list[dict[str, object]], spec: DomeSpec) -> dict[str, float]:
     """What this read has to offer a `measurement` cutoff, by name.
 
-    `band_fights_retention` is #335's bar. It is the **lower** of the two
-    clauses, on `benchmarks/detectability.py`'s reasoning: a reading that says
-    *holds* while one clause fails is not the claim being made. Medians across
-    cells within a level, then across seeds — the level is the row and the seed
-    spread is printed rather than folded into the bar, which is #274's habit.
+    **One reading since #433**, and the two that are missing are missing on
+    purpose. `apex_firing_over_rim` is not a number this build has — nothing
+    fires — and `band_fights_retention` is the **lower** of two clauses, so
+    handing it back from the surviving clause alone would change what the name
+    means rather than report it. #335's bar names the combined metric and so
+    goes unreported, which `cutoff_report` prints as such; re-pointing that bar
+    is #335's to do and not this rig's. See the module docstring.
+
+    Medians across cells within a level, then across seeds — the level is the
+    row and the seed spread is printed rather than folded into the bar, which is
+    #274's habit.
     """
     dome = build_graph(spec)
-    firing_ratio: list[float] = []
     tau_ratio: list[float] = []
     for result in results:
         if not result.get("counted"):
             continue
-        firing = by_depth(dome, result["firing"])  # type: ignore[arg-type]
         radius = by_depth(dome, result["radius"])  # type: ignore[arg-type]
-        if len(firing) < 2:
+        if len(radius) < 2:
             continue
-        rim, apex = min(firing), max(firing)
-        firing_ratio.append(
-            _ratio(statistics.median(firing[apex]), statistics.median(firing[rim]))
-        )
+        rim, apex = min(radius), max(radius)
         taus = {level: [tau(r) for r in rows] for level, rows in radius.items()}
         tau_ratio.append(
             _ratio(statistics.median(taus[rim]), statistics.median(taus[apex]))
         )
-    if not firing_ratio:
+    if not tau_ratio:
         return {}
-    apex_over_rim = float(np.median(firing_ratio))
-    rim_over_apex = float(np.median(tau_ratio))
-    return {
-        "apex_firing_over_rim": apex_over_rim,
-        "rim_tau_over_apex_tau": rim_over_apex,
-        "band_fights_retention": min(apex_over_rim, rim_over_apex),
-    }
+    return {"rim_tau_over_apex_tau": float(np.median(tau_ratio))}
 
 
 def read(
     spec: DomeSpec, split: str, seeds: tuple[int, ...], ticks: int, *, file: bool = True
 ) -> None:
-    """The read: firing rate and `λ(K)` against depth, then the cutoff verdict."""
+    """The read: `λ(K)` and `τ` against depth, then the cutoff verdict."""
     dome = build_graph(spec)
     print(
-        f"\n== ADR-0015's projection, fired per cell against depth =="
+        f"\n== the used operator's lambda(K) per cell against depth =="
         f"\n   {len(dome.predicting)} predicting cells, {ticks} ticks, "
         f"{len(seeds)} seed(s), burn-in {burn_in(spec)} (one apex |loop|)"
     )
@@ -272,23 +300,27 @@ def read(
         if not result.get("counted"):
             print(f"\n   seed {seed}: no steps past the burn-in; nothing to read.")
             continue
-        firing = by_depth(dome, result["firing"])  # type: ignore[arg-type]
         radius = by_depth(dome, result["radius"])  # type: ignore[arg-type]
-        print(f"\n   seed {seed}   level  cells  firing rate   median lambda   tau")
-        for level in firing:
+        raw = by_depth(dome, result["raw_norm"])  # type: ignore[arg-type]
+        print(
+            f"\n   seed {seed}   level  cells   median lambda   tau   "
+            f"median raw sigma"
+        )
+        for level in radius:
             taus = [tau(r) for r in radius[level]]
             finite = [t for t in taus if math.isfinite(t)]
             shown = f"{statistics.median(finite):.3g}" if finite else "inf"
             print(
-                f"            {level:>5}  {len(firing[level]):>5}  "
-                f"{statistics.median(firing[level]):>11.3g}   "
-                f"{statistics.median(radius[level]):>13.6g}   {shown:>8}"
+                f"            {level:>5}  {len(radius[level]):>5}   "
+                f"{statistics.median(radius[level]):>13.6g}   {shown:>8}   "
+                f"{statistics.median(raw[level]):>16.4g}"
             )
     print(
-        "\n   The projection can only rescale down, so a level that fires more "
-        "often is\n   a level whose retention is being cut more often. #335's "
-        "claim is that this\n   is hardest at the apex, which is where "
-        "ADR-0026 needs the longest tau."
+        "\n   Nothing fires since #433: the band is enforced in the forward path,"
+        "\n   so the firing rate is undefined rather than zero and is not "
+        "reported.\n   What is read is the retention it was cutting -- long tau "
+        "at the apex is\n   what ADR-0026's conduction ratio needs (|loop| = 14 "
+        "there)."
     )
     report_cutoffs("projection_firing", readings(results, spec), file=file)
 

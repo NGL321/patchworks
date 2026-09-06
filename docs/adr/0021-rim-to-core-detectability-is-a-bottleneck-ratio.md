@@ -83,9 +83,12 @@ wrong:
   rather than deleted because a reader has to be able to see that the condition was **met rather than
   waived** — the same reason the retracted destination is quoted in *Context* above.
 - **[ADR-0026](./0026-rim-core-influence-is-a-conduction-ratio.md) is the operative bar.** The
-  **rim-core influence** predicate over the **conduction ratio** `τ̂_c / |loop(c)|`, which reads
+  **rim-core influence** predicate over the **conduction ratio** `τ̂_c / world_loop(c)`, which reads
   **time rather than amplitude**: a cell's measured retention against the tick length of the shortest
-  cycle through it that reaches the rim and returns. #127's *Done when* and the stage-3 gate are read
+  loop through it that leaves at an actuator, crosses the world, and re-enters at a different sensory
+  boundary cell. *The divisor was `|loop(c)|`, the graph's own inner-face round trip, until
+  [#383](https://github.com/NGL321/patchworks/issues/383); it is kept and demoted, and this
+  cross-reference follows the bar rather than owning it.* #127's *Done when* and the stage-3 gate are read
   against it, and not against this ratio. **The two are complements, and neither replaces the
   other** — ADR-0026 says the loop *can close*, which is necessary and not sufficient; this predicate
   says something *distinguishable arrives*, which is sufficient and not necessary. That is precisely
@@ -172,8 +175,10 @@ accumulated along the path up to that edge is cumulative. There is no per-hop nu
 
 The "~0.37 per hop" was an artifact of assuming a single floor and a uniform hop, and both are known
 false: #158's floors are non-monotonic across levels, and after
-[#190](https://github.com/NGL321/patchworks/issues/190) the gain is graded 2.50x at the apex to 12.0x
-at the actuator.
+[#190](https://github.com/NGL321/patchworks/issues/190) the gain is graded 2.50x at the apex to 8.00x
+at the boundary. (The actuator read 12.0x until
+[#228](https://github.com/NGL321/patchworks/issues/228) removed its exception; the grading, which is
+all this paragraph rests on, is unchanged.)
 
 **Per-edge, not per-level, and the reason generalises past this decision:**
 
@@ -210,7 +215,8 @@ derivation, and a `k = 3` chosen today would be that number's successor by anoth
 ### Two predicates, not one fourteen-hop chain
 
 Rim→apex and apex→rim are stated and evaluated **separately**. The two directions do not share a
-gain: #190 priced the denominator swap at 2.50x at the apex against 12.0x at the actuator, so the path
+gain: #190 priced the denominator swap at 2.50x at the apex against 8.00x at the actuator (12.0x until
+[#228](https://github.com/NGL321/patchworks/issues/228)), so the path
 is **asymmetric by construction**, and a single chain would hide which half failed.
 
 Forward-only was rejected because it cannot express the claim being made. That claim was *reaches the

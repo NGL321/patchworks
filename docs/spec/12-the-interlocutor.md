@@ -138,6 +138,38 @@ contents and **ratifies that choice rather than superseding it**: the contents a
 per-slot, and carrying the readback at every slot rather than only at the head is what keeps a
 boundary cell's stalk dimension out of the hands of its index. Nothing here reopens the count.
 
+### The domain is mixed, and that is the position rather than the concession
+
+*Added by [#440](https://github.com/NGL321/patchworks/issues/440).*
+
+The three rims above are **not all discrete**, and the record needs the split stated because a later
+reader will otherwise take *the language domain* to mean *the discrete domain*.
+[`11-the-language-graph.md`](./11-the-language-graph.md)'s stalk table gives the **heard** rim 97
+dimensions of one-hot and nothing else; the **spoken** rim carries a commanded character and its
+uptake alongside **coherence**, a continuous motor readback
+([ADR-0025](../adr/0025-coherence-is-a-motor-readback-not-a-sensory-value.md)); and the **drive**
+stalk is a continuous valence scalar. So the discreteness describes **one of the wedge's two
+columns**, not the wedge.
+
+**The mixture is favoured, not tolerated.** A symbol stream read through a rim that also carries the
+motor consequence of speaking is what learning the **dynamics of a conversation** requires, as
+against the statistics of a corpus — the same commitment *Conversational by construction* makes,
+read one level down at the stalks. It stands on ADR-0025, which put coherence on the motor rim, and
+on [ADR-0009](../adr/0009-a-drive-is-a-motor-edge-attached-deep.md), which makes the drive a motor
+edge attached deep; it needs nothing else to license it.
+
+**It is a design position and it is unobserved.** Nothing here has been measured, and the stage 5
+experiment is what would convert it into an observation. It is recorded as a position so that a
+result is read against a claim that was made in advance rather than one assembled afterwards.
+
+**What it buys the record downstream.**
+[ADR-0004](../adr/0004-linear-restriction-maps-assume-local-flatness.md)'s criterion has one want
+and two warrants, and the warrant is selected by the overlap's geometry.
+[#132](https://github.com/NGL321/patchworks/issues/132)'s finding — a finite **situation set** with
+no box-counting dimension — is **heard-side**, so the discrete warrant applies there and the
+continuous one remains fully live on the spoken column and on the drive. The bill discreteness
+presents is therefore one column's, which is considerably smaller than it first read.
+
 ## Half-duplex, and an idle run yields the floor
 
 **One party speaks at a time**, and the **floor** is which of them it is.
@@ -295,6 +327,56 @@ rate would be new machinery contradicting both. The spectrum of a learned `K` is
 **instrument** for checking this once the graph transmits — an instrument, never a mechanism, in
 ADR-0005's sense.
 
+## The yoked arm, and what it does and does not bound
+
+**A second arm of the same world, in which the interlocutor's output no longer depends on the
+agent.** The design is Roseberry, Hirsh-Pasek & Golinkoff (2014)'s and the decision is
+[#448](https://github.com/NGL321/patchworks/issues/448). It lives here rather than in
+[`11-the-language-graph.md`](./11-the-language-graph.md) because it is a variant of the **world**: the
+graph, the cells and the learning rules are identical across the two arms, and every difference
+between them is a difference in what is on the other end.
+
+**Two arms.** *Live*, which is everything above. *Yoked*: the same characters, the same turn
+structure, the same recorded script, played back against a fresh agent — **contingency removed and
+nothing else**.
+
+**What it separates, and what it does not.** It separates *an architecture that cannot use the loop*
+from *a domain in which the loop does nothing* — an axis nothing else in this domain reads. It is
+**not an achievability bound**: no arm of it is dumb, privileged and lower-bounding, so it leaves
+*Known exposure*'s missing figure exactly where it was.
+
+**The ablation is the recorded uptake flags, not uptake always granted.** Refusals still arrive, at
+the recorded rate and with the recorded turn structure, caused by the recorded partner rather than by
+*this* agent's silence. Always-granted is two ablations at once — *The readback is genuinely
+non-deterministic* makes turn-taking **the body's refusal on a language rim**, and `04`'s *Readback*
+names the forfeit for a world that always complies — so a live-vs-always-granted difference is
+attributable to neither. **Always-granted survives as a possible second arm** if the refusal channel
+is ever to be priced, and is not this one.
+
+**Coherence is scored live, under forced decoding.** The interlocutor **model** stays a live scorer
+and only its *output* is forced from the recording, so the number is its entropy-normalised
+next-character surprisal about **this** agent's characters, conditioned on the forced transcript. The
+quantity is unchanged from *The coherence readback* above — same exact prefix marginalisation, same
+normaliser, same vocabulary — and
+[ADR-0025](../adr/0025-coherence-is-a-motor-readback-not-a-sensory-value.md) is untouched.
+
+*Considered and rejected:* **replaying the recorded coherence numbers.** Replayed, the number is
+surprisal about a **different agent's** output, arriving on this agent's spoken stalk as a per-slot
+value decoupled from anything it did. That is not a weakened readback but noise on a motor rim, and it
+would make the yoked arm's drive incomparable to the live arm's.
+
+**What the recording must carry.** Forced decoding needs the model re-run over the transcript, so the
+character stream alone is not enough: the recording carries the **checkpoint identity**, the **drawn
+topic and system prompt**, and the **turn boundaries**. And the recording is **re-taken with the live
+arm** rather than reused across builds — a rig's recorded data ages with `main`, and an arm
+differencing against a recording taken on a superseded surface is that failure exactly.
+
+**The asymmetry is pre-registered, and it is one-directional.** A positive live-vs-yoked difference is
+a finding. **A null is not**: it cannot be separated from both arms sitting at the floor, which
+*Half-duplex, and an idle run yields the floor* makes a live possibility rather than a remote one — so
+a null inherits the missing-achievability gap rather than routing around it. This is stated here, and
+not only on the ticket, because the first reader of a null will meet it in this document.
+
 ## What this document does not decide
 
 - **The dark room's language form** is
@@ -312,6 +394,8 @@ ADR-0005's sense.
   not rediscovered: **changing the topic mid-conversation is a `retarget()`** — what is wanted changes
   without the world being touched. Choosing the readouts is that ticket's decision and not this one's,
   and the other two entry points, `perturb()` and `disturb_arm()`, have no obvious analogue at all.
+  **The demo now has a second dependent**: *The yoked arm* above inherits its readouts and its pass
+  condition whole, so the contrast is specified today and its run is gated on that ticket.
 
 ## Known exposure
 
@@ -321,6 +405,9 @@ ADR-0005's sense.
   thing being asked of it, because what is being asked has not been written down — that is the demo
   above. **The language domain therefore has no lower bound on its own solvability**, and it is
   recorded as absent rather than pending so that nobody quotes a number that was never measured.
+  **A contrast condition now exists in this document and it is not that bound.** *The yoked arm* reads
+  a different axis, bounds nothing, and leaves this bullet standing;
+  [#331](https://github.com/NGL321/patchworks/issues/331) is unchanged by it.
 - **The throughput figure is a build measurement and is not asserted here.** The design intent is tens
   of ticks per second on CPU, the same order as the sandbox, and the token-boundary argument above is
   the reason to expect it. It has not been measured; when it is, it belongs beside `03`'s ~400

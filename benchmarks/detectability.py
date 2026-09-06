@@ -322,16 +322,25 @@ class Trial:
     """The conducting path's cells, source-first."""
 
     tau: np.ndarray
-    """`[predicting cells]`: `τ̂_c` in ticks, in `Dome.predicting` row order."""
+    """`[population]`: `τ̂_c` in ticks, in :func:`population` row order.
+
+    That is `Dome.predicting` followed by the actuator, which ADR-0026's outbound
+    universal has always named and this reduction has carried only since #506.
+    The predicting rows keep their indices; the population extends them.
+    """
 
     censored: np.ndarray
-    """`[predicting cells]` bool: the window ended before the `1/e` crossing."""
+    """`[population]` bool: the window ended before the `1/e` crossing."""
 
     resolved: np.ndarray
-    """`[predicting cells]` bool: #224's gate — the crossing clears float32's floor."""
+    """`[population]` bool: #224's gate — the crossing clears float32's floor."""
 
     private: np.ndarray
-    """`[predicting cells]` bool: the cell has private dimension to hold at all (#385)."""
+    """`[population]` bool: the cell has a reading site to hold in at all (#385).
+
+    The write-complement is non-trivial: `H⁰` at a predicting cell, the
+    `commanded` block at the actuator (:func:`reading_sites`).
+    """
 
     floor: float
     """`eps_f32 · ‖state‖` at the median cell: what `tick.PRECISION_FLOOR` records."""
@@ -419,6 +428,57 @@ def widest_path(
     return 0.0, -1, -1, ()
 
 
+def population(dome: Dome) -> tuple[int, ...]:
+    """ADR-0026's outbound population, delegated to `benchmarks/loop_length.py`.
+
+    The predicting cells followed by the actuator boundary cell, which #506 ruled
+    a member of the outbound universal and this reduction quantified over nowhere
+    until [#509](https://github.com/NGL321/patchworks/issues/509). Delegated for
+    :func:`world_loops`' reason: two enumerations of one set can disagree in
+    silence, and the divisor and the numerator must be read at the same cells.
+
+    Every array a :class:`Trial` carries per cell — `tau`, `censored`,
+    `resolved`, `private` — is in **this** row order, which extends
+    `Dome.private_projection`'s rather than replacing it: the predicting rows keep
+    their indices and the actuator is appended.
+    """
+    return loop_length.outbound_population(dome)
+
+
+def reading_sites(dome: Dome) -> dict[int, torch.Tensor]:
+    """Per cell, the `[stalk]` 0/1 mask `τ̂` is read on: the **write-complement**.
+
+    #506's rule, which is ADR-0026's own exclusion criterion one level down: **a
+    cell's reading site is the complement of what overwrites it from outside its
+    own retention.** At a *predicting* cell what overwrites is reconciliation and
+    the complement is `H⁰` — `Dome.private_projection`, unchanged and still the
+    masks' rather than a choice. At the *actuator* what overwrites is the world's
+    write, and `Agent.write` sets the three **efference** components every tick
+    and the three **commanded** components never (`agent.py`, *the motor pathway
+    is untouched*), so the complement is the leading `joints` components. One
+    rule; it reproduces the ADR's existing verdicts rather than adding a second
+    predicate beside them.
+
+    **This cannot be one rectangular tensor, and that is why the reduction has
+    the shape it does.** `Dome.private_projection` is `[150, 32]` — the predicting
+    population at the shared `n` — while the actuator's node stalk is **6**,
+    because [ADR-0006](https://github.com/NGL321/patchworks/blob/main/docs/adr/0006-boundary-cell-stalks-are-world-shaped.md)
+    makes a boundary stalk *world-shaped* rather than `n`-shaped. There is no
+    array both rows fit in, so the site is handed out per cell and
+    :func:`conduction` multiplies each cell's own trace by its own mask. Written
+    down so the next session does not rediscover it as a bug in the stacking.
+    """
+    projection = dome.private_projection.to(torch.float64)
+    sites = {c: projection[row] for row, c in enumerate(dome.predicting)}
+    commanded = dome.spec.joints
+    for cell in dome.cells:
+        if cell.kind is CellKind.ACTUATOR:
+            site = torch.zeros(cell.stalk, dtype=torch.float64)
+            site[:commanded] = 1.0
+            sites[cell.id] = site
+    return sites
+
+
 def loop_lengths(dome: Dome) -> dict[int, int]:
     """`|loop(c)|` for every predicting cell: `2 · d(c, rim)`, off the mask.
 
@@ -443,6 +503,13 @@ def loop_lengths(dome: Dome) -> dict[int, int]:
     length, the graph's own rim-returning round trip — and :func:`world_loops`
     carries the divisor. The demotion cost the reading nothing: `|loop(c)|` is
     still what ADR-0026 enumerated and still what a changed `DomeSpec` moves.
+
+    **This does not widen to the actuator with :func:`population`, and the reason
+    is arithmetic** (#506, #509). The sweep starts from :func:`rim`, which
+    *contains* the actuator, so the actuator's entry would be `2 · 0 = 0` — and
+    were this still the divisor it would divide the bar by zero at exactly the
+    cell #506 added. It is no longer the divisor (#383), and it stays over
+    predicting cells: a rim cell's distance to the rim is not a loop.
     """
     distance = {cell: 0 for cell in rim(dome)}
     frontier = list(distance)
@@ -459,7 +526,7 @@ def loop_lengths(dome: Dome) -> dict[int, int]:
 
 
 def world_loops(dome: Dome) -> dict[int, int]:
-    """`world_loop(c)` for every predicting cell: ADR-0026's divisor since #383.
+    """`world_loop(c)` over the outbound population: ADR-0026's divisor since #383.
 
     `min over (a, p), a an actuator, p any sensory boundary cell, a != p, of
     d(c, a) + w + d(p, c)` — out through the actuator, across the world, back in
@@ -473,9 +540,14 @@ def world_loops(dome: Dome) -> dict[int, int]:
     copy here could drift from it in silence — under the operative bar, which is
     the one place a silent disagreement costs the most.
 
-    **A predicting cell no (actuator, sensory) pair reaches is absent** rather
+    **A population cell no (actuator, sensory) pair reaches is absent** rather
     than carried with an infinite divisor, for :func:`loop_lengths`' reason: *no
     loop closing* is ADR-0026's stated falsification and it should read as one.
+
+    **The actuator is in it since #506** (:func:`population`), with `d(c, a) = 0`
+    at `c = a`: `world_loop(262) = 0 + 1 + 2 = 3` on `DEFAULT_SPEC`. That is a
+    construction-time integer off the mask, not a reading, so it does not age
+    with `main` the way a measured figure does.
     """
     return loop_length.world_loops(dome).lengths
 
@@ -596,13 +668,28 @@ def conducting_path(
     predicates' shapes. Same invariant makes the greedy step correct: a path's
     value cannot rise by extending it.
 
-    `ratio` carries `τ̂_c / world_loop(c)` for every predicting cell. **A cell absent
-    from it is unbounded** — that is the boundary cells, which hold no private
-    features, carry no `τ̂` and are excluded from the outbound universal by
-    ADR-0026 on exactly this ground. They are transited without binding, so a
-    path through one is bounded by the predicting cells at its ends. A predicting
-    cell whose loop never closes is present with `0.0`, which is the
-    falsification and not an absence.
+    `ratio` carries `τ̂_c / world_loop(c)` for every cell of ADR-0026's outbound
+    population (:func:`population`). **A cell absent from it is unbounded** — it
+    is transited without binding, so a path through one is bounded by the
+    population cells at its ends. A population cell whose loop never closes is
+    present with `0.0`, which is the falsification and not an absence.
+
+    **Absent now means the sensory boundary cells and the drive, and nothing
+    else** (#506, written by #509). The claim that stood here — that boundary
+    cells *"hold no private features, carry no `τ̂` and are excluded from the
+    outbound universal by ADR-0026 on exactly this ground"* — was never the ADR's
+    sentence. ADR-0026 excludes sensory boundary cells because the world's write
+    is the last word there and the drive because nothing reads it, and it
+    **keeps** the actuator, whose `τ̂` is read on the `commanded` block
+    (:func:`reading_sites`). The misreading is what #506 was opened by.
+
+    **One knock-on, acquired deliberately rather than silently.** This binds on
+    any cell present in `ratio`, so the actuator is now a bound transit cell on
+    the **inbound** sweep too. It is not an inbound *source* — :func:`rim_strata`
+    is `PATCH`/`PROPRIOCEPTIVE`/`TOUCH` and the stratum clause is untouched — but
+    an inbound path routed through it will now bind on it where before it passed
+    through unbounded. That is correct: the cell either retains what arrives or
+    it does not, and the direction of the sweep does not change the answer.
 
     The **binding cell** comes back with the value, for ADR-0021's reason one
     level over: the predicate's content is that what fails is a *cell*, and a
@@ -661,12 +748,25 @@ def conduction(
     """One trial's conduction reading: `τ̂` per cell, then the widest path.
 
     `quiet` and `moved` are the two branches' recorded node stalks, `[ticks,
-    stalk]` per cell, and every predicting cell must be in both — the reduction
-    is over the graph's cells and a missing one would silently shorten the `min`.
+    stalk]` per cell, and every cell of :func:`population` must be in both — the
+    reduction is over ADR-0026's outbound population and a missing one would
+    silently shorten the `min`.
 
-    **The projection is the masks', not a choice.** `Dome.private_projection` is
-    fixed at construction and invariant under learning, and it keeps exactly the
-    directions reconciliation cannot move (ADR-0026, *How it is read*).
+    **The population includes the actuator since #506**, written by
+    [#509](https://github.com/NGL321/patchworks/issues/509). ADR-0026's outbound
+    clause is a universal over *L1 predicting cells and the actuator boundary
+    cell*; this ran over `dome.predicting` alone, so the universal's one boundary
+    member could not fail at any gain. Widening it is **necessary and not
+    sufficient** — the published scalar is still a `max` over the population where
+    the ADR asks for a `min`, which is
+    [#508](https://github.com/NGL321/patchworks/issues/508) and is not fixed here.
+
+    **The reading site is the write-complement, not one projection.** See
+    :func:`reading_sites`: `H⁰` at a predicting cell, the `commanded` block at the
+    actuator, one rule. `Dome.private_projection` is still the masks' rather than
+    a choice at every cell it covers (ADR-0026, *How it is read*) — but it is
+    `[150, 32]` and the actuator's stalk is 6, so the projection **cannot** be one
+    rectangular tensor and the trace is multiplied per cell by its own mask.
 
     **A cell with no private dimension reads `τ̂ = 0`, and that is a structural
     zero rather than a measurement.** `private_dimensions` is `max(0, n - Σ_e
@@ -678,15 +778,17 @@ def conduction(
     :func:`report`, because a bar pinned by construction is exactly the bystander
     ADR-0026 replaced the amplitude ratio to be rid of. See
     [#385](https://github.com/NGL321/patchworks/issues/385), which owns it.
+    **The actuator is not one of them**: its site is the `commanded` block, of
+    dimension `joints`, so the widening does not add a structurally pinned cell.
+    Reading it on the whole stalk *would* — the efference half is overwritten
+    every tick, which is what the write-complement is complementing.
     """
-    cells = dome.predicting
-    projection = dome.private_projection.to(torch.float64)
+    cells = population(dome)
+    sites = reading_sites(dome)
     rows = {cell: row for row, cell in enumerate(cells)}
     private = np.stack(
         [
-            ((moved[c] - quiet[c])[:window] * projection[rows[c]])
-            .norm(dim=-1)
-            .numpy()
+            ((moved[c] - quiet[c])[:window] * sites[c]).norm(dim=-1).numpy()
             for c in cells
         ],
         axis=1,
@@ -707,7 +809,12 @@ def conduction(
         "tau": tau,
         "censored": censored,
         "readable": above,
-        "private": (dome.private_dimensions > 0).numpy(),
+        # Per cell of the population, not `dome.private_dimensions`, which is
+        # `[150]` and would run off its end at the actuator's row. It agrees with
+        # it wherever both are defined: `private_dimensions` *is* the private
+        # mask's row sum, and the mask is what `reading_sites` hands back at a
+        # predicting cell.
+        "private": np.array([bool(sites[c].sum() > 0) for c in cells]),
         "floor": float(np.median(EPS_F32 * state.max(axis=0))),
         "ratio": ratio,
     }
@@ -914,22 +1021,25 @@ def trial(
     """
     state = ufp.snapshot(agent.sheaf)
     cells = (source,) if isinstance(source, int) else tuple(source)
-    # Every predicting cell is recorded, because ADR-0026's `min` runs over the
-    # cells of a path and a cell missing from the trace would silently shorten
-    # it — the reduction would then report the widest path *among those
-    # recorded*, which is a different predicate wearing the same name.
-    record = tuple(dict.fromkeys(cells + agent.dome.predicting))
+    # Every cell of ADR-0026's outbound population is recorded, because the `min`
+    # runs over the cells of a path and a cell missing from the trace would
+    # silently shorten it — the reduction would then report the widest path
+    # *among those recorded*, which is a different predicate wearing the same
+    # name. Since #506 that population includes the actuator, and it is recorded
+    # in **both** branches unconditionally rather than only when it happens to be
+    # the source (#509).
+    record = tuple(dict.fromkeys(cells + population(agent.dome)))
     if fork is None:
         quiet, held = branch(
             agent, state, observation, applied, window, None, record=record
         )
     else:
         quiet, held = fork
-    missing = [c for c in agent.dome.predicting if c not in held]
+    missing = [c for c in population(agent.dome) if c not in held]
     if missing:
         raise ValueError(
-            f"the fork recorded {len(missing)} predicting cells short of the "
-            "graph; ADR-0026's reduction is over all of them"
+            f"the fork recorded {len(missing)} cells short of ADR-0026's "
+            "outbound population; the reduction is over all of them"
         )
     if len(cells) == 1:
         nudge = ((cells[0], unit(agent.dome.cells[cells[0]].stalk, generator)),)
@@ -1110,10 +1220,11 @@ def linearity(
     hold_still(agent, observation, applied, hold)
     state = ufp.snapshot(agent.sheaf)
     cells = pick(agent.dome, seed, collective)
-    # Every predicting cell, not just the source: `conduction` reduces over the
-    # cells of a path, and a missing one would shorten the `min` — the same
-    # requirement `trial` records for.
-    record = tuple(dict.fromkeys(cells + agent.dome.predicting))
+    # ADR-0026's whole outbound population, not just the source: `conduction`
+    # reduces over the cells of a path, and a missing one would shorten the
+    # `min` — the same requirement `trial` records for, the actuator included
+    # since #506.
+    record = tuple(dict.fromkeys(cells + population(agent.dome)))
     quiet, held = branch(
         agent, state, observation, applied, window, None, record=record
     )
@@ -1205,7 +1316,11 @@ def report(dome: Dome, direction: str, outcomes: list[Trial], window: int) -> No
     middle = outcomes[int(np.argsort(conducted)[len(conducted) // 2])]
     print(f"   the median trial's binding cell: {name_cell(dome, middle.cell)}")
     loops = world_loops(dome)
-    rows = {cell: row for row, cell in enumerate(dome.predicting)}
+    # The population's row order, not `dome.predicting`'s: since #506 a trial's
+    # per-cell arrays carry the actuator's row on the end, and the binding cell
+    # can now *be* the actuator — indexing `private`/`resolved` by a predicting
+    # row map would run off the end rather than name it.
+    rows = {cell: row for row, cell in enumerate(population(dome))}
     profile = "  ".join(
         f"{middle.tau[rows[c]] / loops[c]:.3g}" if c in loops else "-"
         for c in middle.walk
@@ -1495,8 +1610,9 @@ def corners(
         touched = tuple(
             sorted({singles[i], outbound[i], *collectives[i]})
         )
-        # Plus every predicting cell: the shared fork is what ADR-0026's
-        # reduction reads, and :func:`trial` refuses a fork that is short of one.
+        # Plus ADR-0026's whole outbound population: the shared fork is what the
+        # reduction reads, and :func:`trial` refuses a fork short of one cell of
+        # it — the actuator included since #506.
         state = ufp.snapshot(agent.sheaf)
         fork = branch(
             agent,
@@ -1505,7 +1621,7 @@ def corners(
             applied,
             window,
             None,
-            record=tuple(dict.fromkeys(touched + agent.dome.predicting)),
+            record=tuple(dict.fromkeys(touched + population(agent.dome))),
         )
         ufp.restore(agent.sheaf, state)
         for label, stimulus, breadth in runs:

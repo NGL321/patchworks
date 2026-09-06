@@ -1,0 +1,23 @@
+
+== ADR-0032's second pre-registration: the floor's two halves ==
+   682 edges, 1364 endpoints, 150 predicting cells
+   checkpoints 30000, 100000; effective rank reads 1 for a rank-1 map and up to that pair's own m (max 8)
+
+   seed 0 @ 30000:  draining edges 99.7%   effective rank on them 3.653 -> 2.925  (0.848 -> 0.635 of m)
+            flatness on the 1339 floored endpoints: median 0.405645, 5th pct 0.0887785, worst 7.83866e-28   (25 unattainable, excluded)
+            gram peak / cap: max 1.3219, median 0.976416, cells over 1: 13/414 (largest overshoot 2700326.00 eps), biting (>0.99): 201
+            worst cells: cell 262 1.322, cell 399 1, cell 382 1, cell 313 1, cell 311 1
+
+   seed 0 @ 100000:  draining edges 100.0%   effective rank on them 3.652 -> 3.356  (0.848 -> 0.779 of m)
+            flatness on the 1339 floored endpoints: median 0.548186, 5th pct 0.0250511, worst 0   (25 unattainable, excluded)
+            gram peak / cap: max 1.39902, median 0.99806, cells over 1: 4/414 (largest overshoot 3347252.00 eps), biting (>0.99): 223
+            worst cells: cell 262 1.399, cell 323 1, cell 297 1, cell 382 1, cell 250 1
+
+   Half one is the first two rows and half two is the third; neither half
+   carries the reading alone. A cell over 1 is the cap's construction guarantee
+   broken; a cell at 1 is the cap biting, which is where the floor is given up.
+
+   wrote prototypes\spectral-floor-435\control-nofloor.json
+
+== cutoffs naming `spectral_floor_read` ==
+   no open problem cuts on `spectral_floor_read`. Nothing to evaluate, and that is a statement rather than a silence.

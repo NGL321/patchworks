@@ -435,12 +435,14 @@ class TestTheOperators:
         assert [name for name, _ in operators.named_parameters()] == ["K"]
 
     def test_advancing_is_exactly_the_matrix_product(self, operators):
+        # Of the *used* operator since #433, which is the whole of the change:
+        # the raw `K` is the learned parameter and is not what the cell
+        # computes with.
         with torch.no_grad():
             operators.K.normal_(0.0, 0.3, generator=torch.Generator().manual_seed(2))
         chart = torch.randn(CELLS, K)
-        expected = torch.stack(
-            [operators.K[c] @ chart[c] for c in range(CELLS)]
-        )
+        used = operators.used().detach()
+        expected = torch.stack([used[c] @ chart[c] for c in range(CELLS)])
         assert torch.allclose(operators.advance(chart), expected, atol=1e-6)
 
     def test_a_scale_outside_the_band_is_refused(self, shape):
@@ -452,33 +454,50 @@ class TestTheOperators:
 
 
 class TestTheOperatorBand:
-    """#140: the band is on the norm, not the radius, and it is spectral."""
+    """#140: the band is on the norm, not the radius, and it is spectral.
 
-    def test_the_band_is_restored_from_above(self, operators):
+    #433 moved the enforcement into the forward path, so what these hold is
+    that `sigma_max(used)` is in band **identically** rather than that a
+    projection restores it. The band, both faces and the norm choice are
+    unchanged; only the mechanism is.
+    """
+
+    def test_the_band_holds_from_above(self, operators):
         # The upper face is exactly 1: what it forbids is amplification, and a
-        # cell sitting at 1 is non-expansive rather than divergent.
+        # cell sitting at 1 is non-expansive rather than divergent. No step
+        # restores this -- the used operator never leaves.
         with torch.no_grad():
             operators.K.mul_(50.0)
-        operators.project()
-        assert torch.allclose(
-            operators.norms.detach(), torch.ones(CELLS), atol=1e-5
-        )
+        assert torch.allclose(operators.norms.detach(), torch.ones(CELLS), atol=1e-5)
 
-    def test_the_band_is_restored_from_below(self, operators):
+    def test_the_band_holds_from_below(self, operators):
+        # Two-sided: the lower face is kept, so an operator that has shrunk
+        # away is scaled back *up* into the band rather than left there.
         with torch.no_grad():
             operators.K.mul_(1e-4)
-        operators.project()
         assert torch.allclose(
             operators.norms.detach(),
             torch.full((CELLS,), 1.0 / DEFAULT_RHO_K),
             atol=1e-5,
         )
 
-    def test_an_operator_already_inside_the_band_is_left_alone(self, operators):
+    def test_an_operator_already_inside_the_band_is_used_unchanged(self, operators):
+        # In band, `used` is the identity on the value as well as the referent:
+        # the factor is exactly 1 and nothing is rescaled.
         with torch.no_grad():
             operators.K.mul_(0.75)
+        assert torch.allclose(
+            operators.used().detach(), operators.K.detach(), atol=1e-6
+        )
+
+    def test_the_learned_parameter_is_left_where_the_gradient_put_it(self, operators):
+        # The counterpart of the above and the point of the move: enforcement
+        # no longer writes to `K`. Nothing between steps rescales the thing the
+        # prediction rule is descending.
+        with torch.no_grad():
+            operators.K.mul_(50.0)
         before = operators.K.detach().clone()
-        operators.project()
+        _ = operators.advance(torch.randn(CELLS, K))
         assert torch.allclose(operators.K.detach(), before, atol=1e-6)
 
     def test_the_constrained_quantity_is_the_norm_not_the_radius(self, shape):
@@ -490,20 +509,51 @@ class TestTheOperatorBand:
         with torch.no_grad():
             operators.K.zero_()
             operators.K[0, 0, 1] = 50.0
-        assert float(operators.radii()[0]) == pytest.approx(0.0, abs=1e-6)
-        assert float(operators.norms.detach()[0]) == pytest.approx(50.0, rel=1e-4)
-        operators.project()
+        assert float(operators.raw_radii()[0]) == pytest.approx(0.0, abs=1e-6)
+        assert float(operators.raw_norms.detach()[0]) == pytest.approx(50.0, rel=1e-4)
         assert float(operators.norms.detach()[0]) == pytest.approx(1.0, rel=1e-4)
 
-    def test_projecting_is_a_rescale_and_keeps_the_direction(self, operators):
-        # ADR-0010's mechanism: the whole map is rescaled, so what the band
-        # restores is magnitude and never the operator's structure.
+    def test_the_normalisation_is_a_rescale_and_keeps_the_direction(self, operators):
+        # ADR-0010's mechanism, unchanged by the move: the whole operator is
+        # rescaled, so what the band restores is magnitude and never structure.
+        # The rescale is still *radial*, which is #335's complaint and is what
+        # #433 did not claim to fix -- it fixed *when*, not *what*.
         with torch.no_grad():
             operators.K.normal_(0.0, 2.0, generator=torch.Generator().manual_seed(9))
-        before = operators.K.detach().clone()
-        operators.project()
-        ratio = (operators.K.detach() / before).flatten(1)
+        ratio = (operators.used().detach() / operators.K.detach()).flatten(1)
         assert torch.allclose(ratio, ratio[:, :1].expand_as(ratio), atol=1e-5)
+
+    def test_the_gradient_sees_the_constraint(self, operators):
+        # What the move bought. At the upper face the normalisation's Jacobian
+        # removes the purely radial component: scaling `K` up cannot scale the
+        # output up, so the gradient of any loss with respect to that direction
+        # is zero rather than an uncorrelated shove landing after the step.
+        with torch.no_grad():
+            operators.K.normal_(0.0, 2.0, generator=torch.Generator().manual_seed(4))
+        chart = torch.randn(CELLS, K)
+        before = operators.advance(chart).detach().clone()
+        with torch.no_grad():
+            operators.K.mul_(3.0)
+        assert torch.allclose(operators.advance(chart).detach(), before, atol=1e-5)
+
+    def test_a_used_operator_is_in_band_for_any_parameter(self, shape):
+        # The band as an identity rather than an invariant something restores.
+        operators = CellOperators(shape, 8)
+        with torch.no_grad():
+            operators.K.normal_(0.0, 5.0, generator=torch.Generator().manual_seed(11))
+        norms = operators.norms.detach()
+        assert bool((norms <= 1.0 + 1e-5).all())
+        assert bool((norms >= 1.0 / DEFAULT_RHO_K - 1e-5).all())
+
+    def test_a_dead_operator_is_reported_dead_rather_than_lifted(self, shape):
+        # Below `NORM_FLOOR` there is no direction to rescale, so `used` leaves
+        # it and `norms` says so. Claiming the floor here would report a
+        # retention the cell does not have.
+        operators = CellOperators(shape, 1)
+        with torch.no_grad():
+            operators.K.zero_()
+        assert float(operators.norms.detach()[0]) == 0.0
+        assert float(operators.used().detach().abs().max()) == 0.0
 
     def test_a_band_below_one_is_refused(self, shape):
         with pytest.raises(ValueError, match="rho_k >= 1"):

@@ -1,0 +1,230 @@
+{
+  "arm_check": {
+    "arm": "preclamp",
+    "c_v_actuator": 2.0,
+    "gain_actuator": 0.5,
+    "gain_over_gamma": 0.5,
+    "cells_differing_from_preclamp": []
+  },
+  "actuator": 262,
+  "world_loop": 3,
+  "commanded": 3,
+  "stalk": 6,
+  "elapsed_s": 3434.3171710968018,
+  "checkpoints": [
+    {
+      "operator_identity": {
+        "draws": 4,
+        "relative_residual": [
+          7.44253457839723e-08,
+          4.5626501243139807e-07,
+          7.967542387086389e-08,
+          1.046273680701343e-07
+        ],
+        "relative_residual_max": 4.5626501243139807e-07
+      },
+      "arm": "preclamp",
+      "seed": 0,
+      "ticks": 30000,
+      "actuator": 262,
+      "world_loop": 3,
+      "gain": 0.5,
+      "commanded": 3,
+      "M_eigenvalues": [
+        0.22154410858810938,
+        0.33040616408588735,
+        0.4919810233744245,
+        0.5662169504271887,
+        0.6398754063088813,
+        0.7499765515174449
+      ],
+      "M_trace": 3.0000002043019363,
+      "M_lambda_min": 0.22154410858810938,
+      "M_lambda_max": 0.7499765515174449,
+      "A_commanded_eigenvalues": [
+        [
+          0.6439261911822266,
+          0.0
+        ],
+        [
+          0.8321611076803391,
+          0.0
+        ],
+        [
+          0.7633073115066548,
+          0.0
+        ]
+      ],
+      "rho_A_commanded": 0.8321611076803391,
+      "rho_A_full": 0.8892279457059453,
+      "tau_closed": 5.442792450791362,
+      "tau_full_stalk": 8.517766438450243,
+      "conduction_ratio_closed": 1.8142641502637875,
+      "trials": 8,
+      "window": 64,
+      "tau_stalk_per_trial": [
+        3.0,
+        9.0,
+        15.0,
+        2.0,
+        2.0,
+        21.0,
+        1.0,
+        2.0
+      ],
+      "tau_stalk_median": 2.5,
+      "neighbours": {
+        "327": {
+          "tau_hat_per_trial": [
+            1.0,
+            1.0,
+            5.0,
+            2.0,
+            2.0,
+            1.0,
+            7.0,
+            1.0
+          ],
+          "tau_hat_median": 1.5,
+          "p_v": 6
+        },
+        "329": {
+          "tau_hat_per_trial": [
+            6.0,
+            7.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            2.0,
+            4.0
+          ],
+          "tau_hat_median": 1.5,
+          "p_v": 6
+        },
+        "331": {
+          "tau_hat_per_trial": [
+            3.0,
+            5.0,
+            3.0,
+            1.0,
+            2.0,
+            3.0,
+            2.0,
+            2.0
+          ],
+          "tau_hat_median": 2.5,
+          "p_v": 6
+        }
+      },
+      "conduction_ratio_stalk": 0.8333333333333334
+    },
+    {
+      "operator_identity": {
+        "draws": 4,
+        "relative_residual": [
+          5.30682074556188e-07,
+          4.19742734857672e-07,
+          4.481702489037623e-07,
+          4.5791521994036765e-07
+        ],
+        "relative_residual_max": 5.30682074556188e-07
+      },
+      "arm": "preclamp",
+      "seed": 0,
+      "ticks": 100000,
+      "actuator": 262,
+      "world_loop": 3,
+      "gain": 0.5,
+      "commanded": 3,
+      "M_eigenvalues": [
+        0.21352421740751068,
+        0.33168638748287077,
+        0.5358709303067665,
+        0.5662870886273509,
+        0.6026716556447627,
+        0.7499594610830345
+      ],
+      "M_trace": 2.999999740552295,
+      "M_lambda_min": 0.21352421740751068,
+      "M_lambda_max": 0.7499594610830345,
+      "A_commanded_eigenvalues": [
+        [
+          0.6401356979671906,
+          0.0
+        ],
+        [
+          0.7607852423698944,
+          0.0
+        ],
+        [
+          0.8205115164700091,
+          0.0
+        ]
+      ],
+      "rho_A_commanded": 0.8205115164700091,
+      "rho_A_full": 0.8932378912962446,
+      "tau_closed": 5.054913225026074,
+      "tau_full_stalk": 8.857212508796929,
+      "conduction_ratio_closed": 1.6849710750086915,
+      "trials": 8,
+      "window": 64,
+      "tau_stalk_per_trial": [
+        1.0,
+        5.0,
+        3.0,
+        1.0,
+        2.0,
+        2.0,
+        2.0,
+        2.0
+      ],
+      "tau_stalk_median": 2.0,
+      "neighbours": {
+        "327": {
+          "tau_hat_per_trial": [
+            3.0,
+            4.0,
+            2.0,
+            4.0,
+            2.0,
+            5.0,
+            10.0,
+            2.0
+          ],
+          "tau_hat_median": 3.5,
+          "p_v": 6
+        },
+        "329": {
+          "tau_hat_per_trial": [
+            2.0,
+            8.0,
+            2.0,
+            11.0,
+            1.0,
+            1.0,
+            1.0,
+            2.0
+          ],
+          "tau_hat_median": 2.0,
+          "p_v": 6
+        },
+        "331": {
+          "tau_hat_per_trial": [
+            4.0,
+            10.0,
+            3.0,
+            1.0,
+            2.0,
+            2.0,
+            2.0,
+            3.0
+          ],
+          "tau_hat_median": 2.5,
+          "p_v": 6
+        }
+      },
+      "conduction_ratio_stalk": 0.6666666666666666
+    }
+  ]
+}

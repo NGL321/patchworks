@@ -170,15 +170,23 @@ class TestTheDivisor:
         The two lengths differ at all 150 predicting cells and are never equal,
         which is #368's gap and is the whole of what #383 ruled on. A rig still
         dividing by the round trip would agree with this on nothing.
+
+        **The two no longer run over the same set** (#506, #509): the divisor
+        carries the actuator and the round trip does not, so the comparison is
+        made where both are defined and the divisor's extra cell is named rather
+        than absorbed.
         """
         from patchworks.graph import DEFAULT_SPEC
 
         dome = build_graph(DEFAULT_SPEC)
         round_trip = det.loop_lengths(dome)
         divisor = det.world_loops(dome)
-        assert set(divisor) == set(round_trip) == set(dome.predicting)
+        assert set(round_trip) == set(dome.predicting)
+        assert set(divisor) == set(det.population(dome))
+        assert set(divisor) - set(round_trip) == {262}
         assert all(
-            divisor[c] >= round_trip[c] + loop_length.WORLD_TICK for c in divisor
+            divisor[c] >= round_trip[c] + loop_length.WORLD_TICK
+            for c in round_trip
         )
 
     def test_the_divisor_stops_being_graded_by_depth(self):
@@ -363,7 +371,13 @@ class TestTheConductingPath:
         assert walk == (0, 1, 2, 3)
 
     def test_a_cell_with_no_value_is_unbounded(self):
-        """Boundary cells hold no private features, so they bound no path."""
+        """Absent means unbounded -- the sensory boundary cells and the drive.
+
+        Not *the boundary cells*: since #506 the actuator is in the population
+        and does bound a path it lies on. The two the ADR excludes are excluded
+        on its own two grounds -- the world's write is the last word at a sensory
+        cell, and nothing reads the drive.
+        """
         line = Line([(0, 1), (1, 2)], 3)
         value, _target, cell, _walk = det.conducting_path(line, {2: 0.4}, 0, (2,))
         assert (value, cell) == (0.4, 2)
@@ -395,6 +409,124 @@ class TestTheConductingPath:
             line, {1: 0.0, 2: 0.9}, 0, (2,)
         )
         assert (value, cell) == (0.0, 1)
+
+
+class TestTheOutboundPopulation:
+    """#506's ruling: the actuator is in the universal, read on its `commanded` block.
+
+    ADR-0026's outbound clause is a universal over *L1 predicting cells and the
+    actuator boundary cell*. Every part of this reduction quantified over
+    `dome.predicting` alone, so the universal's one boundary member could not
+    fail at any gain -- the bar quantified over it in prose and over 150 cells in
+    code. Written by #509.
+    """
+
+    def test_the_population_carries_the_actuator_and_extends_the_row_order(self):
+        from patchworks.graph import DEFAULT_SPEC, CellKind
+
+        dome = build_graph(DEFAULT_SPEC)
+        population = det.population(dome)
+        actuators = tuple(
+            sorted(c.id for c in dome.cells if c.kind is CellKind.ACTUATOR)
+        )
+        assert population[: len(dome.predicting)] == dome.predicting
+        assert population[len(dome.predicting) :] == actuators
+        assert det.population(dome) == loop_length.outbound_population(dome)
+
+    def test_the_reading_site_is_the_write_complement(self):
+        """One rule at both kinds of cell: the complement of the outside write.
+
+        At a predicting cell what overwrites is reconciliation and the
+        complement is `H^0`, so the site is `private_projection`'s row unchanged.
+        At the actuator what overwrites is `Agent.write`, which sets the three
+        efference components every tick and the three commanded components
+        never, so the site is the leading `joints`.
+        """
+        from patchworks.graph import DEFAULT_SPEC, CellKind
+
+        dome = build_graph(DEFAULT_SPEC)
+        sites = det.reading_sites(dome)
+        assert set(sites) == set(det.population(dome))
+        projection = dome.private_projection.to(torch.float64)
+        for row, cell in enumerate(dome.predicting):
+            assert torch.equal(sites[cell], projection[row])
+        actuator = [c.id for c in dome.cells if c.kind is CellKind.ACTUATOR][0]
+        site = sites[actuator]
+        assert site.shape == (dome.cells[actuator].stalk,)
+        assert site.tolist() == [1.0] * DEFAULT_SPEC.joints + [0.0] * DEFAULT_SPEC.joints
+
+    def test_the_site_cannot_be_one_rectangular_tensor(self):
+        """ADR-0006 is why the reduction has the shape it has, not an oversight.
+
+        A boundary stalk is world-shaped, so the actuator's is 6 against the
+        predicting population's shared 32. There is no array both rows fit in,
+        which is what forces the per-cell mask.
+        """
+        from patchworks.graph import DEFAULT_SPEC, CellKind
+
+        dome = build_graph(DEFAULT_SPEC)
+        actuator = [c.id for c in dome.cells if c.kind is CellKind.ACTUATOR][0]
+        assert dome.private_projection.shape[1] != dome.cells[actuator].stalk
+
+    def test_the_actuator_is_not_a_structurally_pinned_cell(self):
+        """#385's zero is what the commanded block avoids, and it is why it is the site.
+
+        `p_v = max(0, n - sum_e m_e)` is `0` at the actuator and permanently so
+        (`6 - 3 x boundary_m`), so the ADR's literal instrument would pin it at
+        `tau_hat = 0` forever. The write-complement gives it `joints` dimensions
+        instead; reading the whole stalk would put the overwritten efference half
+        back in.
+        """
+        from patchworks.graph import DEFAULT_SPEC, CellKind
+
+        dome = build_graph(DEFAULT_SPEC)
+        actuator = [c.id for c in dome.cells if c.kind is CellKind.ACTUATOR][0]
+        assert dome.cells[actuator].stalk - dome.stalk_sums[actuator] < 0
+        assert int(det.reading_sites(dome)[actuator].sum()) == DEFAULT_SPEC.joints
+
+    def test_the_reduction_reads_and_binds_at_the_actuator(self):
+        """The whole point of the widening: the boundary member can now fail.
+
+        Synthetic traces rather than a run -- what is under test is that the
+        actuator is carried through `conduction` end to end, given a row in
+        `tau`, given a ratio against its own `world_loop`, and reachable as a
+        binding cell. The number itself is a run's business, and #341 already
+        carries the debt for the first reading on this surface.
+        """
+        from patchworks.graph import DEFAULT_SPEC, CellKind
+
+        dome = build_graph(DEFAULT_SPEC)
+        actuator = [c.id for c in dome.cells if c.kind is CellKind.ACTUATOR][0]
+        loops = det.world_loops(dome)
+        assert loops[actuator] == 3
+
+        ticks = 32
+        generator = torch.Generator().manual_seed(11)
+        quiet, moved = {}, {}
+        for cell in det.population(dome):
+            base = torch.randn(
+                (ticks, dome.cells[cell].stalk),
+                generator=generator,
+                dtype=torch.float64,
+            )
+            quiet[cell] = base
+            moved[cell] = base + 0.1
+
+        read = det.conduction(
+            dome, quiet, moved, (dome.predicting[0],), det.apex(dome), loops
+        )
+        assert len(read["tau"]) == len(det.population(dome))
+        assert len(read["private"]) == len(det.population(dome))
+        assert actuator in read["ratio"]
+        assert bool(read["private"][len(dome.predicting)])
+
+        # It binds a path it lies on, which is what "absent means unbounded"
+        # stopped being true of at this cell.
+        line = Line([(0, 1), (1, 2)], 3)
+        value, _target, cell, _walk = det.conducting_path(
+            line, {0: 0.9, 1: 0.2, 2: 0.9}, 0, (2,)
+        )
+        assert (value, cell) == (0.2, 1)
 
 
 class TestTheTwoQuantitiesAreNotOneKey:
@@ -467,23 +599,55 @@ class TestTheTwoQuantitiesAreNotOneKey:
 
 
 class TestTheStructuralZero:
-    """A cell with no private dimension reads `0` by construction (#385)."""
+    """There is no structural zero any more, and this class is why (#385, #474).
 
-    def test_every_l1_cell_of_the_default_dome_holds_no_private_features(self):
-        """So the inbound predicate is pinned at `0` before any retention is read.
+    #385 ruled that `tau_hat = 0` at a zero-private cell was a true reading of an
+    absence and that the floor was the **mask's** to supply. #474 supplied it:
+    `interior_m` 4 -> 3 and `boundary_m` 8 -> 4, derived from the construction
+    invariant `sum_e m_e <= n - 1` at every predicting cell. These tests were
+    written to stop the pin being rediscovered a third time and are kept, with
+    their sense inverted, to stop the *release* being lost the same way.
 
-        Not a decision here — ADR-0026 is settled and this is its literal
-        reading — but it is the fact `report` prints and #385 owns, and a test is
-        what stops it being rediscovered a third time.
+    ADR-0026's predicate is untouched by any of this. What moved is the graph it
+    is read on.
+    """
+
+    def test_every_l1_cell_of_the_default_dome_now_holds_private_features(self):
+        """So the inbound predicate is no longer pinned before retention is read.
+
+        Every one of the 70 L1 predicting cells reads at least 1, where all 70
+        read exactly 0 at `(interior_m, boundary_m) = (4, 8)`. The worst case is
+        the 36 L1 vision cells of degree 9, which sit at exactly 1 -- a derived
+        non-zero, not a chosen margin.
         """
         from patchworks.graph import DEFAULT_SPEC
 
         dome = build_graph(DEFAULT_SPEC)
         dimensions = dome.private_dimensions
         levels = [c.index.level for c in dome.cells if not c.is_boundary]
-        assert [
-            int(dimensions[row]) for row, level in enumerate(levels) if level == 1
-        ] == [0] * 70
+        l1 = [int(dimensions[row]) for row, level in enumerate(levels) if level == 1]
+        assert len(l1) == 70
+        assert min(l1) == 1
+        assert all(p >= 1 for p in l1)
+
+    def test_no_predicting_cell_anywhere_is_zero_private(self):
+        """The invariant is graph-wide, not an L1 fact: `sum_e m_e <= n - 1`.
+
+        82 of the 150 predicting cells read 0 before #474 -- all 70 of L1 and 12
+        of L2. The population is now empty, which is the whole content of that
+        ruling.
+        """
+        from patchworks.body import NODE_STALK_DIM
+        from patchworks.graph import DEFAULT_SPEC
+
+        dome = build_graph(DEFAULT_SPEC)
+        dimensions = dome.private_dimensions
+        assert int(dimensions.min()) >= 1
+        assert not [c for c in dome.predicting if dimensions[dome.predicting.index(c)] == 0]
+        # Stated as the invariant rather than as the outcome, so that a session
+        # moving either lane width fails here rather than in a benchmark.
+        for cell in dome.predicting:
+            assert dome.stalk_sums[cell] <= NODE_STALK_DIM - 1
 
     def test_the_rim_touches_nothing_but_l1(self):
         """Which is what makes the pin structural: every path starts through one."""
@@ -497,15 +661,16 @@ class TestTheStructuralZero:
         }
         assert touched == {1}
 
-    def test_no_path_between_the_rim_and_the_apex_avoids_a_zero_private_cell(self):
-        """So **both** directions are pinned, not only the inbound one.
+    def test_no_path_between_the_rim_and_the_apex_crosses_a_zero_private_cell(self):
+        """So **neither** direction is pinned any more, where both used to be.
 
         The reduction is a `min` over the cells of a path. Every predicting cell
-        adjacent to the rim is zero-private, and no apex cell is adjacent to the
-        rim, so any walk between the two ends crosses one of them — whichever way
-        it is walked. That makes the pin independent of retention, training,
-        seed, stimulus and horizon, which is the claim #385 rests on and the one
-        a reader would otherwise have to take on trust.
+        adjacent to the rim used to be zero-private, and no apex cell is adjacent
+        to the rim, so any walk between the two ends crossed one of them --
+        whichever way it was walked, which is what made the pin independent of
+        retention, training, seed, stimulus and horizon. The geometry is
+        unchanged and is re-asserted here; what changed is that the cells the
+        walk crosses are no longer zero, so the `min` runs over a live quantity.
         """
         from patchworks.graph import DEFAULT_SPEC
 
@@ -518,8 +683,11 @@ class TestTheStructuralZero:
             for cell in det.rim(dome)
             for e in dome.incident[cell]
         }
-        assert adjacent and adjacent <= zero
-        assert not adjacent & set(det.apex(dome))
+        # The geometry that made the pin structural, unchanged.
+        assert adjacent and not adjacent & set(det.apex(dome))
+        # And the pin itself, gone: there is nothing for the walk to hit.
+        assert not zero
+        assert min(int(dimensions[rows[c]]) for c in adjacent) >= 1
 
 
 class TestTheFork:

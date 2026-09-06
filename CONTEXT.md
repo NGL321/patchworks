@@ -27,8 +27,23 @@ _Avoid_: latent, internal representation, hidden state, embedding, lift
 **Piece**:
 The part of the problem one cell owns — locally Euclidean, and of the chart's dimension. What
 makes a cell's chart a chart. The pieces, not the world, are what Patchworks claims to be
-manifolds; the sheaf glues them without their union being one.
-_Avoid_: patch (reserve for the sensory tiling), subproblem, region, manifold (bare)
+manifolds; the sheaf glues them without their union being one. **What the chart occupies, and
+therefore what carries history**: the chart persists (ADR-0023), so a piece is the limit set of the
+cell's driven recurrence and not the set of configurations it is shown. Distinct from the
+**situation set** for exactly that reason — a configuration sweep reads the situation set, and where
+the two come apart it is the sweep that is the wrong instrument for the piece. Where a piece is
+locally Euclidean is a matter of measurement rather than assumption (ADR-0004, #440).
+_Avoid_: patch (reserve for the sensory tiling), subproblem, region, manifold (bare), situation set
+
+**Situation set**:
+The configurations a cell must tell apart — what a configuration sweep reads, and what ADR-0004's
+discrete warrant demands injectivity over. Distinct from the **piece**, which is what the *chart*
+occupies: the chart persists, so the piece carries history and the situation set does not. In the
+dome the distinction is inert, both being continuous; in language it is the whole question, because
+a heard cell's situation set is finite (#132) while its piece is the limit set of a
+discretely-driven recurrence. **In language the sweep reads the drive rather than the state**, which
+is what makes it the right instrument for the situation set and the wrong one for the piece.
+_Avoid_: piece (that is the charted object), state space, configuration space (bare)
 
 **Node stalk**:
 A cell's public face — the feature vector it exposes to the graph, and **the cell's own metric
@@ -293,7 +308,10 @@ The claim a linear restriction map rests on: the latent structure two adjacent c
 is locally Euclidean at the scale of their overlap, so transport between their stalks loses nothing a
 first-order map could have kept. A claim about the **geometry of the overlap**, and the oldest of the
 three linearity claims (ADR-0004). Says nothing whatever about how anything moves in time. Failure
-surfaces as a static floor on that edge.
+surfaces as a static floor on that edge. **It is one of two warrants for a single want, not the want
+itself** (#440): over a *continuous* overlap the warrant is local flatness and the error is
+curvature; over a *discrete* one it is injectivity on the situation set plus isometry of the carried
+subspaces (ADR-0032), and the error is **collision**.
 _Avoid_: linear (bare), linearity (unqualified), local linearity, flat (bare)
 
 **Chart linearity**:
@@ -321,8 +339,13 @@ node stalk, rather than as anything per-edge.
 _Avoid_: linear (bare), local flatness, linear decoder, gauge (bare — reserve for the scale gauge)
 
 **Operator band**:
-The construction-time bound on a cell operator's **spectral** norm: `σ_max(K) ∈ [1/ρ_K, 1]`, restored
-by projection after each prediction step. One global band, not one per level. The upper face is
+The construction-time bound on a cell operator's **spectral** norm: `σ_max(K) ∈ [1/ρ_K, 1]`, enforced
+by normalising the operator inside the forward path — the *used* operator is the raw `K` rescaled into
+the band, `K / max(1, σ(K))` above the upper face, while the prediction rule trains the raw `K` (#433,
+2026-09-04; it was restored by projection after each prediction step until then, and the band itself
+is unchanged). The rescale is radial either way, which is why it shortens all of a cell's retention
+constants together — but nothing *fires*, so a firing rate is undefined rather than zero. One global
+band, not one per level. The upper face is
 exactly 1 because what it forbids is *amplification*, and a cell sitting at 1 is non-expansive rather
 than divergent — so it permits `ρ(K) = 1` and is **not** the claim `|λ| < 1`. Spectral rather than
 Frobenius, and deliberately unlike the scale gauge. It also runs **opposite to the spectral floor**,
@@ -506,8 +529,10 @@ clause is retired and the reading is published wherever the spectral `τ` is. Th
 express **at least one e-fold of the operator's own retention** (re-pointed by #226 from *the
 region's decay*; the number is unchanged) — `dwell > τ`; where dwell is short, a cell realises an
 average over unrelated regions rather than the rate its operator holds. It composes with ADR-0026 as
-**`|loop(c)| ≤ τ_c < dwell_c`** — one architectural bar plus the licence for the proxy, whose
-`τ`-free consequence `dwell_c > |loop(c)|` is what is readable today. Nominated at
+**`world_loop(c) ≤ τ_c < dwell_c`** — one architectural bar plus the licence for the proxy, whose
+`τ`-free consequence `dwell_c > world_loop(c)` is what is readable today. The floor is the **world
+loop** since [#404](https://github.com/NGL321/patchworks/issues/404), because the lower end is
+ADR-0026's bar and #383 moved it; `|loop(c)|` is kept and demoted. Nominated at
 construction by the fold margin, measured at runtime on a driven trajectory — and since #160 the
 runtime measurement is **the verdict**, the construction reading a nomination
 (`patchworks.tick.FoldRead`, ADR-0019). Since #208 the verdict is the **median cell's** `dwell/τ > 1`,
@@ -706,7 +731,9 @@ _Avoid_: learning rule (bare), the rule
 **Prediction rule**:
 The half of the local learning rule that updates a cell's own inference parameters — its biases
 **and** its operator `K`: a local gradient step through the cell's own forward path, on its
-prediction error, followed by projection back into the operator band. The predictive-coding element;
+prediction error. The operator band is enforced **inside** that forward path rather than by a
+projection after the step (#433), so the step is one step and nothing follows it. The
+predictive-coding element;
 trains inference — the cell's operating point and its chart's dynamics — never transport. Named for
 its signal, which is what ADR-0008 splits on; it was the **bias rule** until the Koopman conversion
 widened what it trains.
@@ -918,6 +945,16 @@ The point at which an open problem stops being tolerable — the condition under
 emergently* becomes *resolve this now*. Either an event or a measurement against a rig, never a date
 and never a judgement, because it must be checkable by someone who is not its author.
 _Avoid_: deadline, due date, SLA, expiry, trigger (bare)
+
+**Precondition**:
+The condition under which an open problem's **cutoff** becomes a *readable* number — written `@when`,
+in the same two forms a cutoff takes and with the opposite polarity. Defined against the cutoff and
+distinguished from it by what it says: a cutoff says when the problem stops being tolerable, a
+precondition says when its cutoff can be read at all, and it **carries no obligation**. A crossing
+behind a shut precondition is recorded and withholds `register:overdue`; a precondition opening is
+reported and labels nothing.
+_Avoid_: gate (reserve for a blocking wayfinder ticket, ADR-0007's and ADR-0026's verbal use, and
+#240's reconciliation gate), sequenced cutoff, second cutoff, guard, prerequisite (bare)
 
 **Proposal**:
 A solution on the shelf, arguing at least one shape it would answer, binding nothing. May be attached

@@ -20,6 +20,7 @@ and belongs to a run, not to a suite.
 """
 
 import ast
+from dataclasses import replace
 import pathlib
 
 import pytest
@@ -59,6 +60,28 @@ def sheaf(dome):
     # what puts content in a boundary stalk, and this stands in for it without
     # dragging MuJoCo into a test of linear algebra. The pad slot stays zero,
     # because a padded gather reads it and a padded scatter lands in it.
+    torch.manual_seed(1)
+    built.stalks = torch.randn_like(built.stalks)
+    built.stalks[built.layout.pad] = 0.0
+    return built
+
+
+@pytest.fixture
+def wide_dome():
+    """`SMALL` at the lane widths it carried until #474.
+
+    `minimum_energy` is only ever positive while the coboundary is row-rank
+    deficient, and at `(interior_m, boundary_m) = (3, 4)` this spec's is onto --
+    see `test_the_floor_is_zero_on_this_dome_because_the_coboundary_is_onto`. The
+    tests that need the floor to *move* need a dome where it is not identically
+    zero, so they take this one rather than asserting nothing.
+    """
+    return build_graph(replace(SMALL, interior_m=4, boundary_m=8))
+
+
+@pytest.fixture
+def wide_sheaf(wide_dome):
+    built = Sheaf(wide_dome, generator=torch.Generator().manual_seed(0))
     torch.manual_seed(1)
     built.stalks = torch.randn_like(built.stalks)
     built.stalks[built.layout.pad] = 0.0
@@ -739,9 +762,34 @@ class TestTheWholeGraphReading:
         reading = diagnostics.read(Condition.DRIVEN)
         assert reading.whole_graph.minimum_energy <= float(reading.edges.energy.sum())
 
-    def test_it_moves_with_the_maps_rather_than_being_a_construction_constant(
+    def test_the_floor_is_zero_on_this_dome_because_the_coboundary_is_onto(
         self, sheaf
     ):
+        """And it was not, until #474 narrowed the lanes. Recorded, not asserted away.
+
+        `minimum_energy` is `b` projected onto the **left** null space of the
+        coboundary, so it is strictly positive only while `delta` is row-rank
+        deficient. On this dome `delta` was `307 x 480` of rank 291 -- 16 rows
+        deficient -- at `(interior_m, boundary_m) = (4, 8)`. At (3, 4) it is
+        `181 x 480` of **full row rank 181**, the left null space is empty, and
+        the floor is exactly 0: a configuration with zero disagreement exists.
+
+        This is the same arithmetic as the private-dimension floor #474 was
+        ruled for -- fewer lane dimensions against unchanged stalk dimensions --
+        and it is a fact about *this small spec*, measured here. Whether the
+        default dome's coboundary is also onto is **not** measured by this test.
+        """
+        diagnostics = Diagnostics(sheaf)
+        assert diagnostics.read(Condition.DRIVEN).whole_graph.minimum_energy == (
+            pytest.approx(0.0, abs=1e-12)
+        )
+
+    def test_it_moves_with_the_maps_rather_than_being_a_construction_constant(
+        self, wide_sheaf
+    ):
+        # On a dome whose coboundary is not onto, so the quantity has room to
+        # move; see the test above for why the default spec no longer does.
+        sheaf = wide_sheaf
         diagnostics = Diagnostics(sheaf)
         before = diagnostics.read(Condition.DRIVEN).whole_graph
         with torch.no_grad():
@@ -751,8 +799,11 @@ class TestTheWholeGraphReading:
         after = diagnostics.read(Condition.DRIVEN).whole_graph
         assert after.minimum_energy != before.minimum_energy
 
-    def test_the_boundary_conditions_are_the_world_s_and_are_held(self, sheaf, dome):
+    def test_the_boundary_conditions_are_the_world_s_and_are_held(
+        self, wide_sheaf, wide_dome
+    ):
         """Move a boundary cell's node stalk and the floor moves; the maps did not."""
+        sheaf, dome = wide_sheaf, wide_dome
         diagnostics = Diagnostics(sheaf)
         before = diagnostics.read(Condition.DRIVEN).whole_graph.minimum_energy
         with torch.no_grad():

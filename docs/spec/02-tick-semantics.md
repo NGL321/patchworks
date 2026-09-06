@@ -93,7 +93,8 @@ gain_v  =  γ / ( g_v² · c_v )                        with a single global γ 
   g_v  =  ρ                                          predicting cells (band gauge, ‖F‖_F ≤ ρ)
        =  1                                          boundary cells   (exact gauge, ‖F‖_F = 1)
 
-  c_v  =  min( deg(v), max( c, ⌈deg(v) / n_v⌉ ) )    c = 2, declared globally alongside ρ
+  c_v  =  deg(v)                                     where every incident map of v is pinned
+       =  min( deg(v), max( c, ⌈deg(v) / n_v⌉ ) )    otherwise; c = 2, declared globally alongside ρ
 ```
 
 Ruled by [#190](https://github.com/NGL321/patchworks/issues/190) against the ledger
@@ -127,6 +128,20 @@ top singular directions apart, and `c` is the count it holds them to. **Without 
 denominator is not loose but false**, which is why `c` is gauge-fixed alongside `ρ` rather than
 tracked, and why it is ADR-0010 that owns it.
 
+**Where the projection cannot reach, `c_v` is `deg(v)`.** Ruled by
+[#228](https://github.com/NGL321/patchworks/issues/228). The projection spends *scale* freedom, and a
+pinned map has none, so at a cell **every one of whose incident maps is pinned** nothing enforces a
+count below `deg(v)` — while the exact gauge makes `Σ_e ‖F‖_F² = deg(v)` an equality, which is the
+fully-coherent bound and therefore true whatever arrangement the maps reach. This is not a hedge
+against an unmeasured case: at the actuator, the one boundary cell the global `c = 2` did not already
+agree with `deg(v)` on, the three maps drift **into** coherence under the objective's pressure and
+reach 99.6% of the `g_v² · deg` ceiling by 100k taught ticks
+([#439](https://github.com/NGL321/patchworks/issues/439)), where the 5,000-tick reading the smaller
+count was defended on had them at 51% of the cap. Below that ceiling the denominator would be *false*,
+not loose. The condition is stated on **pinned incidence** rather than on `is_boundary` or on the
+actuator: the three coincide on this dome and diverge off it, and a **partly** pinned cell — some scale
+freedom, but not at every incident map — is then visibly uncovered rather than silently passing.
+
 **`c_v`'s two clamps are facts, not hedges.** The **pigeonhole floor** `⌈deg(v) / n_v⌉` is a statement
 about stalk dimensions: the drive cell carries `deg = 8` incident maps on a stalk of dimension 1, eight
 directions cannot be mutually orthogonal in one dimension, they coincide, and `λ_max` there is exactly
@@ -143,10 +158,21 @@ is read off the graph like every other term.
 
 **`gain_v` is uniform across the interior, for the first time.** At `ρ = 2, c = 2` every predicting
 cell takes `γ/8`. What the correction is worth runs the other way from the old shape — 2.50x at the
-apex, 3.00–3.75x through the core, **6.10x at the rim**, 8.00x at the sensory boundary cells and
-**12.0x at the actuator**, whose commanded components are the return path's last step into the arm.
-The old denominator was loosest where the graph is widest, so the raise is largest at the rim and
-smallest at the apex, which is the inverse of what the superseded reading predicted.
+apex, 3.00–3.75x through the core, **6.10x at the rim**, and **8.00x across the boundary**, sensory
+cells and the actuator alike. The old denominator was loosest where the graph is widest, so the raise
+is largest at the rim and smallest at the apex, which is the inverse of what the superseded reading
+predicted.
+
+The boundary figure is uniform because both denominators are proportional to `deg(v)` on a lane 8 wide:
+the superseded `Σ_e m_e` is `8 · deg(v)`, the new `g_v² · c_v` is `deg(v)`, and the ratio is 8.00x at
+every one of the 263 such cells. It read **12.0x at the actuator** while that cell alone took
+`c_v = 2`; [#228](https://github.com/NGL321/patchworks/issues/228) removed the exception, and with it
+the actuator's standing as the boundary's one graded case — a 1.5x cost at the cell whose commanded
+components are the return path's last step into the arm, accepted there on the grounds that the smaller
+denominator was not true. **The drive is the boundary's one cell the swap never moved**, at 1.00x: its
+eight lanes are `m = 1`, so `Σ_e m_e = deg(v)` there already and the pigeonhole floor had it at
+`c_v = deg(v)` from the start. It is outside this figure for a reason about lane width, not about the
+clamp, and #228 does not touch it.
 
 **The equalisation claim named [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md), and
 misnamed it.** This section used to argue that a denominator graded by depth would be the explicit

@@ -275,6 +275,23 @@ ladder — a **curiosity drive**, arriving as an ordinary drive boundary cell at
 Widening the coherence drive does not reach it, for the reason *Valence, not specification* gives
 below.
 
+**That reading is conditional on [#288](https://github.com/NGL321/patchworks/issues/288), and a
+drained run yields no reading at all.** The second conjunct has a live confound already in the
+register: `open-problems.md` carries *Disagreement can drain under drive, taking the only instrument
+that would show it* **(overdue)** — [#288](https://github.com/NGL321/patchworks/issues/288) /
+[#324](https://github.com/NGL321/patchworks/issues/324), cutoff `driven_settling` at
+`draining_effective_rank < 2`. Under drive, per-edge Dirichlet energy falls while per-edge effective
+rank slides toward 1 across the fleet — and if that is what is happening, *entropy near zero* **and**
+*drive-edge disagreement trivial* is exactly what a **drained** run looks like. The pre-registered
+pair cannot then separate **the dark room was not answered** from **the instrument died**.
+
+So #288 is this reading's **precondition**, not a neighbouring problem: `driven_settling` has to
+clear its cutoff before the entropy reading means anything, and a run whose drive-edge disagreement
+has drained yields **no reading** — not a negative one. Nothing is minted here
+([ADR-0029](../adr/0029-a-problem-is-minted-by-a-human-a-proposal-is-not.md)); the row and its ticket
+already exist, and what was missing was the connection to this reading
+([#449](https://github.com/NGL321/patchworks/issues/449)).
+
 ### A drive is a boundary cell in the core
 
 A **drive boundary cell** is written from outside the sheaf — by the human today, by an internal
@@ -329,6 +346,34 @@ normalisation, **turn down every other edge that cell has** — the drive making
 the world quieter, which is the wrong trade at any width. More attachment points spread that cost
 across cells rather than concentrating it, and never make one cell pay more than the minimum. The
 learned drive vector ADR-0009 holds in reserve is the move after that one, not before it.
+
+**The exactness is in the stalk, and it is not established in the edge.** A one-dimensional stalk
+asserting a constant — `DRIVE_ASSERTION = 1.0`,
+[#137](https://github.com/NGL321/patchworks/issues/137) — has **zero channel capacity**: it cannot
+carry which task, how well, or how nearly done, so specification cannot ride on the *signal*, by
+arithmetic rather than by measurement. That says nothing about the *edge*. The drive's eight
+restriction maps are trained by the same transport rule as every other map — boundary cells held to
+gauge exactly 1, otherwise ordinary
+([ADR-0032](../adr/0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md)) —
+so `F_e` out of the drive stalk is a **learned** `1 → 8` direction into each L7 cell, and *which apex
+direction discomfort pushes* is a learned parameter. That is the one place task content can re-enter
+after the stalk kept it out, and it is ADR-0009's learned drive vector — held in reserve above —
+arriving by the back door rather than by decision
+([#449](https://github.com/NGL321/patchworks/issues/449)).
+
+**It is observable, and pre-registered here as a ratio rather than a displacement**, because
+[#339](https://github.com/NGL321/patchworks/issues/339) says the transport rule wanders at ~`η`
+forever with no fixed point at agreement, so a bare displacement has no zero to be read against:
+
+> `retarget()` changes only what is seen
+> ([`03-the-sandbox.md`](./03-the-sandbox.md)), so under *Valence, not specification* the drive edge
+> maps are **invariant across a retarget** while behaviour changes. Read `F_e` for the eight drive
+> edges across a retarget boundary, against two controls: the same maps' displacement over an equal
+> tick count with **no** retarget, and both readings for a matched sample of **non-drive** edges.
+> **Confirmed** if retarget-crossing displacement is indistinguishable from the drift control; **it
+> bites** if drive maps move more across a retarget than non-drive maps do.
+
+This is written, not run. No ticket has been taken for the run.
 
 **One cell is one drive.** For this PoC there is exactly one — the task drive — with several drive
 edges into the core. Curiosity, fatigue, or any later drive arrives as an additional boundary cell,

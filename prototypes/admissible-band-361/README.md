@@ -1,5 +1,12 @@
 # The admissible band: `|loop(c)|` from the mask, paired with dwell across seeds (#361)
 
+> **The floor moved after this run**
+> ([#404](https://github.com/NGL321/patchworks/issues/404), following
+> [#383](https://github.com/NGL321/patchworks/issues/383)). Every band reading below is against
+> `|loop(c)|` and is **kept as read**; the admissible band's lower end is now `world_loop(c)`, and
+> the re-read of these same stored runs against the new divisor lives in
+> `docs/spec/05-timescales.md`. Nothing here is rescaled.
+
 [#226](https://github.com/NGL321/patchworks/issues/226) composed the chain
 
 > `|loop(c)| <= tau_c < dwell_c`

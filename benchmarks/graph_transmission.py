@@ -48,7 +48,7 @@ anything is arithmetic, not opinion.
 Dong & Bronstein, ICLR 2022, arXiv:2111.14522, Definition 1), which they prove
 identifies the negatively curved edges *"responsible for the over-squashing
 issue"*. The dome already distinguishes rim-to-interior edges from interior ones
-by stalk width (`m = 8` against `m = 4`); this either justifies that choice or
+by stalk width (`m = 4` against `m = 3`, since #474); this either justifies that choice or
 relocates it.
 
 Nothing here is a decision. The body factor is not recomputed -- it needs a
@@ -438,7 +438,7 @@ def stalk_section() -> None:
     two compose to `m^-3/2`, so a wider lane **costs** per-direction
     transmission.
 
-    That is not an argument against `m = 8` at the rim, because the two are
+    That is not an argument against `m = 4` at the rim, because the two are
     buying different things: width buys **rank** — how many of a patch cell's 48
     directions can leave at all — and costs **gain** per direction. It is an
     argument that the trade is priced, and the price is here. The `H^0` column

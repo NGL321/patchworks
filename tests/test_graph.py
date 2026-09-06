@@ -239,9 +239,11 @@ class TestTheDrive:
         drive = next(c.id for c in dome.cells if c.kind is CellKind.DRIVE)
         assert dome.cells[drive].stalk == 1
         assert {dome.edges[e].m for e in dome.incident[drive]} == {1}
-        # A drive edge's share of an apex cell's reconciliation pull.
+        # A drive edge's share of an apex cell's reconciliation pull. It rose
+        # from 0.059 when #474 narrowed the interior lanes: the drive's own
+        # width did not move, and every other lane into the apex got thinner.
         apex = _by_level(dome, APEX_LEVEL, "core")[0]
-        assert round(1 / dome.stalk_sums[apex], 3) == 0.059
+        assert round(1 / dome.stalk_sums[apex], 3) == 0.077
 
 
 class TestDimensionsAndTheBoundaryExemption:
@@ -269,9 +271,9 @@ class TestDimensionsAndTheBoundaryExemption:
         for edge in dome.edges:
             widths.setdefault(edge.kind, set()).add(edge.m)
         assert widths == {
-            EdgeKind.SENSORY: {8},
-            EdgeKind.MOTOR: {8},
-            EdgeKind.INTERIOR: {4},
+            EdgeKind.SENSORY: {4},
+            EdgeKind.MOTOR: {4},
+            EdgeKind.INTERIOR: {3},
             EdgeKind.DRIVE: {1},
         }
 
@@ -280,22 +282,26 @@ class TestRecordedDiagnostics:
     def test_cut_capacities(self, dome):
         named = dict(dome.cut_capacities)
         assert named["render"] == 12_288
-        assert named["L0 -> L1"] == 2_120
-        assert named["L1 -> L2"] == 280
-        assert named["L2 -> L3"] == 80
-        # The whole sensory boundary reaches the core through eighty numbers a
-        # tick: a 154:1 squeeze at a single cut.
-        assert round(named["render"] / named["L2 -> L3"]) == 154
+        assert named["L0 -> L1"] == 1_060
+        assert named["L1 -> L2"] == 210
+        assert named["L2 -> L3"] == 60
+        # The whole sensory boundary reaches the core through sixty numbers a
+        # tick: a 205:1 squeeze at a single cut. It was 2_120 / 280 / 80 and
+        # 154:1 until #474 narrowed both lane widths for the private floor --
+        # the taper's capacities are set by m (ADR-0030), so this is the
+        # arithmetic of that ruling rather than a separate finding.
+        assert round(named["render"] / named["L2 -> L3"]) == 205
 
     def test_euler_characteristic(self, dome):
         chi = dome.euler_characteristic
         assert chi == len(dome.predicting) * 32 - sum(e.m for e in dome.edges)
-        # Measured, and now what the record carries. The rounded +980 was
-        # retired; what is load-bearing about chi is its invariance under
-        # learning, not its value, and this lands inside the +980/+1096 band the
-        # record already owned.
-        assert chi == 1036
-        assert 980 <= chi <= 1096
+        # Measured, and now what the record carries. What is load-bearing about
+        # chi is its invariance under *learning*, not its value -- so a
+        # construction change moves it freely, and #474 moved it from +1036 to
+        # here by narrowing both lane widths. The old +980/+1096 band was an
+        # estimate retired in favour of the measurement at (4, 8) and does not
+        # travel to this surface.
+        assert chi == 2505
 
     def test_the_node_term_is_predicting_cells_and_the_edge_term_is_all_edges(
         self, dome
@@ -305,18 +311,24 @@ class TestRecordedDiagnostics:
             for e in dome.edges
             if dome.cells[e.u].kind.is_boundary or dome.cells[e.v].kind.is_boundary
         )
-        assert boundary_incident == 2_128  # 265 x 8 sensorimotor, 8 x 1 drive
+        assert boundary_incident == 1_068  # 265 x 4 sensorimotor, 8 x 1 drive
         # Dropping the boundary edges as well as the boundary nodes is the wrong
-        # computation the record corrects; it would give roughly +3200.
-        assert dome.euler_characteristic + boundary_incident > 3_000
+        # computation the record corrects; it gives +3573 against the +2505 this
+        # graph carries. The gap narrowed when #474 halved the boundary lanes --
+        # it read +3164 against +1036 before -- and the error did not.
+        assert dome.euler_characteristic + boundary_incident == 3_573
 
     def test_private_dimension_gradient(self, dome):
         def dims(cell_ids):
             rows = {dome.predicting.index(i) for i in cell_ids}
             return {int(dome.private_dimensions[r]) for r in rows}
 
-        assert dims(_by_level(dome, 1, "vision")) == {0}
-        assert dims(_by_level(dome, 1, "somatomotor")) == {0}
+        # Nowhere zero since #474: the pair (interior_m, boundary_m) = (3, 4)
+        # is derived from `sum_e m_e <= n - 1` at every predicting cell, so the
+        # floor is p_v >= 1 by construction. The L1 vision cells read 1 / 4 / 7
+        # by degree 9 / 8 / 7, and 1 is the thinnest cell in the graph.
+        assert dims(_by_level(dome, 1, "vision")) == {1, 4, 7}
+        assert dims(_by_level(dome, 1, "somatomotor")) == {6, 10}
 
         side = DEFAULT_SPEC.vision_sides[-1]
         corners = [
@@ -325,11 +337,11 @@ class TestRecordedDiagnostics:
             if all(p in (0, side - 1) for p in dome.cells[i].index.position)
         ]
         assert len(corners) == 4
-        assert dims(corners) == {4}
+        assert dims(corners) == {11}
 
         for level in range(3, APEX_LEVEL):
-            assert dims(_by_level(dome, level, "core")) == {8}
-        assert dims(_by_level(dome, APEX_LEVEL, "core")) == {15}
+            assert dims(_by_level(dome, level, "core")) == {14}
+        assert dims(_by_level(dome, APEX_LEVEL, "core")) == {19}
 
     def test_the_l2_somatomotor_cells_are_not_in_the_recorded_table(self, dome):
         # Measured and reported rather than transcribed: the record's table has
@@ -338,17 +350,35 @@ class TestRecordedDiagnostics:
         # degree the taper cannot lift -- and they carry more structural privacy
         # than the L2 vision corners do.
         rows = {dome.predicting.index(i) for i in _by_level(dome, 2, "somatomotor")}
-        assert {int(dome.private_dimensions[r]) for r in rows} == {8, 12}
+        assert {int(dome.private_dimensions[r]) for r in rows} == {14, 17}
 
     def test_the_whole_private_dimension_distribution(self, dome):
         # The per-group table is a range table, so it can read unmoved while the
         # cells behind it move. This pins every cell. It is what says the
         # actuator's three motor edges left the gradient alone: the three L1
-        # somatomotor cells covering proprioception went from `sum m_e` 32 to 40
-        # and stayed at zero private dimension, where the record wants L1.
+        # somatomotor cells covering proprioception carry one motor edge more
+        # than their siblings and land at 6 where those read 10.
+        #
+        # **No cell reads zero.** It was {0: 82, 4: 4, 8: 54, 12: 2, 15: 8},
+        # summing to 592, until #474 set (interior_m, boundary_m) = (3, 4) from
+        # `sum_e m_e <= n - 1`. The 0 key is gone, which is the whole content of
+        # that ruling, and the minimum key is 1.
         histogram = Counter(int(v) for v in dome.private_dimensions)
-        assert dict(sorted(histogram.items())) == {0: 82, 4: 4, 8: 54, 12: 2, 15: 8}
-        assert int(dome.private_dimensions.sum()) == 592
+        assert dict(sorted(histogram.items())) == {
+            1: 36,
+            4: 24,
+            5: 4,
+            6: 3,
+            7: 4,
+            8: 8,
+            10: 3,
+            11: 4,
+            14: 54,
+            17: 2,
+            19: 8,
+        }
+        assert min(histogram) == 1
+        assert int(dome.private_dimensions.sum()) == 1278
 
     def test_the_bound_is_met_with_equality_by_the_mask(self, dome):
         for row, cell_id in enumerate(dome.predicting):
@@ -359,8 +389,8 @@ class TestRecordedDiagnostics:
         text = dome.report()
         for fragment in (
             "150 predicting, 264 boundary",
-            "chi = +1036",
-            "12,288 -> 2,120 -> 280 -> 80",
+            "chi = +2505",
+            "12,288 -> 1,060 -> 210 -> 60",
             "guaranteed private dimension",
         ):
             assert fragment in text
@@ -503,13 +533,13 @@ class TestConstruction:
         halved = build_graph(DomeSpec(core_sizes=(8, 7, 6, 5, 4)))
         assert len(halved.predicting) == 120
         assert len(halved.boundary) == 264
-        assert dict(halved.cut_capacities)["L2 -> L3"] == 80
+        assert dict(halved.cut_capacities)["L2 -> L3"] == 60
         for level in range(3, APEX_LEVEL):
             assert {halved.degrees[i] for i in _by_level(halved, level, "core")} == {6}
         apex = _by_level(halved, APEX_LEVEL, "core")
         assert {halved.degrees[i] - 1 for i in apex} == {4}
         rows = {halved.predicting.index(i) for i in apex}
-        assert {int(halved.private_dimensions[r]) for r in rows} == {15}
+        assert {int(halved.private_dimensions[r]) for r in rows} == {19}
 
     def test_a_core_level_that_cannot_hold_its_degree_is_refused(self):
         # Rather than built and reported: the guaranteed private dimension is

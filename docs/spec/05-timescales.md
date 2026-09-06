@@ -155,6 +155,19 @@ retains to survive reconciliation and be readable — and a fleet sum can be lar
 cells sit at zero
 ([#385](https://github.com/NGL321/patchworks/issues/385), which owns the floor itself).
 
+**The bound is unchanged, and what changed is that it now binds.**
+[#474](https://github.com/NGL321/patchworks/issues/474) set `interior_m = 3` and `boundary_m = 4`
+from the construction invariant **`Σ_e m_e ≤ n − 1` at every predicting cell**, which is this bound
+read as a floor of 1 rather than as a total. Until then the `max(0, ·)` was doing real work: it
+clipped to zero at **82 of the 150** predicting cells, so at more than half the fleet the bound was
+**vacuous** — true, and saying nothing, because a cell with no private width has no insulated
+retention to bound. It is now **binding by construction at every predicting cell**, worst case
+`p_v = 1` at the 36 L1 vision cells of degree 9. That is the difference between a bound that holds
+and a bound that constrains, and this section's *capacity for slow state is a construction quantity*
+only ever meant the second. The per-level figures are `06-graph-topology.md`'s to publish
+(*Private dimension is a gradient, and it falls out*) and they moved with the pair; nothing is quoted
+here, so that this file has one fewer copy of a number that ages.
+
 The design move is a step out from published work rather than a leap: neural sheaf diffusion
 engineers `dim ker(Δ_F)` deliberately so that information survives what would otherwise be
 oversmoothing, making stalk width the construction quantity that governs how much survives —
@@ -289,10 +302,15 @@ outright: *"`ρ(K)` survives as the reported spectral quantity — it is what ti
 is not the constrained one."* **Transmission spends the norm; retention reads the radius.**
 `06-graph-topology.md`'s *"already spoken for three times over"* does not arrive here.
 
-**One real interaction, and it is one-sided.** ADR-0015 restores the band by *rescaling the whole
-operator*, which moves every eigenvalue by the same factor — so when the projection fires, **all of
+**One real interaction, and it is one-sided.** ADR-0015 enforces the band by *rescaling the whole
+operator*, which moves every eigenvalue by the same factor — so where the rescale binds, **all of
 that cell's retention constants shorten together**. Enforcement can make a cell faster and never
-slower. Recorded; no mechanism is added for it.
+slower. Recorded; no mechanism is added for it. *Unchanged in kind by
+[#433](https://github.com/NGL321/patchworks/issues/433), which moved the enforcement out of a
+post-step projection and into the forward path: the rescale is still radial, so the constants still
+move together. What changes is that it is continuous rather than an intermittent firing, and that
+the prediction rule's gradient now sees it — which is what the move was bought on, a rescale the
+gradient cannot see being an uncorrelated shove after every step.*
 
 **And the target is reachable for the first time.** ADR-0015's upper face of exactly 1 permits
 `ρ(K) = 1`, which it already flags as *"a memory that never fades. For a cell that is arguably
@@ -369,22 +387,73 @@ in every artifact and neither is.
 **The bar and #242's conduction predicate are complementary, and the record says so because retiring
 either as a copy of the other is the available mistake:**
 
-> **`|loop(c)| ≤ τ_c < dwell_c`**
+> **`world_loop(c) ≤ τ_c < dwell_c`**
 
 #242 bounds `τ` from **below** — retention must outlast the loop or nothing conducts. This section
 bounds it from **above, in units of residency** — retention must not outlast the residency it is
 claimed within, or the spectral reading is not measuring the cell's behaviour.
 
+**The floor is the world loop, not the graph's own round trip**
+([#404](https://github.com/NGL321/patchworks/issues/404)).
+[#383](https://github.com/NGL321/patchworks/issues/383) moved ADR-0026's divisor to `world_loop(c)`
+and [#398](https://github.com/NGL321/patchworks/issues/398) wrote it; this floor **is** #242's bar,
+so it moved with the bar. `|loop(c)|` is **kept and demoted** here exactly as #398 kept and demoted
+it in the ratio — an exact construction-time length, published beside the divisor, and no longer the
+loop a retention time has to beat. Leaving the floor on `|loop(c)|` would have forked one bar into
+two under one name at each of the four places the record states this composition — here, ADR-0005,
+ADR-0028 and `CONTEXT.md`'s **Dwell** entry — which is
+[#180](https://github.com/NGL321/patchworks/issues/180)'s failure arrived at by omission.
+
 **The chain's status, stated exactly, because it is easy to over-read:** it is *not* two
 architectural bars. It is **one architectural bar** (#242, on the measured `τ̂`) **plus the condition
-under which the cheap proxy may be substituted into it**. Its consequence has no `τ` in it at all —
-**`dwell_c > |loop(c)|`**, two graph quantities — which is what makes it readable today, independent
-of the operator controversy that moved every number in this section.
+under which the cheap proxy may be substituted into it**. That sentence is what made #404 answerable
+and it is why the floor had nowhere else to stand: the substitution licence is about swapping `τ_c`
+for `τ̂_c`, and it was never about the loop. Its consequence has no `τ` in it at all —
+**`dwell_c > world_loop(c)`**, two graph quantities — which is what makes it readable today,
+independent of the operator controversy that moved every number in this section. It is a **harder**
+comparison than the one this paragraph used to carry, by 1 to 7 ticks at every one of the 150 cells;
+the reason for carrying it is unchanged, and the old sentence's confidence does not ride along with
+the new quantity.
+
+**Three consequences follow from *one bar plus a licence*, and they are stated because the notation
+invites reading them the other way** ([#235](https://github.com/NGL321/patchworks/issues/235)). The
+band's two ends are **not two claimants on one resource**: the quantity between them is bounded below
+by the graph and above by nothing.
+
+- **The ceiling bounds retention not at all.** `τ_c < dwell_c` is the condition for substituting the
+  cheap proxy, so a cell whose `τ` outruns its region dwell violates **nothing architecturally** — it
+  is only unreadable by that instrument, because `encode` is piecewise linear and the cheap reading
+  stands in for the expensive one just while the operator holds still. **Longer retention is free
+  from [ADR-0005](../adr/0005-timescale-is-persistence-not-a-schedule.md)'s side at every cell,
+  without limit.**
+- **The staleness ceiling is named and unmade.** There is a plausible architectural ceiling hiding
+  under the notation — a cell holding content past its piece's residency holds a belief about a piece
+  that has left its chart. It is **nowhere argued in the record**, and
+  [#344](https://github.com/NGL321/patchworks/issues/344) reports the two quantities measurably
+  independent (`corr(log τ, log dwell) = −0.110` live, matching #42's construction-time `−0.006`), so
+  nothing couples them anyway. It is recorded here as **available and unmade**: anyone wanting that
+  ceiling must argue it as a fresh claim rather than read it out of the band's notation.
+- **The floor is per-cell and profile-silent.** `world_loop(c)` is not graded by depth, so what
+  conduction requires is that **each cell out-hold its own world loop** — 150 independent
+  comparisons, implying no monotone profile whatever. **A flat `τ` passes**: retention flat at 16
+  graph-wide clears the floor at every cell, so flatness is not the disease. **A gradient can fail**:
+  a textbook depth gradient with one thin mid-level cell fails the floor there, and the `min` over
+  cells in #242's predicate means the path dies at that cell. This is
+  [#181](https://github.com/NGL321/patchworks/issues/181)'s *measure the graph, not the shape imposed
+  on it* landing on stage 2's own recharter, and it retires
+  [#230](https://github.com/NGL321/patchworks/issues/230)'s *"the disease is that there is no
+  stability gradient"* **as a statement of what conduction requires**. The gradient survives only as
+  the mechanism ADR-0005 hopes learning produces — a hope conduction is indifferent to, since any
+  profile clearing the per-cell floor is admissible.
+
 [#361](https://github.com/NGL321/patchworks/issues/361) has since enumerated `|loop(c)|` from the
 mask and paired it with dwell across seeds; its reading is *What the live read says today* below. The
 enumeration **reproduces ADR-0026's ladder exactly** — 414 cells, 682 edges, `|loop(c)| = 2 · d(c,
 rim)` from 2 at L1 to 14 at the apex — and agrees cell for cell with `benchmarks/loop_length.py`,
-which computes the same round trip independently.
+which computes the same round trip independently. That is now the **demoted length's** provenance and
+not the floor's. `world_loop(c)` is **not** graded by depth — 3–9 at L1 against 15–16 at the apex,
+with the levels' ranges overlapping — which is
+[#181](https://github.com/NGL321/patchworks/issues/181)'s rule biting exactly as #398 recorded.
 
 **The verdict is the median cell's `dwell/τ > 1`.** Not a per-cell extremum:
 [#195](https://github.com/NGL321/patchworks/issues/195) ran four times at one seed and got four
@@ -532,27 +601,73 @@ seed pinned the numerator at the worst seed's value against every seed's denomin
 verdict is exactly the defect #208 §3 exists to kill, which is why #361 existed; every figure here is
 a **range over seeds**, never a median from one run.
 
-**The consequence with no `τ` in it — the empty admissible band — has its first reading, and the
-count is not the finding.** Per seed the band `|loop(c)| ≤ τ_c < dwell_c` is empty at **2 to 39 of
-150** cells at 30,000 ticks and **7 to 20 of 150** at 100,000. But **0 of 150 cells have an empty
-band on every seed**, at either horizon — 77 have one on at least one seed at 30,000 and 28 at
-100,000, and none on all. **No cell's band is structurally empty.** An empty band is a property of
-the *run* and not of the wiring, which makes it a thing learning can move rather than a thing the
-taper forecloses; that is the statement to carry, and it is stronger than the count. The whole chain
-`|loop(c)| ≤ τ_c < dwell_c` held at both ends reads **32 to 56 of 150** cells, on every seed.
+**The consequence with no `τ` in it — the empty admissible band — read against the floor #404
+moved it to, and the count is not the finding.** Per seed the band `world_loop(c) ≤ τ_c < dwell_c` is empty at **7 to 82
+of 150** cells at 30,000 ticks and **13 to 51 of 150** at 100,000. But **0 of 150 cells have an empty
+band on every run in the corpus**. **No cell's band is structurally empty.** An empty band is a
+property of the *run* and not of the wiring, which makes it a thing learning can move rather than a
+thing the taper forecloses; that is the statement to carry, and it is stronger than the count. The
+whole chain `world_loop(c) ≤ τ_c < dwell_c` held at both ends reads **2 to 12 of 150** cells at
+30,000 ticks and **2 to 5 of 150** at 100,000.
+
+**An empty band is the common case, and the record says so plainly.** **136 of 150** cells have one
+on at least one seed at 30,000 ticks and **70 of 150** at 100,000. The chain held at both ends is
+down to a handful of cells per run. The verdict above is unchanged and it is not a comfortable one:
+what survives is that no cell is *foreclosed*, not that the band is usually occupied.
+
+**These figures are #361's readings amended in place, not rescaled** (#383's rule, and #404's
+re-read). The measured `dwell` and `τ_full` do not move; the integer each is compared against does,
+from the demoted `|loop(c)|` to the divisor #383 installed. The re-read is arithmetic over the twelve
+stored runs and it reproduces this section's published `|loop(c)|` column cell for cell before
+swapping the divisor, which is what licenses the right-hand column:
+
+| reading | vs `\|loop(c)\|` (as published) | vs `world_loop(c)` (now) |
+|---|---|---|
+| empty band, 30k | 2–39 / 150 | **7–82 / 150** |
+| empty band, 100k | 7–20 / 150 | **13–51 / 150** |
+| clears the floor (`τ ≥ loop`), 30k | 40–85 / 150 | **7–28 / 150** |
+| whole chain held at both ends, 30k | 32–56 / 150 | **2–12 / 150** |
+| whole chain held at both ends, 100k | 24–54 / 150 | **2–5 / 150** |
+| empty on ≥1 seed, 30k | 77 / 150 | **136 / 150** |
+| empty on ≥1 seed, 100k | 28 / 150 | **70 / 150** |
+| empty on every run in the corpus | 0 / 150 | **0 / 150** |
+| apex band non-empty (`dwell > loop`), per seed | 3–7 of 8 | **3–7 of 8** |
+
+**The licence has no loop in it and does not move.** `dwell > τ` still clears at **104 to 149 of
+150**, and the `dwell/τ` medians, the per-level diagnostic table and the chart-only/full-loop
+comparison below are all unaffected by the swap.
+
+**The 100,000-tick horizon carries a thin-seed artefact, recorded here so it is not re-found as a
+falsification.** At 100k *alone*, two cells have an empty band on all three seeds under
+`world_loop(c)` — one L1 cell with `world_loop` 8 and one apex cell with `world_loop` 15 — where the
+`|loop(c)|` reading gives zero. Both clear on 30,000-tick seeds, so across all twelve runs the count
+is still **0 of 150**. The 100k horizon has three seeds against 30k's nine; this is the seed count,
+not structure.
 
 **Against the 14-tick target rather than against the retired 100, and against each cell's own loop
 rather than against the apex's.** `τ_full ≥ 14` at **34 of 150** and **0 of 8** at the apex — the
 conduction shortfall #242 already reports. *That count holds every cell against the **apex's**
 `|loop| = 14`, which is the right comparison for ADR-0026's predicate and the wrong one for a
-per-cell reading.* Against each cell's **own** `|loop(c)|`, **40 to 85 of 150** clear across #361's
-nine seeds, because `|loop| = 2` at L1 where 33 to 56 of 70 clear. **The predicate's value is
-untouched**: it is `max` over paths of `min` over a path's cells, every rim-to-apex path contains an
-apex cell, and at the apex **0 to 1 of 8** clear on any seed. The bar is still short, exactly where
-the record says — what is corrected is the sentence, not the verdict. `dwell > 14` at **59 of 150**,
-apex **7 of 8**. So the apex's admissible band `|loop| ≤ τ < dwell` is **non-empty at 7 of its 8
-cells** — dwell of 33.1 against a loop of 14 clears by **2.36x** — while its `τ` sits far below the
-band's floor. *That is a reading of measured numbers, not a revival of the margin claim #190 struck.*
+per-cell reading.*
+
+> **The anchor is named rather than re-pointed, and the reason is that there is no longer a single
+> number to re-point it to** (#404). `|loop(c)|` was one exact value per level, so *the apex's loop*
+> was an integer; `world_loop(c)` is **15 or 16** across the eight apex cells, and a single apex
+> anchor would now be a choice dressed as a fact —
+> [#181](https://github.com/NGL321/patchworks/issues/181) again. So the `τ_full ≥ 14` and `dwell > 14` counts in this paragraph are **kept as read, against
+> the demoted `|loop(apex)| = 14`**, and labelled as such; they are not rescaled, and no successor
+> count is asserted in their place. What does move to `world_loop(c)` is the per-cell reading, below.
+
+Against each cell's **own** `world_loop(c)`, **7 to 28 of 150** clear across #361's nine seeds, where
+against the demoted `|loop(c)|` it was 40 to 85 — the collapse is at L1, where the divisor goes from
+a flat 2 to 3–9. **The predicate's value is untouched**: it is `max` over paths of `min` over a
+path's cells, every rim-to-apex path contains an apex cell, and at the apex **0 to 1 of 8** clear on
+any seed. The bar is still short, exactly where the record says — what is corrected is the sentence,
+not the verdict. `dwell > 14` at **59 of 150**, apex **7 of 8**. The apex's admissible band is
+**non-empty at 3 to 7 of its 8 cells** per seed, unchanged by the swap because the apex barely moves
+— median dwell of 33.1 against a world loop of 15 clears by **2.21x**, where against the demoted
+14 it was 2.36x — while its `τ` sits far below the band's floor. *That is a reading of measured
+numbers, not a revival of the margin claim #190 struck.*
 
 **The operator correction moves the two readings in opposite directions, and this section published
 only the half that tightens.** Ranges over #361's nine seeds at 30,000 ticks:
@@ -560,10 +675,12 @@ only the half that tightens.** Ranges over #361's nine seeds at 30,000 ticks:
 | | chart-only | full loop |
 |---|---|---|
 | licensed (`dwell > τ`) | 146–150 / 150 | 104–149 / 150 |
-| conducts (`τ` at least the cell's own loop) | **0–1** / 150 | 40–85 / 150 |
+| conducts (`τ` at least the cell's own `\|loop(c)\|`) | **0–1** / 150 | 40–85 / 150 |
 
 #274's correction makes the licence **harder** and conduction **easier**. Reporting only the first is
-what let the corrected reading stand as an unrelieved loss.
+what let the corrected reading stand as an unrelieved loss. *This table compares two **operators** at
+one divisor, so its conduction row is held against the demoted `|loop(c)|` and is kept as read
+(#383); against `world_loop(c)` the full-loop column reads 7 to 28 of 150.*
 
 > **The `τ ≥ 100` this paragraph used to be read against was never this section's target, and the
 > line asserting it was an error.** The derivation is fixed under *What this requires elsewhere* (3)
@@ -582,8 +699,10 @@ what let the corrected reading stand as an unrelieved loss.
 
 **`τ_full` falls monotonically across the run** — 17.29 → 4.69 over 100k ticks on seed 42, matching
 #274's `ρ` falling on all nine seeds. **Learning is making cells faster.** Handed to
-[#335](https://github.com/NGL321/patchworks/issues/335), whose one-sided band projection predicts
-exactly that; it is a positive reading, not a diagnosis, since other causes are live. #361 sees the
+[#335](https://github.com/NGL321/patchworks/issues/335), whose one-sided band enforcement predicts
+exactly that; it is a positive reading, not a diagnosis, since other causes are live. *Read on the
+post-hoc-projection build, which [#433](https://github.com/NGL321/patchworks/issues/433) supersedes;
+the enforcement is still radial and still one-sided, and #335 is open and unruled.* #361 sees the
 same fall across all twelve of its runs.
 
 **Two caveats bind on every figure in this section that is quoted from a single run** (#361, and both
@@ -595,8 +714,8 @@ were sharpened by its long runs rather than assumed).
   left **9.71** in `206-per-tick.npz`: a ~33% spread on the quantity this section quotes. **A single
   run is not a point**, and it is least a point where the record quotes it. Consistent with #195's
   four runs at one seed giving four different binding cells.
-- **`dwell > |loop|` is not a bar a long run eventually passes.** Dwell is `ticks / (1 + crossings)`
-  and the crossing rate settles, so the median **flattens** rather than growing — seed 42 goes 3.7 at
+- **`dwell > world_loop` is not a bar a long run eventually passes.** Dwell is
+  `ticks / (1 + crossings)` and the crossing rate settles, so the median **flattens** rather than growing — seed 42 goes 3.7 at
   5,000 ticks to 12.9 at 100,000, a 3.5x rise over a 20x longer run. It is a bar a long run can
   **fail**, which is what makes the licence a live gate rather than a formality discharged by
   patience.
@@ -780,7 +899,8 @@ clock divisor and the persistence mechanism stay interchangeable only while that
 moment anything branches on rate, the cheap fallback is gone.
 
 **The gradient is not placed, so the taper does not supply it.** `06-graph-topology.md`'s
-private-dimension gradient (0 at the rim, ~8 through L3–L6, 15 at the apex) still says how much
+private-dimension gradient (1–11 at the vision levels, 14 through L3–L6, 19 at the apex, since
+[#474](https://github.com/NGL321/patchworks/issues/474); it read 0 / ~8 / 15 before) still says how much
 protected state a cell has room for — **capacity, not rate**. It is a **step rather than a ramp**
 anyway, degree falling at the apex and nowhere else in the core. Where the retention gradient is to
 come from is *The gradient is learning's job*, below. The demo's sharpest falsifiable form — two
@@ -968,6 +1088,12 @@ both hard:
   [ADR-0032](../adr/0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md): a
   floored map has rank exactly `m`, so the contingent half largely closes and high degree buys zero
   rather than an unknown ([#385](https://github.com/NGL321/patchworks/issues/385)).*
+  ***And [#474](https://github.com/NGL321/patchworks/issues/474) discharged the constraint rather than
+  loosening it.*** *`Σ_e m_e` is now **meaningfully below `n` at every predicting cell** by
+  construction — that is exactly what `Σ_e m_e ≤ n − 1` says — so the highest-degree cell in the graph
+  buys 1 rather than 0. This constraint was handed to graph topology and graph topology has now met
+  it; what a floor of 1 is worth at the thinnest cells is [#326](https://github.com/NGL321/patchworks/issues/326)'s
+  question, not this one's.*
 - **Integration and holding may need to be separate cells.** Nothing is disqualified by the above —
   a relay cell performs no prediction and so has no slow state to hold, which is most of what
   high-degree cells are for. The tension bites only for cells that both *predict* and *integrate
@@ -1104,7 +1230,9 @@ criterion*, passing when the trace fell with hop distance, and that clause **can
 channel's own attenuation supplies a falling trace whether or not anything is retained, which
 [#214](https://github.com/NGL321/patchworks/issues/214) measured at **8.7e-10** rim→apex. The
 criterion is now a **conduction time**: per cell, the e-fold decay time `τ̂_c` of the paired
-private-feature deviation over `|loop(c)|`, with the bar at `τ̂_c / |loop(c)| ≥ 1`
+private-feature deviation over `world_loop(c)`, with the bar at `τ̂_c / world_loop(c) ≥ 1` — the
+same divisor this file's admissible band takes its floor from, above
+([#383](https://github.com/NGL321/patchworks/issues/383), [#404](https://github.com/NGL321/patchworks/issues/404))
 ([ADR-0026](../adr/0026-rim-core-influence-is-a-conduction-ratio.md) for the quantity,
 [ADR-0027](../adr/0027-the-demos-depth-criterion-is-a-conduction-time.md) for the demo's calls
 against it, [`08-the-acceptance-demo.md`](./08-the-acceptance-demo.md) for the protocol). The scatter

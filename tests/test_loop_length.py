@@ -134,7 +134,60 @@ class TestTheWorldLoop:
         assert len(found.actuators) == 1
         assert not set(found.actuators) & set(found.sensory)
         assert found.unreachable == ()
-        assert len(found.lengths) == len(dome.predicting) == 150
+        assert len(found.lengths) == len(loop_length.outbound_population(dome)) == 151
+
+    def test_the_population_is_the_predicting_cells_and_the_actuator(self):
+        """#506: ADR-0026's outbound universal has one boundary member and it is read.
+
+        The clause is a universal over *L1 predicting cells and the actuator
+        boundary cell*, and until #506 this quantified over `dome.predicting`
+        alone -- so the boundary member could not fail at any gain. The actuator
+        is appended rather than merged in id order, so a row index into
+        `Dome.predicting` keeps its meaning.
+        """
+        dome = build_graph(DEFAULT_SPEC)
+        population = loop_length.outbound_population(dome)
+        actuators = [c.id for c in dome.cells if c.kind is CellKind.ACTUATOR]
+        assert population[: len(dome.predicting)] == dome.predicting
+        assert population[len(dome.predicting) :] == tuple(actuators) == (262,)
+        sensory = {c.id for c in dome.cells if c.kind in loop_length.SENSORY}
+        assert not set(population) & sensory
+
+    def test_the_actuator_loop_does_not_degenerate_at_distance_zero(self):
+        """`d(c, a) = 0` when `c` **is** the actuator, and the loop is still 3.
+
+        The one arithmetic worry the widening carries: the out-leg vanishes at
+        the cell that sends. It does not collapse the loop, because the world
+        tick and the return leg both stand -- `0 + w + min_p d(p, 262)` is
+        `0 + 1 + 2 = 3` on `DEFAULT_SPEC`. A construction-time integer off the
+        mask, so #474's move of the mask did not touch it.
+        """
+        dome = build_graph(DEFAULT_SPEC)
+        found = loop_length.world_loops(dome)
+        actuator = found.actuators[0]
+        neighbours = loop_length.adjacency(dome)
+        home = loop_length.distances_from(neighbours, actuator)
+        assert home[actuator] == 0
+        back = min(
+            loop_length.distances_from(neighbours, p)[actuator]
+            for p in found.sensory
+        )
+        assert back == 2
+        assert found.lengths[actuator] == 0 + found.world_tick + back == 3
+
+    def test_the_round_trip_does_not_widen_because_the_actuator_sits_on_the_rim(self):
+        """`|loop(c)|` stays over predicting cells, and #509 says why in the code.
+
+        The sweep starts *from* the rim and the rim contains the actuator, so a
+        widened entry would be `2 * d(a, rim) = 0`. It is no longer ADR-0026's
+        divisor (#383), but its sibling in `benchmarks/detectability.py` would
+        divide the bar by zero at exactly the cell #506 added.
+        """
+        dome = build_graph(DEFAULT_SPEC)
+        actuator = [c.id for c in dome.cells if c.kind is CellKind.ACTUATOR][0]
+        assert actuator not in loop_length.loops(dome).lengths
+        assert actuator in loop_length.rim_of(dome)
+        assert set(loop_length.excesses(dome)) == set(dome.predicting)
 
     def test_the_answer_may_return_at_every_sensory_boundary_cell(self):
         """#383 struck #368's proprioceptors-only restriction; `a != p` is kept.

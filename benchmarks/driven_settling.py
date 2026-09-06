@@ -68,13 +68,16 @@ Cells whose `τ` is not finite across the window are counted and reported rather
 than dropped, because a cell pinned at the band's upper face is the failure and
 not a gap in the data.
 
-**#329 already carries a cutoff and this rig does not replace it.** Its
-`measurement benchmarks/detectability.py conduction ratio >= 1` is the
-precondition — the bar above is only meaningful on charts from a graph that
-transmits — and the register's grammar gives a problem **one** `@cutoff`, so a
-sequenced second one cannot be written down today. The bar is therefore stated,
-measured and reported here, and the field on the issue is left where it is;
-`#353` is where the register's missing mechanisms are owed.
+**#329's bar has moved onto the issue, and this rig no longer holds it alone.**
+The grammar still gives a problem **one** `@cutoff`, and #417 ruled it always
+will — but what #329 needed was never a second cutoff. Its
+`measurement benchmarks/detectability.py conduction ratio >= 1` is a
+**precondition**: the bar below is only meaningful on charts from a graph that
+transmits, which is a statement about readability rather than about
+intolerability. So it is written `@when` on the issue, over
+`@cutoff measurement benchmarks/driven_settling.py tau_wander_over_loop >= 1`,
+and a crossing taken here while the precondition is shut is recorded and carries
+no obligation. See `docs/agents/registers.md`, *Cutoffs*.
 
 Like every script here **it asserts nothing** and its exit code does not move.
 Pass `--no-file` on any read that is not *the* read.

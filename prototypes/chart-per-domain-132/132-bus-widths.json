@@ -1,0 +1,357 @@
+{
+ "n": 32,
+ "dome": [
+  {
+   "group": "L0 somatomotor (actuator)",
+   "cells": 1,
+   "degree": [
+    3,
+    3
+   ],
+   "bus": [
+    24,
+    24
+   ],
+   "private_floor": [
+    8,
+    8
+   ],
+   "zero_floor_cells": 0,
+   "bus_over_n": [
+    0.75,
+    0.75
+   ]
+  },
+  {
+   "group": "L0 somatomotor (proprioceptive)",
+   "cells": 3,
+   "degree": [
+    1,
+    1
+   ],
+   "bus": [
+    8,
+    8
+   ],
+   "private_floor": [
+    24,
+    24
+   ],
+   "zero_floor_cells": 0,
+   "bus_over_n": [
+    0.25,
+    0.25
+   ]
+  },
+  {
+   "group": "L0 somatomotor (touch)",
+   "cells": 3,
+   "degree": [
+    1,
+    1
+   ],
+   "bus": [
+    8,
+    8
+   ],
+   "private_floor": [
+    24,
+    24
+   ],
+   "zero_floor_cells": 0,
+   "bus_over_n": [
+    0.25,
+    0.25
+   ]
+  },
+  {
+   "group": "L0 vision (patch)",
+   "cells": 256,
+   "degree": [
+    1,
+    1
+   ],
+   "bus": [
+    8,
+    8
+   ],
+   "private_floor": [
+    24,
+    24
+   ],
+   "zero_floor_cells": 0,
+   "bus_over_n": [
+    0.25,
+    0.25
+   ]
+  },
+  {
+   "group": "L1 somatomotor (predicting)",
+   "cells": 6,
+   "degree": [
+    7,
+    8
+   ],
+   "bus": [
+    32,
+    40
+   ],
+   "private_floor": [
+    0,
+    0
+   ],
+   "zero_floor_cells": 6,
+   "bus_over_n": [
+    1.0,
+    1.25
+   ]
+  },
+  {
+   "group": "L1 vision (predicting)",
+   "cells": 64,
+   "degree": [
+    7,
+    9
+   ],
+   "bus": [
+    44,
+    52
+   ],
+   "private_floor": [
+    0,
+    0
+   ],
+   "zero_floor_cells": 64,
+   "bus_over_n": [
+    1.375,
+    1.625
+   ]
+  },
+  {
+   "group": "L2 somatomotor (predicting)",
+   "cells": 4,
+   "degree": [
+    5,
+    6
+   ],
+   "bus": [
+    20,
+    24
+   ],
+   "private_floor": [
+    8,
+    12
+   ],
+   "zero_floor_cells": 0,
+   "bus_over_n": [
+    0.625,
+    0.75
+   ]
+  },
+  {
+   "group": "L2 vision (predicting)",
+   "cells": 16,
+   "degree": [
+    7,
+    9
+   ],
+   "bus": [
+    28,
+    36
+   ],
+   "private_floor": [
+    0,
+    4
+   ],
+   "zero_floor_cells": 12,
+   "bus_over_n": [
+    0.875,
+    1.125
+   ]
+  },
+  {
+   "group": "L3 core (predicting)",
+   "cells": 16,
+   "degree": [
+    6,
+    6
+   ],
+   "bus": [
+    24,
+    24
+   ],
+   "private_floor": [
+    8,
+    8
+   ],
+   "zero_floor_cells": 0,
+   "bus_over_n": [
+    0.75,
+    0.75
+   ]
+  },
+  {
+   "group": "L4 core (predicting)",
+   "cells": 14,
+   "degree": [
+    6,
+    6
+   ],
+   "bus": [
+    24,
+    24
+   ],
+   "private_floor": [
+    8,
+    8
+   ],
+   "zero_floor_cells": 0,
+   "bus_over_n": [
+    0.75,
+    0.75
+   ]
+  },
+  {
+   "group": "L5 core (predicting)",
+   "cells": 12,
+   "degree": [
+    6,
+    6
+   ],
+   "bus": [
+    24,
+    24
+   ],
+   "private_floor": [
+    8,
+    8
+   ],
+   "zero_floor_cells": 0,
+   "bus_over_n": [
+    0.75,
+    0.75
+   ]
+  },
+  {
+   "group": "L6 core (predicting)",
+   "cells": 10,
+   "degree": [
+    6,
+    6
+   ],
+   "bus": [
+    24,
+    24
+   ],
+   "private_floor": [
+    8,
+    8
+   ],
+   "zero_floor_cells": 0,
+   "bus_over_n": [
+    0.75,
+    0.75
+   ]
+  },
+  {
+   "group": "L7 core (predicting)",
+   "cells": 8,
+   "degree": [
+    5,
+    5
+   ],
+   "bus": [
+    17,
+    17
+   ],
+   "private_floor": [
+    15,
+    15
+   ],
+   "zero_floor_cells": 0,
+   "bus_over_n": [
+    0.53125,
+    0.53125
+   ]
+  },
+  {
+   "group": "L7 internal rim (drive)",
+   "cells": 1,
+   "degree": [
+    8,
+    8
+   ],
+   "bus": [
+    8,
+    8
+   ],
+   "private_floor": [
+    24,
+    24
+   ],
+   "zero_floor_cells": 0,
+   "bus_over_n": [
+    0.25,
+    0.25
+   ]
+  }
+ ],
+ "language": [
+  {
+   "group": "L1 (interior)",
+   "degree": 7,
+   "bus": 44,
+   "private_floor": 0,
+   "bus_over_n": 1.375
+  },
+  {
+   "group": "L1 (buffer end)",
+   "degree": 6,
+   "bus": 40,
+   "private_floor": 0,
+   "bus_over_n": 1.25
+  },
+  {
+   "group": "L2 (interior)",
+   "degree": 7,
+   "bus": 28,
+   "private_floor": 4,
+   "bus_over_n": 0.875
+  },
+  {
+   "group": "L2 (buffer end)",
+   "degree": 6,
+   "bus": 24,
+   "private_floor": 8,
+   "bus_over_n": 0.75
+  },
+  {
+   "group": "L3-L6 core",
+   "degree": 6,
+   "bus": 24,
+   "private_floor": 8,
+   "bus_over_n": 0.75
+  },
+  {
+   "group": "L7 apex (with drive)",
+   "degree": 5,
+   "bus": 17,
+   "private_floor": 15,
+   "bus_over_n": 0.53125
+  }
+ ],
+ "structural_zero": [
+  82,
+  150
+ ],
+ "l1_bus": {
+  "dome": [
+   32,
+   52
+  ],
+  "language": [
+   40,
+   44
+  ]
+ }
+}

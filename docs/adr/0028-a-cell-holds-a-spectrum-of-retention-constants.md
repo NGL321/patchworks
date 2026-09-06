@@ -188,12 +188,21 @@ draw a slow cell* to *will anything make one*** — which is what the falsificat
   operator's own retention, and read off the full loop `ρ(K · (J_chart + J_stalk · A_v · D))`. What
   changes is its rank — it is the **licence for the cheap spectral instrument**, published wherever
   that instrument's `τ` is published and **reported rather than asserted**, and ADR-0005's
-  falsification clause is retired with it. It composes with ADR-0026 as `|loop(c)| ≤ τ_c < dwell_c`:
-  one architectural bar plus the condition for substituting the proxy into it.
-- **Enforcement is one-sided, and it is the one real interaction with the band.** ADR-0015 restores
+  falsification clause is retired with it. It composes with ADR-0026 as
+  `world_loop(c) ≤ τ_c < dwell_c`: one architectural bar plus the condition for substituting the
+  proxy into it. *The composition is unchanged and only the floor's quantity moved*
+  ([#404](https://github.com/NGL321/patchworks/issues/404), following
+  [#383](https://github.com/NGL321/patchworks/issues/383)'s divisor): the lower end is ADR-0026's
+  bar, so it reads the **world loop** and not the graph's own round trip, with `|loop(c)|` kept and
+  demoted.
+- **Enforcement is one-sided, and it is the one real interaction with the band.** ADR-0015 enforces
   the band by *rescaling the whole operator*, which moves every eigenvalue by the same factor — so
-  when the projection fires, **all of that cell's retention constants shorten together**. Enforcement
-  can only make a cell faster, never slower. Recorded; no mechanism is added for it.
+  where the rescale binds, **all of that cell's retention constants shorten together**. Enforcement
+  can only make a cell faster, never slower. Recorded; no mechanism is added for it. *Unchanged in
+  kind by [#433](https://github.com/NGL321/patchworks/issues/433), which moved the enforcement from a
+  post-step projection into the forward path: the rescale is still radial, so a cell's constants
+  still move together. It is now continuous rather than a firing, and the prediction rule's gradient
+  sees it.*
 - **Attributability is now precise rather than rhetorical.**
   [#27](https://github.com/NGL321/patchworks/issues/27) found biases and operating point spreading
   `τ` by 7.7× and 7.3×, *"statistically indistinguishable"*, so under the bias mechanism no per-cell

@@ -66,6 +66,33 @@ reinvented: state the fact, quote the reading, name the mechanism that raised it
 report nobody reads. Here that means a verdict is filed when it is the rig's
 first on the problem, or when it differs from the last one this rig filed.
 
+## The precondition
+
+A problem may carry a `@when` **precondition** over its cutoff (#417): the
+condition under which the cutoff is a *readable* number at all. It is not a
+second cutoff and it obliges nothing, and two things follow, both of them here.
+
+**A crossing behind a shut precondition is recorded and withholds the label.**
+The `@rig` block files as normal — so the row never sits in *no recorded run*
+while a rig is in fact reading it — and `register:overdue` is not added. The
+verdict is stamped `crossed-withheld` rather than `crossed`, which is what lets
+the *next* crossing, once the precondition has opened, read as a change and
+stamp the label.
+
+**Whether a precondition has opened is read off the record on the problem**, not
+guessed and not recomputed. A rig cannot evaluate another rig's bar — #329's
+precondition names `detectability` and its cutoff names `driven_settling` — so
+the question this module can answer is *has anything reported that this
+precondition opened*, and a `@precondition` field block carrying
+`@verdict opened` is that report. A precondition nobody ever records as opened
+is not silently assumed shut forever: it sits in `open-problems.md`'s second
+loud section under its own arm, which is where that debt is made visible.
+
+**A rig also reports on the preconditions naming it.** For each open problem
+whose `@when` names this rig, the report states whether the precondition opened,
+filed under `@precondition` — **never** `register:overdue`, because opening a
+precondition imposes nothing.
+
 **One thing this deliberately does not close.** A measurement cutoff on a rig
 nobody runs never fires, and nothing here can change that. #279's design makes
 the register render *cutoffs naming a rig with no recorded run* as its own loud
@@ -105,8 +132,17 @@ REGISTER = ROOT / "docs" / "registers" / "open-problems.md"
 #: closed problem stays in the register and stops being watched.
 OPEN_HEADING = "## Open problems"
 
-#: A `measurement` cutoff as `problem_registers.Cutoff.text` renders it.
+#: A `measurement` cutoff as `problem_registers.Cutoff.text` renders it. The
+#: same cell shape carries a `measurement` precondition, because it is the same
+#: field grammar with the opposite polarity.
 _CUTOFF_CELL = re.compile(r"^measurement\s+`(?P<rig>[^`]+)`\s+—\s+(?P<threshold>.+)$")
+
+#: An `event` bar as `Cutoff.text` renders it. Read only to name the subject of
+#: a precondition, so that *has this opened* can be asked about an `event`
+#: precondition in the same words as a `measurement` one. Nothing here evaluates
+#: it: an event fires by the issue closing, which is
+#: `constant-provenance.yml`'s half of the mechanism and not a rig's.
+_EVENT_CELL = re.compile(r"^event\s+(?P<issue>#\d+)$")
 
 #: The issue cell, as `Problem.link` renders it.
 _ISSUE_CELL = re.compile(r"^\[#(?P<number>\d+)\]\((?P<url>[^)]+)\)$")
@@ -167,6 +203,25 @@ UNEVALUATED_KEY = "unevaluated"
 #: `False` would file a clean bill of health for a cutoff nothing evaluated.
 _WORD = {True: "crossed", False: "clear", None: "not-evaluated"}
 
+#: The same three, for a precondition. A precondition does not *cross*: it
+#: **opens**, and the words are different because the states are — a crossed
+#: cutoff says a problem is due, and an opened precondition says only that the
+#: number below it can now be read.
+_GATE_WORD = {True: "opened", False: "shut", None: "not-evaluated"}
+
+#: What a crossing whose precondition is shut stamps instead of `crossed`. It is
+#: a distinct word and not a flag on the side, because the stamp is the whole
+#: dedupe: a withheld crossing filed as `crossed` would make the first crossing
+#: *after* the precondition opened read as the same verdict again, and the label
+#: this withholds would then never be added at all.
+WITHHELD = "crossed-withheld"
+
+#: The two fields a rig reports against, which is also the pair
+#: `problem_registers.Unwatched` names. `cutoff` obliges; `precondition` does
+#: not, and that difference is every difference between the two passes.
+CUTOFF_FIELD = "cutoff"
+PRECONDITION_FIELD = "precondition"
+
 
 # ---------------------------------------------------------------------------
 # which problems cut on me
@@ -175,7 +230,12 @@ _WORD = {True: "crossed", False: "clear", None: "not-evaluated"}
 
 @dataclass(frozen=True)
 class Watch:
-    """One open problem whose `measurement` cutoff names this rig."""
+    """One open problem one of whose `measurement` bars names this rig.
+
+    Either bar: `field` says which, and the row is otherwise read the same way
+    because it is the same grammar. What differs is downstream — a crossed
+    cutoff obliges and a precondition never does.
+    """
 
     number: int
     url: str
@@ -183,10 +243,26 @@ class Watch:
     failure: str
     rig: str
     threshold: str
+    #: `cutoff` or `precondition`.
+    field: str = CUTOFF_FIELD
+    #: The problem's precondition cell, exactly as the register rendered it, or
+    #: empty where the problem has none. Carried on a **cutoff** watch because
+    #: it is what decides whether a crossing may stamp `register:overdue`; it is
+    #: not read on a precondition watch, whose own bar is `threshold`.
+    precondition: str = ""
 
     @property
     def ref(self) -> str:
         return f"#{self.number}"
+
+    @property
+    def obliges(self) -> bool:
+        """Whether crossing this bar can put the problem in debt.
+
+        A cutoff can. A precondition cannot, ever, and that is the one fact this
+        whole field exists to carry.
+        """
+        return self.field == CUTOFF_FIELD
 
 
 def _rows(text: str) -> list[list[str]]:
@@ -211,22 +287,29 @@ def _rows(text: str) -> list[list[str]]:
     return found[1:] if found else []
 
 
-def watching(text: str, rig: str) -> list[Watch]:
-    """Every open problem in the rendered register whose cutoff names *rig*.
+def watching(text: str, rig: str, *, field: str = CUTOFF_FIELD) -> list[Watch]:
+    """Every open problem in the rendered register whose *field* names *rig*.
 
     The rig may be written three ways -- `benchmarks/x.py`, `x.py` or `x` --
     and `problem_registers.rig_name` is what settles which is which, here as
     there. Rows this module cannot read are passed over rather than raised on:
     the register is the authority on its own grammar, and a rig is not the place
     a malformed row should surface.
+
+    `field` selects the column: the `cutoff` cell, which is the question *which
+    problems cut on me*, or the `precondition` cell, which is *which problems
+    are waiting on a reading I take*. One reader for both, because the register
+    renders both with `Cutoff.text` and a second parser would be a second place
+    the same grammar lives.
     """
     wanted = registers.rig_name(rig)
     found = []
     for cells in _rows(text):
-        if len(cells) < 5:
+        if len(cells) < 6:
             continue
-        title, failure, cutoff, _discovered, issue = cells[:5]
-        bar = _CUTOFF_CELL.match(cutoff)
+        title, failure, precondition, cutoff, _discovered, issue = cells[:6]
+        cell = precondition if field == PRECONDITION_FIELD else cutoff
+        bar = _CUTOFF_CELL.match(cell)
         reference = _ISSUE_CELL.match(issue)
         if bar is None or reference is None:
             continue
@@ -240,9 +323,30 @@ def watching(text: str, rig: str) -> list[Watch]:
                 failure=failure,
                 rig=wanted,
                 threshold=bar.group("threshold").strip(),
+                field=field,
+                precondition="" if field == PRECONDITION_FIELD else precondition,
             )
         )
     return found
+
+
+def gate_subject(cell: str) -> str:
+    """What a precondition cell says has to happen, named: a rig, or an issue.
+
+    The key a `@precondition` record is matched against, so that *has this
+    opened* is one question over both admissible forms. An empty string means
+    the row carries no precondition, or one this module cannot read -- and those
+    are the same state here, since a bar nothing can read is not one anything
+    can report as opened.
+    """
+    text = (cell or "").strip()
+    if text in {"", "—", "-"}:
+        return ""
+    bar = _CUTOFF_CELL.match(text)
+    if bar is not None:
+        return registers.rig_name(bar.group("rig"))
+    event = _EVENT_CELL.match(text)
+    return event.group("issue") if event is not None else ""
 
 
 # ---------------------------------------------------------------------------
@@ -310,7 +414,8 @@ class Verdict:
     reading: float | None
     #: `True` crossed, `False` clear, `None` not evaluated -- and the third is a
     #: state of its own rather than a quiet `False`, because *nothing could be
-    #: checked* and *the bar held* are opposite things for a reader.
+    #: checked* and *the bar held* are opposite things for a reader. On a
+    #: precondition the same three read *opened*, *shut* and *not evaluated*.
     crossed: bool | None
     why: str
 
@@ -320,12 +425,19 @@ class Verdict:
 
     @property
     def word(self) -> str:
-        return _WORD[self.crossed]
+        """The verdict, in this field's vocabulary.
+
+        A precondition does not cross; it opens. One word per state per field,
+        used by the comment, the stamp and the report line alike, so that what
+        the next run reads back is what this one meant.
+        """
+        return (_WORD if self.watch.obliges else _GATE_WORD)[self.crossed]
 
     @property
     def line(self) -> str:
         """The report's line for this problem: the bar, the reading, the verdict."""
-        head = f"  {self.watch.ref:<6} bar `{self.bar_text}`"
+        named = "bar" if self.watch.obliges else "precondition"
+        head = f"  {self.watch.ref:<6} {named} `{self.bar_text}`"
         if self.crossed is None:
             return f"{head}   not evaluated - {self.why}"
         return f"{head}   reading {self.reading:g}   {self.word.upper()}"
@@ -377,26 +489,88 @@ def _stamp(rig: str, word: str) -> str:
     return f"{rig}:{word}"
 
 
-def stamp(verdict: Verdict) -> str:
+def stamp(verdict: Verdict, *, withheld: bool = False) -> str:
     """What this run would leave on record: the rig and its verdict, not the number.
 
     Two clear runs differ in their reading and say the same thing. Stamping the
     reading would file a comment on every run of every rig, which is the volume
     that turns a channel into noise.
+
+    **A withheld crossing stamps its own word.** It is a different thing from a
+    crossing that was stamped, and the difference has to survive into the
+    record: it is what makes the first crossing after the precondition opens
+    read as a change rather than as the same verdict again, which is the run
+    that adds the label.
     """
-    return _stamp(verdict.watch.rig, verdict.word)
+    return _stamp(verdict.watch.rig, WITHHELD if withheld else verdict.word)
 
 
-def worth_filing(verdict: Verdict, prior: str | None) -> bool:
+def worth_filing(verdict: Verdict, prior: str | None, *, withheld: bool = False) -> bool:
     """Whether this verdict says anything the problem does not already record.
 
     The first record from a rig always does -- it is the one the register's *no
-    recorded run* section is waiting for -- and so does a change of verdict.
+    recorded run* section is waiting for -- and so does a change of verdict,
+    including a crossing that was withheld last time and is not now.
     """
-    return prior is None or prior != stamp(verdict)
+    return prior is None or prior != stamp(verdict, withheld=withheld)
 
 
-def comment_body(verdict: Verdict) -> str:
+def _gate_prose(verdict: Verdict) -> str:
+    """What a precondition record says, in the three states it can be in.
+
+    Never the cutoff's words, and never `register:overdue`: opening a
+    precondition imposes nothing. What it does is make the bar below it
+    readable, and the day it opens is the day somebody has to be told, because
+    once the precondition is nobody's `@cutoff` no other report mentions it
+    (#417).
+    """
+    watch = verdict.watch
+    if verdict.crossed is True:
+        return (
+            f"**The precondition on this problem opened.** `{watch.rig}` ran and "
+            f"read `{verdict.bar.metric} = {verdict.reading:g}` against "
+            f"`{verdict.bar.text}`. The cutoff below it is now a readable "
+            "number, and this problem is live in a way it was not before. "
+            "Opening a precondition imposes nothing, so this is a report and "
+            "not a label."
+        )
+    if verdict.crossed is False:
+        return (
+            f"`{watch.rig}` ran and read `{verdict.bar.metric} = "
+            f"{verdict.reading:g}` against `{verdict.bar.text}`. **The "
+            "precondition is still shut**, so a crossing of the cutoff below it "
+            "would be recorded and would carry no obligation."
+        )
+    return (
+        f"`{watch.rig}` ran and **could not evaluate this precondition**: "
+        f"{verdict.why}. The precondition as the issue states it is "
+        f"`{watch.threshold}`. Recorded rather than passed over, and under a key "
+        "the register does not count as a run."
+    )
+
+
+def report_key(watch: Watch, evaluated: bool) -> str:
+    """The field-block key this record signs itself with.
+
+    Four, and the fourth is not a flourish. `@rig` and `@precondition` are the
+    two things `problem_registers.py` counts, one per field, and their
+    `@unevaluated` mirrors are the two it counts as nothing -- a run that could
+    not read the bar has fired nothing, and signing it as a run would lift the
+    row out of the register's second loud section while nothing whatever was
+    watching it. Two mirrors and not one shared mirror, so that a rig which is
+    both a problem's cutoff and its precondition cannot have one of its records
+    read as the other.
+    """
+    if watch.obliges:
+        return registers.REPORT_KEY if evaluated else UNEVALUATED_KEY
+    return (
+        registers.PRECONDITION_KEY
+        if evaluated
+        else registers.UNEVALUATED_PRECONDITION_KEY
+    )
+
+
+def comment_body(verdict: Verdict, *, withheld: bool = False) -> str:
     """The comment this run files on the problem.
 
     It opens with the field block `problem_registers.py` reads, because that
@@ -406,14 +580,43 @@ def comment_body(verdict: Verdict) -> str:
     `overdue-provenance` channel's -- the fact, the reading, and what raised it.
     """
     watch = verdict.watch
-    key = registers.REPORT_KEY if verdict.crossed is not None else UNEVALUATED_KEY
+    key = report_key(watch, verdict.crossed is not None)
     lines = [
         "```",
         f"@{key} {watch.rig}",
-        f"@{VERDICT_KEY} {verdict.word}",
+        f"@{VERDICT_KEY} {WITHHELD if withheld else verdict.word}",
         "```",
         "",
     ]
+    if not watch.obliges:
+        lines.append(_gate_prose(verdict))
+        lines += [
+            "",
+            "Filed by `tools/cutoff_report.py` (#417) from a run of "
+            f"`benchmarks/{watch.rig}.py`.",
+        ]
+        return "\n".join(lines) + "\n"
+    if withheld:
+        lines.append(
+            f"**The cutoff on this problem was crossed, and the obligation is "
+            f"withheld.** `{watch.rig}` ran and read "
+            f"`{verdict.bar.metric} = {verdict.reading:g}` against the bar "
+            f"`{verdict.bar.text}` — but the precondition above it, "
+            f"`{watch.precondition}`, has not been recorded as opened, so the "
+            f"reading is not yet a meaningful number."
+        )
+        lines += [
+            "",
+            f"`{registers.OVERDUE_LABEL}` is **not** added, and this is recorded "
+            "rather than passed over so the row does not sit in *no recorded "
+            "run* while a rig is in fact reading it "
+            "([#417](https://github.com/NGL321/patchworks/issues/417)). Once the "
+            "precondition opens, the next crossing stamps the label.",
+            "",
+            "Filed by `tools/cutoff_report.py` (#284) from a run of "
+            f"`benchmarks/{watch.rig}.py`.",
+        ]
+        return "\n".join(lines) + "\n"
     if verdict.crossed is True:
         lines.append(
             f"**The cutoff on this problem was crossed.** `{watch.rig}` ran and read "
@@ -480,26 +683,36 @@ def gh(arguments: list[str], stdin: str | None = None) -> str:
     return finished.stdout
 
 
-def read_stamps(comments: list[dict], rig: str) -> str | None:
-    """The most recent stamp *rig* left in *comments*, or `None`.
+#: The keys a record can sign itself with, per field. Both of a field's keys are
+#: read back: a run that evaluated the bar and a run that could not are both
+#: things this rig has already said, and only the field's *other* pair is
+#: somebody else's record.
+_KEYS = {
+    CUTOFF_FIELD: (registers.REPORT_KEY, UNEVALUATED_KEY),
+    PRECONDITION_FIELD: (
+        registers.PRECONDITION_KEY,
+        registers.UNEVALUATED_PRECONDITION_KEY,
+    ),
+}
 
-    Both keys are read: a run that evaluated the bar signs itself `@rig`, and a
-    run that could not signs itself `@unevaluated`, and the second is still a
+
+def read_stamps(
+    comments: list[dict], rig: str, *, field: str = CUTOFF_FIELD
+) -> str | None:
+    """The most recent stamp *rig* left in *comments* against *field*, or `None`.
+
+    Both of the field's keys are read: a run that evaluated the bar signs itself
+    `@rig` (or `@precondition`), and a run that could not signs itself
+    `@unevaluated` (or `@unevaluated_precondition`), and the second is still a
     thing this rig has already said. A comment carrying the key but no verdict
     is **passed over rather than treated as a reset** -- a `@rig` note somebody
     wrote by hand is not this module's record, and clearing the stamp on one
     would make the next run file a verdict the issue already carries.
     """
     found = None
-    for entry in comments or []:
-        try:
-            fields = registers.field_block(entry.get("body") or "")
-        except registers.MalformedProvenance:
-            continue
-        if not fields:
-            continue
-        named = fields.get(registers.REPORT_KEY) or fields.get(UNEVALUATED_KEY) or []
-        if not named or registers.rig_name(named[0]) != rig:
+    for _, fields in _blocks(comments):
+        named = _named(fields, _KEYS[field])
+        if not named or registers.rig_name(named) != rig:
             continue
         word = (fields.get(VERDICT_KEY) or [""])[0].strip()
         if word:
@@ -507,15 +720,80 @@ def read_stamps(comments: list[dict], rig: str) -> str | None:
     return found
 
 
-def last_verdict(number: int, rig: str) -> str | None:
+def _blocks(comments: list[dict]) -> list[tuple[dict, dict[str, list[str]]]]:
+    """Every comment carrying a readable field block. Unreadable ones are skipped.
+
+    A malformed comment is `problem_registers.py`'s to surface, in the register's
+    own *comments this register could not read* section. A rig is not the place
+    it should reach a human, and a rig that stopped on one would cost the run
+    its readings.
+    """
+    found = []
+    for entry in comments or []:
+        try:
+            fields = registers.field_block(entry.get("body") or "")
+        except registers.MalformedProvenance:
+            continue
+        if fields:
+            found.append((entry, fields))
+    return found
+
+
+def _named(fields: dict[str, list[str]], keys: tuple[str, ...]) -> str:
+    for key in keys:
+        values = fields.get(key) or []
+        if values:
+            return values[0]
+    return ""
+
+
+def precondition_opened(comments: list[dict], subject: str) -> bool:
+    """Whether anything has recorded *subject*'s precondition as opened.
+
+    **Read off the record rather than recomputed**, because a rig cannot
+    evaluate another rig's bar: #329's precondition names `detectability` and
+    its cutoff names `driven_settling`, and the run that has the settling
+    readings has none of the detectability ones. What this module can ask is
+    whether a `@precondition` record on this problem says the bar opened, and
+    that record is filed by the run that *did* have the readings.
+
+    A precondition nobody has ever reported on reads as shut, and that is not a
+    silent state: `problem_registers.unwatched` puts exactly that row in the
+    register's second loud section, under the precondition arm, naming which of
+    the two fields is stuck. The debt is shown rather than guessed away.
+    """
+    if not subject:
+        return True
+    opened = False
+    for _, fields in _blocks(comments):
+        named = _named(fields, (registers.PRECONDITION_KEY,))
+        if not named or registers.rig_name(named) != registers.rig_name(subject):
+            continue
+        word = (fields.get(VERDICT_KEY) or [""])[0].strip()
+        if word:
+            opened = word == _GATE_WORD[True]
+    return opened
+
+
+def comments_on(number: int) -> list[dict]:
+    """The comments the tracker holds on a problem.
+
+    One call, and every reader of the record is handed the result rather than
+    fetching its own: the withholding check and the dedupe both read these, and
+    two calls would be two chances for them to disagree about what is on record.
+    """
+    payload = json.loads(gh(["issue", "view", str(number), "--json", "comments"]))
+    return payload.get("comments") or []
+
+
+def last_verdict(number: int, rig: str, *, field: str = CUTOFF_FIELD) -> str | None:
     """:func:`read_stamps`, over the comments the tracker holds.
 
     Read off the comments rather than kept in a file: the record lives where the
     register reads it, and a second copy on disk is a second place the same fact
     lives.
     """
-    payload = json.loads(gh(["issue", "view", str(number), "--json", "comments"]))
-    return read_stamps(payload.get("comments") or [], rig)
+    return read_stamps(comments_on(number), rig, field=field)
 
 
 def file_report(verdict: Verdict) -> str:
@@ -528,18 +806,32 @@ def file_report(verdict: Verdict) -> str:
     """
     watch = verdict.watch
     try:
-        prior = last_verdict(watch.number, watch.rig)
-        if not worth_filing(verdict, prior):
+        comments = comments_on(watch.number)
+        # A crossing behind a shut precondition is recorded and carries no
+        # obligation (#417). Only a crossing: a clear reading obliges nothing
+        # either way, and a precondition's own record never obliges at all.
+        withheld = bool(
+            watch.obliges
+            and verdict.crossed
+            and not precondition_opened(comments, gate_subject(watch.precondition))
+        )
+        prior = read_stamps(comments, watch.rig, field=watch.field)
+        if not worth_filing(verdict, prior, withheld=withheld):
             # The verdict, not the stamp taken apart again: `stamp` is the only
             # thing that knows the shape, and the two agreeing is what got us
             # here.
-            return f"already on record ({verdict.word})"
+            return f"already on record ({WITHHELD if withheld else verdict.word})"
         gh(
             ["issue", "comment", str(watch.number), "--body-file", "-"],
-            stdin=comment_body(verdict),
+            stdin=comment_body(verdict, withheld=withheld),
         )
         done = "comment filed"
-        if verdict.crossed:
+        if withheld:
+            return (
+                f"{done}, `{registers.OVERDUE_LABEL}` withheld: the precondition "
+                f"`{watch.precondition}` is not on record as opened"
+            )
+        if verdict.crossed and watch.obliges:
             gh(
                 [
                     "issue",
@@ -578,6 +870,12 @@ def report(
     what it measured. It prints, it files, and it returns the verdicts; it does
     not raise and it does not decide the exit code.
 
+    **Two passes, and the second is not a cutoff's** (#417). After the problems
+    whose `@cutoff` names this rig come the problems whose `@when` precondition
+    does, and the report states for each whether the precondition opened. A rig
+    may well have the second and not the first: `detectability` gates #325, #329
+    and #341 and cuts on none of them.
+
     `register` is a path and `None` says there is no register to read -- which
     is the same state a missing file leaves, and is reported rather than raised
     for the same reason everything else here is.
@@ -602,7 +900,33 @@ def report(
             f"   no open problem cuts on `{name}`. Nothing to evaluate, and that "
             "is a statement rather than a silence."
         )
-        return []
+    verdicts = _evaluate(found, readings, file)
+    if found:
+        print(
+            "   A rig asserts nothing: a crossing above is a report and a label, "
+            "not a failure."
+        )
+
+    gating = watching(text, name, field=PRECONDITION_FIELD)
+    if gating:
+        # Reported because once a precondition is nobody's `@cutoff`, no other
+        # report mentions it, and the day it opens several problems become live
+        # with nothing saying so (#417).
+        print(f"\n== preconditions naming `{name}` ==")
+        verdicts += _evaluate(gating, readings, file)
+        print(
+            "   Opening a precondition imposes nothing: it makes the cutoff "
+            "below it a readable number, and files no label."
+        )
+    return verdicts
+
+
+def _evaluate(
+    found: list[Watch], readings: dict[str, float], file: bool
+) -> list[Verdict]:
+    """Judge, print and file one pass. The two passes differ only in what they
+    were given, which is the point: same grammar, same bar reader, same record.
+    """
     verdicts = [judge(watch, readings) for watch in found]
     for verdict in verdicts:
         line = verdict.line
@@ -613,10 +937,6 @@ def report(
         # console the rig was run from, and on Windows that is still cp1252,
         # which turns an em dash into a replacement character mid-report.
         print(f"         {verdict.watch.title} - {verdict.watch.url}")
-    print(
-        "   A rig asserts nothing: a crossing above is a report and a label, "
-        "not a failure."
-    )
     return verdicts
 
 

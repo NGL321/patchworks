@@ -95,28 +95,47 @@ __all__ = [
 #: criterion that would return a different number.
 NODE_STALK_DIM = 32
 
-#: @provisional 132
-#: @flexibility rung 5, the last rung: may become a range or a gradient ACROSS THE GRAPH if uniformity fails (01-cell-and-sheaf.md, Flex priority). #132's axis is across DOMAINS, which the ladder does not license
-#: @warrant docs/research/032-dimensioning-small-predictors.md (#172); docs/spec/06-graph-topology.md, Dimensions
+#: @type stipulated
+#: @flexibility rung 5, the last rung: may become a range or a gradient ACROSS THE GRAPH if uniformity fails (01-cell-and-sheaf.md, Flex priority). The across-DOMAINS axis is closed by #132 and is not a rung
+#: @warrant docs/spec/06-graph-topology.md, Dimensions; docs/research/032-dimensioning-small-predictors.md (#172); docs/adr/0023-the-chart-is-not-a-koopman-lift.md
 #: `k`, the chart dimension — the cell's private low-dimensional coordinates,
 #: and the memory depth its operator advances.
 #:
 #: A module-level constant here for the same reason as
 #: :data:`NODE_STALK_DIM`, and off `DomeSpec` with it (ticket #186).
 #:
-#: **What #132 may take away is the global-constant form, not the value.** 12 is
-#: defended — #145 argued it and #172 re-sourced it to reservoir dimensioning —
-#: and this entry is not a warning that the number is shaky. #132 re-specifies
-#: chart width as *per-domain*, so what it threatens is whether one global number
-#: is the right kind of thing at all.
+#: **`stipulated` for the same reason `NODE_STALK_DIM` is, and by the same
+#: sentence of the same spec section.** `06-graph-topology.md`'s *Dimensions*
+#: says 12. Three passes have checked that 12 *clears* a bound and none has
+#: swept it: #145 and ADR-0023 established there is no `k_lift` to size against,
+#: `032` found nothing in the literature speaks to `n`/`k`/`m` as a set, and
+#: #132 measured the dome piece's correlation dimension at **1.43** — against
+#: which `032`'s capacities leave `k = 12` about **4x**. A bound cleared with
+#: margin is not a re-runnable criterion that would return a different number,
+#: so this is not `selected`; and since the literature does not fix the value it
+#: is not `literature` either.
 #:
-#: **Rung 5 and #132 are different axes, and must not blur.**
+#: **The width with the least margin is not this one.** On #132's reading the
+#: margins rank `n = 32` ~11x, `k = 12` ~4x, `m = 4` ~1.4x. A session looking
+#: for the dimension that is actually tight wants `m`.
+#:
+#: **This entry was `@provisional 132` and the debt is discharged (#442).**
+#: #132 asked whether the chart must be a **per-domain** number — what it
+#: threatened was the global-constant *form*, never the value — and resolved
+#: **no**: an L1 wedge cell's piece is a finite set with no box-counting
+#: dimension to be per-domain about, so #128's one frozen dictionary stands and
+#: one global `k` is the right kind of thing. Nothing open now waits on `k`;
+#: memory is capped by `K`'s **shape**, not by `k` (#166, #167), so #357's
+#: non-normality shortfall is not a debt this constant carries.
+#:
+#: **Rung 5 and #132's axis are different axes, and must not blur.**
 #: `01-cell-and-sheaf.md`'s *Flex priority* ladder puts `k` last — it *"may become
 #: a range or a gradient across the graph if uniformity fails"* — which is `k`
-#: varying **across the graph**, per cell. #132 asks whether it varies **across
-#: domains**. Rung 5 is not licence for #132's reversal. The ordering is itself a
-#: reversal: `k` was formerly the first thing the spec would flex and is now the
-#: last, because widening it weakens the low-dimensional claim.
+#: varying **across the graph**, per cell. #132 asked whether it varies **across
+#: domains**, which the ladder never licensed and which is now closed. The
+#: ordering is itself a reversal: `k` was formerly the first thing the spec would
+#: flex and is now the last, because widening it weakens the low-dimensional
+#: claim.
 CHART_DIM = 12
 
 #: @type selected
@@ -182,6 +201,20 @@ DEFAULT_RHO_K = 2.0
 #: while the construction-time go/no-go must be *valid*. See
 #: `docs/spec/05-timescales.md` for what the rig returns on the default body.
 DEFAULT_OPERATOR_SCALE = 1.0
+
+#: @type chosen
+#: @flexibility unknown; any value far below the band's floor and far above float32's epsilon does the same job, and nothing has swept it
+#: @warrant docs/adr/0015-the-cell-operator-band-is-on-the-spectral-norm.md; carried over from the post-step projection this replaced (#433)
+#: The spectral norm below which :meth:`CellOperators.used` stops rescaling.
+#:
+#: Not a constant anybody invented for this: it is the `clamp(min=1e-12)` the
+#: post-step projection carried before #433, named rather than repeated now that
+#: :meth:`CellOperators.used` and :attr:`CellOperators.norms` share it. It is a
+#: guard against dividing by a norm that is zero or denormal, and its effect is
+#: that a numerically dead operator is reported out of band instead of having
+#: float noise scaled up into it. It is **not** a face of the band and must not
+#: be read as one: the band's floor is `1/rho_K`, eleven orders above this.
+NORM_FLOOR = 1e-12
 
 
 def hidden_width(d_x: int, d_y: int) -> int:
@@ -605,10 +638,20 @@ class CellOperators(torch.nn.Module):
     away.
 
     **Dense.** Structure — real Schur, normal, low-rank — is a *named* fallback
-    rather than a silent one, and it now has a trigger as well as a name: a
-    projection that fights the gradient every step is the observable that calls
-    it (#139), since Fan et al. find the right template for a stability
-    constraint is a direct parameterisation rather than a penalty.
+    rather than a silent one. Its trigger *was* a projection that fights the
+    gradient every step (#139); [#433] took that fight's remedy instead, in the
+    form Fan et al. find right for a stability constraint — the constraint moves
+    into the forward path rather than being restored after the step. The
+    fallback keeps its name and loses that observable, because nothing fires any
+    more; what would call it now is #357's question, not this class's.
+
+    **The band is enforced by normalising in the forward path** (ADR-0015 as
+    amended, ruled on #433). The learned parameter is the raw `K`; what the cell
+    computes with is :meth:`used`, the same operator rescaled into the band. So
+    `sigma_max(used) in [1/rho_K, 1]` holds *identically* rather than being
+    restored between steps, and the prediction rule's gradient sees the
+    constraint and optimises the normalised object. The constraint is unchanged;
+    only the mechanism enforcing it moved.
     """
 
     def __init__(
@@ -656,11 +699,70 @@ class CellOperators(torch.nn.Module):
             raise ValueError(
                 f"{chart.shape[0]} cells passed to operators holding {self.cells}"
             )
-        return torch.bmm(self.K, chart.unsqueeze(-1)).squeeze(-1)
+        return torch.bmm(self.used(), chart.unsqueeze(-1)).squeeze(-1)
+
+    def used(self) -> torch.Tensor:
+        """`[cells, k, k]`: the operator the cell computes with, in band.
+
+        The raw `K` rescaled by `clamp(sigma(K), 1/rho_K, 1) / sigma(K)` — the
+        two-sided form, so the band's **lower** face is kept and not only its
+        upper one. Where `K` is already in band the factor is exactly 1 and this
+        is the identity, on the value *and* on the gradient.
+
+        **`sigma(K)` is differentiable and carries no state.** The gradient of
+        the prediction rule therefore sees the constraint: at the upper face the
+        normalisation's Jacobian removes the component of the gradient that
+        merely inflates scale, which is the whole of what #433 bought. The norm
+        is a batched `torch.linalg.matrix_norm(ord=2)` over `[cells, k, k]`,
+        which ADR-0015 already prices as the cheap case and which was measured
+        at **0.40 ms** per call for this dome's `150 x 12 x 12` — against a
+        ~49 ms tick, under 1%. Warm-started power iteration, the ADR's named
+        fallback, is **not** taken: it is cheaper only asymptotically and it
+        carries a persistent buffer per cell, and that buffer would be *state*
+        — which `benchmarks/projection_firing.py` records as the thing an
+        instrument may not add, and which :class:`PredictionRule` is documented
+        as not holding. The rescale being radial, it is also the one case where
+        the iteration's warm start buys least.
+
+        The rescale is still **radial** — a scalar moves every singular value
+        and every eigenvalue together. What changed is *when*: continuously, on
+        the used operator, rather than intermittently on the stored one. So
+        nothing fires, and #335's *each firing shortens all of that cell's
+        retention constants together* has nothing left to fire on.
+
+        **A numerically dead operator is left dead rather than lifted.** Below
+        :data:`NORM_FLOOR` there is no direction to rescale — `sigma = 0` scales
+        to `sigma = 0` — and scaling what is left by `rho_K / sigma` would
+        amplify float noise into the band and report a retention the cell does
+        not have. So the factor is 1 there and :attr:`norms` reports the operator
+        out of band, which is the same honesty ADR-0026 asks for at the other
+        face when it reports `tau = inf` rather than clamping it. The old
+        post-step projection did the same thing by the same floor; nothing here
+        is new but the saying so.
+        """
+        sigma = self.raw_norms
+        target = sigma.clamp(min=1.0 / self.rho_k, max=1.0)
+        factor = torch.where(
+            sigma > NORM_FLOOR,
+            target / sigma.clamp(min=NORM_FLOOR),
+            torch.ones_like(sigma),
+        )
+        return self.K * factor.view(-1, 1, 1)
+
+    @property
+    def raw_norms(self) -> torch.Tensor:
+        """`[cells]`: the **learned parameter**'s spectral norm, `sigma_max(K)`.
+
+        Unconstrained, and the quantity the normalisation reads. Nothing but
+        :meth:`used` and a diagnostic asking *how far out of band has the raw
+        parameter drifted* wants this one; every reader that means *what the
+        cell computes with* wants :attr:`norms`.
+        """
+        return torch.linalg.matrix_norm(self.K, ord=2)
 
     @property
     def norms(self) -> torch.Tensor:
-        """`[cells]`: each operator's spectral norm, `sigma_max(K)`.
+        """`[cells]`: the **used** operator's spectral norm, in `[1/rho_K, 1]`.
 
         The **constrained** quantity (#140). `rho(K)` is the *reported* one — it
         is what timescale wants — but writing the band on the radius would leave
@@ -669,48 +771,39 @@ class CellOperators(torch.nn.Module):
         dense `K` trained on a temporal objective will find exactly that,
         because transient growth is *how* linear systems move content. Bounding
         the norm bounds the radius for free.
+
+        Since #433 this is the used operator's norm rather than the stored
+        parameter's, which is the referent every reader of it meant: the band is
+        a statement about what the cell computes with. It is the clamp of
+        :attr:`raw_norms` in closed form rather than a second decomposition,
+        because the rescale is radial and so moves the norm proportionally —
+        **except below :data:`NORM_FLOOR`**, where :meth:`used` leaves the
+        operator alone and this reports it out of band rather than claiming the
+        floor it was not lifted to.
         """
-        return torch.linalg.matrix_norm(self.K, ord=2)
+        sigma = self.raw_norms
+        return torch.where(
+            sigma > NORM_FLOOR, sigma.clamp(min=1.0 / self.rho_k, max=1.0), sigma
+        )
 
     def radii(self) -> torch.Tensor:
-        """`[cells]`: each operator's spectral radius, `rho(K)`.
+        """`[cells]`: the **used** operator's spectral radius, `rho(used)`.
 
         Reported, never constrained — the quantity timescale reads (#143) and
-        the one #149 predicts contact cells will show small.
+        the one #149 predicts contact cells will show small. As with
+        :attr:`norms`, the referent is what the cell computes with; #433 is why
+        the distinction exists at all and :meth:`raw_radii` is the other half.
+        """
+        return torch.linalg.eigvals(self.used()).abs().amax(dim=-1)
+
+    def raw_radii(self) -> torch.Tensor:
+        """`[cells]`: the **learned parameter**'s spectral radius, `rho(K)`.
+
+        Offered for the same reason as :attr:`raw_norms`: after #433 the two
+        referents are both real, and a reader that means the parameter should
+        have to say so rather than get it by accident.
         """
         return torch.linalg.eigvals(self.K).abs().amax(dim=-1)
-
-    def project(self) -> torch.Tensor:
-        """Restore the band, in place. Returns which cells it moved.
-
-        `sigma_max(K) in [1/rho_K, 1]`, by rescaling the whole operator — which
-        moves its norm proportionally and so restores the band exactly, without
-        an SVD reconstruction. ADR-0010's mechanism, deliberately **not**
-        ADR-0010's norm: Frobenius is wanted on a restriction map because it
-        leaves learned rank-deficiency available, and rank-deficiency is the
-        failure on the body, where #138 put the whole of the cell's
-        expressiveness in the `k`-dimensional chart. The Frobenius proxy is also
-        loose exactly where it matters, by up to `sqrt(k)`.
-
-        It is enforcement, not an objective: it runs after the step and outside
-        the transform, has no gradient, and reads nothing the cell did not
-        already own — a cell owns its own `K` outright and needs nothing from a
-        neighbour to take its norm.
-
-        **The return value is the observable, not a side effect.**
-        :meth:`~patchworks.learning.PredictionRule.step` names it in those
-        words — *a projection that binds every step is instead the observable
-        that calls #138's named fallback from a dense `K` to a structured one* —
-        and until #351 nothing could read it, because the mask was computed
-        here and dropped. `[cells]` of `bool`, true where the operator was out
-        of band and was rescaled. It is a **report**: the projection is
-        enforcement either way, and nothing here branches on it.
-        """
-        with torch.no_grad():
-            norms = self.norms.clamp(min=1e-12)
-            target = norms.clamp(min=1.0 / self.rho_k, max=1.0)
-            self.K.mul_((target / norms).view(-1, 1, 1))
-            return target != norms
 
     def subset(self, index: torch.Tensor) -> "CellOperators":
         """The same operators over the cells `index` names, in that order.
