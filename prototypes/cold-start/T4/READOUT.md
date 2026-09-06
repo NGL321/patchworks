@@ -195,6 +195,69 @@ width only sets how fast that ceiling is approached. Collapsing the mask to
 Smallest `m` at `k_v = 18`, 7 hops, whose **median** chain clears a stated bar:
 1.05 → `m = 4`; 1.1 → `m = 5`; 1.25 → `m = 6`; 1.5 → `m = 7`; 2.0 → `m = 9`.
 
+## The trained surface: training makes the angles *better* and the rank *worse*
+
+Both of T3's arms re-run on seed 42 (`537-baseline-seed42-20000.json`,
+`537-winner-seed42-20000.json`). The horizon is **20k, not 100k**: composed ER
+reaches its converged value by 5k and the 20k median already matches #524's
+100k reading, and the box was at 74% of its commit limit, which is what killed
+a 100k attempt. What 100k would add is horizon on the cap trend below, not a
+different answer.
+
+**Training raises alignment while composed rank falls.** Between construction
+and 20k the leading cosine per hop rises from 0.568 to **0.792** (baseline) and
+**0.809** (winner), and the second from 0.329 to 0.392 / 0.400 — while composed
+ER falls from 1.0255 to **1.000058** / **1.000051**. The two are not in tension:
+what governs the composite is the *spread* between the leading cosine and the
+rest, and training widens it (leading/second 1.73 at construction → 2.02 in both
+arms). Alignment concentrated on one direction is exactly rank one.
+
+**Domination deepens without ever becoming annihilation.** σ₂/σ₁ median falls
+0.113 → 0.0054 / 0.0051, and the composite stays numerically full rank 3. The
+second direction is still there at 20k, about 200× down.
+
+**The trained surface is far *below* generic.** Rung (d) reads only the shapes
+of the maps, so its value is training-independent: 1.0216 at any horizon.
+Construction sits just above it at 1.0255; the trained surface sits at
+1.000058 — a further factor of ~370 in excess over one, spent by learning. **So
+a chosen `m` must clear its bar with margin, not exactly**, because training
+will give back most of the headroom the dimension counts buy.
+
+**The cap is becoming live, and `c` still does nothing.** Confirming
+[#439](https://github.com/NGL321/patchworks/issues/439)'s direction on this
+surface, the Gram ratio's p90 climbs monotonically 0.25 → **0.749** (baseline) /
+**0.786** (winner) over 20k, and cells above half their target go 7 → **121** /
+**141**. The cells actually *at* the cap stay at 4 throughout — still the
+wholly-pinned ones. And through all of it the `c` sweep stays flat to six
+decimals from `c = 2` upward, at **every checkpoint of both arms**. The only
+movement anywhere is at `c = 1`, the *tightening* direction, worth 3 × 10⁻⁴
+(baseline) and 9 × 10⁻⁴ (winner) at 20k.
+
+**Where that trend goes past 20k is unread.** The p90 is still climbing at the
+horizon, so the cap plausibly becomes broadly binding somewhere beyond it. Two
+attempts to carry the baseline arm to 30k and 100k were killed by the box's
+low-memory guard (at 5k and at 20k, with the commit limit at 63–74%), and the
+reading is **advisory for [#540](https://github.com/NGL321/patchworks/issues/540)
+rather than load-bearing here**, so it was not retried further. It cannot change
+this ticket's answer: the ablation result is horizon-independent — composed rank
+is a function of `(m, k_v, hops)`, and no value of `c` changes any of the three,
+whether or not the constraint it sets is binding.
+
+**Both arms are indistinguishable** on every angle quantity, which is what #524
+found on the composed reading itself: T1's winner does not touch this.
+
+**Item 3 replicates at 20k.** The top-5% chains still are not the better-aligned
+ones — their mean second cosine is 0.384 against the rest's 0.393, i.e. slightly
+*worse* — and every alignment correlation is within ±0.07 of zero in both arms.
+
+### A caution on max-over-chains
+
+Two runs of the **same seed** agree bit-for-bit to 2000 ticks and then diverge.
+The median is unaffected (1.000033 vs 1.000058 at 20k), but the **max over
+chains reads 1.0193 in one and 1.0665 in the other** — a factor of 3.4 in excess
+over one. Max-over-chains is not a stable statistic at one seed, which is a
+second reason not to build an argument on "the 1.641 chain".
+
 ## Advisory: depth, which #537 does not ask about
 
 Since the law is a function of `(m, k_v, hops)`, the third argument came for
@@ -228,4 +291,4 @@ does not unhold it; nothing on the live surface was edited.
 - `ablate.py` — the four-rung ablation ladder → `537-ablation.json`
 - `genericity.py` — the `(m, k_v, hops)` law on Haar frames → `537-genericity.json`
 - `trained.py` — the same reads on the trained surface, T3's two arms
-  → `537-<arm>-seed42-100000.json`
+  → `537-baseline-seed42-20000.json`, `537-winner-seed42-20000.json`
