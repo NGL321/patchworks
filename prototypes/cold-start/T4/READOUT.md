@@ -195,6 +195,33 @@ width only sets how fast that ceiling is approached. Collapsing the mask to
 Smallest `m` at `k_v = 18`, 7 hops, whose **median** chain clears a stated bar:
 1.05 → `m = 4`; 1.1 → `m = 5`; 1.25 → `m = 6`; 1.5 → `m = 7`; 2.0 → `m = 9`.
 
+### `n` is an answer, and the record says it is not
+
+#533 §4 argues, and [#540](https://github.com/NGL321/patchworks/issues/540)'s
+point 2 records as settled, that `m ≲ (n−1)/deg` gives `m/n ≲ 1/deg`
+independent of `n`, so raising `n` "buys absolute width and nothing for the
+angles". That premise is **false**, and it is false for exactly the reason the
+`ratio` sweep above already shows: the ratio is not what governs the composite.
+
+Scaling `m` and `k_v` *together* at the built ratio 3/18 — which is what raising
+`n` at fixed degree does:
+
+| `n` × | 1 (built) | 2 | 3 | **4 (`n ≈ 128`)** | 5 | 6 | 8 |
+|---|---|---|---|---|---|---|---|
+| `m` | 3 | 6 | 9 | **12** | 15 | 18 | 24 |
+| ER median | 1.015 | 1.272 | 1.578 | **2.047** | 2.437 | 2.770 | 3.638 |
+
+So `n` reaches, and reaches at about the width
+[B4](https://github.com/NGL321/patchworks/issues/539) independently names —
+its closed-form Forrester (2015) route puts `n ≈ 128` at 2.195 against this
+Monte Carlo's 2.047. **Two tickets, two methods, one conclusion**, against a
+premise both inherited. This does not choose the lever; it removes a claim that
+would have excluded one of them from the choice.
+
+B4 and B1 also agree on the built surface itself: its analytic median for
+generic lanes at today's widths is **1.011**, and `genericity.py` reads
+**1.011** at `(3, 18, 7)`.
+
 ## The trained surface: training makes the angles *better* and the rank *worse*
 
 Both of T3's arms re-run on seed 42 (`537-baseline-seed42-20000.json`,

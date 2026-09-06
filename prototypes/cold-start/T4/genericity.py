@@ -14,6 +14,11 @@ Three sweeps, all on Haar frames at the real chain length unless stated:
   `k_v` down at fixed `m` (narrowing the mask, which is the privacy invariant
   #540 carries). If the two agree at equal ratio, they are one lever with two
   prices, not two levers.
+* **`scale_n`** -- ER with `m` and `k_v` scaled **together**, holding the ratio
+  at the built 3/18. This is raising `n` at fixed degree, and it is the direct
+  test of #533 §4 / #540's point 2, which hold that `m/n` is what governs the
+  angles and so that `n` "buys absolute width and nothing". If ER moves along
+  this sweep, that premise is false.
 * **`depth`** -- ER against hop count at the built `m = 3`, `k_v = 18`. Advisory
   only: #537 does not ask for it, and depth is #540's `degree` in another guise.
 * **`bar`** -- the smallest `m` at `k_v = 18` whose **median** chain clears a
@@ -101,6 +106,18 @@ def main() -> None:
                 f"p90 {r['er_p90']:.4f} | >1.1 {r['frac_above_1p1']:.3f} "
                 f"| >1.5 {r['frac_above_1p5']:.3f}"
             )
+
+    print("[T4] n sweep -- m and k_v scaled together at fixed ratio (raising n at fixed degree)")
+    record["scale_n"] = [
+        sample(rng, BUILT_M * mult, BUILT_KV * mult, BUILT_HOPS, args.draws)
+        for mult in (1, 2, 3, 4, 5, 6, 8)
+    ]
+    for r in record["scale_n"]:
+        print(
+            f"    n x{r['m'] // BUILT_M}: m={r['m']:>2} k_v={r['k_v']:>3} "
+            f"ratio {r['ratio']:.3f} -> ER median {r['er_median']:.4f} "
+            f"mean {r['er_mean']:.4f} p90 {r['er_p90']:.4f}"
+        )
 
     print("[T4] depth sweep -- hops at the built (m, k_v) [advisory, #537 does not ask]")
     record["depth"] = [
