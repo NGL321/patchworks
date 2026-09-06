@@ -1,0 +1,142 @@
+== the body, and where the pose sits (identical across seeds) ==
+joints            : ['j0', 'j1', 'j2']
+limits            : [[-3.1416, 3.1416], [-2.6, 2.6], [-2.6, 2.6]]
+pose as built     : [0.0, 0.0, 0.0]
+  margin to limit : [3.1416, 2.6, 2.6]
+  as a fraction of half-range: [1.0, 1.0, 1.0]
+pose after 800 ticks of #120's constant, per seed:
+  seed 42: pose [-3.1418, -2.6009, 2.6024]  margin [-0.00021, -0.0009, -0.00242]
+  seed 43: pose [-3.1418, -2.6009, 2.6024]  margin [-0.00021, -0.0009, -0.00242]
+  seed 44: pose [-3.1418, -2.6009, 2.6024]  margin [-0.00021, -0.0009, -0.00242]
+
+== the lock: #120's constant held again from the parked pose ==
+(100 ticks, per-tick travel; travel32 is the rig's own float32 sum, travel64 MuJoCo's register)
+  seed 42: travel32/tick 0.000e+00  travel64/tick 1.475e-13  tip path 8.404e-13 m
+  seed 43: travel32/tick 0.000e+00  travel64/tick 1.573e-13  tip path 8.976e-13 m
+  seed 44: travel32/tick 0.000e+00  travel64/tick 1.525e-13  tip path 8.638e-13 m
+
+== travel under a directly written command ==
+per-tick joint travel (rad, summed over joints), tail of the hold (last 20 of 100 ticks); mean over seeds 42/43/44, spread = max-min
+
+-- from the built pose --
+amp      +e0                   +e1                   +e2                   +u120                 -e0                   -e1                   -e2                   -u120                 
+1e-06    7.50e-08+-0e+00       8.00e-08+-0e+00       6.67e-08+-0e+00       1.22e-07+-0e+00       7.50e-08+-0e+00       8.00e-08+-0e+00       6.67e-08+-0e+00       1.22e-07+-0e+00       
+1e-05    7.50e-07+-0e+00       8.00e-07+-0e+00       6.67e-07+-0e+00       1.22e-06+-0e+00       7.50e-07+-0e+00       8.00e-07+-0e+00       6.67e-07+-0e+00       1.22e-06+-0e+00       
+1e-04    7.50e-06+-0e+00       8.00e-06+-0e+00       6.67e-06+-0e+00       1.22e-05+-0e+00       7.50e-06+-0e+00       8.00e-06+-0e+00       6.67e-06+-0e+00       1.22e-05+-0e+00       
+1e-03    7.50e-05+-0e+00       8.00e-05+-0e+00       6.67e-05+-0e+00       1.22e-04+-0e+00       7.50e-05+-0e+00       8.00e-05+-0e+00       6.67e-05+-0e+00       1.22e-04+-0e+00       
+1e-02    5.79e-04+-5e-04       8.00e-04+-0e+00       6.67e-04+-0e+00       1.22e-03+-0e+00       7.50e-04+-0e+00       8.00e-04+-0e+00       6.67e-04+-0e+00       1.22e-03+-0e+00       
+1e-01    5.80e-03+-5e-03       8.02e-03+-0e+00       6.67e-03+-0e+00       1.22e-02+-0e+00       7.50e-03+-0e+00       8.02e-03+-0e+00       6.67e-03+-0e+00       1.14e-02+-3e-03       
+5e-01    3.34e-02+-6e-03       2.48e-04+-6e-04       5.90e-04+-0e+00       4.08e-02+-2e-02       3.46e-02+-1e-02       1.25e-04+-1e-04       5.90e-04+-0e+00       3.11e-02+-2e-02       
+1e+00    4.12e-07+-1e-07       1.29e-03+-4e-03       1.01e-06+-0e+00       3.12e-02+-6e-03       4.96e-07+-5e-07       1.17e-06+-1e-06       1.01e-06+-0e+00       2.61e-02+-2e-02       
+
+-- from the parked pose --
+amp      +e0                   +e1                   +e2                   +u120                 -e0                   -e1                   -e2                   -u120                 
+1e-06    7.62e-08+-1e-13       8.12e-08+-1e-13       1.24e-09+-0e+00       8.97e-08+-0e+00       7.38e-08+-1e-13       8.12e-08+-1e-13       6.79e-08+-0e+00       1.23e-07+-0e+00       
+1e-05    7.51e-07+-1e-13       8.01e-07+-1e-13       1.24e-09+-0e+00       9.08e-07+-0e+00       7.49e-07+-1e-13       8.01e-07+-1e-13       6.68e-07+-0e+00       1.22e-06+-0e+00       
+1e-04    7.50e-06+-5e-14       8.00e-06+-2e-14       1.24e-09+-0e+00       2.58e-06+-0e+00       3.97e-13+-0e+00       1.25e-09+-0e+00       6.67e-06+-0e+00       1.22e-05+-0e+00       
+1e-03    7.50e-05+-0e+00       8.00e-05+-9e-17       1.24e-09+-0e+00       3.00e-13+-0e+00       1.11e-13+-0e+00       1.23e-09+-0e+00       6.67e-05+-0e+00       1.22e-04+-0e+00       
+1e-02    7.50e-04+-0e+00       7.83e-04+-5e-05       1.26e-09+-0e+00       2.83e-13+-0e+00       1.10e-13+-0e+00       1.24e-09+-0e+00       5.43e-04+-2e-04       1.22e-03+-0e+00       
+1e-01    7.52e-03+-0e+00       6.83e-03+-2e-03       1.33e-09+-2e-17       1.18e-12+-0e+00       1.14e-13+-0e+00       1.24e-09+-0e+00       6.32e-03+-6e-04       1.05e-02+-3e-03       
+5e-01    3.78e-02+-9e-04       4.05e-02+-2e-06       1.68e-09+-3e-16       1.65e-13+-1e-16       1.44e-13+-7e-17       1.27e-09+-2e-16       3.40e-02+-1e-03       5.83e-02+-9e-03       
+1e+00    5.21e-02+-4e-03       1.61e-04+-2e-06       2.11e-09+-0e+00       2.11e-13+-1e-16       1.87e-13+-0e+00       1.30e-09+-9e-17       4.39e-02+-3e-03       7.72e-02+-2e-02       
+
+== tip (effector) net displacement over the 100-tick hold, metres ==
+
+-- from the built pose --
+amp      +e0                   +e1                   +e2                   +u120                 -e0                   -e1                   -e2                   -u120                 
+1e-06    3.08e-06+-0e+00       1.98e-06+-0e+00       6.51e-07+-0e+00       2.37e-06+-0e+00       3.08e-06+-0e+00       1.98e-06+-0e+00       6.51e-07+-0e+00       2.37e-06+-0e+00       
+1e-05    3.08e-05+-0e+00       1.98e-05+-0e+00       6.51e-06+-0e+00       2.37e-05+-0e+00       3.08e-05+-0e+00       1.98e-05+-0e+00       6.51e-06+-0e+00       2.37e-05+-0e+00       
+1e-04    3.08e-04+-0e+00       1.98e-04+-0e+00       6.51e-05+-0e+00       2.37e-04+-0e+00       3.08e-04+-0e+00       1.98e-04+-0e+00       6.51e-05+-0e+00       2.37e-04+-0e+00       
+1e-03    3.08e-03+-0e+00       1.98e-03+-0e+00       6.51e-04+-0e+00       2.37e-03+-0e+00       3.08e-03+-0e+00       1.98e-03+-0e+00       6.51e-04+-0e+00       2.37e-03+-0e+00       
+1e-02    2.90e-02+-5e-03       1.98e-02+-0e+00       6.51e-03+-0e+00       2.37e-02+-0e+00       3.08e-02+-0e+00       1.98e-02+-0e+00       6.51e-03+-0e+00       2.37e-02+-0e+00       
+1e-01    2.50e-01+-2e-01       1.94e-01+-0e+00       6.41e-02+-0e+00       2.30e-01+-0e+00       3.02e-01+-0e+00       1.94e-01+-0e+00       6.41e-02+-0e+00       2.07e-01+-7e-02       
+5e-01    9.01e-01+-3e-02       4.63e-01+-1e-01       1.93e-01+-0e+00       5.71e-01+-9e-02       8.79e-01+-1e-01       4.89e-01+-4e-02       1.93e-01+-0e+00       5.50e-01+-1e-01       
+1e+00    9.11e-01+-2e-02       4.47e-01+-1e-01       1.93e-01+-0e+00       6.33e-01+-1e-02       9.00e-01+-6e-02       4.92e-01+-2e-02       1.93e-01+-0e+00       5.98e-01+-1e-01       
+
+-- from the parked pose --
+amp      +e0                   +e1                   +e2                   +u120                 -e0                   -e1                   -e2                   -u120                 
+1e-06    2.35e-04+-2e-13       2.36e-04+-2e-13       2.36e-04+-6e-15       2.36e-04+-6e-15       2.36e-04+-2e-13       2.35e-04+-2e-13       2.36e-04+-6e-15       2.36e-04+-6e-15       
+1e-05    2.30e-04+-2e-13       2.42e-04+-2e-13       2.36e-04+-6e-15       2.33e-04+-6e-15       2.42e-04+-2e-13       2.30e-04+-2e-13       2.40e-04+-6e-15       2.41e-04+-5e-15       
+1e-04    2.09e-04+-7e-15       2.98e-04+-7e-15       2.36e-04+-6e-15       2.44e-04+-6e-15       2.72e-04+-6e-15       2.20e-04+-5e-15       2.86e-04+-6e-15       2.91e-04+-5e-15       
+1e-03    1.15e-03+-1e-14       9.08e-04+-2e-13       2.34e-04+-6e-15       2.57e-04+-6e-15       2.72e-04+-6e-15       2.20e-04+-5e-15       8.24e-04+-6e-15       9.11e-04+-6e-15       
+1e-02    1.24e-02+-1e-14       7.05e-03+-5e-04       2.22e-04+-6e-15       2.50e-04+-6e-15       2.73e-04+-6e-15       2.17e-04+-5e-15       3.94e-03+-4e-03       7.68e-03+-9e-14       
+1e-01    1.23e-01+-5e-15       6.13e-02+-2e-02       1.74e-04+-4e-15       1.95e-04+-6e-15       2.83e-04+-6e-15       1.97e-04+-6e-15       3.59e-02+-4e-02       8.48e-02+-2e-02       
+5e-01    3.66e-01+-3e-04       1.72e-01+-6e-04       2.53e-04+-1e-14       6.37e-05+-6e-15       3.21e-04+-7e-15       1.60e-04+-6e-15       1.79e-01+-2e-02       5.00e-01+-1e-02       
+1e+00    1.78e-02+-3e-04       1.45e-01+-1e-04       6.29e-04+-1e-14       1.22e-04+-6e-15       3.50e-04+-8e-15       1.23e-04+-9e-15       4.52e-02+-4e-04       3.21e-01+-5e-02       
+
+== the map's shape: command -> tip displacement, central differences ==
+  (the built pose is the arm stretched straight, a kinematic singularity; the generic pose is [1.149, -0.944, 0.389])
+jacobian_built: delta 0.2, 40 ticks
+  singular values (m per unit command): mean [1.2005, 0.009]  spread [0.0789, 0.027]
+  participation-ratio effective rank: 1.016 +- 0.047   (max possible 2, the effector is planar)
+jacobian_generic: delta 0.02, 10 ticks
+  singular values (m per unit command): mean [0.1739, 0.0368]  spread [0.0087, 0.001]
+  participation-ratio effective rank: 1.405 +- 0.018   (max possible 2, the effector is planar)
+jacobian_parked: delta 0.2, 40 ticks
+  singular values (m per unit command): mean [0.0008, 0.0001]  spread [0.0, 0.0]
+  participation-ratio effective rank: 1.312 +- 0.000   (max possible 2, the effector is planar)
+
+== dead zone: smallest command amplitude with non-zero tail travel ==
+  -e0     seed 42: still<=None moves@1e-07   seed 43: still<=None moves@1e-07   seed 44: still<=None moves@1e-07  
+  +e0     seed 42: still<=None moves@1e-07   seed 43: still<=None moves@1e-07   seed 44: still<=None moves@1e-07  
+  -u120   seed 42: still<=None moves@1e-07   seed 43: still<=None moves@1e-07   seed 44: still<=None moves@1e-07  
+  +u120   seed 42: still<=None moves@1e-07   seed 43: still<=None moves@1e-07   seed 44: still<=None moves@1e-07  
+
+== does a *small* constant park the arm too? 5000-tick holds from the built pose ==
+(tail = last 20 ticks; margin < 0 means past the limit, i.e. on the stop)
+  +e0@0.001    tail travel64/tick 5.000e-05 +- 7e-05   margin [2.87374, 2.59992, 2.59996]
+  +e0@0.01     tail travel64/tick 2.775e-07 +- 3e-07   margin [1.92127, 2.22184, 2.58597]
+  +e0@0.1      tail travel64/tick 3.855e-14 +- 8e-14   margin [-9e-05, 1.57046, 2.41986]
+  +u120@0.001  tail travel64/tick 1.222e-04 +- 0e+00   margin [3.01267, 2.27499, 2.44358]
+  +u120@0.01   tail travel64/tick 7.881e-04 +- 7e-04   margin [2.19368, 0.11502, 0.88905]
+  +u120@0.1    tail travel64/tick 1.031e-12 +- 1e-13   margin [-3e-05, -0.00026, -0.00053]
+  -u120@0.001  tail travel64/tick 1.136e-04 +- 3e-05   margin [3.03731, 2.27497, 2.44358]
+  -u120@0.01   tail travel64/tick 7.150e-04 +- 9e-04   margin [2.63151, 0.58187, 0.89681]
+  -u120@0.1    tail travel64/tick 1.861e-07 +- 6e-07   margin [0.9959, 0.28693, -0.00053]
+
+== the rank read against its own horizon (built pose, seed-mean) ==
+delta   ticks   sigma_1      sigma_2      cond        eff.rank(PR)
+0.02    2       0.01347      0            inf         1.000 +- 0.000
+0.02    10      0.1821       0            inf         1.000 +- 0.000
+0.02    40      1.277        0            inf         1.000 +- 0.000
+0.2     2       0.01347      0            inf         1.000 +- 0.000
+0.2     10      0.1818       5.22e-07     inf         1.000 +- 0.000
+0.2     40      1.201        0.008986     7.955e+15   1.016 +- 0.047
+
+== part 4: does the graph reach the commanded block? ==
+
+-- shallow dome --
+  cells                               : 358
+  edges                               : 507
+  ticks                               : 400
+  commanded_before_any_tick           : [0.0, 0.0, 0.0]
+  commanded_after_one_reconciliation  : [0.0, 0.0, 0.0]
+  commanded_ever_nonzero              : True
+  commanded_max_abs_over_run          : 9.071011543273926
+  commanded_tail_mean                 : [5.913354396820068, -8.881490707397461, 1.3218765258789062]
+  commanded_tail_sd                   : [0.20046469569206238, 0.07658448070287704, 0.24472308158874512]
+  pose_final                          : [3.1421833481717845, -2.6015877210757656, 2.607594183902983]
+  travel64_total                      : 10.720032327778373
+  travel64_per_tick_last_100          : 3.6898134823353245e-05
+  hand_written_commanded              : [0.6100000143051147, -0.3700000047683716, 0.28999999165534973]
+  read_back_as_command                : [0.6100000143051147, -0.3700000047683716, 0.28999999165534973]
+  applied_to_arm                      : [0.6100000143051147, -0.3700000047683716, 0.28999999165534973]
+  efference_after_act                 : [0.6100000143051147, -0.3700000047683716, 0.28999999165534973]
+
+-- full dome --
+  cells                               : 414
+  edges                               : 682
+  ticks                               : 400
+  commanded_before_any_tick           : [0.0, 0.0, 0.0]
+  commanded_after_one_reconciliation  : [0.0, 0.0, 0.0]
+  commanded_ever_nonzero              : True
+  commanded_max_abs_over_run          : 1.0184309482574463
+  commanded_tail_mean                 : [-0.8962971568107605, 0.27996107935905457, -0.06024795025587082]
+  commanded_tail_sd                   : [0.04865845665335655, 0.16442760825157166, 0.15361325442790985]
+  pose_final                          : [-3.1421601396825416, 2.600640887988154, -1.7862432234192858]
+  travel64_total                      : 8.592348669506363
+  travel64_per_tick_last_100          : 0.00618281072080302
+  hand_written_commanded              : [0.6100000143051147, -0.3700000047683716, 0.28999999165534973]
+  read_back_as_command                : [0.6100000143051147, -0.3700000047683716, 0.28999999165534973]
+  applied_to_arm                      : [0.6100000143051147, -0.3700000047683716, 0.28999999165534973]
+  efference_after_act                 : [0.6100000143051147, -0.3700000047683716, 0.28999999165534973]
