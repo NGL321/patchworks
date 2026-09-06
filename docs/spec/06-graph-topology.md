@@ -344,12 +344,44 @@ reading is **1.5**, with **no source found either way** on whether either is eno
 *first* rung on [#14](https://github.com/NGL321/patchworks/issues/14)'s constraint ladder and the rung
 to pull first if a piece turns out not to fit through it. #474 pulled it, **downward**: the ladder was
 priced for widening, and the private floor was worth one unit in the other direction. One unit, not
-two — [#440](https://github.com/NGL321/patchworks/issues/440) has re-opened whether the piece has a
-box dimension at all, having split `piece` from `situation set`, so the quantity this reading governs
-is itself live. The trade runs both ways and is the same trade: every interior lane widened raises
+two. The trade runs both ways and is the same trade: every interior lane widened raises
 `Σ_e m_e` — the cell's communication bus — at every cell, which lowers the per-cell reconciliation
 gain and eats the private dimension the taper exists to produce; every lane narrowed buys that
 dimension back.
+
+**The piece does have a box dimension, and [#440](https://github.com/NGL321/patchworks/issues/440)
+said so when it closed.** This paragraph read, until
+[#542](https://github.com/NGL321/patchworks/issues/542), that #440 *had re-opened whether the piece
+has a box dimension at all*. #440 closed on 2026-09-04 ruling the opposite: it split `piece` from
+`situation set` and then said what the piece is — *"the limit set of a discretely-driven recurrence —
+bounded under the operator band, filling roughly `log 97 / log(1/r)` dimensions at retention `r`"* —
+and *"neither a finite set nor a manifold"*. A limit set of that kind has a box dimension; what #440
+left conditional is **curvature**, which needs local Euclideanness and so needs the piece fat, not the
+box dimension, which exists for a dust and a filled set alike. So the quantity this reading governs is
+**defined**. What is unread is its *value*: ADR-0004's pre-registered `d_box` of a heard L1 cell's
+driven chart limit set, still not taken.
+
+**A provenance note, and it is not a re-ruling.** #440 closed **2026-09-04 19:34Z**; #474's commit
+`dabb9ea` landed **2026-09-05 03:40Z**, about eight hours later, and narrowed the thinnest number in
+the design while still citing the escape hatch above as open.
+[#539](https://github.com/NGL321/patchworks/issues/539) looked for anything resting on the piece's box
+dimension and found nothing — its bound on `m` is indifferent to it — so #474's *decision* is not
+disturbed here. Whether it wants revisiting on its own merits is a live question and wants its own
+ticket; #542 did not take it.
+
+**The margin, with both numbers in one place for the first time.**
+[#132](https://github.com/NGL321/patchworks/issues/132) measured `d_corr` quartiles **1.26 / 1.43 /
+1.53** over the 25 of 52 L1 vision cells that had a certified scaling region. At `interior_m = 3` the
+delay-embedding ceiling above is box dimension **< 1.5** — *below* the measured upper quartile, and
+about **1.05x** the median. That is thinner than any surface in this repo has admitted, and it is
+stated here rather than left to be re-derived. **Two caveats stop it being a contradiction, and both
+are load-bearing:** the lane carries the **overlap**, not the whole piece, and the overlap's dimension
+is bounded above by the piece's (#132's own note) — and #539 searched for a result sizing an embedding
+against a *shared* object and found none, so the ceiling is an **explicit analogy** to Takens/Sauer,
+not a cited bound (*"the dimension budget in every version is the box-counting dimension of the whole
+reconstructed object"*). The comparison is therefore a warning about how little headroom the analogy
+leaves, not a proof that the lane is too thin. What would settle it is ADR-0004's pre-registered
+`d_box` read, which nobody has taken.
 
 **The exposure this takes, stated rather than buried: the patch's compression goes 6:1 to 12:1.**
 This file accepted `48 → 8` and **rejected 24:1 in this same section**, when it rejected 8×8 patches

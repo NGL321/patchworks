@@ -442,22 +442,32 @@ cell's incident maps apart could eat it. That is the pre-registered falsificatio
 run, and it is why [#184](https://github.com/NGL321/patchworks/issues/184) must re-size its own 2.15x
 after this term is in circuit rather than before.
 
+*Taken by [#538](https://github.com/NGL321/patchworks/issues/538) on 2026-09-06, and it **fired**.
+The named quantity reads **3.49x / 3.50x taught** at seeds 0 and 1 against the pre-registered 14.20x
+— a **4.06x regression** — while the untrained arm reads 4.04x / 4.08x against 3.66x and does not
+fire. Taught cross-edge alignment is now **below** its own untrained arm: on the surface this
+paragraph was written against, training multiplied the quantity by 3.88; it now multiplies it by
+0.86. The receiver's contribution, which is the half this paragraph named, falls **2.57x → 1.10x**,
+and #184's unspent 2.15x re-sizes to **2.90x** — larger, because what shrank is the part already
+built. **The surface**: `main` at `2bce07d`, full dome, `split=train`, 30,000 ticks, seeds 0 and 1,
+with `c = 2` in circuit, ADR-0032's spectral floor on and ADR-0031's sparsity pressure deleted —
+three changes since the baseline, so this reading establishes that the cost **was incurred** and does
+**not** isolate `c` as its sole cause. The sender-side half of the fall (`σ_max` against isotropic,
+5.53x → 3.18x) is what a co-isometry's flat spectrum predicts and is ADR-0032's, not this term's.
+Instrument, logs and the split:* `prototypes/falsifier-538/`. *The `c`-only control is
+[#537](https://github.com/NGL321/patchworks/issues/537)'s. This paragraph's decision is untouched —
+`c` as a gauge constant enforced by projection stands; what is now on the record is its price.*
+
 ***The cost was measured; the pre-registration was correct; and the direction that moved was the
 opposite one.*** *Amended by [#552](https://github.com/NGL321/patchworks/issues/552), 2026-09-06, on
 [#547](https://github.com/NGL321/patchworks/issues/547)'s ruling that `c` is* **kept, unchanged, and
-marked**. *The clause above stands — `c` is enforced, at 2 — and what follows records that it was
-adopted, measured, and what the measurement said.*
+marked**. *The block directly above is the measurement; this records what it settles.*
 
-***The falsifier fired.*** [#538](https://github.com/NGL321/patchworks/issues/538) *read the
-pre-registered condition on the live surface (full dome, 30k, `c = 2` in circuit, seeds 0 and 1):
-cross-edge alignment measures* **3.49x / 3.50x taught against the pre-registered 14.20x** — *a*
-**4.06x** *miss — while the untrained arm reads 4.04x / 4.08x against its own 3.66x and does not fire.
-Taught alignment therefore sits* **below** *untrained: on this surface training* **removes** *the
-alignment [ADR-0022](./0022-a-hop-is-an-operator-norm-along-a-learned-channel.md) called "largely a
-thing training makes". So the paragraph above was right three times over — right that the two pressures
-pull the same maps in opposite directions, right to name the condition before the run rather than
-after it, and right to make [#184](https://github.com/NGL321/patchworks/issues/184) wait. #184's
-unspent 2.15x re-sizes to 2.90x and its closure survives.*
+*First, that this section* ***called it right***: *right that the two pressures pull the same maps in
+opposite directions, right to name the condition before the run rather than after it, and right to
+make [#184](https://github.com/NGL321/patchworks/issues/184) wait. The pre-registration did its job,
+and #538 closed the control it deferred to —*
+[#537](https://github.com/NGL321/patchworks/issues/537) *reports below.*
 
 ***What the pre-registration did not anticipate is the substance of this amendment, not a footnote to
 it.*** *It was written to guard a* **loosening**: *`c = 2` is called conservative above, the headroom
@@ -465,13 +475,15 @@ is measured down to ~1.05, and the tightening is explicitly deferred until "the 
 measured". Both halves of that framing proved inert, in opposite directions.*
 
 - ***Loosening is worthless, not merely unspent.***
-  [#537](https://github.com/NGL321/patchworks/issues/537) *swept `c` over 1, 2, 3, 4, 6, 8 and 12 and
-  found composed rim-to-apex effective rank identical* **to seven significant figures** *at
-  construction and at every checkpoint of both 100k arms. Composed rank is a function of `(m, k_v,
-  hops)` alone — redrawing every carried subspace as a Haar frame of the same shape reproduces the
-  real distribution, tail included — so no rearrangement inside fixed dimensions can move it. The 150
-  cells `c` governs are slack by 4.4x, and the 4 sitting at the cap are the wholly-pinned ones*
-  ***Pinned maps are out of reach*** *puts beyond its reach anyway. There is no 2.4x to spend.*
+  [#537](https://github.com/NGL321/patchworks/issues/537)*, the `c`-only control the block above
+  defers to, swept `c` over 1, 2, 3, 4, 6, 8 and 12 and found composed rim-to-apex effective rank
+  identical* **to seven significant figures** *at construction and at every checkpoint of both 100k
+  arms. Composed rank is a function of `(m, k_v, hops)` alone — redrawing every carried subspace as a
+  Haar frame of the same shape reproduces the real distribution, tail included — so no rearrangement
+  inside fixed dimensions can move it. The 150 cells `c` governs are slack by 4.4x, and the 4 sitting
+  at the cap are the wholly-pinned ones* ***Pinned maps are out of reach*** *puts beyond its reach
+  anyway. So `c` is not merely* **indicted but not isolated**, *as the block above has it: isolated,
+  it does nothing. There is no 2.4x to spend.*
 - ***Tightening is harmful, and structurally so.***
   [#551](https://github.com/NGL321/patchworks/issues/551) *ran `c = 1`* **in circuit** — *the
   projection* **and** *`patchworks.tick.reconciliation_gain`, ungated, 100k, both arms, seed 42 — and
