@@ -110,13 +110,26 @@ hops — widening one global constant widens the ambient along with the lane. So
 these arms read the **trend** and cannot stand in for #540's per-edge stack,
 whose own construction value has to be built to be trained.
 
-**`c = 1`'s advantage does not scale with width (#546 item 5) — it collapses.**
+**`c = 1`'s advantage does not scale with width (#546 item 5) — and it was never
+real.** [B9](https://github.com/NGL321/patchworks/issues/551) resolved while these
+arms were running and supersedes this reading: every `c = 1` figure below comes
+from `angles.py::sweep_c`, the **post-hoc re-projection** B9 was opened to test,
+and B9 found it overstates `c = 1` by ~2.9e6× (baseline) and ~1.5e7× (winner). In
+circuit `c = 1` is ~1,990× and ~28,800× *worse* than `c = 2`, with no tail and no
+recovery shape. So what the width series below measures is **how the artifact's
+size varies with width**, not how `c` does. It is kept because it points the same
+way B9 does and because the mechanism agrees — B9 finds in-circuit `c = 1` drives
+the leading per-hop cosine to 0.353/0.370 against `c = 2`'s 0.818/0.794, which is
+the same quantity the mechanism section above finds governs the erosion.
+`GAUGE_C = 2` stands; `c` is finished business. The rest of this paragraph is the
+pre-B9 reading, left for the record:
 Against `c ≥ 2` at 100k it is **1474×** at m = 3 (3.835e-3 against 2.602e-6) and
 **1.32×** at m = 14 (1.819e-1 against 1.379e-1). At 20k it is 6.4× at m = 3 and
 1.00× at m = 14. It remains the only setting whose advantage grows with horizon
-at *both* widths, so it is real; but it is a narrow-lane effect that width
-supersedes rather than a rule-level term that resists the erosion. On #546's own
-framing: `c = 1` starts from a different place, it does not resist.
+at *both* widths; but it is a narrow-lane effect that width supersedes rather
+than a rule-level term that resists the erosion. On #546's own framing, `c = 1`
+starts from a different place rather than resisting — and after B9, it does
+neither, because the quantity was an instrument artifact.
 
 ## What this does to the map
 
