@@ -56,7 +56,7 @@ def _load(name: str, path: Path):
 
 t2 = _load("t2_run", _T2 / "run.py")
 angles = _load("t4_angles", _T4 / "angles.py")
-stack = _load("t6_stack", _HERE / "stack.py")
+stack = _load("t6_arms", _HERE / "arms.py")
 
 import construction_grading as cg  # noqa: E402
 
@@ -130,15 +130,14 @@ def sigma_read(agent) -> dict:
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--rungs", nargs="+", default=["today", "b_invariant"])
+    p.add_argument("--rungs", nargs="+", default=list(stack.ARMS))
     p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--out", type=Path, default=_HERE / "555-departure.json")
+    p.add_argument("--out", type=Path, default=_HERE / "555-arms-departure.json")
     args = p.parse_args()
 
     record = {"issue": 555, "reading": "attribution of the generic-vs-built gap", "rows": []}
     for rung in args.rungs:
-        cap, lateral_m, per_edge = stack.RUNGS[rung]
-        env, agent = stack.build_stack(args.seed, cap=cap, lateral_m=lateral_m, per_edge=per_edge)
+        env, agent = stack.build_arm(rung, args.seed)
         try:
             chains = t2.rim_chains(agent.dome)
             row = {
