@@ -142,11 +142,19 @@ precisely where a future reader will come looking for permission to assume other
   every other check in this design (`γ × floor <` fold margin, `dim H⁰ ≥ …`, `χ`). The practical
   consequence is that a build satisfying the criterion may *drop* this cause from the reading and
   disambiguate the remaining two by quiescent hold, and a build that does not satisfy it — which
-  `06-graph-topology.md` flags as possible at **`m = 3`**, the value
-  [#474](https://github.com/NGL321/patchworks/issues/474) moved the interior lane to and the value
-  `src/patchworks/graph.py`'s `DomeSpec.interior_m` carries today — knows *which edges* to suspect in
-  advance. *This clause said `m = 4` until [#542](https://github.com/NGL321/patchworks/issues/542);
-  the flag narrowed when the lane did.*
+  `06-graph-topology.md` flagged as possible at **`m = 3`** — knows *which edges* to suspect in
+  advance. *This clause said `m = 4` until [#542](https://github.com/NGL321/patchworks/issues/542),
+  when the flag narrowed with the lane.*
+
+  **Amended again by [#548](https://github.com/NGL321/patchworks/issues/548), and the criterion is now
+  per edge — which is what it always wanted to be.** There is no `DomeSpec.interior_m` any more:
+  [#540](https://github.com/NGL321/patchworks/issues/540)'s ruling allocates each interior lane the
+  largest width both its endpoints can afford, so the ceiling `2·d_box` is a test each *edge* passes
+  or fails rather than one number the whole graph stands or falls on. On `DEFAULT_SPEC` the allocated
+  interior widths run **5–18** (laterals excepted, pinned at 1), so the flagged region — a lane at 3,
+  ceiling `d_box < 1.5`, against #132's measured median 1.43 — **is no longer occupied by any
+  chain-carrying lane in the dome.** The thing to read off a suspect edge is now `edge.m`, not a
+  spec constant.
 
   **Further amended by [#138](https://github.com/NGL321/patchworks/issues/138): a fourth cause, which
   arrives with the gauge.** Freezing `decode` ([ADR-0014](./0014-the-linear-readout-is-gauge-fixed.md))
@@ -191,13 +199,21 @@ precisely where a future reader will come looking for permission to assume other
   comfortably satisfied so self-intersection **drops** from the reading — the same *drop this cause*
   move this ADR already licenses above. It is also the number
   [`docs/research/032-dimensioning-small-predictors.md`](../research/032-dimensioning-small-predictors.md)'s
-  capacities are quoted against, so it carries the dome's interior-lane margin — **the width with the
-  least margin in the design** — into language. **That margin is ~1.05x, not the ~1.4x this clause
-  carried until [#542](https://github.com/NGL321/patchworks/issues/542).**
-  [#474](https://github.com/NGL321/patchworks/issues/474) moved `interior_m` from 4 to 3
-  (`src/patchworks/graph.py`, `DomeSpec.interior_m`), which drops the delay-embedding ceiling from box
-  dimension `< 2` to `< 1.5` against #132's median `d_corr` of **1.43**. `06-graph-topology.md`
-  (*Dimensions*) carries the full comparison, its two caveats, and what they do and do not license.
+  capacities are quoted against, so it carries the dome's interior-lane margin into language.
+
+  **That margin has moved twice and is no longer the tightest number in the design.** It read ~1.4x
+  until [#542](https://github.com/NGL321/patchworks/issues/542) corrected it to **~1.05x**:
+  [#474](https://github.com/NGL321/patchworks/issues/474) had moved `interior_m` from 4 to 3, dropping
+  the delay-embedding ceiling from box dimension `< 2` to `< 1.5` against #132's median `d_corr` of
+  **1.43**. [#548](https://github.com/NGL321/patchworks/issues/548) then dissolved the constant
+  entirely: with widths allocated per edge the narrowest chain-carrying interior lane on
+  `DEFAULT_SPEC` is **5**, a ceiling of `d_box < 2.5`, which is **~1.75x** #132's median and clears
+  its upper quartile of 1.53 outright. **The gain is real but it is not a licence** — both of #132's
+  caveats still hold and are still load-bearing (the lane carries the *overlap*, not the whole piece;
+  and [#539](https://github.com/NGL321/patchworks/issues/539) found no result sizing an embedding
+  against a *shared* object, so the ceiling is an explicit analogy to Takens/Sauer rather than a cited
+  bound), and the pre-registered `d_box` read below is still not taken. `06-graph-topology.md`
+  (*Dimensions*) carries the full comparison and what it does and does not license.
 
 - **Linearity is load-bearing a fourth time: it is the whole of the coupling between pieces.**
   *Added by [#141](https://github.com/NGL321/patchworks/issues/141).* Decomposition creates boundary

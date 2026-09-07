@@ -299,12 +299,17 @@ class TestTheArithmeticFloorHasADefinitionSite:
 
 
 class TestTheRegisterReachesIntoAMarkedClass:
-    """`DomeSpec`'s fifteen, which a module-level scan could not see (#187).
+    """`DomeSpec`'s sixteen, which a module-level scan could not see (#187).
 
     A construction parameter is a number the architecture rests on that happens
     to be a dataclass field. The register's stated question is *is this a knob I
     may turn*, so a register that cannot show the knob #14's constraint ladder
-    starts on -- `interior_m` -- is not answering it.
+    starts on was not answering it.
+
+    That knob used to be `interior_m`. Since #548 wrote #540's ruling it is
+    `privacy_budget`: interior lane width is allocated per edge and is no longer
+    a value anyone sets, so the ladder's first rung is the invariant those
+    widths are allocated under, not the width itself.
     """
 
     def _fields(self, surveys):
@@ -314,34 +319,38 @@ class TestTheRegisterReachesIntoAMarkedClass:
             if entry.name.startswith("DomeSpec.")
         }
 
-    def test_all_fifteen_are_registered(self, surveys):
+    def test_all_sixteen_are_registered(self, surveys):
         """The count is pinned because the gap was one of *reach*, not of writing.
 
-        Fifteen is every field of `DomeSpec`; if a sixteenth arrives, this test
-        and the completeness check below both speak, and they say different
+        Sixteen is every field of `DomeSpec`; if a seventeenth arrives, this
+        test and the completeness check below both speak, and they say different
         things -- this one that the count moved, that one that the new field has
         no provenance.
+
+        It was fifteen until #548, which retired `interior_m` and added
+        `lateral_m` and `privacy_budget` in its place. The count moved by one
+        and the register's reach did not: both new fields carry provenance.
         """
         fields = self._fields(surveys)
-        assert len(fields) == 15
+        assert len(fields) == 16
         assert set(fields) == {
             f"DomeSpec.{name}"
             for name in (
                 "patch_grid", "vision_sides", "somatomotor_sizes", "core_sizes",
-                "joints", "interior_m", "boundary_m", "drive_m", "patch_stalk",
-                "proprioceptive_stalk", "touch_stalk", "actuator_stalk",
-                "drive_stalk", "core_degree", "apex_degree",
+                "joints", "lateral_m", "privacy_budget", "boundary_m",
+                "drive_m", "patch_stalk", "proprioceptive_stalk", "touch_stalk",
+                "actuator_stalk", "drive_stalk", "core_degree", "apex_degree",
             )
         }
 
     def test_the_class_marker_sets_the_register_and_a_field_may_override_it(
         self, surveys
     ):
-        """Thirteen architecture, two the world's.
+        """Fourteen architecture, two the world's.
 
         Change the render and `patch_grid` and `patch_stalk` must follow, which
         is *what breaks downstream if the world changes* exactly, while the
-        thirteen counts around them are knobs the architecture may turn. Module
+        fourteen counts around them are knobs the architecture may turn. Module
         granularity cannot express that split: `graph.py` is one file.
         """
         lands = {
@@ -352,19 +361,44 @@ class TestTheRegisterReachesIntoAMarkedClass:
         assert world == {"DomeSpec.patch_grid", "DomeSpec.patch_stalk"}
         assert set(lands.values()) == {"architecture", "world-and-build"}
 
-    def test_interior_m_is_stipulated_rather_than_provisional(self, surveys):
+    def test_the_lane_knobs_are_stipulated_rather_than_provisional(self, surveys):
         """A ladder you may climb is not a precondition you failed to meet.
 
-        `06`'s argument for `m = 4` stands and the value is defensible;
-        `@provisional` means *resting on an unmet precondition*, and typing this
-        provisional would make every value with a known upgrade path provisional
-        and drain the marker. The thinness is real and lives in `flexibility`,
-        citing #14 -- which is where a reader asking *may I turn this* looks.
+        `@provisional` means *resting on an unmet precondition*, and typing
+        these provisional would make every value with a known upgrade path
+        provisional and drain the marker. Both are defensible where they stand
+        and both carry their reach in `flexibility` -- which is where a reader
+        asking *may I turn this* looks.
         """
-        entry = self._fields(surveys)["DomeSpec.interior_m"]
-        assert entry.type == "stipulated"
-        assert entry.provisional == ""
-        assert "#14" in entry.flexibility
+        fields = self._fields(surveys)
+        for name in ("DomeSpec.lateral_m", "DomeSpec.privacy_budget"):
+            entry = fields[name]
+            assert entry.type == "stipulated"
+            assert entry.provisional == ""
+
+    def test_the_lane_knobs_carry_the_two_things_a_reader_must_not_miss(
+        self, surveys
+    ):
+        """Both of #548's fields are contingent, and the contingency is the point.
+
+        `lateral_m` is #540's lever (c1), which the user agreed to *tentatively*
+        on the ground that this dome is a placeholder: a different
+        implementation may have far more lateral edges, so the ruling has to be
+        re-derived rather than inherited. `privacy_budget` is held at `n - 1`
+        against a ruling that doubled it, because the doubled value collides
+        with the reason the invariant exists.
+
+        A reader who turns either knob without meeting these two facts is the
+        failure this test exists to prevent, so they are pinned in the register
+        rather than left to the spec.
+        """
+        fields = self._fields(surveys)
+        lateral = fields["DomeSpec.lateral_m"].flexibility
+        assert "placeholder" in lateral
+        assert "re-derive" in lateral
+        budget = fields["DomeSpec.privacy_budget"].flexibility
+        assert "#556" in budget
+        assert "2n - 1" in budget
 
     def test_the_dome_is_not_left_looking_unwarranted(self, surveys):
         """`DEFAULT_SPEC`'s opt-out is about the name, not about the dome."""
@@ -439,7 +473,7 @@ class TestTheRegistersAreAProjectionOfTheCode:
         assert registers.main([]) == 0
         stale = tmp_path / "registers" / "architecture.md"
         stale.write_text(
-            stale.read_text(encoding="utf-8").replace("`DomeSpec.interior_m`", "`m`"),
+            stale.read_text(encoding="utf-8").replace("`DomeSpec.privacy_budget`", "`m`"),
             encoding="utf-8",
         )
         capsys.readouterr()
