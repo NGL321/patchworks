@@ -1,0 +1,60 @@
+{
+ "issue": 564,
+ "reading": "composed ER with r coherent junction directions, against B13's measured trained/generic ratios. r=1 is what rank-one traffic predicts.",
+ "b13_ratio": {
+  "8": 0.629,
+  "12": 0.91,
+  "16": 1.004,
+  "20": 1.0
+ },
+ "rows": [
+  {
+   "p": 8,
+   "arm": "reserve",
+   "generic_median": 2.2651941427020805,
+   "measured_ratio": 0.629,
+   "r0_median": 2.2672291994231304,
+   "r0_ratio": 1.0008984027826517,
+   "r1_median": 1.1027272923543074,
+   "r1_ratio": 0.4868135898669144,
+   "r2_median": 1.975870636664453,
+   "r2_ratio": 0.8722743006511122
+  },
+  {
+   "p": 12,
+   "arm": "reserve_p12",
+   "generic_median": 2.4304598149360115,
+   "measured_ratio": 0.91,
+   "r0_median": 2.467876939174863,
+   "r0_ratio": 1.015395080391336,
+   "r1_median": 1.3158191336386595,
+   "r1_ratio": 0.5413869118726006,
+   "r2_median": 2.0992502985347703,
+   "r2_ratio": 0.8637255739157484
+  },
+  {
+   "p": 16,
+   "arm": "reserve_p16",
+   "generic_median": 2.9283071481499583,
+   "measured_ratio": 1.004,
+   "r0_median": 2.9298484113112266,
+   "r0_ratio": 1.0005263324792422,
+   "r1_median": 2.2416251351009557,
+   "r1_ratio": 0.7655020534704382,
+   "r2_median": 2.603970186872752,
+   "r2_ratio": 0.8892407985678293
+  },
+  {
+   "p": 20,
+   "arm": "reserve_p20",
+   "generic_median": 4.0,
+   "measured_ratio": 1.0,
+   "r0_median": 4.0,
+   "r0_ratio": 1.0,
+   "r1_median": 4.0,
+   "r1_ratio": 1.0,
+   "r2_median": 4.0,
+   "r2_ratio": 1.0
+  }
+ ]
+}
