@@ -1,0 +1,77 @@
+dome full: 414 cells, 682 edges
+training 200 ticks with both rules, in float32...
+cast 12 tensors to float64 for the read; see `double_precision`
+  trial 1/24: rim-to-apex conduction 0.222 (bottleneck 3.66e-13)  apex-to-rim conduction 0.2 (bottleneck 7.17e-12)
+  trial 2/24: rim-to-apex conduction 0.562 (bottleneck 8.12e-13)  apex-to-rim conduction 0.133 (bottleneck 5.67e-12)
+  trial 3/24: rim-to-apex conduction 0.5 (bottleneck 8.63e-12)  apex-to-rim conduction 0.133 (bottleneck 8.31e-13)
+  trial 4/24: rim-to-apex conduction 0.25 (bottleneck 7.05e-13)  apex-to-rim conduction 0.2 (bottleneck 7.35e-13)
+  trial 5/24: rim-to-apex conduction 0.333 (bottleneck 1.22e-12)  apex-to-rim conduction 0.2 (bottleneck 9.87e-12)
+  trial 6/24: rim-to-apex conduction 0.6 (bottleneck 3.58e-12)  apex-to-rim conduction 0.0667 (bottleneck 4.68e-11)
+  trial 7/24: rim-to-apex conduction 0.286 (bottleneck 1.58e-12)  apex-to-rim conduction 0.188 (bottleneck 7.39e-12)
+  trial 8/24: rim-to-apex conduction 0.429 (bottleneck 3.57e-12)  apex-to-rim conduction 0.125 (bottleneck 9.09e-12)
+  trial 9/24: rim-to-apex conduction 0.75 (bottleneck 3.57e-12)  apex-to-rim conduction 0.533 (bottleneck 8.02e-12)
+  trial 10/24: rim-to-apex conduction 0.375 (bottleneck 2.94e-13)  apex-to-rim conduction 0.2 (bottleneck 6.15e-12)
+  trial 11/24: rim-to-apex conduction 0.571 (bottleneck 6.9e-13)  apex-to-rim conduction 0.0667 (bottleneck 4.85e-13)
+  trial 12/24: rim-to-apex conduction 0.5 (bottleneck 2.08e-12)  apex-to-rim conduction 0.133 (bottleneck 8.06e-13)
+  trial 13/24: rim-to-apex conduction 0.143 (bottleneck 3.89e-12)  apex-to-rim conduction 0.818 (bottleneck 1.09e-10)
+  trial 14/24: rim-to-apex conduction 0.625 (bottleneck 4.34e-13)  apex-to-rim conduction 0.133 (bottleneck 1.71e-11)
+  trial 15/24: rim-to-apex conduction 0.5 (bottleneck 1.43e-12)  apex-to-rim conduction 0.25 (bottleneck 1.22e-11)
+  trial 16/24: rim-to-apex conduction 0.333 (bottleneck 1.46e-11)  apex-to-rim conduction 0.125 (bottleneck 1.03e-11)
+  trial 17/24: rim-to-apex conduction 0.625 (bottleneck 7.71e-13)  apex-to-rim conduction 0.333 (bottleneck 3.78e-12)
+  trial 18/24: rim-to-apex conduction 0.5 (bottleneck 8.83e-12)  apex-to-rim conduction 0.133 (bottleneck 2.1e-11)
+  trial 19/24: rim-to-apex conduction 0.333 (bottleneck 4.16e-13)  apex-to-rim conduction 0.267 (bottleneck 1e-12)
+  trial 20/24: rim-to-apex conduction 0.333 (bottleneck 5.54e-12)  apex-to-rim conduction 0.133 (bottleneck 5.78e-13)
+  trial 21/24: rim-to-apex conduction 0.75 (bottleneck 3.56e-12)  apex-to-rim conduction 0.2 (bottleneck 1.58e-11)
+  trial 22/24: rim-to-apex conduction 0.375 (bottleneck 2.12e-13)  apex-to-rim conduction 0.2 (bottleneck 1.31e-11)
+  trial 23/24: rim-to-apex conduction 0.667 (bottleneck 5.55e-12)  apex-to-rim conduction 0.188 (bottleneck 1.21e-11)
+  trial 24/24: rim-to-apex conduction 0.571 (bottleneck 3.57e-12)  apex-to-rim conduction 0.0625 (bottleneck 3e-12)
+
+== rim-to-apex: rim-core influence FAILS ==
+   ADR-0026, the operative bar: conduction ratio = tau_hat / world_loop (#383)
+   over 24 trials — p05 0.226  p25 0.333  median 0.5  p75 0.579  p95 0.737
+   short of the bar by 2x at the median
+   the median trial's binding cell: #330 predicting L1/somatomotor(3,)
+   its path, cell by cell from the source — 0.5  1.33  0.6  0.714  0.778  0.636  0.538  0.8
+   unreadable at runtime precision: 94.6% of cells (#224's gate), and the binding cell in 41.7% of trials
+   tau_hat censored by the window of 64: 8.1% of cells — a lower bound, so it can only cost a pass
+   the runtime precision floor at these cells: median 7.42e-07 (p05 7.42e-07, p95 7.42e-07), eps_f32 = 1.19e-07
+   median conduction by horizon (ticks:value) — 8:0  16:0  32:0.433  64:0.5
+   median by stratum — patch:0.31  proprioceptive:0.567  touch:0.536
+   -- ADR-0021, the sufficient per-edge diagnostic: bottleneck ratio FAILS (a pass is conclusive, a fail is not) --
+   over 24 trials — p05 3.04e-13  p25 7.01e-13  median 1.83e-12  p75 3.66e-12  p95 8.8e-12
+   the binding edge peaks at tick 18 (median over trials), in a window of 64
+   median bottleneck by horizon (ticks:value) — 8:0  16:7.84e-13  32:1.5e-12  64:1.83e-12
+   the median trial's binding edge: #451 interior m=12 L6/core(6,) -- L7/core(4,)
+   its path, edge by edge from the source — 0.147  0.0245  0.000276  1.65e-06  1.33e-08  5.7e-11  2.08e-12
+
+== apex-to-rim: rim-core influence FAILS ==
+   ADR-0026, the operative bar: conduction ratio = tau_hat / world_loop (#383)
+   over 24 trials — p05 0.0667  p25 0.133  median 0.188  p75 0.2  p95 0.503
+   short of the bar by 5.33x at the median
+   the median trial's binding cell: #411 predicting L7/core(6,)
+   its path, cell by cell from the source — 0.188  0.357  1.25  0.9  0.556  1.44  1.78
+   unreadable at runtime precision: 90.8% of cells (#224's gate), and the binding cell in 0.0% of trials
+   tau_hat censored by the window of 64: 7.9% of cells — a lower bound, so it can only cost a pass
+   the runtime precision floor at these cells: median 7.42e-07 (p05 7.42e-07, p95 7.42e-07), eps_f32 = 1.19e-07
+   median conduction by horizon (ticks:value) — 8:0  16:0.133  32:0.188  64:0.188
+   -- ADR-0021, the sufficient per-edge diagnostic: bottleneck ratio FAILS (a pass is conclusive, a fail is not) --
+   over 24 trials — p05 6.02e-13  p25 2.5e-12  median 7.71e-12  p75 1.24e-11  p95 4.29e-11
+   the binding edge peaks at tick 20 (median over trials), in a window of 64
+   median bottleneck by horizon (ticks:value) — 8:0  16:2.74e-12  32:7.71e-12  64:7.71e-12
+   the median trial's binding edge: #50 sensory m=4 L0/vision(3, 2) -- L1/vision(1, 1)
+   its path, edge by edge from the source — 3.54  0.0163  0.000284  2.18e-06  4.39e-08  3.93e-10  8.02e-12
+
+
+== cutoffs naming `detectability` ==
+  #341   bar `outbound conduction ratio >= 1`   reading 0.1875   CLEAR
+         A prior computed at the apex cannot reach the rim it exists to modulate - https://github.com/NGL321/patchworks/issues/341
+   A rig asserts nothing: a crossing above is a report and a label, not a failure.
+
+== preconditions naming `detectability` ==
+  #325   precondition `conduction ratio >= 1`   reading 0.1875   SHUT
+         The gauge confines every prediction to one subspace, and nothing has checked the stalks reach it - https://github.com/NGL321/patchworks/issues/325
+  #329   precondition `conduction ratio >= 1`   reading 0.1875   SHUT
+         A learned K may never settle under sign-flipping evidence, and that is 07's own pre-registered falsification - https://github.com/NGL321/patchworks/issues/329
+   Opening a precondition imposes nothing: it makes the cutoff below it a readable number, and files no label.
+
+[exited with code 0]

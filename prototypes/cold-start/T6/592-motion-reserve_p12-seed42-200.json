@@ -1,0 +1,60 @@
+{
+ "issue": 592,
+ "reading": "when the world stops moving on this arm",
+ "arm": "reserve_p12",
+ "seed": 42,
+ "ticks": 200,
+ "window": 20,
+ "windows": [
+  {
+   "tick": 20,
+   "std_max": 1.0465443573582167,
+   "moving_share": 0.25
+  },
+  {
+   "tick": 40,
+   "std_max": 0.381857969600481,
+   "moving_share": 0.25
+  },
+  {
+   "tick": 60,
+   "std_max": 1.3903226746466495,
+   "moving_share": 0.5
+  },
+  {
+   "tick": 80,
+   "std_max": 0.15224923077419078,
+   "moving_share": 0.4583333333333333
+  },
+  {
+   "tick": 100,
+   "std_max": 0.0004579381501770971,
+   "moving_share": 0.25
+  },
+  {
+   "tick": 120,
+   "std_max": 0.00032775548805830156,
+   "moving_share": 0.25
+  },
+  {
+   "tick": 140,
+   "std_max": 0.0002570431204969991,
+   "moving_share": 0.25
+  },
+  {
+   "tick": 160,
+   "std_max": 0.00020531199585093556,
+   "moving_share": 0.16666666666666666
+  },
+  {
+   "tick": 180,
+   "std_max": 0.00014020792897314499,
+   "moving_share": 0.16666666666666666
+  },
+  {
+   "tick": 200,
+   "std_max": 9.574738082906787e-05,
+   "moving_share": 0.16666666666666666
+  }
+ ]
+}

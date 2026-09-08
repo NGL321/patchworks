@@ -1,0 +1,321 @@
+{
+ "issue": 599,
+ "reading": "stall boundary per live arm, on the world's own qpos/qvel",
+ "moving_threshold": 0.01,
+ "window": 10,
+ "ticks": 600,
+ "rows": [
+  {
+   "arm": "reserve_p12",
+   "seed": 0,
+   "t_moving": 160,
+   "t_dead": 600,
+   "std_max_peak": 2.0654527437038657,
+   "std_max_final": 0.00016155683259709195,
+   "fall_from_peak": 12784.682086798006,
+   "moving_share_final": 0.16666666666666666,
+   "windows": [
+    {
+     "tick": 10,
+     "std_max": 1.174757350607341,
+     "moving_share": 0.5
+    },
+    {
+     "tick": 20,
+     "std_max": 0.9630090453153656,
+     "moving_share": 0.5
+    },
+    {
+     "tick": 30,
+     "std_max": 0.5305326541226124,
+     "moving_share": 0.5
+    },
+    {
+     "tick": 40,
+     "std_max": 2.0654527437038657,
+     "moving_share": 0.5
+    },
+    {
+     "tick": 50,
+     "std_max": 0.08501329473678013,
+     "moving_share": 0.5
+    },
+    {
+     "tick": 60,
+     "std_max": 0.044474248006473836,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 70,
+     "std_max": 0.052416960880131064,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 80,
+     "std_max": 0.06122215249288233,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 90,
+     "std_max": 0.07134458338392327,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 100,
+     "std_max": 0.15202374155891535,
+     "moving_share": 0.5
+    },
+    {
+     "tick": 110,
+     "std_max": 0.8714534892410197,
+     "moving_share": 0.5
+    },
+    {
+     "tick": 120,
+     "std_max": 0.06848703152581635,
+     "moving_share": 0.4583333333333333
+    },
+    {
+     "tick": 130,
+     "std_max": 0.11106711354999081,
+     "moving_share": 0.4583333333333333
+    },
+    {
+     "tick": 140,
+     "std_max": 0.16659855583588387,
+     "moving_share": 0.5
+    },
+    {
+     "tick": 150,
+     "std_max": 0.05829590809012298,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 160,
+     "std_max": 0.06344405327831684,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 170,
+     "std_max": 0.00019627256314360433,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 180,
+     "std_max": 0.00020669588341432646,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 190,
+     "std_max": 0.00016918576539554615,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 200,
+     "std_max": 0.0001841498914575048,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 210,
+     "std_max": 0.00012001447415836275,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 220,
+     "std_max": 9.92347400496753e-05,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 230,
+     "std_max": 0.00010131294571595495,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 240,
+     "std_max": 7.413336602257252e-05,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 250,
+     "std_max": 0.00011896470362318329,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 260,
+     "std_max": 0.00011578912493754895,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 270,
+     "std_max": 7.918998781839631e-05,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 280,
+     "std_max": 6.785593427383983e-05,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 290,
+     "std_max": 0.00014002564981523466,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 300,
+     "std_max": 0.00015541427436329514,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 310,
+     "std_max": 0.0001572714114706084,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 320,
+     "std_max": 0.00018236559366294672,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 330,
+     "std_max": 0.00015096856931952056,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 340,
+     "std_max": 0.00025445382253602857,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 350,
+     "std_max": 9.872970121515348e-05,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 360,
+     "std_max": 0.00016697979904448893,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 370,
+     "std_max": 0.00011309226681195309,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 380,
+     "std_max": 0.00010499330434108639,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 390,
+     "std_max": 0.00012842488625613912,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 400,
+     "std_max": 0.0001266097603141156,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 410,
+     "std_max": 0.00014488978224891336,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 420,
+     "std_max": 0.00016234435993776625,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 430,
+     "std_max": 0.0001514854302695265,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 440,
+     "std_max": 0.00015332902325602624,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 450,
+     "std_max": 0.00014442242534097534,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 460,
+     "std_max": 0.00016613510383287343,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 470,
+     "std_max": 0.00015311359098688177,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 480,
+     "std_max": 0.0001513420698377709,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 490,
+     "std_max": 0.00015751411110501168,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 500,
+     "std_max": 0.0008421698134545796,
+     "moving_share": 0.25
+    },
+    {
+     "tick": 510,
+     "std_max": 7.45208580482233e-05,
+     "moving_share": 0.125
+    },
+    {
+     "tick": 520,
+     "std_max": 3.657556126260426e-05,
+     "moving_share": 0.16666666666666666
+    },
+    {
+     "tick": 530,
+     "std_max": 4.24038318326222e-05,
+     "moving_share": 0.20833333333333334
+    },
+    {
+     "tick": 540,
+     "std_max": 0.00011502548555946952,
+     "moving_share": 0.16666666666666666
+    },
+    {
+     "tick": 550,
+     "std_max": 3.96110462169714e-05,
+     "moving_share": 0.16666666666666666
+    },
+    {
+     "tick": 560,
+     "std_max": 0.00015057232047114113,
+     "moving_share": 0.16666666666666666
+    },
+    {
+     "tick": 570,
+     "std_max": 6.819735789383735e-05,
+     "moving_share": 0.16666666666666666
+    },
+    {
+     "tick": 580,
+     "std_max": 0.00017321010983388296,
+     "moving_share": 0.16666666666666666
+    },
+    {
+     "tick": 590,
+     "std_max": 7.518369247948454e-05,
+     "moving_share": 0.20833333333333334
+    },
+    {
+     "tick": 600,
+     "std_max": 0.00016155683259709195,
+     "moving_share": 0.16666666666666666
+    }
+   ]
+  }
+ ]
+}
