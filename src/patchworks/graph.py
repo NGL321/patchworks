@@ -221,17 +221,23 @@ class DomeSpec:
     # `docs/spec/06-graph-topology.md`, *Dimensions*, for the record.
 
     #: @type stipulated
-    #: @flexibility free, and the whole of #540's lever (c1): a lateral edge joins two cells at the same level, and no lateral edge lies on any rim-to-apex chain -- 0 of the 405 edges the 263 chains use -- yet at the one cell where the invariant binds, laterals eat 12 of 31, 39% of the privacy budget at the bottleneck, on edges the composed object never traverses. Narrowing them to 1 rather than deleting them keeps within-level communication for the 0.055 of median composed rank it costs (1.341 against 1.396 deleted). THIS RULING IS CONTINGENT, NOT GENERAL. The user agreed to it tentatively and the caveat is load-bearing: this dome is a placeholder, and a different implementation may have far more lateral edges, or lateral edges that do lie on chains. It is a consequence of THIS dome's lateral count and not a standing claim that lateral lanes are cheap -- anyone replacing the dome must re-derive it rather than inherit it. Never varied within a run; the value has moved once, on #548, from whatever interior_m happened to be to 1
+    #: @flexibility free, and the whole of #540's lever (c1): a lateral edge joins two cells at the same level, and no lateral edge lies on any rim-to-apex chain -- 0 of the 405 edges the 263 chains use -- yet at the one cell where the invariant binds, laterals eat 12 of 31, 39% of the budget at the bottleneck, on edges the composed object never traverses. Narrowing them to 1 rather than deleting them keeps within-level communication for the 0.055 of median composed rank it costs (1.341 against 1.396 deleted). THIS RULING IS CONTINGENT, NOT GENERAL. The user agreed to it tentatively and the caveat is load-bearing: this dome is a placeholder, and a different implementation may have far more lateral edges, or lateral edges that do lie on chains. It is a consequence of THIS dome's lateral count and not a standing claim that lateral lanes are cheap -- anyone replacing the dome must re-derive it rather than inherit it. Never varied within a run; the value has moved once, on #548, from whatever interior_m happened to be to 1
     #: @warrant docs/spec/06-graph-topology.md, Connectivity
     lateral_m: int = 1
 
     #: @type stipulated
-    #: @flexibility free in principle and held here: it is the constant in the construction invariant sum_e m_e <= privacy_budget at every predicting cell, which is 05-timescales.md's dim H^0 bound read as a floor of 1 rather than as a total. What the invariant is FOR, which the record did not carry until #548 wrote it: a cell will likely need more features to compute its own dynamics than it holds an authoritative position on network-wide, so the budget reserves the difference. That is why #540 refused to abolish it -- doubling changes the number, abolition changes the framing. #540 ruled it doubled to 2n - 1 = 63, and #548 DID NOT SHIP THAT: at 63 the guaranteed private dimension max(0, n - sum_e m_e) reads zero at 104 of 150 predicting cells and the dim H^0 floor falls 914 to 54, reinstating the zero row #474 was opened to remove and #385 ruled the mask must supply. The number and its own stated reason collide, and which gives is the user's, on #556. Held at n - 1 meanwhile
+    #: @flexibility free, and no longer a privacy invariant -- read `private_reserve` beside this field or the name of the bound will mislead you. sum_e m_e <= capacity_budget is a CAPACITY bound: it stops a cell's lanes outrunning what the cell can carry, and it no longer guarantees any private dimension, because #556 unwelded the two quantities this field used to carry at once. Privacy is now supplied outright by `private_reserve`. That unweld is what makes #540's doubling shippable: #540 ruled the budget doubled to 2n - 1 = 63 and #548 DID NOT SHIP IT, because under the union mask 63 read max(0, n - sum_e m_e) = 0 at 104 of 150 predicting cells and dropped the dim H^0 floor 914 to 54, reinstating the zero row #474 was opened to remove. That collision was an artifact of the weld and not of the design -- under the reserve mask p_v = p at every cell whatever the lanes sum to, so the floor is 150p and independent of this field entirely -- and #556 ruled the unweld with the doubling held at 63 rather than reaching for 95, one change at a time. THIS DOME IS A PLACEHOLDER and the value is this dome's: anyone replacing the dome must re-derive it rather than inherit it. Never varied within a run; the value has moved once, on #562, from n - 1 to 2n - 1
     #: @warrant docs/spec/06-graph-topology.md, Dimensions
-    privacy_budget: int = NODE_STALK_DIM - 1
+    capacity_budget: int = 2 * NODE_STALK_DIM - 1
+
+    #: @type derived
+    #: @depends_on patchworks.body.CHART_DIM
+    #: @flexibility free in principle and derived here, which is the whole of what #562 added: p is the number of trailing node-stalk directions a predicting cell withholds from EVERY incident edge, so p_v = p flat at all 150 predicting cells and the dim H^0 floor is 150p exactly -- an equality in p, where the old bound was an inequality that happened to be tight. It is p = k = CHART_DIM on #560's derivation: #548 wrote the invariant's reason as a cell needing more features to compute its OWN DYNAMICS than it holds an authoritative position on network-wide, and body.py already names that quantity -- k is "the cell's private low-dimensional coordinates, and the memory depth its operator advances". TWO LIMITS ON THAT DERIVATION, both #560's own: it derives a MAGNITUDE, not a subspace (decode's image is not aligned to the trailing p stalk coordinates), and k is itself `stipulated`, so p inherits k's standing rather than manufacturing a warrant. IT DOES NOT CLIMB. p was swept 0-28 at construction on two seeds and trained at 0, 4, 8, 12, 16, 20; higher p scores better on composed rank and #576 refused it anyway, because every unit of operator rank p buys is paid for one-for-one in coherent regional structure (#571: median coherent region 150 -> 27 -> 7 -> 1 cells as p rises; #585: channel return and composed rank move in exact inverse), and by p >= 18 an interior lane carries the cell's whole readable block and selects nothing. Never varied within a run
+    #: @warrant docs/spec/06-graph-topology.md, Private dimension is flat, and it is reserved
+    private_reserve: int = CHART_DIM
 
     #: @type stipulated
-    #: @flexibility free, and the one lane width still set rather than allocated: a boundary cell's edges are the only route its information ever takes, unlike an interior cell, which is reachable many ways, so this width is a claim about the boundary rather than a residual of what a relay cell could afford. It was twice the interior's, and #474 demoted the 2x from a multiple to an ordering. #548 finished that demotion by dissolving the other half of the pair: with interior lanes allocated per edge there is no global interior width to be wider than, and this number now stands alone on its own reason. It is also why it is not allocated -- a patch cell carries no privacy budget, so water-filling the rim edge would let it take whatever the L1 cell could spare (43 of 63 at #540's doubled budget), which is a number about the relay cell rather than about the patch. #540 priced raising it to 6 as its own row and did not choose it, so it is held. Never varied within a run; the value moved once, on #474, 8 to 4. Not free-standing in one direction still: it is an input to the allocation, since the 4 rim edges it fixes at every L1 vision cell are subtracted from that cell's budget before its interior lanes are water-filled. The cost is stated at docs/spec/06-graph-topology.md, Dimensions: a patch cell's restriction goes 48 -> 4, a 12:1 compression that file has never ruled on
+    #: @flexibility free, and the one lane width still set rather than allocated: a boundary cell's edges are the only route its information ever takes, unlike an interior cell, which is reachable many ways, so this width is a claim about the boundary rather than a residual of what a relay cell could afford. It was twice the interior's, and #474 demoted the 2x from a multiple to an ordering. #548 finished that demotion by dissolving the other half of the pair: with interior lanes allocated per edge there is no global interior width to be wider than, and this number now stands alone on its own reason. It is also why it is not allocated -- a patch cell carries no budget of its own, so water-filling the rim edge would let it take whatever the L1 cell could spare (43 of 63 at #540's doubled budget), which is a number about the relay cell rather than about the patch. #540 priced raising it to 6 as its own row and did not choose it, so it is held. Never varied within a run; the value moved once, on #474, 8 to 4. Not free-standing in one direction still: it is an input to the allocation, since the 4 rim edges it fixes at every L1 vision cell are subtracted from that cell's budget before its interior lanes are water-filled. The cost is stated at docs/spec/06-graph-topology.md, Dimensions: a patch cell's restriction goes 48 -> 4, a 12:1 compression that file has never ruled on
     #: @warrant docs/spec/06-graph-topology.md, Dimensions
     boundary_m: int = 4
 
@@ -431,11 +437,18 @@ def allocate_lane_widths(
     This is [#540](https://github.com/NGL321/patchworks/issues/540)'s levers (d)
     and (c1), written by
     [#548](https://github.com/NGL321/patchworks/issues/548). The construction
-    invariant `Σ_e m_e ≤ spec.privacy_budget` is a budget **per predicting
+    invariant `Σ_e m_e ≤ spec.capacity_budget` is a budget **per predicting
     cell**, and it binds at exactly one of the six relay cells — L1 vision, at
     degree 9 — while L3–L6 idle 13 of their 31. A single global `interior_m` had
     to satisfy the tightest cell, so every other lane in the graph was narrow
     for a reason that did not apply to it.
+
+    **What that budget is, since [#556](https://github.com/NGL321/patchworks/issues/556):
+    a capacity bound, and nothing about privacy.** It stops a cell's lanes
+    outrunning what the cell can carry. It no longer guarantees any private
+    dimension — `Dome._assemble` reserves that outright as `spec.private_reserve`
+    — and the two moved apart in the same ruling, which is why the budget could
+    finally take #540's doubled `2n − 1` that #548 declined to ship.
 
     The allocation is max-min fair (progressive filling), which is what *largest
     both endpoints can afford* means when the two endpoints can afford
@@ -460,20 +473,27 @@ def allocate_lane_widths(
     constrains nothing. That is why rim lanes are fixed rather than allocated:
     otherwise they would take whatever the relay cell above could spare.
 
-    The result satisfies `Σ_e m_e ≤ spec.privacy_budget` at every predicting
-    cell by construction — `build_graph` asserts it — so the private-dimension
-    floor `p_v = n − Σ_e m_e ≥ 1` that
-    [#385](https://github.com/NGL321/patchworks/issues/385) ruled the mask's to
-    give survives the reallocation at every cell.
+    The result satisfies `Σ_e m_e ≤ spec.capacity_budget` at every predicting
+    cell by construction — `build_graph` asserts it. **What that no longer buys
+    is the private-dimension floor.** It used to: the floor was
+    `p_v = n − Σ_e m_e ≥ 1`, so it was a residual of this allocation and moved
+    whenever the allocation did. Since #556 the floor is `p_v = p` at every
+    cell, set by `spec.private_reserve` and untouched by anything decided here.
+    [#385](https://github.com/NGL321/patchworks/issues/385) ruled the floor was
+    the mask's to give, and the mask now gives it outright rather than as a
+    remainder.
 
-    **It is not free, and the trade is worth stating.** The total `dim H⁰` floor
-    falls **1278 → 914** on `DEFAULT_SPEC`: the allocation spends idle budget,
-    and idle budget was privacy. Where it falls is the point — the deep core
-    gives up privacy it had by accident (L4–L6 go 14 → 1–3) and the rim gains
-    privacy it never had (L1 vision goes 1 → 7–9, off the back of `lateral_m`).
-    The floor of 1 holds everywhere and no cell reaches zero. Lever (d) alone,
-    without narrowing laterals, would have cost far more — 414 — which is why
-    #540 ruled (c1) alongside it rather than after it.
+    **The trade this docstring used to state has been dissolved rather than
+    re-priced.** It read: the allocation spends idle budget, idle budget was
+    privacy, and the total `dim H⁰` floor falls **1278 → 914**. Under the
+    reserve mask idle budget is not privacy — nothing this function does moves
+    `dim H⁰` at all — so widths and privacy are now two decisions instead of
+    one, which is the whole of what #556 bought. What survives of the old trade
+    is the *shape* of the allocation, and it is still worth stating: the deep
+    core gives up capacity it had by accident and the rim gains capacity it
+    never had (L1 vision off the back of `lateral_m`). Lever (d) alone, without
+    narrowing laterals, would have cost far more, which is why #540 ruled (c1)
+    alongside it rather than after it.
 
     Returns the edges with interior widths filled in; other kinds are untouched.
     """
@@ -492,7 +512,7 @@ def allocate_lane_widths(
         elif level[e.u] == level[e.v]:
             width[e.id] = spec.lateral_m
 
-    remaining = {v: spec.privacy_budget for v in budgeted}
+    remaining = {v: spec.capacity_budget for v in budgeted}
     for v in budgeted:
         for eid in incident[v]:
             if eid in width:
@@ -508,9 +528,17 @@ def allocate_lane_widths(
         ceiling = {}
         for eid in unsized:
             e = edges[eid]
-            # A lane can carry no more than the node stalk it reads from.
+            # A lane can carry no more than the *permitted block* it reads
+            # from, which is `n - p` and not `n` — the trailing `p` directions
+            # are masked out on every incident edge, so a lane wider than
+            # `n - p` carries nothing extra. This is `drive_m`'s own reasoning
+            # (a lane wider than the stalk it carries carries nothing extra)
+            # applied to the reserve mask, and #556 §3 ruled it here rather
+            # than leaving it to be discovered: at `capacity_budget = 63` the
+            # water-fill produces two interior lanes of width 32, which exceed
+            # `n - p`. Two of 682 edges bind on it.
             bids = [offer[x] for x in (e.u, e.v) if x in offer]
-            ceiling[eid] = min(bids + [NODE_STALK_DIM])
+            ceiling[eid] = min(bids + [NODE_STALK_DIM - spec.private_reserve])
         lowest = min(ceiling.values())
         for eid in [i for i in unsized if ceiling[i] == lowest]:
             width[eid] = lowest
@@ -737,11 +765,12 @@ def build_graph(spec: DomeSpec = DEFAULT_SPEC) -> "Dome":
         for endpoint in (e.u, e.v):
             spend[endpoint] = spend.get(endpoint, 0) + e.m
     for cell in b.cells:
-        if not cell.is_boundary and spend.get(cell.id, 0) > spec.privacy_budget:
+        if not cell.is_boundary and spend.get(cell.id, 0) > spec.capacity_budget:
             raise ValueError(
-                "the construction invariant is what guarantees a predicting "
-                f"cell any private dimension at all: cell {cell.id} spends "
-                f"{spend[cell.id]} of {spec.privacy_budget} "
+                "the construction invariant bounds what a predicting cell's "
+                f"lanes may carry: cell {cell.id} spends {spend[cell.id]} of "
+                f"{spec.capacity_budget}. Since #556 this is a capacity bound "
+                "and not a privacy one -- private width is spec.private_reserve "
                 "(docs/spec/06-graph-topology.md, Dimensions)"
             )
 
@@ -797,22 +826,31 @@ class Dome:
                 incident[endpoint].append(e.id)
                 stalk_sums[endpoint] += e.m
 
-        # The structural mask. At a predicting cell the incident edges together
-        # can carry at most `sum_e m_e` independent directions of a node stalk of
-        # `n`; the mask makes that bound structural by permitting the leading
-        # `min(n, sum_e m_e)` directions on every incident edge and masking the
-        # rest out everywhere. Those are the cell's private features, and they
-        # make `dim H^0 >= sum_v max(0, n - sum_e m_e)` hold on the mask alone
-        # rather than on the maps' ranks. Learned rank-deficiency only enlarges
-        # `H^0` past it; nothing shrinks it.
+        # The structural mask, and #556's ruling is the line below.
+        #
+        # A predicting cell permits its leading `n - p` directions on every
+        # incident edge and withholds the trailing `p` from all of them. A
+        # direction masked on every incident edge lies in `ker δ` whatever the
+        # lanes sum to, so `p_v = p` exactly, at every predicting cell, and
+        # `dim H^0 >= sum_v p = 150p` on this dome — an equality in `p` rather
+        # than a bound that happens to be tight. Learned rank-deficiency only
+        # enlarges `H^0` past it; nothing shrinks it.
+        #
+        # It used to read `min(c.stalk, stalk_sums[c.id])`, which welded two
+        # independent quantities together: the cell's private width `p_v` and
+        # what its lanes may sum to. #556 found the weld was an inequality and
+        # not a design commitment — the same leading block was already permitted
+        # on every incident edge, so `sum_e m_e <= B` was never enforcing that
+        # neighbours receive distinct directions — and unwelded them. `B` stays
+        # on as `spec.capacity_budget`, a capacity bound; privacy is `p`'s.
         #
         # A boundary cell is not masked. Its stalk is world-shaped rather than
         # `n`-shaped and its restriction is the compression of what the world
         # wrote — a patch cell's 48 -> 4 is that compression, and masking it
-        # would throw the patch away instead of compressing it.
-        permitted = [
-            c.stalk if c.is_boundary else min(c.stalk, stalk_sums[c.id]) for c in cells
-        ]
+        # would throw the patch away instead of compressing it. It holds no
+        # `H^0` to protect: the world overwrites its stalk every tick.
+        p = spec.private_reserve
+        permitted = [c.stalk if c.is_boundary else c.stalk - p for c in cells]
         predicting = tuple(c.id for c in cells if not c.is_boundary)
         mask = torch.ones((len(predicting), NODE_STALK_DIM), dtype=torch.bool)
         for row, cell_id in enumerate(predicting):
@@ -896,7 +934,8 @@ class Dome:
         overwrites every tick. The edge term runs over **all** edges,
         boundary-incident ones included, because those lanes are ordinary
         and are the route the boundary's information actually takes
-        (`docs/spec/06-graph-topology.md`, *Private dimension is a gradient*).
+        (`docs/spec/06-graph-topology.md`, *Private dimension is flat, and it
+        is reserved*).
 
         Fixed at construction and invariant under learning: no learned parameter
         appears in it. A diagnostic, not a budget, and nothing branches on it.
@@ -934,6 +973,13 @@ class Dome:
 
         Rows are `(cell group, degree, sum_e m_e, guaranteed private dimension)`,
         each a single value or a range. Measured from the built graph.
+
+        **The last column is flat since [#556](https://github.com/NGL321/patchworks/issues/556)**,
+        and that is the table's finding rather than a defect in it. It reads
+        `n − permitted`, which is `spec.private_reserve` at every predicting
+        cell — so the column no longer varies with the third, and the two are
+        no longer the same fact seen twice. `Σ_e m_e` still varies and still
+        matters; it is now a capacity reading and not a privacy one.
         """
         groups: dict[str, list[int]] = {}
         for cell_id in self.predicting:
@@ -950,7 +996,7 @@ class Dome:
                     f"{name} ({len(ids)})",
                     span([self.degrees[i] for i in ids]),
                     span([self.stalk_sums[i] for i in ids]),
-                    span([max(0, NODE_STALK_DIM - self.stalk_sums[i]) for i in ids]),
+                    span([NODE_STALK_DIM - self._permitted[i] for i in ids]),
                 )
             )
         return tuple(rows)
@@ -1033,7 +1079,13 @@ class Dome:
         )
         lines.append(
             f"  interior m: allocated per edge, {allocated[0]}-{allocated[-1]} "
-            f"over {len(allocated)} lanes, under sum_e m_e <= {spec.privacy_budget}"
+            f"over {len(allocated)} lanes, under sum_e m_e <= "
+            f"{spec.capacity_budget}, capped at n - p = "
+            f"{NODE_STALK_DIM - spec.private_reserve}"
+        )
+        lines.append(
+            f"  private reserve p = {spec.private_reserve} at every predicting "
+            f"cell, so dim H^0 >= {len(self.predicting) * spec.private_reserve}"
         )
         lines.append(
             "  boundary stalks: patch "

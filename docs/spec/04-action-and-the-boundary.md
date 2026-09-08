@@ -464,9 +464,18 @@ error, can move it.
 
 Two consequences, both wanted:
 
-- **Commitment deepens with abstraction.** Private dimension is a gradient rising from 0 at the rim
-  to ~15 at the apex ([`06-graph-topology.md`](./06-graph-topology.md)), so deep cells commit hard
-  and rim cells stay fluid. Strategy persists; torque does not.
+- **Commitment is uniform, and it used to be claimed as deepening with abstraction.** This read:
+  *private dimension is a gradient rising from 0 at the rim to ~15 at the apex, so deep cells commit
+  hard and rim cells stay fluid — strategy persists; torque does not.* Since
+  [#562](https://github.com/NGL321/patchworks/issues/562) private dimension is **flat at `p = 12`**
+  at every predicting cell ([`06-graph-topology.md`](./06-graph-topology.md), *Private dimension is
+  flat, and it is reserved*), so **the mechanism is stronger everywhere and graded nowhere**: a rim
+  cell now commits as hard as the apex, where it used to hold nothing at all.
+  **The lost half was never real.** [#271](https://github.com/NGL321/patchworks/issues/271) measured
+  the correlation between private width and retention lift at −0.107 to +0.047 with the *smallest*
+  lift at the apex, and [#572](https://github.com/NGL321/patchworks/issues/572) found the apex is
+  the **fastest** place in the graph. *Strategy persists; torque does not* was resting on a gradient
+  that carried no timescale, so it is withdrawn here rather than re-attached to `p`.
 - **A bad commitment is protected by the same mechanism.** Nothing distinguishes a well-chosen route
   from a badly-chosen one, and only accumulated prediction error digs either out. This is the price
   of getting hysteresis for free, and it is paid, not avoided.

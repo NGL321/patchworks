@@ -213,16 +213,23 @@ class TestWhatTheTwoArraysHold:
         no direction reconciliation cannot move -- so it is exercised on a dome
         built to have such a cell rather than deleted.
 
-        The dome it is exercised on is now #540's ruled-but-unshipped
-        `privacy_budget = 2n - 1`, which is the cheapest way to build one: at 63
-        against `n = 32` a cell's lanes can fill its whole stalk, and 104 of the
-        150 predicting cells do. That the budget which reaches this property is
-        exactly the one #556 is weighing is not a coincidence -- it is the same
-        fact from the other side.
+        **No budget reaches this property any more, and that is #556's
+        ruling seen from the surface.** It used to be reached by widening the
+        lane budget -- at `privacy_budget = 63` a cell's lanes could fill its
+        whole stalk and 104 of the 150 predicting cells did -- because the
+        private width was the residual `n - sum_e m_e`. Since the unweld the
+        residual is not the floor: `p_v = p` however wide the lanes get, so a
+        zero-private cell is unreachable from the capacity budget at any value.
+
+        The one remaining route is `private_reserve = 0`, which is the reserve
+        policy at zero reserve, and it is what this dome is built on. That is
+        not a setting anyone should ship -- it surrenders the whole point of
+        the mask -- and it is exactly why it is the right dome to exercise a
+        property about what happens when a cell has no private direction left.
         """
         from patchworks.graph import DomeSpec
 
-        wide = build_graph(DomeSpec(privacy_budget=63))
+        wide = build_graph(DomeSpec(private_reserve=0))
         record = run_watched(Recorder(started(env, wide)))[-1]
         none = (wide.private_dimensions == 0).numpy()
         assert none.any(), "this dome has no cell without private dimension"

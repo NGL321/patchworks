@@ -616,9 +616,15 @@ class TestTheStructuralZero:
         """So the inbound predicate is no longer pinned before retention is read.
 
         Every one of the 70 L1 predicting cells reads at least 1, where all 70
-        read exactly 0 at `(interior_m, boundary_m) = (4, 8)`. The worst case is
-        the 36 L1 vision cells of degree 9, which sit at exactly 1 -- a derived
-        non-zero, not a chosen margin.
+        read exactly 0 at `(interior_m, boundary_m) = (4, 8)`. The worst case
+        used to be the 36 L1 vision cells of degree 9, which sat at exactly 1 --
+        a derived non-zero, not a chosen margin.
+
+        **Since #562 the worst case is `p`, and degree has nothing to do with
+        it.** The reserve mask withholds `p` directions at every predicting
+        cell, so the thinnest cell in the graph reads what the deepest does.
+        The margin over zero went from 1 to 12 and stopped being derived from
+        the lane widths at all.
         """
         from patchworks.graph import DEFAULT_SPEC
 
@@ -627,27 +633,37 @@ class TestTheStructuralZero:
         levels = [c.index.level for c in dome.cells if not c.is_boundary]
         l1 = [int(dimensions[row]) for row, level in enumerate(levels) if level == 1]
         assert len(l1) == 70
-        assert min(l1) == 1
+        assert min(l1) == DEFAULT_SPEC.private_reserve
         assert all(p >= 1 for p in l1)
 
     def test_no_predicting_cell_anywhere_is_zero_private(self):
-        """The invariant is graph-wide, not an L1 fact: `sum_e m_e <= n - 1`.
+        """The floor is graph-wide, not an L1 fact.
 
         82 of the 150 predicting cells read 0 before #474 -- all 70 of L1 and 12
         of L2. The population is now empty, which is the whole content of that
         ruling.
+
+        **What keeps it empty changed on #562, and this test is the place that
+        must not be quietly re-derived.** It used to be
+        `sum_e m_e <= n - 1`: the floor was the *residual* of the lane budget,
+        so the invariant below was what stood between the graph and the zero
+        row, and #540's doubling to `2n - 1` would have restored the zero at
+        104 cells. #556 unwelded them. The floor is now `p`, asserted directly,
+        and the budget is a capacity bound that cannot reach it -- which is why
+        the doubling is safe to ship and is asserted here at `2n - 1`.
         """
         from patchworks.body import NODE_STALK_DIM
         from patchworks.graph import DEFAULT_SPEC
 
         dome = build_graph(DEFAULT_SPEC)
         dimensions = dome.private_dimensions
-        assert int(dimensions.min()) >= 1
+        assert int(dimensions.min()) == DEFAULT_SPEC.private_reserve
         assert not [c for c in dome.predicting if dimensions[dome.predicting.index(c)] == 0]
         # Stated as the invariant rather than as the outcome, so that a session
-        # moving either lane width fails here rather than in a benchmark.
+        # moving either lane width fails here rather than in a benchmark. The
+        # bound no longer carries the floor, so it is asserted for what it is.
         for cell in dome.predicting:
-            assert dome.stalk_sums[cell] <= NODE_STALK_DIM - 1
+            assert dome.stalk_sums[cell] <= 2 * NODE_STALK_DIM - 1
 
     def test_the_rim_touches_nothing_but_l1(self):
         """Which is what makes the pin structural: every path starts through one."""

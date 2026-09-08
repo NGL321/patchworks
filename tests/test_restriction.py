@@ -540,10 +540,18 @@ class TestTheSpectralFloor:
         # the direction -- flatness climbs monotonically toward 1 across passes
         # while the cap stays exactly held -- so the two steps converge on a
         # surface satisfying both rather than oscillating between them.
+        #
+        # The first-pass number moved 0.90 -> 0.897 on #562: the reserve mask
+        # narrows the readable block to `n - p`, so a map of the same width
+        # spans a larger fraction of what it may read and the cap bites
+        # slightly harder on the first pass. The threshold is loosened to match
+        # the measurement rather than the measurement being asserted away --
+        # what this test is for is the *direction*, which is unmoved.
         _turn_the_maps_to_face_one_way(real_maps)
         seen = []
         for _pass in range(4):
             real_maps.project()
             seen.append(float(real_maps.flatness()[real_maps.floored].amin()))
-        assert seen[0] > 0.9
+        assert seen[0] > 0.89
         assert seen == sorted(seen)
+        assert seen[-1] > seen[0]

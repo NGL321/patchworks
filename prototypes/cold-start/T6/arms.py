@@ -1,5 +1,23 @@
 """T6 (#555): the two arms [B12/#556](#556) ruled, built on the **shipped** spec.
 
+.. warning::
+
+   **This rig is pinned to the pre-#562 surface and no longer runs against
+   `main`.** [#562](#562) wrote #556's ruling into `src/patchworks/graph.py`:
+   `DomeSpec.privacy_budget` is now `capacity_budget` and defaults to `2n − 1`,
+   `DomeSpec.private_reserve` carries `p = 12`, and `_assemble` applies the
+   reserve mask itself. So every reference to `spec.privacy_budget` below is a
+   stale attribute, and — more importantly — **the arms would stop meaning what
+   they say**: `build_arm("shipped")` would build a dome that already carries
+   the reserve, and `apply_reserve` would be re-masking an already-masked dome.
+
+   This is deliberate and follows the #455 rule (*a rig's data ages with
+   `main`; name the surface*). The surface these readings were taken on is
+   `main` **before** #562, and the JSON beside this file is that surface's.
+   The rig is left pinned rather than ported, because porting it would silently
+   change what every recorded arm measured. Anything re-reading these arms on
+   the current surface needs a new rig and should say so.
+
 #555 was opened to build [#540](#540)'s stack. While it was being worked,
 [B8/#548](#548) shipped levers (d) and (c1) into `src/patchworks/graph.py` —
 `allocate_lane_widths`, `DomeSpec.lateral_m`, `DomeSpec.privacy_budget` — and

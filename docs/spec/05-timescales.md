@@ -147,8 +147,11 @@ driven by neighbours at any rate.
 observation about where learning might put things. It is also not an overload of what private
 features are for: holding a slowly-varying variable *is* an abstract cell's sub-problem.
 
-The bound `dim H⁰ ≥ Σ_v max(0, n − Σ_{e∋v} m_e)` makes the capacity for slow state a **construction
-quantity**, set by the masks. It used to read *"and enlarged by sparsity"*, and [#406](https://github.com/NGL321/patchworks/issues/406)
+The capacity for slow state is a **construction quantity**, set by the masks. It was stated here as
+the bound `dim H⁰ ≥ Σ_v max(0, n − Σ_{e∋v} m_e)`, which still holds; since
+[#562](https://github.com/NGL321/patchworks/issues/562) the quantity that binds is `dim H⁰ ≥ Σ_v p`,
+and *The bound is superseded, not violated* below is the place that settles the relation between
+them. The paragraphs in between are the history of the superseded reading and are kept as that. It used to read *"and enlarged by sparsity"*, and [#406](https://github.com/NGL321/patchworks/issues/406)
 struck that clause with the term it named: nothing in the run enlarges it. **What the bound gives is
 a per-cell floor rather than a graph-wide total** — enough private width at each cell for what `K`
 retains to survive reconciliation and be readable — and a fleet sum can be large while individual
@@ -161,19 +164,19 @@ from the construction invariant **`Σ_e m_e ≤ n − 1` at every predicting cel
 read as a floor of 1 rather than as a total. Until then the `max(0, ·)` was doing real work: it
 clipped to zero at **82 of the 150** predicting cells, so at more than half the fleet the bound was
 **vacuous** — true, and saying nothing, because a cell with no private width has no insulated
-retention to bound. It is now **binding by construction at every predicting cell**, worst case
-`p_v = 1`. That is the difference between a bound that holds and a bound that constrains, and this
+retention to bound. It then became **binding by construction at every predicting cell**, worst case
+`p_v = 1` — and since #562 the worst case is `p_v = p = 12`, at every cell alike. That is the difference between a bound that holds and a bound that constrains, and this
 section's *capacity for slow state is a construction quantity* only ever meant the second. The
-per-level figures are `06-graph-topology.md`'s to publish (*Private dimension is a gradient, and it
-falls out*) and they move with the widths; nothing is quoted here, so that this file has one fewer
+per-level figures are `06-graph-topology.md`'s to publish (*Private dimension is flat, and it is
+reserved*) and they no longer move with the widths at all; nothing is quoted here, so that this file has one fewer
 copy of a number that ages.
 
 **The invariant is unchanged; what spends it is not.**
 [#548](https://github.com/NGL321/patchworks/issues/548) wrote
 [#540](https://github.com/NGL321/patchworks/issues/540)'s ruling, and interior lanes are now allocated
 **per edge** — the largest width both endpoints can afford — rather than set by one global constant.
-`Σ_e m_e ≤ n − 1` still holds at every predicting cell, so the bound still binds everywhere and the
-worst case is still `p_v = 1`; what moved is *which* cells sit at the floor and how much total slow
+`Σ_e m_e ≤ n − 1` still held at every predicting cell, so the bound still bound everywhere and the
+worst case was still `p_v = 1`; what moved is *which* cells sit at the floor and how much total slow
 capacity the dome carries. **Read this as a warning about how to use the bound**: it is a per-cell
 floor, and its graph-wide sum is not conserved by a change that leaves the invariant satisfied. The
 reallocation took the sum from **1278 to 914** without violating anything, because a constant that
@@ -183,8 +186,46 @@ until something spends it.
 > **#540 also ruled the invariant doubled to `Σ_e m_e ≤ 2n − 1`, and #548 did not ship it, because
 > that is the change this bound cannot absorb.** At 63 against `n = 32` the `max(0, ·)` starts
 > clipping again — **zero at 104 of 150 predicting cells**, a floor sum of 54 — which returns this
-> section to the *vacuous at more than half the fleet* state #474 was written to end. The disposition
-> is [#556](https://github.com/NGL321/patchworks/issues/556)'s.
+> section to the *vacuous at more than half the fleet* state #474 was written to end.
+> [#556](https://github.com/NGL321/patchworks/issues/556) ruled on it, and the resolution is below:
+> the doubling ships, and this bound stops being how the floor is obtained.
+
+#### The bound is superseded, not violated
+
+*Written by [#562](https://github.com/NGL321/patchworks/issues/562) on #556's ruling.*
+
+`dim H⁰ ≥ Σ_v max(0, n − Σ_{e∋v} m_e)` **is still true.** Nothing below withdraws it, and it is still
+derived the way this section derives it. What has changed is that it is **no longer how the floor is
+obtained**, and on the shipped dome it is no longer where the floor *is*.
+
+The bound is a **union** reading, and it always was. It counts the directions a cell's incident lanes
+could not span between them even if every lane carried something different — so it goes slack the
+moment lanes are permitted to overlap, and at `Σ_e m_e ≤ 2n − 1` they overlap heavily and by design.
+Read on the shipped dome the right-hand side is **0 at most cells**: true, and saying nothing.
+
+**What binds instead is `dim H⁰ ≥ Σ_v p`, an equality in `p`.** `06-graph-topology.md`'s mask
+withholds the trailing `p` node-stalk directions from *every* incident edge of a predicting cell, so
+those directions lie in `ker δ` whatever the lanes sum to. On `DEFAULT_SPEC` that is
+**150 × 12 = 1800**, against 914 shipped before and against the 54 the doubling would have left under
+the union reading. **The floor rose, and it stopped depending on the lane widths at all** — which is
+the property this section most wanted and never had: a per-cell floor that a later lane ruling cannot
+quietly move.
+
+The two readings differ in kind, not only in value. The union bound is *contingent* — a lower bound
+that some allocations achieve and others leave slack — while `Σ_v p` is **exact at every cell**. So
+the warning above, that the graph-wide sum is not conserved by a change that leaves the invariant
+satisfied, **no longer applies to `p`**: nothing an allocation does can move it. It still applies to
+the union reading, which is one reason not to quote that reading as a floor.
+
+> **What this does not buy, stated because this section is where the temptation lives.** A larger
+> `dim H⁰` is more *room* for slow state, not more slow state. #562 does not make anything slower,
+> and `06-graph-topology.md` (*What the gradient was, and what supplies it now*) records that the
+> depth-graded private width this file wanted was measured null by
+> [#271](https://github.com/NGL321/patchworks/issues/271) and its falsifier fired on
+> [#572](https://github.com/NGL321/patchworks/issues/572) — level predicts none of the timescale
+> statistics and the apex is the *fastest* place in the graph. The capacity is now flat, ample and
+> structural; what fills it is still unsettled, and
+> [#594](https://github.com/NGL321/patchworks/issues/594) carries the candidate.
 
 The design move is a step out from published work rather than a leap: neural sheaf diffusion
 engineers `dim ker(Δ_F)` deliberately so that information survives what would otherwise be

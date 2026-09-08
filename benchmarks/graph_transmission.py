@@ -441,19 +441,25 @@ def stalk_section() -> None:
     That is not an argument against `m = 4` at the rim, because the two are
     buying different things: width buys **rank** — how many of a patch cell's 48
     directions can leave at all — and costs **gain** per direction. It is an
-    argument that the trade is priced, and the price is here. The `H^0` column
-    is the other side of the same coin: `private = max(0, n - sum_e m_e)`, so
-    widening spends the private features `01-cell-and-sheaf.md` makes slow state
-    out of, and at a wide enough lane there are none left in the graph at all.
+    argument that the trade is priced, and the price is here.
 
-    **The sweep's x-axis moved with #548.** It used to run over
-    `(interior_m, boundary_m)`, and interior lane width is no longer a value
-    anyone sets — it is allocated per edge under `Σ_e m_e ≤ privacy_budget`
-    (`graph.py::allocate_lane_widths`). So the knobs that remain are the two the
-    allocation reads: the invariant it spends against, and the boundary width it
-    takes as given. `privacy_budget = 63` is #540's ruled doubling, shown here
-    priced rather than shipped — it is the row where the private-dimension
-    column collapses, which is why #548 held it and sent it to #556.
+    **The `H⁰` column stopped being the other side of that coin on
+    [#556](https://github.com/NGL321/patchworks/issues/556), and the sweep now
+    shows why.** It used to read `private = max(0, n - sum_e m_e)`, so widening
+    a lane spent the private features `01-cell-and-sheaf.md` makes slow state
+    out of, and at a wide enough lane there were none left in the graph at all.
+    Under the reserve mask `private = p` at every predicting cell, so the
+    column is **flat down the budget rows and moves only with `p`** — which is
+    the whole content of the unweld, made visible by a column that no longer
+    varies where it used to. `p` is therefore swept as its own axis below.
+
+    **The sweep's x-axis moved with #548 and again with #562.** It used to run
+    over `(interior_m, boundary_m)`; interior lane width is no longer a value
+    anyone sets — it is allocated per edge under `Σ_e m_e ≤ capacity_budget`
+    (`graph.py::allocate_lane_widths`). `capacity_budget = 63` is #540's ruled
+    doubling, which #548 held and sent to #556 because it collapsed the private
+    column; it is now what the dome ships, because the column it collapsed is
+    no longer where privacy comes from.
     """
     import dataclasses
 
@@ -461,28 +467,47 @@ def stalk_section() -> None:
 
     print("\n### what the stalk widths are worth, at the construction level\n")
     print(
-        f"  {'budget':>10} {'boundary_m':>10} | {'hop':>10} {'vs built':>9} | "
-        f"{'private dim':>11} {'chi':>8}"
+        f"  {'budget':>10} {'boundary_m':>10} {'p':>4} | {'hop':>10} "
+        f"{'vs built':>9} | {'private dim':>11} {'chi':>8}"
     )
-    as_built = (DEFAULT_SPEC.privacy_budget, DEFAULT_SPEC.boundary_m)
+    as_built = (
+        DEFAULT_SPEC.capacity_budget,
+        DEFAULT_SPEC.boundary_m,
+        DEFAULT_SPEC.private_reserve,
+    )
     built = analytic_hop(build_graph(DEFAULT_SPEC))
-    for privacy_budget, boundary_m in (
-        (15, 4), (31, 4), (31, 6), (31, 8), (47, 4), (63, 4)
-    ):
+    rows = [
+        # the budget axis: the private column does not move down it
+        (15, 4, DEFAULT_SPEC.private_reserve),
+        (31, 4, DEFAULT_SPEC.private_reserve),
+        (31, 6, DEFAULT_SPEC.private_reserve),
+        (31, 8, DEFAULT_SPEC.private_reserve),
+        (47, 4, DEFAULT_SPEC.private_reserve),
+        (63, 4, DEFAULT_SPEC.private_reserve),
+        # the reserve axis: it is the only thing that does
+        (63, 4, 0),
+        (63, 4, 4),
+        (63, 4, 8),
+        (63, 4, 16),
+    ]
+    for capacity_budget, boundary_m, private_reserve in rows:
         dome = build_graph(
             dataclasses.replace(
-                DEFAULT_SPEC, privacy_budget=privacy_budget, boundary_m=boundary_m
+                DEFAULT_SPEC,
+                capacity_budget=capacity_budget,
+                boundary_m=boundary_m,
+                private_reserve=private_reserve,
             )
         )
         hop = analytic_hop(dome)
         print(
-            f"  {privacy_budget:>10} {boundary_m:>10} | {hop:10.4g} "
-            f"{hop / built:8.3f}x | "
+            f"  {capacity_budget:>10} {boundary_m:>10} {private_reserve:>4} | "
+            f"{hop:10.4g} {hop / built:8.3f}x | "
             f"{float(dome.private_dimensions.float().mean()):11.2f} "
             f"{dome.euler_characteristic:8d}"
             + (
                 "   <- as built"
-                if (privacy_budget, boundary_m) == as_built
+                if (capacity_budget, boundary_m, private_reserve) == as_built
                 else ""
             )
         )

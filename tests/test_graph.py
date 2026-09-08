@@ -240,12 +240,13 @@ class TestTheDrive:
         assert dome.cells[drive].stalk == 1
         assert {dome.edges[e].m for e in dome.incident[drive]} == {1}
         # A drive edge's share of an apex cell's reconciliation pull. It rose
-        # from 0.059 to 0.077 when #474 narrowed the interior lanes, and #548
-        # took it back down to 0.048 by widening them again -- the drive's own
-        # width has never moved, so this number is entirely a readout of what
-        # the lanes around it are doing.
+        # from 0.059 to 0.077 when #474 narrowed the interior lanes, #548 took
+        # it back down to 0.048 by widening them again, and #562 halved it
+        # again by doubling the budget those lanes are allocated under -- the
+        # drive's own width has never moved, so this number is entirely a
+        # readout of what the lanes around it are doing.
         apex = _by_level(dome, APEX_LEVEL, "core")[0]
-        assert round(1 / dome.stalk_sums[apex], 3) == 0.048
+        assert round(1 / dome.stalk_sums[apex], 3) == 0.024
 
 
 class TestDimensionsAndTheBoundaryExemption:
@@ -276,24 +277,41 @@ class TestDimensionsAndTheBoundaryExemption:
         # the width is allocated per edge, the largest both endpoints can
         # afford under the construction invariant, so the set here is a spread
         # rather than a constant. The 1 in it is `lateral_m` -- every same-level
-        # lane, narrowed by #540's lever (c1) -- and 18 is the widest lane the
-        # apex can afford, the graph's least-constrained neighbourhood.
+        # lane, narrowed by #540's lever (c1).
+        #
+        # **The top of the spread is now a cap rather than an affordance.** It
+        # was 18, what the apex could afford out of a budget of 31. At 63 the
+        # water-fill would hand two lanes 32, so #556 capped every lane at the
+        # permitted block `n - p = 20`: a lane wider than what the mask permits
+        # carries nothing extra, which is `drive_m`'s own reasoning. 8 of the
+        # 409 interior lanes bind on that cap.
         assert widths == {
             EdgeKind.SENSORY: {4},
             EdgeKind.MOTOR: {4},
-            EdgeKind.INTERIOR: {1, 5, 6, 7, 9, 10, 18},
+            EdgeKind.INTERIOR: {1, 11, 12, 15, 16, 19, 20},
             EdgeKind.DRIVE: {1},
         }
+        cap = 32 - dome.spec.private_reserve
+        interior = [e for e in dome.edges if e.kind is EdgeKind.INTERIOR]
+        assert max(e.m for e in interior) == cap
+        assert sum(1 for e in interior if e.m == cap) == 8
 
     def test_the_invariant_holds_at_every_predicting_cell(self, dome):
         # What makes the allocation admissible at all, and the thing #548
         # checked before writing anything: the reallocation spends idle budget
         # and must not spend a cell past its own. `build_graph` raises if it
         # does; this pins it from outside.
-        budget = dome.spec.privacy_budget
-        assert budget == 31
+        #
+        # **The budget is 2n - 1 since #562, and it no longer carries the
+        # floor.** #540 ruled the doubling and #548 refused to ship it, because
+        # under the union mask 63 read zero private dimension at 104 of 150
+        # cells. #556 unwelded the two, so the floor below is `private_reserve`
+        # and is unaffected by anything this invariant permits -- which is
+        # exactly why the doubling became shippable.
+        budget = dome.spec.capacity_budget
+        assert budget == 63
         assert max(dome.stalk_sums[i] for i in dome.predicting) == budget
-        assert min(int(p) for p in dome.private_dimensions) >= 1
+        assert min(int(p) for p in dome.private_dimensions) == dome.spec.private_reserve
 
 
 class TestRecordedDiagnostics:
@@ -301,15 +319,19 @@ class TestRecordedDiagnostics:
         named = dict(dome.cut_capacities)
         assert named["render"] == 12_288
         assert named["L0 -> L1"] == 1_060
-        assert named["L1 -> L2"] == 392
-        assert named["L2 -> L3"] == 118
-        # The whole sensory boundary reaches the core through 118 numbers a
-        # tick: a 104:1 squeeze at a single cut. It was 2_120 / 280 / 80 and
-        # 154:1 before #474, then 210 / 60 and 205:1 after it. #548 widened it
-        # back to 104:1 by allocating interior lanes per edge -- the taper's
-        # capacities are set by m (ADR-0030), so every one of these numbers is
-        # the arithmetic of a lane ruling rather than a separate finding.
-        assert round(named["render"] / named["L2 -> L3"]) == 104
+        assert named["L1 -> L2"] == 872
+        assert named["L2 -> L3"] == 266
+        # The whole sensory boundary reaches the core through 266 numbers a
+        # tick: a 46:1 squeeze at a single cut. It was 2_120 / 280 / 80 and
+        # 154:1 before #474, then 210 / 60 and 205:1 after it; #548 widened it
+        # to 392 / 118 and 104:1 by allocating interior lanes per edge. #562
+        # widened it again, and by a different mechanism: the budget these
+        # lanes are allocated under went `n - 1` to `2n - 1`, which #540 ruled
+        # and #548 could not ship while the same number was also supplying
+        # privacy. The taper's capacities are set by m (ADR-0030), so every one
+        # of these numbers is the arithmetic of a lane ruling rather than a
+        # separate finding.
+        assert round(named["render"] / named["L2 -> L3"]) == 46
 
     def test_euler_characteristic(self, dome):
         chi = dome.euler_characteristic
@@ -317,11 +339,12 @@ class TestRecordedDiagnostics:
         # Measured, and now what the record carries. What is load-bearing about
         # chi is its invariance under *learning*, not its value -- so a
         # construction change moves it freely: #474 moved it from +1036 to
-        # +2505 by narrowing both lane widths, and #548 moved it to here by
-        # allocating the interior ones per edge. The old +980/+1096 band was an
-        # estimate retired in favour of the measurement at (4, 8) and does not
-        # travel to this surface.
-        assert chi == 2323
+        # +2505 by narrowing both lane widths, #548 moved it to +2323 by
+        # allocating the interior ones per edge, and #562 moved it to here by
+        # doubling the budget those lanes are allocated under. The old
+        # +980/+1096 band was an estimate retired in favour of the measurement
+        # at (4, 8) and does not travel to this surface.
+        assert chi == 939
 
     def test_the_node_term_is_predicting_cells_and_the_edge_term_is_all_edges(
         self, dome
@@ -333,111 +356,127 @@ class TestRecordedDiagnostics:
         )
         assert boundary_incident == 1_068  # 265 x 4 sensorimotor, 8 x 1 drive
         # Dropping the boundary edges as well as the boundary nodes is the wrong
-        # computation the record corrects; it gives +3391 against the +2323 this
+        # computation the record corrects; it gives +2007 against the +939 this
         # graph carries. The gap narrowed when #474 halved the boundary lanes --
-        # it read +3164 against +1036 before -- and it is unmoved by #548, which
-        # reallocated interior lanes only and left every boundary lane at 4.
-        assert dome.euler_characteristic + boundary_incident == 3_391
+        # it read +3164 against +1036 before -- and the *gap itself* is unmoved
+        # by #548 and #562 alike, both of which touched interior lanes only and
+        # left every boundary lane at 4. It is the same 1_068 either side.
+        assert dome.euler_characteristic + boundary_incident == 2_007
 
-    def test_private_dimension_gradient(self, dome):
+    def test_the_private_dimension_is_flat_and_there_is_no_gradient(self, dome):
+        """#556's ruling, and the whole of what the reserve mask changes.
+
+        This test asserted a *gradient* until #562: 9 / 8 / 7 across the L1
+        vision lattice by degree, 1-3 through the deep core, 11-15 at the apex.
+        There is no gradient now. A predicting cell withholds its trailing
+        `p` directions from **every** incident edge, so `p_v = p` at all 150 of
+        them whatever their degree and whatever their lanes sum to.
+
+        **That is a better guarantee and a worse gradient, and both halves are
+        the record.** Better, because `p_v` no longer depends on the allocation
+        at all -- it was a residual of `n - sum_e m_e`, so any lane ruling moved
+        it, and #548's reallocation moved it 1278 -> 914 without anyone
+        choosing that. Worse, because the graded column is gone, and
+        `05-timescales.md` wanted the grading for slow state living deep.
+
+        **Nothing supplies that grading now, and nothing did.** #572 measured
+        it: `level` predicts none of the timescale statistics, the apex is the
+        *fastest* place in the graph, and training drives it there. So this is
+        not a gradient the reserve spent -- it is one the record credited to a
+        mechanism that was never delivering it. #594 carries the candidate
+        replacement.
+        """
+
         def dims(cell_ids):
             rows = {dome.predicting.index(i) for i in cell_ids}
             return {int(dome.private_dimensions[r]) for r in rows}
 
-        # Nowhere zero since #474, and the floor `p_v >= 1` survives #548's
-        # reallocation at every cell -- `sum_e m_e <= privacy_budget` is what
-        # both rulings are derived from, and #548 changed how the budget is
-        # spent rather than what it is.
-        #
-        # **The gradient inverted, and that is the ruling, not a side effect.**
-        # The L1 vision cells read 9 / 8 / 7 by degree 7 / 8 / 9 where they read
-        # 7 / 4 / 1 before: the rim gained the privacy that `lateral_m` freed.
-        # The deep core paid for it -- L4-L6 fall from a flat 14 to 1-3, because
-        # a uniform interior_m left them idling 13 of their 31 and the
-        # allocation spends it. Idle budget was privacy; it is now lane width.
-        assert dims(_by_level(dome, 1, "vision")) == {7, 8, 9}
-        assert dims(_by_level(dome, 1, "somatomotor")) == {1, 5, 10, 14}
+        p = DEFAULT_SPEC.private_reserve
+        for level, column in (
+            (1, "vision"),
+            (1, "somatomotor"),
+            (2, "vision"),
+            (2, "somatomotor"),
+            (3, "core"),
+            (4, "core"),
+            (5, "core"),
+            (6, "core"),
+            (APEX_LEVEL, "core"),
+        ):
+            assert dims(_by_level(dome, level, column)) == {p}
 
-        side = DEFAULT_SPEC.vision_sides[-1]
-        corners = [
-            i
-            for i in _by_level(dome, 2, "vision")
-            if all(p in (0, side - 1) for p in dome.cells[i].index.position)
-        ]
-        assert len(corners) == 4
-        assert dims(corners) == {5}
+        # The apex is no longer distinguishable by this column, and it was the
+        # one cell group the old gradient was clearest about. It still loses
+        # its up-edges by construction -- that shows in `sum_e m_e`, which is
+        # now a capacity reading rather than a privacy one.
+        apex_sums = {dome.stalk_sums[i] for i in _by_level(dome, APEX_LEVEL, "core")}
+        assert max(apex_sums) < DEFAULT_SPEC.capacity_budget
 
-        # The core is no longer flat. A uniform interior_m gave every L3-L6 cell
-        # the same 14 because every one of them had the same degree; the
-        # allocation gives each the width its own neighbourhood can afford, and
-        # L3 -- which borders the constrained L2 above it -- keeps the most.
-        assert dims(_by_level(dome, 3, "core")) == {1, 4, 10, 11, 12}
-        assert dims(_by_level(dome, 4, "core")) == {1, 2, 3}
-        assert dims(_by_level(dome, 5, "core")) == {1, 2, 3}
-        assert dims(_by_level(dome, 6, "core")) == {1, 2}
-        # The apex keeps the graph's deepest privacy, which is what the
-        # private-dimension gradient was always for: it loses its up-edges by
-        # construction, so it has the fewest lanes to fund.
-        assert dims(_by_level(dome, APEX_LEVEL, "core")) == {11, 15}
-
-    def test_the_l2_somatomotor_cells_are_not_in_the_recorded_table(self, dome):
-        # Measured and reported rather than transcribed: the record's table has
-        # rows for the vision lattices, the core and the apex. Four cells sit
-        # outside it -- the L2 somatomotor column, a four-cell level whose
-        # degree the taper cannot lift. They used to carry *more* structural
-        # privacy than the L2 vision corners; since #548 they carry less, for
-        # the same reason the core does: low degree is now spent on lane width
-        # rather than banked as privacy.
+    def test_the_l2_somatomotor_cells_read_the_same_as_everything_else(self, dome):
+        # The record's table has rows for the vision lattices, the core and the
+        # apex, and four cells sit outside it -- the L2 somatomotor column, a
+        # four-cell level whose degree the taper cannot lift. Whether they are
+        # in the table used to matter, because they carried a different private
+        # width from every row in it (more than the L2 vision corners before
+        # #548, less after). Since #562 they carry `p`, like everything else,
+        # and the table's omission of them costs the reader nothing.
         rows = {dome.predicting.index(i) for i in _by_level(dome, 2, "somatomotor")}
-        assert {int(dome.private_dimensions[r]) for r in rows} == {1, 2}
+        assert {int(dome.private_dimensions[r]) for r in rows} == {
+            DEFAULT_SPEC.private_reserve
+        }
 
     def test_the_whole_private_dimension_distribution(self, dome):
         # The per-group table is a range table, so it can read unmoved while the
         # cells behind it move. This pins every cell.
         #
-        # **No cell reads zero.** It was {0: 82, 4: 4, 8: 54, 12: 2, 15: 8},
-        # summing to 592, until #474 set (interior_m, boundary_m) = (3, 4) from
-        # `sum_e m_e <= n - 1`; #474's own distribution summed to 1278 with a
-        # spike of 36 cells at the floor. #548 reallocated per edge and the
-        # shape changed twice over: the spike at 1 is smaller (17, not 36), the
-        # mass moved to 7 and 8 where the rim now sits, and the total fell to
-        # 914 because idle budget in the core became lane width.
+        # **The distribution is one bar.** It was {0: 82, 4: 4, 8: 54, 12: 2,
+        # 15: 8}, summing to 592, until #474 set (interior_m, boundary_m) =
+        # (3, 4) from `sum_e m_e <= n - 1`; #474's own distribution summed to
+        # 1278 with a spike of 36 cells at the floor; #548 reallocated per edge
+        # and it summed to 914 across thirteen distinct values. #562 collapses
+        # it to a single value at every cell.
         #
-        # **The total is the price of #540's levers (d) and (c1), and it is the
-        # number to watch if the invariant is ever revisited.** 914 against
-        # 1278 is a 28% cut in the guaranteed floor for a composed rank going
-        # 1.028 -> 1.341 generic. Lever (d) without (c1) would have cost 414.
+        # **The total is 1800 = 150p, and it is an equality rather than a
+        # bound.** The old floor was `sum_v max(0, n - sum_e m_e)`, an
+        # inequality that happened to be tight; this one is `sum_v p`, exact
+        # and independent of every lane width in the graph. It is also the
+        # highest the floor has ever read -- 1800 against 914 shipped, and
+        # against the 54 that #540's doubling would have left under the union
+        # mask, which is why #548 declined to ship the doubling and #562 can.
         histogram = Counter(int(v) for v in dome.private_dimensions)
-        assert dict(sorted(histogram.items())) == {
-            1: 17,
-            2: 18,
-            3: 12,
-            4: 10,
-            5: 5,
-            7: 36,
-            8: 24,
-            9: 4,
-            10: 8,
-            11: 8,
-            12: 2,
-            14: 2,
-            15: 4,
-        }
-        assert min(histogram) == 1
-        assert int(dome.private_dimensions.sum()) == 914
+        assert dict(histogram) == {DEFAULT_SPEC.private_reserve: 150}
+        assert int(dome.private_dimensions.sum()) == 1_800
+        assert (
+            int(dome.private_dimensions.sum())
+            == len(dome.predicting) * DEFAULT_SPEC.private_reserve
+        )
 
     def test_the_bound_is_met_with_equality_by_the_mask(self, dome):
+        """The mask still meets a bound exactly -- a different one.
+
+        It used to meet `max(0, n - sum_e m_e)`, the union bound, which the
+        mask made structural by permitting the leading `min(n, sum_e m_e)`
+        directions. Since #556 the mask reserves `p` outright, so what it meets
+        with equality is `p` itself, and `sum_e m_e` has dropped out of the
+        statement. The old bound is superseded rather than violated -- it still
+        holds, since `p >= max(0, n - sum_e m_e)` at every cell on this dome --
+        and this asserts both, so the supersession is visible rather than
+        asserted in prose alone.
+        """
         for row, cell_id in enumerate(dome.predicting):
-            expected = max(0, 32 - dome.stalk_sums[cell_id])
-            assert int(dome.private_dimensions[row]) == expected
+            private = int(dome.private_dimensions[row])
+            assert private == DEFAULT_SPEC.private_reserve
+            assert private >= max(0, 32 - dome.stalk_sums[cell_id])
 
     def test_report_prints_the_numbers(self, dome):
         text = dome.report()
         for fragment in (
             "150 predicting, 264 boundary",
-            "chi = +2323",
-            "12,288 -> 1,060 -> 392 -> 118",
+            "chi = +939",
+            "12,288 -> 1,060 -> 872 -> 266",
             "interior m: allocated per edge",
+            "private reserve p = 12",
+            "dim H^0 >= 1800",
             "guaranteed private dimension",
         ):
             assert fragment in text
@@ -572,26 +611,32 @@ class TestConstruction:
         pairs = [(min(e.u, e.v), max(e.u, e.v)) for e in dome.edges]
         assert len(set(pairs)) == len(pairs)
 
-    def test_halving_the_core_keeps_the_recorded_gradient(self):
+    def test_halving_the_core_keeps_the_degree_targets_and_the_floor(self):
         # Halving the core is a construction-parameter change, not a code change
         # (docs/spec/06-graph-topology.md, "Why 150 and not 500"), and it is one
         # of the two conditions of the falsification sweep. The degree targets
-        # and so the private-dimension step have to survive it.
+        # have to survive it.
         halved = build_graph(DomeSpec(core_sizes=(8, 7, 6, 5, 4)))
         assert len(halved.predicting) == 120
         assert len(halved.boundary) == 264
-        assert dict(halved.cut_capacities)["L2 -> L3"] == 104
+        assert dict(halved.cut_capacities)["L2 -> L3"] == 236
         for level in range(3, APEX_LEVEL):
             assert {halved.degrees[i] for i in _by_level(halved, level, "core")} == {6}
         apex = _by_level(halved, APEX_LEVEL, "core")
         assert {halved.degrees[i] - 1 for i in apex} == {4}
+        # This used to be the sharpest statement of what #548 changed: the
+        # apex read the same 11 / 15 on a halved core as on the full dome,
+        # because private dimension was a function of the cell's own
+        # neighbourhood rather than of a global constant. Since #562 it is a
+        # function of neither -- it is `p`, on every cell of every dome -- so
+        # the sweep's question is answered trivially and the interesting
+        # invariance moved to `dim H^0`, which is now `p` per predicting cell
+        # exactly and so scales with the cell count rather than with the
+        # widths.
         rows = {halved.predicting.index(i) for i in apex}
-        # The apex reads the same 11 / 15 as the full dome does, which is the
-        # point of the sweep: since #548 the private dimension is a function of
-        # the cell's own neighbourhood rather than of a global constant, so
-        # halving the core has to leave the apex's neighbourhood alone -- and
-        # it does.
-        assert {int(halved.private_dimensions[r]) for r in rows} == {11, 15}
+        p = halved.spec.private_reserve
+        assert {int(halved.private_dimensions[r]) for r in rows} == {p}
+        assert int(halved.private_dimensions.sum()) == 120 * p
 
     def test_a_core_level_that_cannot_hold_its_degree_is_refused(self):
         # Rather than built and reported: the guaranteed private dimension is
