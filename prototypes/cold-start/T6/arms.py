@@ -1,47 +1,47 @@
-"""T6 (#555): the two arms [B12/#556](#556) ruled, built on the **shipped** spec.
+"""T6 (#555): the arms [B12/#556](#556) ruled — now **on** the shipped spec, not beside it.
 
-.. warning::
+**Ported on [B38](#599) to the surface #597 shipped.** #555 wrote this module
+while #556's ruling was still a decision the map had not written, so the rig
+carried its own copy of the ruling: a parameterised allocator and a
+`dataclasses.replace` that stamped the reserve mask onto a built `Dome`.
+[B15/#562](#562), landed by [#597](#597), wrote that ruling into
+`src/patchworks/graph.py`, and the fake and the real have swapped places:
 
-   **This rig is pinned to the pre-#562 surface and no longer runs against
-   `main`.** [#562](#562) wrote #556's ruling into `src/patchworks/graph.py`:
-   `DomeSpec.privacy_budget` is now `capacity_budget` and defaults to `2n − 1`,
-   `DomeSpec.private_reserve` carries `p = 12`, and `_assemble` applies the
-   reserve mask itself. So every reference to `spec.privacy_budget` below is a
-   stale attribute, and — more importantly — **the arms would stop meaning what
-   they say**: `build_arm("shipped")` would build a dome that already carries
-   the reserve, and `apply_reserve` would be re-masking an already-masked dome.
+* `DomeSpec.privacy_budget` is gone. The capacity bound is
+  `DomeSpec.capacity_budget`, defaulting to `2n − 1 = 63` — #540's doubling,
+  which #548 held and #556 unblocked.
+* `DomeSpec.private_reserve` is new and defaults to `CHART_DIM = 12`. It is
+  #556's `p`, and `Dome._assemble` now applies the reserve mask itself:
+  `k_v = n − p` at every predicting cell, boundary cells untouched.
+* `allocate_lane_widths` now caps an interior lane at `n − spec.private_reserve`
+  natively, which is exactly what this module's `allocate_capped` existed to do.
 
-   This is deliberate and follows the #455 rule (*a rig's data ages with
-   `main`; name the surface*). The surface these readings were taken on is
-   `main` **before** #562, and the JSON beside this file is that surface's.
-   The rig is left pinned rather than ported, because porting it would silently
-   change what every recorded arm measured. Anything re-reading these arms on
-   the current surface needs a new rig and should say so.
+So **the reserve arms are no longer a rig construction at all** — `reserve_p<N>`
+is `replace(spec, private_reserve=N)` and a plain `build_graph`. The rig's own
+allocator and its `apply_reserve` are deleted rather than repaired: calling the
+shipped allocator directly is strictly stronger than asserting a copy of it
+agrees, which is all `check_allocator_matches_shipped` ever bought.
 
-#555 was opened to build [#540](#540)'s stack. While it was being worked,
-[B8/#548](#548) shipped levers (d) and (c1) into `src/patchworks/graph.py` —
-`allocate_lane_widths`, `DomeSpec.lateral_m`, `DomeSpec.privacy_budget` — and
-**held** lever (b), the doubled invariant, because at budget 63 the guaranteed
-private dimension `max(0, n − Σ_e m_e)` reads zero at most cells. #556 then ruled
-that collision, and its ruling turns this ticket into **two arms**:
+**What is left of the rig-side masking is the inverse of what was there.** The
+`shipped` and `doubling` arms run the **union** mask, `k_v = min(n, Σ_e m_e)`,
+which #556 retired and #597 removed from `src/`. They are kept, and only kept,
+so this map's pre-#556 readings stay reproducible; :func:`apply_union` is the
+one `dataclasses.replace` left in this file and it reconstructs a **retired**
+surface rather than standing in for an unwritten ruling.
 
-* **doubling** — `privacy_budget = 63`, mask unchanged (`k_v = min(n, Σ_e m_e)`).
-  #540's stack exactly as written. Buys lane width by spending privacy.
-* **reserve** — `privacy_budget = 63`, mask `k_v = n − p` with `p = 8`. #556's
-  ruling. `Σ_e m_e ≤ n − 1` never enforced *distinct* lanes — `_assemble` permits
-  the same leading block on every incident edge — so privacy and lane capacity
-  were welded by one line. Unwelded, both rise together: reserving `p` narrows
-  `k_v` at fixed `m`, and composed rank is driven by `m / k_v`.
+The arms, per #455's name-the-surface rule:
 
-Both arms keep per-edge `m_e` and laterals at `m = 1`, and both sit at budget 63
-— one change at a time, and 63 is the number #540 already ruled.
+* **shipped** — *historical*. `capacity_budget = n − 1 = 31`, union mask. The
+  surface before #548. Not what `main` builds today.
+* **doubling** — *historical*. `capacity_budget = 63`, union mask. #540's stack
+  as written, which #548 declined to ship because the union mask read
+  `p_v = 0` at 104 of 150 predicting cells.
+* **reserve_p<N>** — *live*. `capacity_budget = 63`, `private_reserve = N`.
+  Built by `src/` unmodified. `reserve` is the #555 alias at `p = 8`.
 
-**Nothing here edits `src/`.** #555's notes say *build the stack on the rig, not
-on the live surface*, and #556's ruling is a decision the map has not yet written.
-The reserve mask is applied to a built `Dome` by `dataclasses.replace`, and the
-lane cap by :func:`allocate_capped`, which is `graph.allocate_lane_widths` with
-its ceiling parameterised — :func:`check_allocator_matches_shipped` asserts the
-two agree exactly at `cap = n`, so the rig cannot drift from what shipped.
+**`reserve_p12` is what `main` builds.** `DomeSpec()` with nothing overridden is
+`reserve_p12`, so that arm is no longer a variant — it is the shipped dome, and
+every other arm here is a deliberate departure from it.
 
 Usage::
 
@@ -82,114 +82,51 @@ angles = _load("t4_angles", _T4 / "angles.py")
 t4_trained = _load("t4_trained", _T4 / "trained.py")
 
 import construction_grading as cg  # noqa: E402
-from patchworks import graph as G  # noqa: E402
 from patchworks.agent import Agent  # noqa: E402
+from patchworks.body import CHART_DIM  # noqa: E402
 from patchworks.graph import (  # noqa: E402
     NODE_STALK_DIM,
     Dome,
     EdgeKind,
-    allocate_lane_widths,
     build_graph,
 )
 from patchworks.sandbox import PlanarPushSandbox  # noqa: E402
 from untrained_fixed_point import IMAGE_SIZE, dome_named  # noqa: E402
 
-#: #556's reserve size. Its construction figures are read at `p = 8`.
+#: #556's reserve size as #555 first read it. **Not the shipped value** — since
+#: #597 that is `DomeSpec.private_reserve`, `= CHART_DIM = 12`, on #560's
+#: derivation. Kept so the `reserve` alias still names the arm #555 built.
 RESERVE_P = 8
-#: #540's doubled invariant, which #548 held and #556 ruled on.
+#: #540's doubled invariant. Since #597 this is `DomeSpec.capacity_budget`'s
+#: own default, so the reserve arms no longer have to set it.
 BUDGET = 2 * NODE_STALK_DIM - 1
+#: The pre-#548 capacity bound, which only the `shipped` arm still runs.
+LEGACY_BUDGET = NODE_STALK_DIM - 1
+#: What `main` builds with nothing overridden.
+SHIPPED_P = CHART_DIM
 
 
-# -- the allocation, with the ceiling made a parameter -------------------------
+# -- the retired union mask ---------------------------------------------------
 
 
-def allocate_capped(cells, edges, spec, cap: int):
-    """`graph.allocate_lane_widths` with its lane ceiling parameterised.
+def apply_union(dome: Dome) -> Dome:
+    """Put a built dome back on the **union** mask `_assemble` used before #556.
 
-    The shipped rule caps a lane at `NODE_STALK_DIM`, because a lane can carry no
-    more than the node stalk it reads from. Under #556's reserve the readable
-    block is `n − p`, not `n`, so the same reasoning caps a lane at `n − p`:
-    #556 measured **2 of 682** edges affected at budget 63, `p = 8`, and its
-    construction figures already have this cap applied.
+    The inverse of what this file used to hold. Pre-#556 `_assemble` read
+    `permitted = min(c.stalk, stalk_sums[c.id])` at a predicting cell, so the
+    readable block was whatever the incident lanes happened to sum to and the
+    private width was the residual `max(0, n − Σ_e m_e)`. #597 replaced that
+    with the flat reserve, so reconstructing it is now the rig's job.
 
-    Everything else is `allocate_lane_widths` verbatim, and
-    :func:`check_allocator_matches_shipped` asserts it.
+    Used **only** by the `shipped` and `doubling` arms, which exist to keep this
+    map's pre-#556 readings reproducible. Nothing live runs through here.
+
+    A boundary cell is untouched, as in `_assemble` then and now.
     """
-    incident: list[list[int]] = [[] for _ in cells]
-    for e in edges:
-        incident[e.u].append(e.id)
-        incident[e.v].append(e.id)
-
-    budgeted = {c.id for c in cells if not c.is_boundary}
-    level = {c.id: c.index.level for c in cells}
-
-    width: dict[int, int] = {}
-    for e in edges:
-        if e.kind is not EdgeKind.INTERIOR:
-            width[e.id] = e.m
-        elif level[e.u] == level[e.v]:
-            width[e.id] = spec.lateral_m
-
-    remaining = {v: spec.privacy_budget for v in budgeted}
-    for v in budgeted:
-        for eid in incident[v]:
-            if eid in width:
-                remaining[v] -= width[eid]
-    unsized = {e.id for e in edges if e.id not in width}
-
-    while unsized:
-        offer = {}
-        for v in budgeted:
-            free = [i for i in incident[v] if i in unsized]
-            if free:
-                offer[v] = remaining[v] // len(free)
-        ceiling = {}
-        for eid in unsized:
-            e = edges[eid]
-            bids = [offer[x] for x in (e.u, e.v) if x in offer]
-            ceiling[eid] = min(bids + [cap])
-        lowest = min(ceiling.values())
-        for eid in [i for i in unsized if ceiling[i] == lowest]:
-            width[eid] = lowest
-            for v in (edges[eid].u, edges[eid].v):
-                if v in remaining:
-                    remaining[v] -= lowest
-            unsized.discard(eid)
-
-    return tuple(
-        e if e.kind is not EdgeKind.INTERIOR else replace(e, m=width[e.id]) for e in edges
-    )
-
-
-def check_allocator_matches_shipped(spec) -> None:
-    """The rig's allocator must be the shipped one at `cap = n`, or nothing holds."""
-    b = G._Builder(spec)
-    G._lay_out(b) if hasattr(G, "_lay_out") else None
-    dome = build_graph(spec)
-    cells, edges = list(dome.cells), list(dome.edges)
-    bare = [replace(e, m=0) if e.kind is EdgeKind.INTERIOR else e for e in edges]
-    shipped = allocate_lane_widths(cells, bare, spec)
-    mine = allocate_capped(cells, bare, spec, cap=NODE_STALK_DIM)
-    if tuple(e.m for e in shipped) != tuple(e.m for e in mine):
-        raise AssertionError("rig allocator has drifted from graph.allocate_lane_widths")
-
-
-# -- the reserve mask ---------------------------------------------------------
-
-
-def apply_reserve(dome: Dome, p: int) -> Dome:
-    """#556's one-line change, applied to a built dome rather than to `src/`.
-
-    `_assemble` line 813: `min(c.stalk, stalk_sums[c.id])` -> `c.stalk - p`. A
-    predicting cell exposes its leading `n − p` directions on **every** incident
-    edge and keeps the trailing `p` off all of them, so `p_v = p` at every cell
-    whatever the lanes sum to. Lane *dimensions* stop summing to distinct
-    *directions*, which is exactly what makes the budget and the floor
-    independent.
-
-    A boundary cell is untouched, as in `_assemble`.
-    """
-    permitted = [c.stalk if c.is_boundary else c.stalk - p for c in dome.cells]
+    permitted = [
+        c.stalk if c.is_boundary else min(c.stalk, dome.stalk_sums[c.id])
+        for c in dome.cells
+    ]
     mask = torch.ones((len(dome.predicting), NODE_STALK_DIM), dtype=torch.bool)
     for row, cell_id in enumerate(dome.predicting):
         mask[row, : permitted[cell_id]] = False
@@ -199,10 +136,10 @@ def apply_reserve(dome: Dome, p: int) -> Dome:
 # -- the arms -----------------------------------------------------------------
 
 ARMS = {
-    # label: (privacy_budget, reserve p or None)
-    "shipped": (NODE_STALK_DIM - 1, None),
-    "doubling": (BUDGET, None),
-    "reserve": (BUDGET, RESERVE_P),
+    # label: (capacity_budget, reserve p, mask policy)
+    "shipped": (LEGACY_BUDGET, None, "union"),
+    "doubling": (BUDGET, None, "union"),
+    "reserve": (BUDGET, RESERVE_P, "reserve"),
 }
 
 #: [B13](#560) sweeps `p`. `reserve` above is `p = 8` and stays as #555 wrote it;
@@ -211,28 +148,31 @@ ARMS = {
 #: `p = 0` is the reserve *policy* at zero reserve — `k_v = n`, no private block —
 #: which is not the same object as the `union` policy the doubling arm runs.
 for _p in range(0, NODE_STALK_DIM - 3):
-    ARMS.setdefault(f"reserve_p{_p}", (BUDGET, _p))
+    ARMS.setdefault(f"reserve_p{_p}", (BUDGET, _p, "reserve"))
+
+
+def spec_for(arm: str):
+    """The `DomeSpec` this arm is, on shipped fields.
+
+    For a reserve arm this is the whole of the arm: `src/` builds it unmodified.
+    For a union arm it is the build, and :func:`apply_union` then puts the mask
+    back. `private_reserve = 0` on a union arm is not that arm's privacy policy —
+    it is how the shipped allocator is told to cap a lane at `n`, which is what
+    the pre-#556 allocator did.
+    """
+    budget, p, policy = ARMS[arm]
+    base, _ = dome_named("real")
+    return replace(base, capacity_budget=budget, private_reserve=0 if p is None else p)
 
 
 def build_arm(arm: str, seed: int, split: str = "train"):
-    """Build one arm on the shipped spec."""
-    budget, p = ARMS[arm]
-    base, _ = dome_named("real")
-    spec = replace(base, privacy_budget=budget)
-    check_allocator_matches_shipped(spec)
+    """Build one arm. Reserve arms are `src/` verbatim; union arms are remasked."""
+    _, p, policy = ARMS[arm]
+    dome = build_graph(spec_for(arm))
+    if policy == "union":
+        dome = apply_union(dome)
 
-    if p is None:
-        dome = build_graph(spec)
-    else:
-        # Rebuild with the lane cap at `n - p`, then reserve the block.
-        proto = build_graph(spec)
-        bare = [
-            replace(e, m=0) if e.kind is EdgeKind.INTERIOR else e for e in proto.edges
-        ]
-        edges = allocate_capped(list(proto.cells), bare, spec, cap=NODE_STALK_DIM - p)
-        dome = apply_reserve(Dome._assemble(spec, proto.cells, tuple(edges)), p)
-
-    env = PlanarPushSandbox(split=split, image_size=IMAGE_SIZE[spec.patch_grid])
+    env = PlanarPushSandbox(split=split, image_size=IMAGE_SIZE[dome.spec.patch_grid])
     agent = Agent(env, dome=dome, generator=torch.Generator().manual_seed(seed))
     return env, agent
 
@@ -249,10 +189,10 @@ def privacy_read(dome, p: int | None) -> dict:
     return {
         "policy": "reserve" if p is not None else "union",
         "reserve_p": p,
-        "budget": int(dome.spec.privacy_budget),
+        "budget": int(dome.spec.capacity_budget),
         "sum_m_median": float(np.median(sums)),
         "sum_m_max": float(sums.max()),
-        "violations": int((sums > dome.spec.privacy_budget).sum()),
+        "violations": int((sums > dome.spec.capacity_budget).sum()),
         "k_v_median": float(np.median(perm)),
         "k_v_max": float(perm.max()),
         "private_dim_min": float(private.min()),
@@ -321,7 +261,7 @@ def main() -> None:
 
     record = {"issue": 555, "reading": "#556's two arms, on the shipped spec", "rows": []}
     for arm in args.arms:
-        _, reserve_p = ARMS[arm]
+        _, reserve_p, _policy = ARMS[arm]
         for seed in args.seeds:
             env, agent = build_arm(arm, seed)
             try:
