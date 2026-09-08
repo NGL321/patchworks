@@ -1,0 +1,331 @@
+{
+ "issue": 585,
+ "reading": "the ladder and the tension, checked on the algebra not the surface",
+ "flat_iff_equal": {
+  "n": 48,
+  "m": 12,
+  "hops": 6,
+  "equality_case_is_identity": true,
+  "theta_moves_identification": true,
+  "phi_moves_sigma_max": true,
+  "grid": [
+   {
+    "theta": 0.0,
+    "phi": 0.0,
+    "identification": 9.320136890490781e-16,
+    "sigma_max": 1.0000000000000022,
+    "flatness": 0.9999999999999948
+   },
+   {
+    "theta": 0.0,
+    "phi": 0.0001,
+    "identification": 6.957714758652017e-05,
+    "sigma_max": 1.000000000000002,
+    "flatness": 0.9999999999999968
+   },
+   {
+    "theta": 0.0,
+    "phi": 0.05,
+    "identification": 0.03483232087171482,
+    "sigma_max": 1.0000000000000027,
+    "flatness": 0.9999999999999953
+   },
+   {
+    "theta": 0.0,
+    "phi": 0.2,
+    "identification": 0.1391807557758668,
+    "sigma_max": 1.0000000000000029,
+    "flatness": 0.9999999999999957
+   },
+   {
+    "theta": 0.0,
+    "phi": 0.8,
+    "identification": 0.5148192880136285,
+    "sigma_max": 1.000000000000002,
+    "flatness": 0.9999999999999971
+   },
+   {
+    "theta": 0.0,
+    "phi": 1.5707963267948966,
+    "identification": 0.7964027814287066,
+    "sigma_max": 1.0000000000000013,
+    "flatness": 0.9999999999999977
+   },
+   {
+    "theta": 0.0001,
+    "phi": 0.0,
+    "identification": 1.3581650809209074e-15,
+    "sigma_max": 0.9999999700000037,
+    "flatness": 0.9999999999999953
+   },
+   {
+    "theta": 0.0001,
+    "phi": 0.0001,
+    "identification": 6.957714758679785e-05,
+    "sigma_max": 0.9999999700000027,
+    "flatness": 0.9999999999999953
+   },
+   {
+    "theta": 0.0001,
+    "phi": 0.05,
+    "identification": 0.0348323208717148,
+    "sigma_max": 0.9999999700000043,
+    "flatness": 0.9999999999999951
+   },
+   {
+    "theta": 0.0001,
+    "phi": 0.2,
+    "identification": 0.13918075577586697,
+    "sigma_max": 0.999999970000003,
+    "flatness": 0.9999999999999966
+   },
+   {
+    "theta": 0.0001,
+    "phi": 0.8,
+    "identification": 0.5148192880136289,
+    "sigma_max": 0.9999999700000022,
+    "flatness": 0.9999999999999977
+   },
+   {
+    "theta": 0.0001,
+    "phi": 1.5707963267948966,
+    "identification": 0.7964027814287065,
+    "sigma_max": 0.9999999700000021,
+    "flatness": 0.9999999999999979
+   },
+   {
+    "theta": 0.05,
+    "phi": 0.0,
+    "identification": 1.2353064390961391e-15,
+    "sigma_max": 0.9925249511044858,
+    "flatness": 0.9999999999999958
+   },
+   {
+    "theta": 0.05,
+    "phi": 0.0001,
+    "identification": 6.95771475870196e-05,
+    "sigma_max": 0.9925249511044858,
+    "flatness": 0.9999999999999958
+   },
+   {
+    "theta": 0.05,
+    "phi": 0.05,
+    "identification": 0.03483232087171485,
+    "sigma_max": 0.9925249511044854,
+    "flatness": 0.9999999999999962
+   },
+   {
+    "theta": 0.05,
+    "phi": 0.2,
+    "identification": 0.1391807557758669,
+    "sigma_max": 0.9925249511044851,
+    "flatness": 0.9999999999999964
+   },
+   {
+    "theta": 0.05,
+    "phi": 0.8,
+    "identification": 0.5148192880136285,
+    "sigma_max": 0.9925249511044846,
+    "flatness": 0.999999999999997
+   },
+   {
+    "theta": 0.05,
+    "phi": 1.5707963267948966,
+    "identification": 0.7964027814287065,
+    "sigma_max": 0.9925249511044841,
+    "flatness": 0.9999999999999974
+   },
+   {
+    "theta": 0.2,
+    "phi": 0.0,
+    "identification": 1.1833305906155944e-15,
+    "sigma_max": 0.8862035287688443,
+    "flatness": 0.9999999999999954
+   },
+   {
+    "theta": 0.2,
+    "phi": 0.0001,
+    "identification": 6.957714758669298e-05,
+    "sigma_max": 0.8862035287688441,
+    "flatness": 0.9999999999999967
+   },
+   {
+    "theta": 0.2,
+    "phi": 0.05,
+    "identification": 0.03483232087171476,
+    "sigma_max": 0.8862035287688443,
+    "flatness": 0.9999999999999957
+   },
+   {
+    "theta": 0.2,
+    "phi": 0.2,
+    "identification": 0.1391807557758667,
+    "sigma_max": 0.8862035287688438,
+    "flatness": 0.9999999999999959
+   },
+   {
+    "theta": 0.2,
+    "phi": 0.8,
+    "identification": 0.5148192880136285,
+    "sigma_max": 0.8862035287688433,
+    "flatness": 0.9999999999999977
+   },
+   {
+    "theta": 0.2,
+    "phi": 1.5707963267948966,
+    "identification": 0.7964027814287066,
+    "sigma_max": 0.8862035287688437,
+    "flatness": 0.9999999999999968
+   },
+   {
+    "theta": 0.4,
+    "phi": 0.0,
+    "identification": 1.1049990983750688e-15,
+    "sigma_max": 0.6105628059643295,
+    "flatness": 0.9999999999999957
+   },
+   {
+    "theta": 0.4,
+    "phi": 0.0001,
+    "identification": 6.957714758674914e-05,
+    "sigma_max": 0.61056280596433,
+    "flatness": 0.9999999999999954
+   },
+   {
+    "theta": 0.4,
+    "phi": 0.05,
+    "identification": 0.034832320871714825,
+    "sigma_max": 0.6105628059643298,
+    "flatness": 0.9999999999999969
+   },
+   {
+    "theta": 0.4,
+    "phi": 0.2,
+    "identification": 0.13918075577586675,
+    "sigma_max": 0.6105628059643299,
+    "flatness": 0.9999999999999954
+   },
+   {
+    "theta": 0.4,
+    "phi": 0.8,
+    "identification": 0.5148192880136285,
+    "sigma_max": 0.6105628059643293,
+    "flatness": 0.9999999999999971
+   },
+   {
+    "theta": 0.4,
+    "phi": 1.5707963267948966,
+    "identification": 0.7964027814287066,
+    "sigma_max": 0.6105628059643291,
+    "flatness": 0.9999999999999982
+   },
+   {
+    "theta": 0.8,
+    "phi": 0.0,
+    "identification": 9.656218977622428e-16,
+    "sigma_max": 0.11436679669223779,
+    "flatness": 0.9999999999999946
+   },
+   {
+    "theta": 0.8,
+    "phi": 0.0001,
+    "identification": 6.957714758696675e-05,
+    "sigma_max": 0.11436679669223764,
+    "flatness": 0.999999999999996
+   },
+   {
+    "theta": 0.8,
+    "phi": 0.05,
+    "identification": 0.03483232087171506,
+    "sigma_max": 0.11436679669223768,
+    "flatness": 0.9999999999999961
+   },
+   {
+    "theta": 0.8,
+    "phi": 0.2,
+    "identification": 0.13918075577586694,
+    "sigma_max": 0.11436679669223761,
+    "flatness": 0.9999999999999963
+   },
+   {
+    "theta": 0.8,
+    "phi": 0.8,
+    "identification": 0.5148192880136286,
+    "sigma_max": 0.11436679669223758,
+    "flatness": 0.9999999999999971
+   },
+   {
+    "theta": 0.8,
+    "phi": 1.5707963267948966,
+    "identification": 0.7964027814287066,
+    "sigma_max": 0.11436679669223757,
+    "flatness": 0.9999999999999973
+   }
+  ],
+  "claim": "H = I iff every lane around the cycle is the same subspace (theta = 0) AND the frames agree (phi = 0). The two failures are orthogonal: theta moves sigma_max only, phi moves identification only."
+ },
+ "rank_vs_flatness": {
+  "n": 48,
+  "m": 12,
+  "hops": 7,
+  "flat_by_construction": {
+   "composed_er": 11.999999999999998,
+   "identification": 1.3903396024414499e-15,
+   "sigma_max": 1.0000000000000022
+  },
+  "generic_lanes": {
+   "composed_er": 2.817062924893072,
+   "identification": 1.0153935250107953,
+   "sigma_max": 0.02012490994440393
+  },
+  "claim": "A flat sheaf has composed rank m, not 1 -- but it is flat only because every lane is the same lane, which is the degeneracy B12 named. Holonomy is a cycle property and composed rank a chain property; they are not one fact."
+ },
+ "ladder": {
+  "generators": 3,
+  "trials": 8,
+  "rows": [
+   {
+    "d": 6,
+    "trivial_fixed_dim": 6,
+    "abelian_fixed_dim_median": 0.0,
+    "abelian_fixed_dim_max": 0,
+    "abelian_commutator_max": 4.679350257772314e-16,
+    "non_abelian_fixed_dim_median": 0.0,
+    "non_abelian_fixed_dim_max": 0
+   },
+   {
+    "d": 7,
+    "trivial_fixed_dim": 7,
+    "abelian_fixed_dim_median": 1.0,
+    "abelian_fixed_dim_max": 1,
+    "abelian_commutator_max": 6.515049431133516e-16,
+    "non_abelian_fixed_dim_median": 0.0,
+    "non_abelian_fixed_dim_max": 0
+   },
+   {
+    "d": 12,
+    "trivial_fixed_dim": 12,
+    "abelian_fixed_dim_median": 0.0,
+    "abelian_fixed_dim_max": 0,
+    "abelian_commutator_max": 5.151746622521195e-16,
+    "non_abelian_fixed_dim_median": 0.0,
+    "non_abelian_fixed_dim_max": 0
+   },
+   {
+    "d": 13,
+    "trivial_fixed_dim": 13,
+    "abelian_fixed_dim_median": 1.0,
+    "abelian_fixed_dim_max": 1,
+    "abelian_commutator_max": 5.7408435966072e-16,
+    "non_abelian_fixed_dim_median": 0.0,
+    "non_abelian_fixed_dim_max": 0
+   }
+  ],
+  "verdict": {
+   "rung_trivial": "holds -- dim H^0 = d, and this is B26's citation",
+   "rung_abelian": "fails as stated -- a generic maximal torus fixes 0 directions in even d and 1 in odd d, not a partial subspace. Simultaneous eigenbasis over C is not surviving directions over R.",
+   "rung_non_abelian": "fails as stated -- a generic subgroup fixes 0 directions, not 1. 'One invariant direction' is a property of one odd-dimensional rotation, not of a group.",
+   "punchline": "'non-abelian holonomy' and 'composed rank 1' are therefore NOT the same fact; see check_rank_vs_flatness."
+  }
+ }
+}
