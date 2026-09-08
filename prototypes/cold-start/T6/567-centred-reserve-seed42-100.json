@@ -1,0 +1,2671 @@
+{
+ "issue": 567,
+ "arm": "reserve",
+ "reserve_p": 8,
+ "seed": 42,
+ "ticks": 100,
+ "n": 32,
+ "relay_cells": 142,
+ "question": "B16's traffic rank is an uncentred second moment; a settled baseline reads rank one whatever the rank of the variation. This records both moments over the same window.",
+ "checkpoints": [
+  {
+   "ticks": 0,
+   "frames": 1,
+   "er_uncentred": {
+    "min": 0.0,
+    "p10": 0.0,
+    "median": 0.0,
+    "mean": 0.0,
+    "p90": 0.0,
+    "max": 0.0
+   },
+   "er_centred": {
+    "min": 0.0,
+    "p10": 0.0,
+    "median": 0.0,
+    "mean": 0.0,
+    "p90": 0.0,
+    "max": 0.0
+   },
+   "mean_share": {
+    "min": 0.0,
+    "p10": 0.0,
+    "median": 0.0,
+    "mean": 0.0,
+    "p90": 0.0,
+    "max": 0.0
+   },
+   "mu_energy": {
+    "min": 0.0,
+    "p10": 0.0,
+    "median": 0.0,
+    "mean": 0.0,
+    "p90": 0.0,
+    "max": 0.0
+   },
+   "tr_cov": {
+    "min": 0.0,
+    "p10": 0.0,
+    "median": 0.0,
+    "mean": 0.0,
+    "p90": 0.0,
+    "max": 0.0
+   },
+   "pooled": {
+    "er_uncentred": 0.0,
+    "er_centred": 0.0
+   },
+   "cells": [
+    {
+     "cell": 263,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 264,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 265,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 266,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 267,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 268,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 269,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 270,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 271,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 272,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 273,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 274,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 275,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 276,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 277,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 278,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 279,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 280,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 281,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 282,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 283,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 284,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 285,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 286,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 287,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 288,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 289,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 290,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 291,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 292,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 293,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 294,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 295,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 296,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 297,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 298,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 299,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 300,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 301,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 302,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 303,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 304,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 305,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 306,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 307,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 308,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 309,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 310,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 311,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 312,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 313,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 314,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 315,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 316,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 317,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 318,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 319,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 320,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 321,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 322,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 323,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 324,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 325,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 326,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 327,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 328,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 329,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 330,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 331,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 332,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 333,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 334,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 335,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 336,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 337,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 338,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 339,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 340,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 341,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 342,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 343,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 344,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 345,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 346,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 347,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 348,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 349,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 350,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 351,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 352,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 353,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 354,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 355,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 356,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 357,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 358,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 359,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 360,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 361,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 362,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 363,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 364,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 365,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 366,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 367,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 368,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 369,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 370,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 371,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 372,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 373,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 374,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 375,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 376,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 377,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 378,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 379,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 380,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 381,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 382,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 383,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 384,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 385,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 386,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 387,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 388,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 389,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 390,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 391,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 392,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 393,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 394,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 395,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 396,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 397,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 398,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 399,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 400,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 401,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 402,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 403,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    },
+    {
+     "cell": 404,
+     "k_v": 24,
+     "er_uncentred": 0.0,
+     "er_centred": 0.0,
+     "mu_energy": 0.0,
+     "tr_cov": 0.0,
+     "mean_share": 0.0
+    }
+   ],
+   "elapsed_minutes": 0.0035329381624857586
+  },
+  {
+   "ticks": 100,
+   "frames": 100,
+   "er_uncentred": {
+    "min": 1.007247339838652,
+    "p10": 1.0217275886027533,
+    "median": 1.0787752261956571,
+    "mean": 1.11648632568018,
+    "p90": 1.2673433691635638,
+    "max": 1.8045381715746984
+   },
+   "er_centred": {
+    "min": 1.0733326133061005,
+    "p10": 1.6597120395455316,
+    "median": 2.523539126757119,
+    "mean": 2.473347747095795,
+    "p90": 3.2707763427785683,
+    "max": 4.489301084390807
+   },
+   "mean_share": {
+    "min": 0.684882807744754,
+    "p10": 0.8758445126026041,
+    "median": 0.9540051102335253,
+    "mean": 0.9390179499754524,
+    "p90": 0.9866705093157678,
+    "max": 0.9943603439240618
+   },
+   "mu_energy": {
+    "min": 9.318490387775702,
+    "p10": 19.312678463194903,
+    "median": 33.49351001105701,
+    "mean": 35.04891062735209,
+    "p90": 50.27250757708749,
+    "max": 91.65769821638897
+   },
+   "tr_cov": {
+    "min": 0.1413473639846651,
+    "p10": 0.4197768531832475,
+    "median": 1.4479898558247024,
+    "mean": 2.223686051177174,
+    "p90": 4.82278438218566,
+    "max": 12.83273124955124
+   },
+   "pooled": {
+    "er_uncentred": 136.01040290720044,
+    "er_centred": 123.89273315649308
+   },
+   "cells": [
+    {
+     "cell": 263,
+     "k_v": 24,
+     "er_uncentred": 1.2914264474704362,
+     "er_centred": 2.050016559112063,
+     "mu_energy": 46.13312919644627,
+     "tr_cov": 8.122262701670133,
+     "mean_share": 0.8502957509380351
+    },
+    {
+     "cell": 264,
+     "k_v": 24,
+     "er_uncentred": 1.2120367995589552,
+     "er_centred": 2.941379108122456,
+     "mu_energy": 11.472773006555775,
+     "tr_cov": 1.3650006064327829,
+     "mean_share": 0.8936731050427817
+    },
+    {
+     "cell": 265,
+     "k_v": 24,
+     "er_uncentred": 1.699240494450138,
+     "er_centred": 1.0733326133061005,
+     "mu_energy": 27.027824112576763,
+     "tr_cov": 11.33460766451519,
+     "mean_share": 0.7045388642102811
+    },
+    {
+     "cell": 266,
+     "k_v": 24,
+     "er_uncentred": 1.0776405013414478,
+     "er_centred": 2.166041794020185,
+     "mu_energy": 45.36453933259451,
+     "tr_cov": 2.4921618069726263,
+     "mean_share": 0.9479244965150315
+    },
+    {
+     "cell": 267,
+     "k_v": 24,
+     "er_uncentred": 1.0839561859326696,
+     "er_centred": 2.506394749820202,
+     "mu_energy": 48.28724655735782,
+     "tr_cov": 2.9919863320372113,
+     "mean_share": 0.9416530598558158
+    },
+    {
+     "cell": 268,
+     "k_v": 24,
+     "er_uncentred": 1.086592209090616,
+     "er_centred": 3.062260925199334,
+     "mu_energy": 38.17819253030076,
+     "tr_cov": 2.0303451285507967,
+     "mean_share": 0.9495046264607478
+    },
+    {
+     "cell": 269,
+     "k_v": 24,
+     "er_uncentred": 1.0295110087023518,
+     "er_centred": 3.2708090190874626,
+     "mu_energy": 19.858938075698735,
+     "tr_cov": 0.3231473807908472,
+     "mean_share": 0.983988404890688
+    },
+    {
+     "cell": 270,
+     "k_v": 24,
+     "er_uncentred": 1.1545546992887021,
+     "er_centred": 1.506582583149096,
+     "mu_energy": 30.657429666188253,
+     "tr_cov": 3.529514988375688,
+     "mean_share": 0.8967583963984187
+    },
+    {
+     "cell": 271,
+     "k_v": 24,
+     "er_uncentred": 1.1271840145278007,
+     "er_centred": 1.3824123094449794,
+     "mu_energy": 32.347101543720775,
+     "tr_cov": 2.1557793093591036,
+     "mean_share": 0.9375188605688075
+    },
+    {
+     "cell": 272,
+     "k_v": 24,
+     "er_uncentred": 1.0759620399639205,
+     "er_centred": 2.6649256865263933,
+     "mu_energy": 73.69951226863463,
+     "tr_cov": 4.145309843668361,
+     "mean_share": 0.9467490613866634
+    },
+    {
+     "cell": 273,
+     "k_v": 24,
+     "er_uncentred": 1.061918559168095,
+     "er_centred": 3.0454666424444654,
+     "mu_energy": 45.51720845998951,
+     "tr_cov": 1.6164895392733396,
+     "mean_share": 0.9657041647931248
+    },
+    {
+     "cell": 274,
+     "k_v": 24,
+     "er_uncentred": 1.029491988327811,
+     "er_centred": 3.027513205771487,
+     "mu_energy": 35.654000257224965,
+     "tr_cov": 0.5814751168660769,
+     "mean_share": 0.9839528773705053
+    },
+    {
+     "cell": 275,
+     "k_v": 24,
+     "er_uncentred": 1.0378394584618131,
+     "er_centred": 3.399888349477706,
+     "mu_energy": 64.84926867387689,
+     "tr_cov": 1.5417981902013065,
+     "mean_share": 0.9767770234306098
+    },
+    {
+     "cell": 276,
+     "k_v": 24,
+     "er_uncentred": 1.209038778940166,
+     "er_centred": 1.7424566752853874,
+     "mu_energy": 45.261587524226776,
+     "tr_cov": 5.194693189996328,
+     "mean_share": 0.8970456578157573
+    },
+    {
+     "cell": 277,
+     "k_v": 24,
+     "er_uncentred": 1.1234026784330973,
+     "er_centred": 2.3533706704387196,
+     "mu_energy": 52.28681902621739,
+     "tr_cov": 5.287220628064066,
+     "mean_share": 0.9081665858464583
+    },
+    {
+     "cell": 278,
+     "k_v": 24,
+     "er_uncentred": 1.0431686787221073,
+     "er_centred": 1.6433660815894344,
+     "mu_energy": 22.653155721407682,
+     "tr_cov": 0.6289011224222861,
+     "mean_share": 0.9729877335735072
+    },
+    {
+     "cell": 279,
+     "k_v": 24,
+     "er_uncentred": 1.0309882964927661,
+     "er_centred": 2.9669519702552085,
+     "mu_energy": 22.37248028576479,
+     "tr_cov": 0.35453164628647676,
+     "mean_share": 0.9844004285584727
+    },
+    {
+     "cell": 280,
+     "k_v": 24,
+     "er_uncentred": 1.1121257521785126,
+     "er_centred": 1.982022670641932,
+     "mu_energy": 24.457103516394426,
+     "tr_cov": 1.38855638800046,
+     "mean_share": 0.9462750654022053
+    },
+    {
+     "cell": 281,
+     "k_v": 24,
+     "er_uncentred": 1.1173414809970859,
+     "er_centred": 1.5555502008724995,
+     "mu_energy": 36.555328971582234,
+     "tr_cov": 3.447180361697386,
+     "mean_share": 0.9138258969461812
+    },
+    {
+     "cell": 282,
+     "k_v": 24,
+     "er_uncentred": 1.0324997821924728,
+     "er_centred": 2.9961982626077783,
+     "mu_energy": 21.298076988311653,
+     "tr_cov": 0.36129629939013114,
+     "mean_share": 0.983319171123235
+    },
+    {
+     "cell": 283,
+     "k_v": 24,
+     "er_uncentred": 1.0475450655016645,
+     "er_centred": 3.1034736966064522,
+     "mu_energy": 35.805989584453464,
+     "tr_cov": 1.006456058216352,
+     "mean_share": 0.9726598969276371
+    },
+    {
+     "cell": 284,
+     "k_v": 24,
+     "er_uncentred": 1.0256746857624286,
+     "er_centred": 2.7415851436347514,
+     "mu_energy": 33.98143718501096,
+     "tr_cov": 0.4648023284756517,
+     "mean_share": 0.986506442066233
+    },
+    {
+     "cell": 285,
+     "k_v": 24,
+     "er_uncentred": 1.1320724958681263,
+     "er_centred": 2.68200396423984,
+     "mu_energy": 9.318490387775702,
+     "tr_cov": 0.6404140822161963,
+     "mean_share": 0.9356943241954084
+    },
+    {
+     "cell": 286,
+     "k_v": 24,
+     "er_uncentred": 1.0629088206415835,
+     "er_centred": 2.787784920184367,
+     "mu_energy": 23.139719379824577,
+     "tr_cov": 0.7881317816153348,
+     "mean_share": 0.9670621579724041
+    },
+    {
+     "cell": 287,
+     "k_v": 24,
+     "er_uncentred": 1.2831552834728224,
+     "er_centred": 2.1267350928258986,
+     "mu_energy": 24.289731358490602,
+     "tr_cov": 3.444972524805365,
+     "mean_share": 0.875788379089917
+    },
+    {
+     "cell": 288,
+     "k_v": 24,
+     "er_uncentred": 1.099359407766611,
+     "er_centred": 3.3015192588596216,
+     "mu_energy": 24.671960324628948,
+     "tr_cov": 1.2797453758737274,
+     "mean_share": 0.9506874272295351
+    },
+    {
+     "cell": 289,
+     "k_v": 24,
+     "er_uncentred": 1.1362060267387952,
+     "er_centred": 2.281319755549251,
+     "mu_energy": 20.811564172974055,
+     "tr_cov": 1.5065564460291645,
+     "mean_share": 0.9324962674166042
+    },
+    {
+     "cell": 290,
+     "k_v": 24,
+     "er_uncentred": 1.1361496254336507,
+     "er_centred": 3.369303819717113,
+     "mu_energy": 37.50281884071473,
+     "tr_cov": 2.8729507293249976,
+     "mean_share": 0.9288446818495608
+    },
+    {
+     "cell": 291,
+     "k_v": 24,
+     "er_uncentred": 1.0544501242756394,
+     "er_centred": 2.7300974163066103,
+     "mu_energy": 37.35877450319052,
+     "tr_cov": 1.1758102964374504,
+     "mean_share": 0.9694868829506942
+    },
+    {
+     "cell": 292,
+     "k_v": 24,
+     "er_uncentred": 1.1701222589627134,
+     "er_centred": 2.773528923541724,
+     "mu_energy": 17.038661901022262,
+     "tr_cov": 1.4328972911296955,
+     "mean_share": 0.9224268359685363
+    },
+    {
+     "cell": 293,
+     "k_v": 24,
+     "er_uncentred": 1.237673097652524,
+     "er_centred": 2.631081265307368,
+     "mu_energy": 30.99488662158598,
+     "tr_cov": 4.078815939048108,
+     "mean_share": 0.8837072894714549
+    },
+    {
+     "cell": 294,
+     "k_v": 24,
+     "er_uncentred": 1.0254420618908204,
+     "er_centred": 2.0640819289431835,
+     "mu_energy": 45.41714048364168,
+     "tr_cov": 0.6844083244515008,
+     "mean_share": 0.9851543312069516
+    },
+    {
+     "cell": 295,
+     "k_v": 24,
+     "er_uncentred": 1.2156716887876653,
+     "er_centred": 3.16434719038562,
+     "mu_energy": 31.539174587142302,
+     "tr_cov": 3.833933638892161,
+     "mean_share": 0.8916144542799775
+    },
+    {
+     "cell": 296,
+     "k_v": 24,
+     "er_uncentred": 1.0714656323129481,
+     "er_centred": 2.591588043146587,
+     "mu_energy": 52.96394490574798,
+     "tr_cov": 2.2810906752438154,
+     "mean_share": 0.9587095808473209
+    },
+    {
+     "cell": 297,
+     "k_v": 24,
+     "er_uncentred": 1.190637108929008,
+     "er_centred": 2.05164420742904,
+     "mu_energy": 21.66678089901693,
+     "tr_cov": 2.0883517650561663,
+     "mean_share": 0.9120883981332355
+    },
+    {
+     "cell": 298,
+     "k_v": 24,
+     "er_uncentred": 1.0313490416420306,
+     "er_centred": 3.9158363381779173,
+     "mu_energy": 38.41887551307036,
+     "tr_cov": 0.6433193666095177,
+     "mean_share": 0.983530895573301
+    },
+    {
+     "cell": 299,
+     "k_v": 24,
+     "er_uncentred": 1.0310899343681346,
+     "er_centred": 1.8065023244332161,
+     "mu_energy": 25.065315560751642,
+     "tr_cov": 0.41512571192379255,
+     "mean_share": 0.9837080642567614
+    },
+    {
+     "cell": 300,
+     "k_v": 24,
+     "er_uncentred": 1.3332742696826054,
+     "er_centred": 2.4757028022515657,
+     "mu_energy": 17.786430779106507,
+     "tr_cov": 3.0442122725135117,
+     "mean_share": 0.8538589392094278
+    },
+    {
+     "cell": 301,
+     "k_v": 24,
+     "er_uncentred": 1.1710720443068512,
+     "er_centred": 2.657051474737524,
+     "mu_energy": 27.94588756214882,
+     "tr_cov": 2.3855034838684452,
+     "mean_share": 0.9213519920583505
+    },
+    {
+     "cell": 302,
+     "k_v": 24,
+     "er_uncentred": 1.0205901847325325,
+     "er_centred": 3.2704822559985187,
+     "mu_energy": 43.92738145680038,
+     "tr_cov": 0.5387230199920532,
+     "mean_share": 0.9878846364814075
+    },
+    {
+     "cell": 303,
+     "k_v": 24,
+     "er_uncentred": 1.1972088372984655,
+     "er_centred": 2.8330717885127497,
+     "mu_energy": 47.838276991832295,
+     "tr_cov": 6.243374018820874,
+     "mean_share": 0.884556519593105
+    },
+    {
+     "cell": 304,
+     "k_v": 24,
+     "er_uncentred": 1.0418552909556722,
+     "er_centred": 3.520950063397957,
+     "mu_energy": 40.5355162119596,
+     "tr_cov": 1.119488406430596,
+     "mean_share": 0.9731247561562781
+    },
+    {
+     "cell": 305,
+     "k_v": 24,
+     "er_uncentred": 1.2695845727216957,
+     "er_centred": 2.7504473837220345,
+     "mu_energy": 23.52030695828197,
+     "tr_cov": 3.3186439499208724,
+     "mean_share": 0.8763497142167882
+    },
+    {
+     "cell": 306,
+     "k_v": 24,
+     "er_uncentred": 1.0256802035305315,
+     "er_centred": 2.8198193968354612,
+     "mu_energy": 44.554668615298056,
+     "tr_cov": 0.6710016634005653,
+     "mean_share": 0.9851632566357649
+    },
+    {
+     "cell": 307,
+     "k_v": 24,
+     "er_uncentred": 1.013797445680178,
+     "er_centred": 3.159696193732377,
+     "mu_energy": 41.07158384637975,
+     "tr_cov": 0.32207563447215054,
+     "mean_share": 0.9922192036531311
+    },
+    {
+     "cell": 308,
+     "k_v": 24,
+     "er_uncentred": 1.0799099510498662,
+     "er_centred": 2.1010784518489696,
+     "mu_energy": 91.65769821638897,
+     "tr_cov": 4.9312623916877,
+     "mean_share": 0.9489459006428593
+    },
+    {
+     "cell": 309,
+     "k_v": 24,
+     "er_uncentred": 1.3259643298771848,
+     "er_centred": 2.453905654590517,
+     "mu_energy": 17.41814680659228,
+     "tr_cov": 3.058056995153703,
+     "mean_share": 0.8506531276616349
+    },
+    {
+     "cell": 310,
+     "k_v": 24,
+     "er_uncentred": 1.0936543505929806,
+     "er_centred": 2.22934105550303,
+     "mu_energy": 19.303134577804084,
+     "tr_cov": 0.9449278599969222,
+     "mean_share": 0.9533324305523257
+    },
+    {
+     "cell": 311,
+     "k_v": 24,
+     "er_uncentred": 1.1352243109971127,
+     "er_centred": 1.8801748747652949,
+     "mu_energy": 33.45058356326192,
+     "tr_cov": 2.9015059266704997,
+     "mean_share": 0.9201832420809246
+    },
+    {
+     "cell": 312,
+     "k_v": 24,
+     "er_uncentred": 1.452707778313498,
+     "er_centred": 1.9067619673258007,
+     "mu_energy": 34.92757800297064,
+     "tr_cov": 10.567270999324114,
+     "mean_share": 0.7677259902809853
+    },
+    {
+     "cell": 313,
+     "k_v": 24,
+     "er_uncentred": 1.3696229896794687,
+     "er_centred": 1.8129886498736378,
+     "mu_energy": 45.471514539001866,
+     "tr_cov": 10.902888145193812,
+     "mean_share": 0.8065986045782018
+    },
+    {
+     "cell": 314,
+     "k_v": 24,
+     "er_uncentred": 1.0480812404501187,
+     "er_centred": 3.3465455756931983,
+     "mu_energy": 27.307563089091612,
+     "tr_cov": 0.6792579605437012,
+     "mean_share": 0.9757293634979471
+    },
+    {
+     "cell": 315,
+     "k_v": 24,
+     "er_uncentred": 1.1724113007073849,
+     "er_centred": 1.1805478211983147,
+     "mu_energy": 53.25029107612248,
+     "tr_cov": 6.171436389881513,
+     "mean_share": 0.896141753983637
+    },
+    {
+     "cell": 316,
+     "k_v": 24,
+     "er_uncentred": 1.3083373272333017,
+     "er_centred": 2.701184476453286,
+     "mu_energy": 19.519337335125655,
+     "tr_cov": 3.7809917913408824,
+     "mean_share": 0.8377279663811228
+    },
+    {
+     "cell": 317,
+     "k_v": 24,
+     "er_uncentred": 1.1210086118718479,
+     "er_centred": 2.7811467116357407,
+     "mu_energy": 26.417669430136982,
+     "tr_cov": 1.7160507686537223,
+     "mean_share": 0.9390037735312557
+    },
+    {
+     "cell": 318,
+     "k_v": 24,
+     "er_uncentred": 1.2091463539721743,
+     "er_centred": 2.125963726217306,
+     "mu_energy": 19.42446668271616,
+     "tr_cov": 2.660020499056997,
+     "mean_share": 0.8795525349009519
+    },
+    {
+     "cell": 319,
+     "k_v": 24,
+     "er_uncentred": 1.5303083349055078,
+     "er_centred": 1.6584685125958547,
+     "mu_energy": 31.44833532222907,
+     "tr_cov": 12.83273124955124,
+     "mean_share": 0.7101982349781666
+    },
+    {
+     "cell": 320,
+     "k_v": 24,
+     "er_uncentred": 1.2471725371403757,
+     "er_centred": 2.6805727026871202,
+     "mu_energy": 31.017838426540898,
+     "tr_cov": 4.237320625507301,
+     "mean_share": 0.8798099132313764
+    },
+    {
+     "cell": 321,
+     "k_v": 24,
+     "er_uncentred": 1.4114451316748862,
+     "er_centred": 3.3698910555713835,
+     "mu_energy": 14.343227601400411,
+     "tr_cov": 3.23997586997297,
+     "mean_share": 0.8157346085855252
+    },
+    {
+     "cell": 322,
+     "k_v": 24,
+     "er_uncentred": 1.17733194700588,
+     "er_centred": 2.7046049340974245,
+     "mu_energy": 30.810368842070663,
+     "tr_cov": 2.954137848854571,
+     "mean_share": 0.9125075963378864
+    },
+    {
+     "cell": 323,
+     "k_v": 24,
+     "er_uncentred": 1.1011944571545387,
+     "er_centred": 3.214307551241544,
+     "mu_energy": 19.45272995634354,
+     "tr_cov": 1.2426447242395244,
+     "mean_share": 0.9399554372211774
+    },
+    {
+     "cell": 324,
+     "k_v": 24,
+     "er_uncentred": 1.043231746040383,
+     "er_centred": 1.9437268444606313,
+     "mu_energy": 32.08849221529571,
+     "tr_cov": 0.827060385543473,
+     "mean_share": 0.974873264454251
+    },
+    {
+     "cell": 325,
+     "k_v": 24,
+     "er_uncentred": 1.114428632469403,
+     "er_centred": 2.4966895613587075,
+     "mu_energy": 22.258286352846916,
+     "tr_cov": 1.6260900309998596,
+     "mean_share": 0.9319182546419927
+    },
+    {
+     "cell": 326,
+     "k_v": 24,
+     "er_uncentred": 1.3923551371584946,
+     "er_centred": 2.044872123301567,
+     "mu_energy": 27.546783851921617,
+     "tr_cov": 7.110678515753665,
+     "mean_share": 0.7948297991261549
+    },
+    {
+     "cell": 327,
+     "k_v": 24,
+     "er_uncentred": 1.0607085072268656,
+     "er_centred": 3.4914013951971756,
+     "mu_energy": 63.806372740437965,
+     "tr_cov": 2.2189830284112873,
+     "mean_share": 0.9663919565056217
+    },
+    {
+     "cell": 328,
+     "k_v": 24,
+     "er_uncentred": 1.1920744566700223,
+     "er_centred": 1.6069397865064445,
+     "mu_energy": 26.00144523466087,
+     "tr_cov": 4.154178119246526,
+     "mean_share": 0.8622420080496114
+    },
+    {
+     "cell": 329,
+     "k_v": 24,
+     "er_uncentred": 1.153075522604387,
+     "er_centred": 2.0952497664504084,
+     "mu_energy": 13.830318864369213,
+     "tr_cov": 1.1238488226571746,
+     "mean_share": 0.9248471164575626
+    },
+    {
+     "cell": 330,
+     "k_v": 24,
+     "er_uncentred": 1.1199659545738456,
+     "er_centred": 2.313270971064814,
+     "mu_energy": 13.679030190362267,
+     "tr_cov": 0.8665972789291154,
+     "mean_share": 0.9404221453657693
+    },
+    {
+     "cell": 331,
+     "k_v": 24,
+     "er_uncentred": 1.157061497168778,
+     "er_centred": 1.2410258002574615,
+     "mu_energy": 18.897274531154014,
+     "tr_cov": 1.7268288326199859,
+     "mean_share": 0.9162713257317581
+    },
+    {
+     "cell": 332,
+     "k_v": 24,
+     "er_uncentred": 1.8045381715746984,
+     "er_centred": 1.6162568824695518,
+     "mu_energy": 20.628408310525096,
+     "tr_cov": 9.491209348519734,
+     "mean_share": 0.684882807744754
+    },
+    {
+     "cell": 333,
+     "k_v": 24,
+     "er_uncentred": 1.0308069890042837,
+     "er_centred": 2.8661233540920596,
+     "mu_energy": 38.758727380698694,
+     "tr_cov": 0.7352397286951098,
+     "mean_share": 0.9813834926570283
+    },
+    {
+     "cell": 334,
+     "k_v": 24,
+     "er_uncentred": 1.083936754845593,
+     "er_centred": 1.9028921375931034,
+     "mu_energy": 27.768321754661137,
+     "tr_cov": 1.3394323124766856,
+     "mean_share": 0.9539836598389815
+    },
+    {
+     "cell": 335,
+     "k_v": 24,
+     "er_uncentred": 1.007247339838652,
+     "er_centred": 2.2287562969336503,
+     "mu_energy": 27.00743723757201,
+     "tr_cov": 0.1757383254930437,
+     "mean_share": 0.9935350332750738
+    },
+    {
+     "cell": 336,
+     "k_v": 24,
+     "er_uncentred": 1.0721821666852578,
+     "er_centred": 3.213218418030477,
+     "mu_energy": 38.57494298075342,
+     "tr_cov": 1.9844237056926863,
+     "mean_share": 0.9510736022819649
+    },
+    {
+     "cell": 337,
+     "k_v": 24,
+     "er_uncentred": 1.014049139283141,
+     "er_centred": 1.995244155812248,
+     "mu_energy": 28.243986635244358,
+     "tr_cov": 0.20122097277946907,
+     "mean_share": 0.9929260149705249
+    },
+    {
+     "cell": 338,
+     "k_v": 24,
+     "er_uncentred": 1.0134310437626168,
+     "er_centred": 2.345577732185945,
+     "mu_energy": 29.592178833378075,
+     "tr_cov": 0.2235106536122327,
+     "mean_share": 0.9925035893028816
+    },
+    {
+     "cell": 339,
+     "k_v": 24,
+     "er_uncentred": 1.037070047885831,
+     "er_centred": 2.7537634611151174,
+     "mu_energy": 43.388543389506445,
+     "tr_cov": 0.8719765534192319,
+     "mean_share": 0.9802989988697907
+    },
+    {
+     "cell": 340,
+     "k_v": 24,
+     "er_uncentred": 1.024807502092689,
+     "er_centred": 2.9379707056607085,
+     "mu_energy": 23.233975317709568,
+     "tr_cov": 0.33804439657824603,
+     "mean_share": 0.9856590822222439
+    },
+    {
+     "cell": 341,
+     "k_v": 24,
+     "er_uncentred": 1.0360420223420828,
+     "er_centred": 2.155309784355605,
+     "mu_energy": 50.440797692615284,
+     "tr_cov": 1.1547905595266301,
+     "mean_share": 0.9776184243915721
+    },
+    {
+     "cell": 342,
+     "k_v": 24,
+     "er_uncentred": 1.0304981524850934,
+     "er_centred": 2.629104338791169,
+     "mu_energy": 33.536436458852094,
+     "tr_cov": 0.602536603316913,
+     "mean_share": 0.9823504766174525
+    },
+    {
+     "cell": 343,
+     "k_v": 24,
+     "er_uncentred": 1.019050891916965,
+     "er_centred": 3.251360544499083,
+     "mu_energy": 27.299895049697568,
+     "tr_cov": 0.27757642655035003,
+     "mean_share": 0.9899346672594903
+    },
+    {
+     "cell": 344,
+     "k_v": 24,
+     "er_uncentred": 1.0258843822315449,
+     "er_centred": 2.348904132934432,
+     "mu_energy": 35.913367924297965,
+     "tr_cov": 0.5306424038072629,
+     "mean_share": 0.9854395166989063
+    },
+    {
+     "cell": 345,
+     "k_v": 24,
+     "er_uncentred": 1.083199675318641,
+     "er_centred": 4.489301084390807,
+     "mu_energy": 31.767307132520727,
+     "tr_cov": 1.3855270457820787,
+     "mean_share": 0.9582078853852909
+    },
+    {
+     "cell": 346,
+     "k_v": 24,
+     "er_uncentred": 1.0250873129952485,
+     "er_centred": 3.182517157960469,
+     "mu_energy": 41.81221058211176,
+     "tr_cov": 0.5640818888629094,
+     "mean_share": 0.9866887390101606
+    },
+    {
+     "cell": 347,
+     "k_v": 24,
+     "er_uncentred": 1.039533714680845,
+     "er_centred": 2.5916312987841796,
+     "mu_energy": 53.99347902053784,
+     "tr_cov": 1.5961293703025539,
+     "mean_share": 0.971287270831619
+    },
+    {
+     "cell": 348,
+     "k_v": 24,
+     "er_uncentred": 1.1210708720024487,
+     "er_centred": 1.6928610530623616,
+     "mu_energy": 45.693431021189355,
+     "tr_cov": 2.8678037327323214,
+     "mean_share": 0.9409445878535714
+    },
+    {
+     "cell": 349,
+     "k_v": 24,
+     "er_uncentred": 1.0195463136683622,
+     "er_centred": 2.9853269127543287,
+     "mu_energy": 30.826981642623053,
+     "tr_cov": 0.35474235668926374,
+     "mean_share": 0.9886233886010573
+    },
+    {
+     "cell": 350,
+     "k_v": 24,
+     "er_uncentred": 1.082612568311133,
+     "er_centred": 2.082267327688285,
+     "mu_energy": 41.234389529864515,
+     "tr_cov": 2.2167698868958636,
+     "mean_share": 0.9489824916837366
+    },
+    {
+     "cell": 351,
+     "k_v": 24,
+     "er_uncentred": 1.394481506478655,
+     "er_centred": 1.1072526741705533,
+     "mu_energy": 22.77527864942807,
+     "tr_cov": 4.872256315945276,
+     "mean_share": 0.8237724874189527
+    },
+    {
+     "cell": 352,
+     "k_v": 24,
+     "er_uncentred": 1.1103121079674243,
+     "er_centred": 2.6052562422005328,
+     "mu_energy": 18.89811186709335,
+     "tr_cov": 1.0935562223431223,
+     "mean_share": 0.9452994008578527
+    },
+    {
+     "cell": 353,
+     "k_v": 24,
+     "er_uncentred": 1.0241902849313989,
+     "er_centred": 1.8600653688423205,
+     "mu_energy": 35.48820824614173,
+     "tr_cov": 0.5449562016832895,
+     "mean_share": 0.9848762602442988
+    },
+    {
+     "cell": 354,
+     "k_v": 24,
+     "er_uncentred": 1.0441602289342824,
+     "er_centred": 1.3822785267815063,
+     "mu_energy": 77.72341634959831,
+     "tr_cov": 4.20179450911575,
+     "mean_share": 0.9487118255165429
+    },
+    {
+     "cell": 355,
+     "k_v": 24,
+     "er_uncentred": 1.0179311139942284,
+     "er_centred": 3.695702239739051,
+     "mu_energy": 25.782190022649402,
+     "tr_cov": 0.28253951208579575,
+     "mean_share": 0.9891600827198583
+    },
+    {
+     "cell": 356,
+     "k_v": 24,
+     "er_uncentred": 1.0514340508701625,
+     "er_centred": 2.7739431487849315,
+     "mu_energy": 19.398573431712258,
+     "tr_cov": 0.5991792168131612,
+     "mean_share": 0.9700376723652823
+    },
+    {
+     "cell": 357,
+     "k_v": 24,
+     "er_uncentred": 1.1475760511456392,
+     "er_centred": 1.3673852559680448,
+     "mu_energy": 18.610446189012933,
+     "tr_cov": 1.6285612003737402,
+     "mean_share": 0.9195335438620496
+    },
+    {
+     "cell": 358,
+     "k_v": 24,
+     "er_uncentred": 1.095973832570669,
+     "er_centred": 2.2367417831512624,
+     "mu_energy": 52.6312949695883,
+     "tr_cov": 3.327024140021452,
+     "mean_share": 0.9405446018936959
+    },
+    {
+     "cell": 359,
+     "k_v": 24,
+     "er_uncentred": 1.0305156293596263,
+     "er_centred": 1.670903782092624,
+     "mu_energy": 41.276413743409435,
+     "tr_cov": 0.6840699134499981,
+     "mean_share": 0.9836972824468821
+    },
+    {
+     "cell": 360,
+     "k_v": 24,
+     "er_uncentred": 1.0700435179990926,
+     "er_centred": 3.1271132831576267,
+     "mu_energy": 61.795991082310685,
+     "tr_cov": 2.3296625603176127,
+     "mean_share": 0.9636703498836706
+    },
+    {
+     "cell": 361,
+     "k_v": 24,
+     "er_uncentred": 1.0312609501338081,
+     "er_centred": 1.983927183039789,
+     "mu_energy": 30.628230862941834,
+     "tr_cov": 0.5354666214692949,
+     "mean_share": 0.9828176158577734
+    },
+    {
+     "cell": 362,
+     "k_v": 24,
+     "er_uncentred": 1.021706796111696,
+     "er_centred": 2.300242669120384,
+     "mu_energy": 38.196837621806026,
+     "tr_cov": 0.6558664470111907,
+     "mean_share": 0.9831191557259567
+    },
+    {
+     "cell": 363,
+     "k_v": 24,
+     "er_uncentred": 1.0858429482290481,
+     "er_centred": 2.199316893429195,
+     "mu_energy": 16.7193225354639,
+     "tr_cov": 0.7591302422159296,
+     "mean_share": 0.956567652075855
+    },
+    {
+     "cell": 364,
+     "k_v": 24,
+     "er_uncentred": 1.0309141505908843,
+     "er_centred": 2.405774316453005,
+     "mu_energy": 32.402561486487215,
+     "tr_cov": 0.5816742291322564,
+     "mean_share": 0.9823650839101661
+    },
+    {
+     "cell": 365,
+     "k_v": 24,
+     "er_uncentred": 1.042839859108293,
+     "er_centred": 1.6562125518098476,
+     "mu_energy": 28.11196091030231,
+     "tr_cov": 0.8061080118480454,
+     "mean_share": 0.9721244176428879
+    },
+    {
+     "cell": 366,
+     "k_v": 24,
+     "er_uncentred": 1.1274128791315077,
+     "er_centred": 2.5825088900165607,
+     "mu_energy": 36.01510938784486,
+     "tr_cov": 2.4113010802235655,
+     "mean_share": 0.9372488595512373
+    },
+    {
+     "cell": 367,
+     "k_v": 24,
+     "er_uncentred": 1.0365569833107469,
+     "er_centred": 3.322369066685306,
+     "mu_energy": 22.819357594043023,
+     "tr_cov": 0.4616371245183414,
+     "mean_share": 0.9801710738695246
+    },
+    {
+     "cell": 368,
+     "k_v": 24,
+     "er_uncentred": 1.0275808930584873,
+     "er_centred": 1.7959094286092656,
+     "mu_energy": 42.70869728394042,
+     "tr_cov": 0.9477254583247715,
+     "mean_share": 0.9782912708189614
+    },
+    {
+     "cell": 369,
+     "k_v": 24,
+     "er_uncentred": 1.0129874355640782,
+     "er_centred": 2.0659702816147556,
+     "mu_energy": 60.50859471277625,
+     "tr_cov": 0.6894419645605318,
+     "mean_share": 0.9887342470119496
+    },
+    {
+     "cell": 370,
+     "k_v": 24,
+     "er_uncentred": 1.016827948150453,
+     "er_centred": 2.6746179387845403,
+     "mu_energy": 48.30255152289318,
+     "tr_cov": 0.47587515026976085,
+     "mean_share": 0.990244147203469
+    },
+    {
+     "cell": 371,
+     "k_v": 24,
+     "er_uncentred": 1.0469954906852823,
+     "er_centred": 2.5536719988931704,
+     "mu_energy": 31.852394774957922,
+     "tr_cov": 0.7586946459426206,
+     "mean_share": 0.9767350720440401
+    },
+    {
+     "cell": 372,
+     "k_v": 24,
+     "er_uncentred": 1.131160596152251,
+     "er_centred": 3.3922942660846833,
+     "mu_energy": 37.696008670125494,
+     "tr_cov": 3.1025505359350207,
+     "mean_share": 0.923954409265655
+    },
+    {
+     "cell": 373,
+     "k_v": 24,
+     "er_uncentred": 1.2824650476676351,
+     "er_centred": 3.1540331023983414,
+     "mu_energy": 35.31967772432454,
+     "tr_cov": 6.022633997423503,
+     "mean_share": 0.8543227568415022
+    },
+    {
+     "cell": 374,
+     "k_v": 24,
+     "er_uncentred": 1.0826153705665968,
+     "er_centred": 2.0862284709919567,
+     "mu_energy": 34.212489093182604,
+     "tr_cov": 1.485020113274639,
+     "mean_share": 0.9583998955029048
+    },
+    {
+     "cell": 375,
+     "k_v": 24,
+     "er_uncentred": 1.0240178739252515,
+     "er_centred": 1.8676731644052171,
+     "mu_energy": 45.53716869049141,
+     "tr_cov": 0.7761453457371422,
+     "mean_share": 0.9832414207039901
+    },
+    {
+     "cell": 376,
+     "k_v": 24,
+     "er_uncentred": 1.0940254000901983,
+     "er_centred": 2.4678922652429462,
+     "mu_energy": 27.155361918131103,
+     "tr_cov": 1.3085855638486215,
+     "mean_share": 0.9540265606280691
+    },
+    {
+     "cell": 377,
+     "k_v": 24,
+     "er_uncentred": 1.0174013033221798,
+     "er_centred": 2.5406835036940363,
+     "mu_energy": 39.27159293758724,
+     "tr_cov": 0.3917967798198081,
+     "mean_share": 0.9901219542098829
+    },
+    {
+     "cell": 378,
+     "k_v": 24,
+     "er_uncentred": 1.104708526415809,
+     "er_centred": 2.2538402379759206,
+     "mu_energy": 25.034180078690934,
+     "tr_cov": 1.5162497595848987,
+     "mean_share": 0.9428917057531389
+    },
+    {
+     "cell": 379,
+     "k_v": 24,
+     "er_uncentred": 1.1542556832626616,
+     "er_centred": 2.7224038775956285,
+     "mu_energy": 17.79625300072866,
+     "tr_cov": 1.4630824205197095,
+     "mean_share": 0.9240325593527218
+    },
+    {
+     "cell": 380,
+     "k_v": 24,
+     "er_uncentred": 1.1178933642754652,
+     "er_centred": 1.7755352287086792,
+     "mu_energy": 45.185613440959294,
+     "tr_cov": 2.8672038190744877,
+     "mean_share": 0.9403322430907879
+    },
+    {
+     "cell": 381,
+     "k_v": 24,
+     "er_uncentred": 1.0225100039991006,
+     "er_centred": 2.895696588786752,
+     "mu_energy": 42.402601888153555,
+     "tr_cov": 0.6218234633212073,
+     "mean_share": 0.9855471988703762
+    },
+    {
+     "cell": 382,
+     "k_v": 24,
+     "er_uncentred": 1.0598837629548956,
+     "er_centred": 2.407073181219693,
+     "mu_energy": 22.544188653544857,
+     "tr_cov": 0.6874876407394572,
+     "mean_share": 0.9704073166296397
+    },
+    {
+     "cell": 383,
+     "k_v": 24,
+     "er_uncentred": 1.0541746369429859,
+     "er_centred": 2.6778104985989213,
+     "mu_energy": 30.145182601352634,
+     "tr_cov": 0.965906808623472,
+     "mean_share": 0.9689529737806692
+    },
+    {
+     "cell": 384,
+     "k_v": 24,
+     "er_uncentred": 1.0569385818968446,
+     "er_centred": 2.6755089843518505,
+     "mu_energy": 43.27038410642212,
+     "tr_cov": 1.5478283182515975,
+     "mean_share": 0.9654643004592599
+    },
+    {
+     "cell": 385,
+     "k_v": 24,
+     "er_uncentred": 1.0168324836426652,
+     "er_centred": 2.022209549407912,
+     "mu_energy": 48.34265577242135,
+     "tr_cov": 0.4865996487946524,
+     "mean_share": 0.9900346699003068
+    },
+    {
+     "cell": 386,
+     "k_v": 24,
+     "er_uncentred": 1.1402404608549976,
+     "er_centred": 2.0000421343924004,
+     "mu_energy": 36.55672081228775,
+     "tr_cov": 2.86090670943294,
+     "mean_share": 0.9274206265240985
+    },
+    {
+     "cell": 387,
+     "k_v": 24,
+     "er_uncentred": 1.0935906698347084,
+     "er_centred": 2.6603812882308064,
+     "mu_energy": 49.674980358409584,
+     "tr_cov": 3.613446431855495,
+     "mean_share": 0.9321907842001519
+    },
+    {
+     "cell": 388,
+     "k_v": 24,
+     "er_uncentred": 1.0088650869056608,
+     "er_centred": 2.8997519910143663,
+     "mu_energy": 43.886838055346495,
+     "tr_cov": 0.2489104421801549,
+     "mean_share": 0.9943603439240618
+    },
+    {
+     "cell": 389,
+     "k_v": 24,
+     "er_uncentred": 1.1827592696951599,
+     "er_centred": 2.136940313235144,
+     "mu_energy": 26.045214753802817,
+     "tr_cov": 2.6095013176043595,
+     "mean_share": 0.9089329201133414
+    },
+    {
+     "cell": 390,
+     "k_v": 24,
+     "er_uncentred": 1.0683620855814835,
+     "er_centred": 1.6815829794486525,
+     "mu_energy": 40.99542972594647,
+     "tr_cov": 1.4841110460943738,
+     "mean_share": 0.965062921605989
+    },
+    {
+     "cell": 391,
+     "k_v": 24,
+     "er_uncentred": 1.0257282423631526,
+     "er_centred": 1.6946667443493337,
+     "mu_energy": 28.58239621951977,
+     "tr_cov": 0.4858698278927922,
+     "mean_share": 0.9832852146357715
+    },
+    {
+     "cell": 392,
+     "k_v": 24,
+     "er_uncentred": 1.1280824999167083,
+     "er_centred": 2.9232562553659065,
+     "mu_energy": 31.680679651317178,
+     "tr_cov": 2.5202047488458166,
+     "mean_share": 0.9263117082190482
+    },
+    {
+     "cell": 393,
+     "k_v": 24,
+     "er_uncentred": 1.220924829921568,
+     "er_centred": 1.7331614778217426,
+     "mu_energy": 32.12110629130912,
+     "tr_cov": 4.377536978349089,
+     "mean_share": 0.8800630219044828
+    },
+    {
+     "cell": 394,
+     "k_v": 24,
+     "er_uncentred": 1.1211047023748837,
+     "er_centred": 1.1965868314269201,
+     "mu_energy": 50.33889949027392,
+     "tr_cov": 3.217544842136869,
+     "mean_share": 0.939922358882408
+    },
+    {
+     "cell": 395,
+     "k_v": 24,
+     "er_uncentred": 1.031557778014332,
+     "er_centred": 2.483399569436746,
+     "mu_energy": 47.276133925812424,
+     "tr_cov": 1.321676302264194,
+     "mean_share": 0.9728037889760593
+    },
+    {
+     "cell": 396,
+     "k_v": 24,
+     "er_uncentred": 1.0285066244589012,
+     "er_centred": 2.0920880927026273,
+     "mu_energy": 44.68386545594515,
+     "tr_cov": 0.7568361528117994,
+     "mean_share": 0.9833445319720603
+    },
+    {
+     "cell": 397,
+     "k_v": 24,
+     "er_uncentred": 1.1759596849569056,
+     "er_centred": 2.8106519463720208,
+     "mu_energy": 49.07777591034533,
+     "tr_cov": 5.251993986397298,
+     "mean_share": 0.9033311939958689
+    },
+    {
+     "cell": 398,
+     "k_v": 24,
+     "er_uncentred": 1.0354775124622684,
+     "er_centred": 3.914215683740417,
+     "mu_energy": 54.56739790052625,
+     "tr_cov": 1.1225489120567165,
+     "mean_share": 0.9798428805142425
+    },
+    {
+     "cell": 399,
+     "k_v": 24,
+     "er_uncentred": 1.1536927537830461,
+     "er_centred": 3.1468392431158154,
+     "mu_energy": 47.44555461341119,
+     "tr_cov": 4.239561544480002,
+     "mean_share": 0.9179732607830714
+    },
+    {
+     "cell": 400,
+     "k_v": 24,
+     "er_uncentred": 1.0136450934836965,
+     "er_centred": 2.69375571016645,
+     "mu_energy": 17.515743992025655,
+     "tr_cov": 0.1413473639846651,
+     "mean_share": 0.9919948670404001
+    },
+    {
+     "cell": 401,
+     "k_v": 24,
+     "er_uncentred": 1.0219147210222692,
+     "er_centred": 1.8594439556792952,
+     "mu_energy": 45.02741627686068,
+     "tr_cov": 0.668856566261233,
+     "mean_share": 0.9853629951712373
+    },
+    {
+     "cell": 402,
+     "k_v": 24,
+     "er_uncentred": 1.0238219506529427,
+     "er_centred": 2.75038680967332,
+     "mu_energy": 36.29621733529865,
+     "tr_cov": 0.49973853441853483,
+     "mean_share": 0.9864186560015468
+    },
+    {
+     "cell": 403,
+     "k_v": 24,
+     "er_uncentred": 1.0631075475168277,
+     "er_centred": 2.9472991239923494,
+     "mu_energy": 48.60007159057977,
+     "tr_cov": 1.9998423873406679,
+     "mean_share": 0.9604773559849664
+    },
+    {
+     "cell": 404,
+     "k_v": 24,
+     "er_uncentred": 1.0703169087259756,
+     "er_centred": 3.689242019972946,
+     "mu_energy": 45.87362521533639,
+     "tr_cov": 1.8943458292764581,
+     "mean_share": 0.9603427613137004
+    }
+   ],
+   "elapsed_minutes": 0.14653895696004232
+  }
+ ],
+ "minutes": 0.1465662678082784
+}
