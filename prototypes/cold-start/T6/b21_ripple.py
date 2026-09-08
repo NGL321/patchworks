@@ -427,8 +427,11 @@ def ripple_read(agent, rim: int, seed: int, label: str, *, horizon: int = HORIZO
     diffs = [states - control for states in runs["delta"]]
     d_eff = np.zeros(len(bounds))
     mean_abs_cos = np.full(len(bounds), np.nan)
-    min_sep = np.zeros(len(bounds))
-    sep_over_floor = np.zeros(len(bounds))
+    min_sep = np.full(len(bounds), np.nan)
+    # NaN, not zero: a cell whose stalk is narrower than two cannot be given two
+    # distinct rocks at all, so distinguishability there is **untestable** rather
+    # than dead. The touch boundary cells have a stalk of 1.
+    sep_over_floor = np.full(len(bounds), np.nan)
     for c, (a, b) in enumerate(bounds):
         block = np.stack([d[:, a:b].reshape(-1) for d in diffs], axis=0).astype(np.float64)
         gram = block @ block.T
@@ -487,8 +490,8 @@ def ripple_read(agent, rim: int, seed: int, label: str, *, horizon: int = HORIZO
                 "d_eff_median": float(np.median(d_eff[ids])),
                 "d_eff_max": float(np.max(d_eff[ids])),
                 "mean_abs_cos_median": float(np.nanmedian(mean_abs_cos[ids])),
-                "sep_over_floor_median": float(np.median(sep_over_floor[ids])),
-                "sep_over_floor_min": float(np.min(sep_over_floor[ids])),
+                "sep_over_floor_median": float(np.nanmedian(sep_over_floor[ids])) if not np.all(np.isnan(sep_over_floor[ids])) else None,
+                "sep_over_floor_min": float(np.nanmin(sep_over_floor[ids])) if not np.all(np.isnan(sep_over_floor[ids])) else None,
             }
         )
 
@@ -529,6 +532,43 @@ def ripple_read(agent, rim: int, seed: int, label: str, *, horizon: int = HORIZO
                 "d_eff_median": float(np.median(d_eff[ids])),
             }
         )
+
+    # -- up, lateral, down: does reach respect the dome's hierarchy? ----------
+    # Only answerable when the rock lands *inside* the dome. From a rim cell every
+    # direction is "up", so `up_down` is empty there and says so rather than
+    # inventing a comparison the geometry cannot support.
+    origin_level = ctx["level"][rim]
+    by_direction = []
+    if origin_level is not None:
+        def bucket(cid: int) -> str:
+            other = ctx["level"][cid]
+            if other is None:
+                return "boundary"
+            if other > origin_level:
+                return "up"
+            if other < origin_level:
+                return "down"
+            return "lateral"
+
+        for d, way in sorted(
+            {(dist[c], bucket(c)) for c in interior if c in dist},
+            key=lambda kv: (kv[0], kv[1]),
+        ):
+            ids = [c for c in interior if dist.get(c) == d and bucket(c) == way]
+            m = np.array([motion[c] for c in ids])
+            pk = np.array([peak_med[c] for c in ids])
+            ratio = np.where(m > 0, pk / np.where(m > 0, m, 1), np.nan)
+            lin = np.array([linearity[c] for c in ids])
+            by_direction.append(
+                {
+                    "distance": int(d),
+                    "direction": way,
+                    "cells": len(ids),
+                    "dev_over_motion_median": float(np.nanmedian(ratio)),
+                    "signal_share": float(np.mean(lin >= LINEARITY_MIN)),
+                    "d_eff_median": float(np.median(d_eff[ids])),
+                }
+            )
 
     # -- the motor command: the one output the world never writes -------------
     cmd_dev = np.stack(
@@ -622,6 +662,8 @@ def ripple_read(agent, rim: int, seed: int, label: str, *, horizon: int = HORIZO
         "profile": profile,
         "by_level": by_level,
         "by_modality": by_modality,
+        "origin_level": origin_level,
+        "by_direction": by_direction,
         "command": {
             "control_rms": cmd_scale,
             "control_motion_rms": cmd_motion,
@@ -643,11 +685,16 @@ def _line(read: dict, prefix: str) -> str:
     rows = read["profile"]
     tail = rows[-1] if rows else {}
     alive = [r["distance"] for r in rows if r["signal_share"] >= 0.5]
-    distinct = [r["distance"] for r in rows if r["sep_over_floor_median"] >= 10.0]
+    # `None` throughout means the perturbed cell's stalk was too narrow to carry
+    # two distinct rocks — untestable, which is not the same as "dies at hop 0".
+    testable = [r for r in rows if r["sep_over_floor_median"] is not None]
+    distinct = [r["distance"] for r in testable if r["sep_over_floor_median"] >= 10.0]
+    if not testable:
+        distinct = None
     return (
         f"{prefix} ecc {read['eccentricity']} | signal to hop "
         f"{max(alive) if alive else 'none'} | distinct to hop "
-        f"{max(distinct) if distinct else 'none'} | far d/motion "
+        f"{'n/a' if distinct is None else (max(distinct) if distinct else 'none')} | far d/motion "
         f"{tail.get('dev_over_motion_median', float('nan')):.3g} d_eff "
         f"{tail.get('d_eff_median', float('nan')):.3f} cos "
         f"{tail.get('mean_abs_cos_median', float('nan')):.4f} | cmd d/motion "
@@ -844,11 +891,56 @@ def run_check(args) -> None:
                 f"d/motion {row['dev_over_motion_median']:.3e} "
                 f"lin {row['linearity_ratio_median']:.1f} "
                 f"d_eff {row['d_eff_median']:.3f} cos {row['mean_abs_cos_median']:.4f} "
-                f"sep/floor {row['sep_over_floor_median']:.3g}",
+                f"sep/floor {row['sep_over_floor_median']}",
                 flush=True,
             )
     finally:
         env.close()
+
+
+def interior_cell(dome, level: int) -> int:
+    """The lowest-numbered predicting cell at one dome level, so the pick is not a knob."""
+    for cell in dome.cells:
+        if not cell.is_boundary and int(cell.index.level) == level:
+            return int(cell.id)
+    raise KeyError(level)
+
+
+def run_interior(args) -> None:
+    """The rock dropped *inside* the dome, which is the only way to ask item 3.
+
+    From a rim cell every direction is up, so *"does a perturbation travel further
+    up-down than laterally"* has no rim-side answer. Landing it at a middle level
+    splits the neighbourhood into up, lateral and down and reads the profile in
+    each, at matched hop distance.
+    """
+    record = _record("the ripple from inside the dome, split up / lateral / down")
+    for arm in args.arms:
+        for level in args.levels:
+            env, agent = arms_mod.build_arm(arm, args.seed)
+            try:
+                for _ in t0.run_ticks(agent, args.warm, seed=args.seed):
+                    pass
+                cell = interior_cell(agent.dome, level)
+                read = ripple_read(agent, cell, args.seed, f"{arm} level {level}")
+                _, reserve_p = arms_mod.ARMS[arm]
+                record["rows"].append(
+                    {"arm": arm, "reserve_p": reserve_p, "seed": args.seed,
+                     "warm": args.warm, "level": level, "cell": cell, "ripple": read}
+                )
+                print(_line(read, f"  {arm:>13} level {level} cell {cell:>3}:"), flush=True)
+                for row in read["by_direction"]:
+                    print(
+                        f"      hop {row['distance']} {row['direction']:>8}: "
+                        f"n {row['cells']:>3} d/motion "
+                        f"{row['dev_over_motion_median']:.3e} signal "
+                        f"{row['signal_share']:.2f} d_eff {row['d_eff_median']:.3f}",
+                        flush=True,
+                    )
+            finally:
+                env.close()
+            args.out.write_text(json.dumps(record, indent=1))
+    print(f"wrote {args.out.name}", flush=True)
 
 
 def _record(issue_note: str) -> dict:
@@ -975,14 +1067,14 @@ def main() -> None:
     k.add_argument("--horizon", type=int, default=HORIZON)
     k.set_defaults(func=run_check)
 
-    l = sub.add_parser("ladder", help="peak deviation against rock size, over six decades")
-    l.add_argument("--arms", nargs="+", default=["shipped"])
-    l.add_argument("--kind", default="patch")
-    l.add_argument("--seed", type=int, default=42)
-    l.add_argument("--warm", type=int, default=200)
-    l.add_argument("--horizon", type=int, default=HORIZON)
-    l.add_argument("--out", type=Path, default=_HERE / "570-ripple-ladder.json")
-    l.set_defaults(func=run_ladder)
+    lad = sub.add_parser("ladder", help="peak deviation against rock size, over six decades")
+    lad.add_argument("--arms", nargs="+", default=["shipped"])
+    lad.add_argument("--kind", default="patch")
+    lad.add_argument("--seed", type=int, default=42)
+    lad.add_argument("--warm", type=int, default=200)
+    lad.add_argument("--horizon", type=int, default=HORIZON)
+    lad.add_argument("--out", type=Path, default=_HERE / "570-ripple-ladder.json")
+    lad.set_defaults(func=run_ladder)
 
     c = sub.add_parser("construction", help="the ripple at construction, across the p sweep")
     c.add_argument("--arms", nargs="+", default=["shipped", "reserve_p8", "reserve_p16", "reserve_p24"])
@@ -991,6 +1083,14 @@ def main() -> None:
     c.add_argument("--warm", type=int, default=200)
     c.add_argument("--out", type=Path, default=_HERE / "570-ripple-construction.json")
     c.set_defaults(func=run_construction)
+
+    i = sub.add_parser("interior", help="the rock dropped inside the dome: up / lateral / down")
+    i.add_argument("--arms", nargs="+", default=["shipped", "reserve_p16"])
+    i.add_argument("--levels", type=int, nargs="+", default=[2, 4])
+    i.add_argument("--seed", type=int, default=42)
+    i.add_argument("--warm", type=int, default=200)
+    i.add_argument("--out", type=Path, default=_HERE / "570-ripple-interior.json")
+    i.set_defaults(func=run_interior)
 
     t = sub.add_parser("trained", help="arms trained one at a time, ripple at every checkpoint")
     t.add_argument("--arms", nargs="+", default=["shipped"])
