@@ -1,0 +1,51 @@
+{
+ "issue": 568,
+ "reading": "rank(interior_rowspace) against k_v",
+ "rows": [
+  {
+   "arm": "reserve",
+   "reserve_p": 8,
+   "ticks": 400,
+   "cells": 150,
+   "k_v_median": 24.0,
+   "sum_interior_m_median": 38.5,
+   "rank_median": 24.0,
+   "rank_min": 24,
+   "rank_max": 24,
+   "cells_reading_whole_exposed_block": 150,
+   "cells_at_generic_rank": 86,
+   "rank_over_k_v_median": 1.0,
+   "rank_over_k_v_min": 1.0
+  },
+  {
+   "arm": "reserve_p12",
+   "reserve_p": 12,
+   "ticks": 400,
+   "cells": 150,
+   "k_v_median": 20.0,
+   "sum_interior_m_median": 38.5,
+   "rank_median": 20.0,
+   "rank_min": 20,
+   "rank_max": 20,
+   "cells_reading_whole_exposed_block": 150,
+   "cells_at_generic_rank": 86,
+   "rank_over_k_v_median": 1.0,
+   "rank_over_k_v_min": 1.0
+  },
+  {
+   "arm": "reserve_p16",
+   "reserve_p": 16,
+   "ticks": 400,
+   "cells": 150,
+   "k_v_median": 16.0,
+   "sum_interior_m_median": 35.0,
+   "rank_median": 16.0,
+   "rank_min": 16,
+   "rank_max": 16,
+   "cells_reading_whole_exposed_block": 150,
+   "cells_at_generic_rank": 106,
+   "rank_over_k_v_median": 1.0,
+   "rank_over_k_v_min": 1.0
+  }
+ ]
+}
