@@ -352,8 +352,9 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
   a second job: **the ramp is the wrong answer to *Bootstrapping* below.** A drive edge that is noise
   early in training, with the arm not moving, is the one moment where cranking the assertion up looks
   like the fix. It is not — no motion at all is *Bootstrapping* and not this exposure, its answer is a
-  **curiosity drive** (gated rather than owed, per *Bootstrapping* below), and that is a fog item
-  rather than a rung. The constant stays at `1.0`, typed as
+  **curiosity drive** (gated rather than owed when this was written; **owed**, behind induced activity,
+  since [#517](https://github.com/NGL321/patchworks/issues/517) — per *Bootstrapping* below), and that
+  is a fog item rather than a rung. The constant stays at `1.0`, typed as
   **chosen** in the constants register with #183's linearity as its stated flexibility. No ceiling is
   derived and none is derivable today: `gamma x floor <` fold margin is under audit
   ([#158](https://github.com/NGL321/patchworks/issues/158),
@@ -410,6 +411,45 @@ drive arrives as an additional cell, which is an ordinary structural-mask change
   locks, or per-edge excitation rank (the participation ratio read on the disagreement time-series)
   stays below that edge's stalk width `m_e`. Until that fires, this exposure names its response without
   claiming it is due.
+
+  **Amended on [#517](https://github.com/NGL321/patchworks/issues/517), the cold-start map, and
+  written by [#519](https://github.com/NGL321/patchworks/issues/519), 2026-09-05: the response is
+  owed, not gated — and what is owed first is a supply, not yet the curiosity drive.** The gate above
+  cannot fire, because it is deadlocked with the thing it waits on. The outbound clause cannot pass
+  without variation — a transport rule fed one direction nulls one direction (#154 §2,
+  [#237](https://github.com/NGL321/patchworks/issues/237)'s 2.85 → 1.0009) — and variation cannot
+  arrive without the outbound clause, because the untrained command is the one world-independent
+  constant #120 measured and the arm sits at its stops. #120's fixed point is where that cycle rests.
+  [#496](https://github.com/NGL321/patchworks/issues/496) then ruled that constancy of *magnitude* is
+  not the mechanism: torque babble at the arm and a ~15x swing of the drive's assertion each left the
+  collapse unchanged, and the live variable is per-cell **excitation rank** — #154 §3's participation
+  ratio applied to a cell's evidence stream, the number of directions the evidence turns through. So
+  what this exposure names is a **developmental supply, owed at the cold start**: something that puts
+  directions into the evidence before the loop can supply its own. The ground is #154 §2's own
+  qualifier, *at least at first* — the need for external supply falls as deep retention rises.
+
+  **Induced activity is the first rung; the curiosity drive is the second.** Induced activity is one
+  family with three axes — the wall it enters at (motor, through `act()` with the efference copy
+  honest; sensory, written onto the vision patches with the world not stepped), its amplitude (babble
+  scale, or the boundary contract's bound) and its structure (an ordered travelling front, or the same
+  energy shuffled) — of which torque babble is the small-amplitude motor member. It is task-blind,
+  seeded before the run, reads nothing, and is **annealed to zero** on a stated schedule. It passes the
+  three-part test [#449](https://github.com/NGL321/patchworks/issues/449) uses to tell a drive from a
+  reward, on the same ground the instrument clause above was extended on for `exogenous drive`: it
+  enters the learning rule as **evidence**, the way the render does, and not as a term on the update;
+  it needs no credit assignment; it reads no satisfaction. It asserts nothing and adds no edge, so it
+  is not a drive. Its proposal row is [#527](https://github.com/NGL321/patchworks/issues/527), with
+  #517's induced-activity sweep ([#522](https://github.com/NGL321/patchworks/issues/522)) as its `@when`.
+
+  **Its falsifier.** After the anneal, with induced activity at zero and the world arranged, the arm
+  keeps moving under the graph's **own** command — travel per window above zero — and composed
+  rim-to-apex transport carries more than one direction (effective rank above 1.5). If it does not,
+  induced activity excited the graph without laying anything down, and the **curiosity drive is
+  owed**: an ordinary drive boundary cell at the internal rim, exactly the response this exposure has
+  always named, no longer waiting on a gate. #517 reads this on its shallow-dome sweep and replicates
+  it on the full dome before it moves anything here; the third rung behind both is the
+  evidence-conditioned map ([#319](https://github.com/NGL321/patchworks/issues/319)), at which point
+  ADR-0004's linear exchange is what falls.
 - **Hallucinating satisfaction.** A core cell can reduce disagreement by *believing* the task is met
   rather than by acting — the failure GLean documents for goal-conditioned forward models
   (`docs/research/018-sandbox-citations.md`). Under a drive edge it is bounded rather than eliminated:
