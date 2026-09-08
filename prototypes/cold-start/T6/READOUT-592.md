@@ -8,8 +8,25 @@ every surrogate is named as one.
 Instruments: `b33_coexist.py` (the two terms and the readout), `b33_motion.py`
 (when the world stops), `b33_analyse.py` (the tables). Raw:
 `592-coexist-<arm>-seed<n>-2000.json`, `592-motion-reserve_p12-seed42-2000.json`.
-Surface: `reserve_p12`, `p = 12` per [B27](https://github.com/NGL321/patchworks/issues/576),
-built by `arms.py::build_arm` on the shipped spec. Holonomy read by
+**Surface, named per the #455 rule: `main` at `e75c86c`**, `reserve_p12`, `p = 12`
+per [B27](https://github.com/NGL321/patchworks/issues/576), built by
+`arms.py::build_arm` on the shipped spec, rig in-process.
+
+**And the rig has aged since, which is worth stating rather than discovering
+later.** [#597](https://github.com/NGL321/patchworks/pull/597) has landed
+[B15](https://github.com/NGL321/patchworks/issues/562)'s write of #556's reserve
+mask into `src/`, and on that `main` `DomeSpec` no longer takes `privacy_budget`,
+so `arms.py` — which applies the reserve mask to a built `Dome` by
+`dataclasses.replace` precisely *because* the ruling was unwritten — does not
+import. This branch is therefore based on `e75c86c`, the surface every number here
+was measured on, rather than replayed onto current `main`: a replay needs
+`arms.py` ported to the shipped mask first, and porting it silently would have
+meant shipping numbers no checkout of this branch could reproduce. **The port is
+the first thing any successor ticket on this rig owes.**
+
+`b33_coexist.py` loads B29's `b29_holonomy.py` at runtime. That file is not on
+`e75c86c`; it landed on `main` in [#588](https://github.com/NGL321/patchworks/pull/588)
+and is not duplicated here. Holonomy read by
 [B29](https://github.com/NGL321/patchworks/issues/585)'s `surface_read`, unchanged;
 the floor read by [B19](https://github.com/NGL321/patchworks/issues/568)'s pairing,
 unchanged, with its Haar control.
