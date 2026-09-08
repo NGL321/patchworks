@@ -1,0 +1,71 @@
+{
+ "issue": 560,
+ "rows": [
+  {
+   "p": 0,
+   "k_v": 32,
+   "hops": 1578,
+   "forced_dim_median": 0.0,
+   "forced_dim_max": 19,
+   "forced_share_median": 0.0,
+   "forced_share_mean": 0.003971271651880017,
+   "hops_with_forced_overlap": 11,
+   "hops_fully_coincident": 4
+  },
+  {
+   "p": 4,
+   "k_v": 28,
+   "hops": 1578,
+   "forced_dim_median": 0.0,
+   "forced_dim_max": 19,
+   "forced_share_median": 0.0,
+   "forced_share_mean": 0.03692437684833121,
+   "hops_with_forced_overlap": 338,
+   "hops_fully_coincident": 4
+  },
+  {
+   "p": 8,
+   "k_v": 24,
+   "hops": 1578,
+   "forced_dim_median": 0.0,
+   "forced_dim_max": 19,
+   "forced_share_median": 0.0,
+   "forced_share_mean": 0.13252102776817606,
+   "hops_with_forced_overlap": 564,
+   "hops_fully_coincident": 4
+  },
+  {
+   "p": 12,
+   "k_v": 20,
+   "hops": 1578,
+   "forced_dim_median": 4.0,
+   "forced_dim_max": 20,
+   "forced_share_median": 0.3333333333333333,
+   "forced_share_mean": 0.39183661712178824,
+   "hops_with_forced_overlap": 1322,
+   "hops_fully_coincident": 19
+  },
+  {
+   "p": 16,
+   "k_v": 16,
+   "hops": 1578,
+   "forced_dim_median": 8.0,
+   "forced_dim_max": 16,
+   "forced_share_median": 0.6666666666666666,
+   "forced_share_mean": 0.6552579022160772,
+   "hops_with_forced_overlap": 1322,
+   "hops_fully_coincident": 181
+  },
+  {
+   "p": 20,
+   "k_v": 12,
+   "hops": 1578,
+   "forced_dim_median": 12.0,
+   "forced_dim_max": 12,
+   "forced_share_median": 1.0,
+   "forced_share_mean": 0.9861735222951954,
+   "hops_with_forced_overlap": 1578,
+   "hops_fully_coincident": 1450
+  }
+ ]
+}

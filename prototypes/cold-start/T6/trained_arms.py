@@ -200,11 +200,12 @@ def main() -> None:
     p.add_argument("--condition", choices=sorted(t3.CONDITIONS), nargs="+", default=["baseline"])
     p.add_argument("--seeds", type=int, nargs="+", default=[42])
     p.add_argument("--ticks", type=int, default=20_000)
+    p.add_argument("--prefix", default="555", help="issue the run belongs to (#560 sweeps p)")
     args = p.parse_args()
     for arm in args.arms:
         for condition in args.condition:
             for seed in args.seeds:
-                out = _HERE / f"555-{arm}-{condition}-seed{seed}-{args.ticks}.json"
+                out = _HERE / f"{args.prefix}-{arm}-{condition}-seed{seed}-{args.ticks}.json"
                 if out.exists():
                     print(f"[T6] {out.name} already at the horizon, skipping", flush=True)
                     continue

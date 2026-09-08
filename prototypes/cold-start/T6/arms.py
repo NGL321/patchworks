@@ -187,6 +187,14 @@ ARMS = {
     "reserve": (BUDGET, RESERVE_P),
 }
 
+#: [B13](#560) sweeps `p`. `reserve` above is `p = 8` and stays as #555 wrote it;
+#: `reserve_p<N>` is the same arm at any other reserve size, so both the
+#: construction sweep and `trained_arms.py` take an arbitrary `p` unchanged.
+#: `p = 0` is the reserve *policy* at zero reserve — `k_v = n`, no private block —
+#: which is not the same object as the `union` policy the doubling arm runs.
+for _p in range(0, NODE_STALK_DIM - 3):
+    ARMS.setdefault(f"reserve_p{_p}", (BUDGET, _p))
+
 
 def build_arm(arm: str, seed: int, split: str = "train"):
     """Build one arm on the shipped spec."""
