@@ -111,6 +111,21 @@ singular values, read on the diagnostic cadence. Paired with per-edge disagreeme
 separates parameter collapse from a lag floor draining; neither reading separates them alone.
 _Avoid_: rank (bare), sparsity, bandwidth
 
+**Composed rim-to-apex effective rank**:
+The same participation ratio `(Σσ²)²/Σσ⁴`, read on the **composite** of a chain's hops rather than on
+one map — so its input basis is the rim cell's own features and its output basis is the apex cell's,
+and they are different cells' features at every hop. It is **bandwidth, not abstraction**: *nudge the
+rim one way, then a different way — does the apex move differently, or the same way scaled?* It says
+nothing about how many dimensions the apex needs. A composite may compress hard and still want its
+rank above one; the two are not in tension, and reading this statistic as a claim about abstraction
+is the confusion that survived four tickets unchallenged before #561 named it.
+Two limits travel with it. On a two-direction composite **2.0 is reachable only at exact equality**
+of the two directions' energy, so a bar of 2.0 is a demand for *balance* that nothing in the record
+asks for. And it multiplies learned restriction maps only — it **never touches the stalks**
+(#565) — so it is a property of the transport operator and is silent on whether traffic travels the
+directions it retains. #576 retired it as a bar for that reason; it remains a diagnostic.
+_Avoid_: reach, abstraction, directions surviving, compression
+
 **Incoherence count**:
 The effective overlap count `c` — how many of a cell's incident restriction maps load the same input
 direction. `c = deg(v)` is fully coherent maps and `c = 1` perfectly incoherent ones. A gauge constant

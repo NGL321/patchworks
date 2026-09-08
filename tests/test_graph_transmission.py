@@ -188,7 +188,7 @@ class TestAnalyticHop:
         # survives.
         hops = [
             transmission.analytic_hop(
-                build_graph(dataclasses.replace(SMALL, privacy_budget=budget))
+                build_graph(dataclasses.replace(SMALL, capacity_budget=budget))
             )
             for budget in (15, 31, 63)
         ]

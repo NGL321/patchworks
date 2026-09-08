@@ -318,9 +318,29 @@ patch's information ever takes, unlike an interior cell, which is reachable many
 [#548](https://github.com/NGL321/patchworks/issues/548) wrote
 [#540](https://github.com/NGL321/patchworks/issues/540)'s ruling, and the rule is: **each interior
 lane gets the largest width both its endpoints can afford**, under the construction invariant this
-file owns — **`Σ_e m_e ≤ n − 1` at every predicting cell**, which is `05-timescales.md`'s `dim H⁰`
-bound read as a floor of 1 rather than as a total. `src/patchworks/graph.py::allocate_lane_widths` is
-the implementation and states the fair-sharing rule in full.
+file owns — **`Σ_e m_e ≤ 2n − 1` at every predicting cell**.
+`src/patchworks/graph.py::allocate_lane_widths` is the implementation and states the fair-sharing
+rule in full. Every lane is additionally **capped at `n − p`**, the block the mask permits: a lane
+wider than what its endpoint may expose carries nothing extra, which is `drive_m`'s own reasoning.
+Eight of the 409 interior lanes bind on that cap.
+
+> **That invariant is a capacity bound, and it is no longer where privacy comes from
+> ([#556](https://github.com/NGL321/patchworks/issues/556), written by
+> [#562](https://github.com/NGL321/patchworks/issues/562)).** It used to be `Σ_e m_e ≤ n − 1`, and
+> it was carrying two jobs at once: bounding what a cell's lanes may sum to, *and* guaranteeing the
+> leftover `n − Σ_e m_e` as private width. #556 found the second job was an accident of one line in
+> `_assemble` — the same leading block was already permitted on every incident edge, so the sum was
+> a worst-case bound on the union's rank being *used as the block size*, and it never enforced that
+> a cell's neighbours receive distinct directions. **The two are unwelded.** What this invariant
+> still does is stop a cell's lanes outrunning what the cell can carry. What it no longer does is
+> supply any private dimension at all; that is `p`'s, below, and it is exact rather than residual.
+>
+> **This is why the doubling finally ships.** #540 ruled `Σ_e m_e ≤ 2n − 1` and #548 declined to
+> write it, because at 63 against `n = 32` the residual `max(0, n − Σ_e m_e)` read **zero at 104 of
+> the 150 predicting cells** and the `dim H⁰` floor fell **914 → 54**, reinstating the zero row
+> [#474](https://github.com/NGL321/patchworks/issues/474) was opened to remove. Under the reserve
+> mask that collision cannot occur: `p_v = p` however wide the lanes get. The number and its stated
+> reason were never actually in contact — the weld put them in contact — so **neither gave**.
 
 **What was wrong with a constant, and it is this file's own rule that says so.** The invariant is a
 budget *per cell*, and it **binds at exactly one of the six relay cells**: L1 vision, at degree 9,
@@ -361,7 +381,12 @@ for the 0.055 of median composed rank it costs (1.341 against 1.396 deleted).
 #### What the invariant is *for*
 
 *New to the record with [#548](https://github.com/NGL321/patchworks/issues/548). This section carried
-the arithmetic of `Σ_e m_e ≤ n − 1` and never carried its reason.*
+the arithmetic of `Σ_e m_e ≤ n − 1` and never carried its reason.* **Amended by
+[#562](https://github.com/NGL321/patchworks/issues/562): the reason below survives intact and the
+quantity it attaches to has changed.** What follows is a claim about how much a cell **keeps**, and
+under the reserve mask that quantity is `p` and not the budget's leftover. Read this section as the
+warrant for `p`, which is where [#560](https://github.com/NGL321/patchworks/issues/560) took it when
+it derived `p = k`.
 
 The invariant is not a bound someone found convenient. In the user's own framing, ruling on
 [#540](https://github.com/NGL321/patchworks/issues/540):
@@ -379,14 +404,29 @@ abolition changes the framing*. Abolition scored highest on composed rank of any
 (3.644 against the ruled stack's 2.193) and was refused anyway, which is the clearest statement
 available of how load-bearing this reason is.
 
-> **The doubling is ruled but not shipped, because it collides with the reason above.**
-> #540 ruled `Σ_e m_e ≤ 2n − 1`. At 63 against `n = 32`, `p_v = max(0, n − Σ_e m_e)` reads **zero at
-> 104 of the 150 predicting cells** and the `dim H⁰` floor falls **914 → 54** — reinstating the zero
-> row [#474](https://github.com/NGL321/patchworks/issues/474) was opened to remove and
-> [#385](https://github.com/NGL321/patchworks/issues/385) ruled the mask must supply. The number and
-> its own stated reason cannot both stand on this mask layout, and which gives is
-> [#556](https://github.com/NGL321/patchworks/issues/556)'s. `DomeSpec.privacy_budget` is held at
-> `n − 1` meanwhile, and it is a field, so the doubling is one line once that is ruled.
+> **The doubling was ruled but not shipped, because it collided with the reason above — and
+> [#556](https://github.com/NGL321/patchworks/issues/556) dissolved the collision rather than
+> resolving it.** #540 ruled `Σ_e m_e ≤ 2n − 1`. At 63 against `n = 32`,
+> `p_v = max(0, n − Σ_e m_e)` read **zero at 104 of the 150 predicting cells** and the `dim H⁰`
+> floor fell **914 → 54** — reinstating the zero row
+> [#474](https://github.com/NGL321/patchworks/issues/474) was opened to remove and
+> [#385](https://github.com/NGL321/patchworks/issues/385) ruled the mask must supply. #556 was asked
+> which gives, and answered **neither**: the two quantities were only ever in contact through one
+> line of `_assemble`, and unwelding them beats both horns. The budget now ships at `2n − 1` and the
+> floor is `Σ_v p = 1800`, the highest it has ever read. `DomeSpec.capacity_budget` carries the
+> number; `DomeSpec.private_reserve` carries `p`.
+>
+> **`Σ_e m_e ≤ B` at `B = 63` no longer binds anything a cell can actually read, and that is the
+> cost side of the same ruling.** A predicting cell exposes `n − p = 20` directions and its lanes
+> may sum to 63, so at **every one of the 150 predicting cells** the lanes now sum to more than the
+> block they are carved from. Two incident lanes must therefore intersect in at least
+> `max(0, m_in + m_out − k_v)` dimensions whatever the maps learn — #560 measured 33% of the median
+> hop at `p = 12`. That forced overlap is what buys the composed rank, and it is priced here rather
+> than discovered later: it is why [#576](https://github.com/NGL321/patchworks/issues/576) refused
+> to raise `p` further, and it is why the graph's coboundary is now row-rank deficient by
+> construction, so no configuration of zero disagreement exists
+> ([ADR-0007](../adr/0007-the-disagreement-floor-is-tolerated-not-represented.md)'s floor arriving
+> from construction rather than from the world).
 
 **Of the four committed dimensions, `m` has the least theoretical headroom, and this ruling spent
 some of it.** [#32](https://github.com/NGL321/patchworks/issues/32) found `n = 32`, `k = 12` and
@@ -492,76 +532,141 @@ in doing so took the 4×4 patch itself from 6:1 to **12:1** — halfway to the c
 paragraph calls too much (*Dimensions*, above). That is the one place in this file where #474's
 exposure and this section's own bar are the same quantity, and nothing reconciles them yet.
 
-### Private dimension is a gradient, and it falls out
+### Private dimension is flat, and it is reserved
 
-`05-timescales.md`'s bound `dim H⁰ ≥ Σ_v max(0, n − Σ_{e∋v} m_e)` applied to the levels above:
+> **This section was titled *Private dimension is a gradient, and it falls out* until
+> [#562](https://github.com/NGL321/patchworks/issues/562), and its headline was **"it is nowhere
+> zero, and that is [#474](https://github.com/NGL321/patchworks/issues/474)'s doing"**. Both halves
+> have changed, and the section is rewritten rather than deleted, because what the gradient was
+> *credited with* outlived the gradient itself and has to be settled here rather than quietly
+> dropped.**
+
+**`p_v = p = 12` at every one of the 150 predicting cells.** A predicting cell withholds its trailing
+`p` node-stalk directions from **every** incident edge, so those directions lie in `ker δ` whatever
+the lanes sum to and whatever the maps learn. The floor is
+**`dim H⁰ ≥ Σ_v p = 150 × 12 = 1800`** — an **equality in `p`**, not a bound that happens to be
+tight, and independent of every lane width in the graph.
+
+**`p = k = CHART_DIM`, and it is derived rather than chosen**
+([#560](https://github.com/NGL321/patchworks/issues/560)). *What the invariant is for*, above, says
+a cell needs more features to compute its **own dynamics** than it holds an authoritative position on
+network-wide, and `body.py` already names that quantity: `k` is *"the cell's private low-dimensional
+coordinates, and the memory depth its operator advances"*. Two limits travel with the derivation.
+It fixes a **magnitude, not a subspace** — `decode`'s image is not aligned to the trailing `p`
+coordinates — and **`k` is itself stipulated**, so `p` inherits `k`'s standing rather than
+manufacturing a warrant of its own.
+
+**It does not climb.** `p` was swept 0–28 at construction on two seeds and trained at
+{0, 4, 8, 12, 16, 20}; composed rank rises monotonically in `p` to a degenerate ceiling, and
+[#576](https://github.com/NGL321/patchworks/issues/576) refused the higher values anyway. Every unit
+of operator rank `p` buys is paid for one-for-one in the property the architecture actually wants:
+[#571](https://github.com/NGL321/patchworks/issues/571) measured the largest region over which a
+direction stays consistent collapsing **150 → 27 → 7 → 1 cells** as `p` rises, and
+[#585](https://github.com/NGL321/patchworks/issues/585) found channel return and composed rank move
+in exact inverse. At `p ≥ 18` an interior lane carries the cell's whole readable block, so an
+interior edge selects nothing and this file's account of the cell as a compressor stops being true
+of the interior.
+
+#### What the gradient was, and what supplies it now
+
+The table below used to read a **gradient**: 1 at the thinnest cell rising to 15 at the apex, and
+before #548, monotone in depth. It is flat now. **That is a better guarantee and a worse gradient,
+and both halves belong on the record.**
+
+Better, because `p_v` was a *residual* — `n − Σ_e m_e` — so every lane ruling moved it without
+anyone choosing to. #548's reallocation took the total **1278 → 914** as a side effect. The floor is
+now set directly and nothing about the allocation can reach it.
+
+Worse, because `05-timescales.md` wanted the grading: slow state living deep, which is what a rising
+private width was supposed to supply.
+
+> **Nothing supplies it now, and nothing did.** This is the honest answer and it is not a cost of the
+> reserve. [#572](https://github.com/NGL321/patchworks/issues/572) tested the claim directly: three
+> timescale statistics are negative in all four runs, world-state decode is flat against its null and
+> seed-unstable in sign, and the one strong stable correlation with depth is `emission_gain` at
+> **−0.84..−0.86** — the apex is the **fastest** place in the graph, and training drives it there.
+> `05-timescales.md`'s own pre-registered falsifier fired. #556 had already reached the same
+> conclusion from the other side:
+> [#271](https://github.com/NGL321/patchworks/issues/271) measured the correlation between a cell's
+> private width and its retention lift at **−0.107 to +0.047** over nine seeds, with the *smallest*
+> lift at the apex, which is why `05-timescales.md` already called private width *"a relay aperture
+> and not a retention gradient"*. **The reserve did not spend a gradient the dome was delivering. It
+> removed a decoration the record had been crediting with a mechanism it never had.**
+> [#594](https://github.com/NGL321/patchworks/issues/594) carries the candidate replacement —
+> abstraction as neighbourhood radius — and it is not this file's to assert until that lands.
+
+**If a graded private width is ever wanted back, it returns as a taper on `p`** — designed and
+defended on its own evidence — not as a by-product of degree. That is #556's Q3, and it is the only
+route back: degree no longer touches this column.
+
+#### The table
+
+`p_v` is flat, so the last column below no longer varies; it is kept because the *other* columns do,
+and because a reader coming from the old gradient needs to see the flatness rather than be told it.
+`Σ_e m_e` is now a **capacity** reading — what a cell's lanes sum to — and not a privacy one.
+
+`05-timescales.md`'s bound `dim H⁰ ≥ Σ_v max(0, n − Σ_{e∋v} m_e)` is **superseded, not violated**; see
+*What the old bound still says* below. The table is measured from the built graph:
 
 | cell (count) | degree | `Σ_e m_e` | guaranteed private dimension |
 |---|---|---|---|
-| L1 vision (lattice corner) (4) | 7 | 23 | **9** |
-| L1 vision (lattice edge) (24) | 8 | 24 | **8** |
-| L1 vision (interior) (36) | 9 | 25 | **7** |
-| L1 somatomotor (6) | 7–8 | 18–31 | **1–14** |
-| L2 vision (lattice corner) (4) | 7 | 27 | **5** |
-| L2 vision (lattice edge) (8) | 8 | 28 | **4** |
-| L2 vision (interior) (4) | 9 | 29 | **3** |
-| L2 somatomotor (4) | 5–6 | 30–31 | **1–2** |
-| L3 core (16) | 6 | 20–31 | **1–12** |
-| L4 core (14) | 6 | 29–31 | **1–3** |
-| L5 core (12) | 6 | 29–31 | **1–3** |
-| L6 core (10) | 6 | 30–31 | **1–2** |
-| L7 apex (8) | 5 | 17–21 | **11–15** |
+| L1 vision (lattice corner) (4) | 7 | 30 | **12** |
+| L1 vision (lattice edge) (24) | 8 | 31 | **12** |
+| L1 vision (interior) (36) | 9 | 31–32 | **12** |
+| L1 somatomotor (6) | 7–8 | 29–33 | **12** |
+| L2 vision (lattice corner) (4) | 7 | 62 | **12** |
+| L2 vision (lattice edge) (8) | 8 | 63 | **12** |
+| L2 vision (interior) (4) | 9 | 59 | **12** |
+| L2 somatomotor (4) | 5–6 | 42–63 | **12** |
+| L3 core (16) | 6 | 38–63 | **12** |
+| L4 core (14) | 6 | 61–62 | **12** |
+| L5 core (12) | 6 | 60–62 | **12** |
+| L6 core (10) | 6 | 61–62 | **12** |
+| L7 apex (8) | 5 | 33–41 | **12** |
 
 Measured from the built graph on `DEFAULT_SPEC`, `n = 32`, and generated by
 `Dome.private_dimension_rows` rather than transcribed. The `Σ_e m_e` column is no longer arithmetic
 anyone can do by hand from two constants — since #548 it is the allocation's output, so it is a range
-within a group where it used to be a single number.
+within a group where it used to be a single number — and since #562 it runs against a budget of 63
+rather than 31, which is why every core row now sits near 62 where it sat near 31.
 
-**Guaranteed private dimension is one at the thinnest cell in the graph and rises to fifteen at the
-apex.** Slow state still lives deep by construction, which is the gradient `05-timescales.md` wanted
-and did not have a mechanism for — but **the gradient is no longer monotone in depth, and #548 is
-why**. The rim now carries *more* structural privacy than L2–L6 (L1 vision 7–9 against L4–L6's 1–3),
-because narrowing laterals to 1 freed budget at the rim while the allocation spent the core's idle 13.
-The apex keeps the most, for the reason it always did: it loses its up-edges by construction and so
-has the fewest lanes to fund.
+**Read the third and fourth columns as independent.** They were the same fact seen twice, because the
+fourth was `n` minus the third. They are now two different readings of a cell: what it publishes, and
+what it keeps. Nothing in the third column can move the fourth.
 
-**The total is 914, and it was 1278.** The floor holds at 1 everywhere and no cell is zero, but the
-sum is not conserved: a constant that binds at one cell leaves idle budget everywhere else, and idle
-budget reads as private dimension until something spends it. That is the price of composed rank
-1.028 → 1.341, and it is the number to watch if the invariant is revisited
-([#556](https://github.com/NGL321/patchworks/issues/556)).
+**The total is 1800, and it was 914.** It is also the highest this floor has ever read — 592 before
+#474, 1278 after it, 914 after #548's reallocation, and **54** under the doubling that #548 therefore
+declined to ship. Under the reserve mask the doubling costs the floor nothing at all, because the
+floor is no longer made of what the doubling spends.
 
-**It is nowhere zero, and that is [#474](https://github.com/NGL321/patchworks/issues/474)'s doing —
-and #548 kept it so deliberately rather than by luck.** This table used to read `0` for every vision
-row, and 82 of the 150 predicting cells had no private width at all. What holds the column above zero
-is not any particular lane width but the invariant `Σ_e m_e ≤ n − 1`, which is why #548 could
-reallocate every interior lane in the graph without the zero returning, and why the doubling it
-declined to ship would have brought it straight back at 104 cells. The floor is **`p_v ≥ 1`** and
-nothing above 1 is claimed: `build_graph` refuses a spec whose allocation would breach it.
+**It is nowhere zero, and that is now the mask's doing outright rather than an invariant's
+by-product.** This table used to read `0` for every vision row, and 82 of the 150 predicting cells
+had no private width at all. [#385](https://github.com/NGL321/patchworks/issues/385) ruled the floor
+was the mask's to supply and [#474](https://github.com/NGL321/patchworks/issues/474) supplied it
+*indirectly*, by choosing lane widths whose residual was positive everywhere. The mask now supplies
+it **directly**, which is the same ruling honoured by a mechanism that cannot be undone by a later
+lane decision.
 
-Two corrections to how the headline used to read, neither of which moves it:
+Two observations from the gradient era, kept because their subjects still exist even though the
+column they were about has gone flat:
 
-- **The rim's exceptions are no longer exceptional.** The four corner cells of the 4×4 L2 lattice
-  have only two lateral neighbours, which used to leave them the graph's only structural privacy
-  outside the core, at **4** against a rim of zeroes. Every cell around them is non-zero too, so the
-  corner is a high point on a gradient rather than an exception to a flat zero. Still worth knowing
-  about if the private-component readout is run per-cell rather than per-level, and for the opposite
-  reason: it is where the rim has the most, not the only place it has any. *Since #548 they read
-  **5**, and the L1 corners at **9** are the graph's high point outside the apex — the observation
-  stands and its subject has moved a level.*
-- **It is a step, not a ramp.** 1–9 at the vision levels, 1–12 across L3–L6, 11–15 at the apex. Degree
-  falls at the apex and nowhere else in the core, so nothing about this gradient is smooth. *Since
-  #548 it is not even monotone: the core reads below the rim, because the allocation spent the idle
-  budget a flat degree used to bank there.*
-  [#41](https://github.com/NGL321/patchworks/issues/41) already half-said this from the other
-  direction — the gradient is one in *means*, with adjacent depths overlapping per tick — and the
-  structural picture agrees: what the taper buys is deep-versus-shallow, not a graded ordering
-  through the core. It is not designed here; it falls out of the taper, because rim-adjacent cells are
-necessarily high-degree — an L1 vision cell must read four patches — and depth reduces degree.
+- **The rim's exceptions were about degree, and degree no longer reaches this column.** The four
+  corner cells of the 4×4 L2 lattice have only two lateral neighbours, which once left them the
+  graph's only structural privacy outside the core, at **4** against a rim of zeroes; after #548 they
+  read **5** and the L1 corners at **9** were the graph's high point outside the apex. All of them
+  read **12** now. What survives is the topological fact — those cells have fewer neighbours — and
+  it shows in `Σ_e m_e`, not here.
+- **The apex is no longer distinguishable by this column.** It kept the most private width for a
+  structural reason: it loses its up-edges by construction and so has the fewest lanes to fund. That
+  reason is intact and still visible — the apex row's `Σ_e m_e` of 33–41 is the lowest in the core —
+  but it no longer buys the apex anything the rim does not also have.
+  [#41](https://github.com/NGL321/patchworks/issues/41) half-said this from the other direction
+  already: the gradient was one in *means*, with adjacent depths overlapping per tick. #572 finished
+  the job by finding no gradient in the quantity that mattered.
 
 A *guaranteed* private dimension is a lower bound, and learned rank-deficiency used to be read as
-enlarging `H⁰` past it. What the gradient says is that near the rim a cell's privacy is thin, and deep
-it is broad — but at every cell it is now **structural**, which is the change #474 made.
+enlarging `H⁰` past it. What the table now says is that every cell's privacy is the same size and
+**structural**, which is what #385 asked for and what #474 approximated.
 
 *Amended by [ADR-0032](../adr/0032-the-maps-learn-isometric-transport-and-a-spectral-floor-expresses-it.md):
 the slack this paragraph leans on largely closes.* A map held to the spectral floor has rank exactly
@@ -572,14 +677,39 @@ the rim privacy stops being contingent on learning and becomes what construction
 **#474 is why that is now a floor rather than a cliff**: with the maps' slack closed, `p_v` is all a
 rim cell has, and construction sets it to at least 1 everywhere rather than to 0 at 82 cells.
 [#385](https://github.com/NGL321/patchworks/issues/385) ruled that this was the mask's to supply and
-[#474](https://github.com/NGL321/patchworks/issues/474) supplied it.
+[#474](https://github.com/NGL321/patchworks/issues/474) supplied it. *Since #562, `p_v` is 12 rather
+than 1 at that rim cell, and ADR-0032 is untouched by the change — its band is what stops the
+shrink-to-flat road being taken instead, and #576 records it as load-bearing.*
+
+#### What the old bound still says
+
+`dim H⁰ ≥ Σ_v max(0, n − Σ_{e∋v} m_e)` is **superseded, not violated**. It is still true — the
+directions it counts are still masked off every incident edge — and on this dome it now reads
+`Σ_v max(0, 32 − 59..63) = 0` at most cells, so it says almost nothing. That is the point: it was
+always a **union bound**, counting the directions a cell's lanes could not possibly span between
+them, and a union bound goes slack the moment the lanes are allowed to overlap. Under a budget of 63
+they overlap heavily and by design.
+
+The floor that binds is **`dim H⁰ ≥ Σ_v p`**, and it is an **equality in `p`** rather than an
+inequality that happens to be tight. The difference is not cosmetic:
+
+| | old | new |
+|---|---|---|
+| form | `Σ_v max(0, n − Σ_e m_e)` | `Σ_v p` |
+| depends on lane widths | yes — moves with every allocation | **no** |
+| tight? | only where the union bound is achieved | exact, at every cell |
+| value on `DEFAULT_SPEC` | 914 → 0 under the doubling | **1800** |
+
+Anyone reading the old bound for a *floor* should read `Σ_v p`. The old form is kept because it is
+the honest statement of what the masks alone guarantee without the reserve, and because
+`05-timescales.md` derives it; see that file's *Insulation from neighbours*.
 
 #### The zero row was two populations, and what released each of them
 
 *Written by [#475](https://github.com/NGL321/patchworks/issues/475) on
 [#385](https://github.com/NGL321/patchworks/issues/385)'s ruling, while the zero stood; amended by
 [#474](https://github.com/NGL321/patchworks/issues/474), which released it.* **There is no zero row
-now** — the table above reads 1 at its thinnest. This subsection is kept as the record of **why the
+now** — the table above reads 12 at every cell. This subsection is kept as the record of **why the
 pin existed and what released it**, because the analysis is what selected the pair of knobs.
 
 > **History, not a procedure — amended by [#548](https://github.com/NGL321/patchworks/issues/548).**
@@ -668,9 +798,10 @@ constraint is guaranteed at its floor and unowned above it**, and the 364 dimens
 spent were exactly the unowned part. If a future session wants the total defended and not just the
 floor, that is a different invariant and it does not exist yet.
 
-`χ = Σ_v n − Σ_e m_e` over predicting cells is **+2323**, measured from the built graph. It was
-**+1036** at the pre-#474 `(4, 8)` and **+2505** at #474's `(3, 4)`, and #548's per-edge allocation
-moved it here; `χ` is not a target and the move is
+`χ = Σ_v n − Σ_e m_e` over predicting cells is **+939**, measured from the built graph. It was
+**+1036** at the pre-#474 `(4, 8)`, **+2505** at #474's `(3, 4)` and **+2323** after #548's per-edge
+allocation; [#562](https://github.com/NGL321/patchworks/issues/562) doubled the budget those lanes
+are allocated under and moved it here. `χ` is not a target and the move is
 the mask's arithmetic, not a finding. The eight
 drive edges move it by 8; the drive's cost is local to the apex cells, not to the diagnostic.
 
@@ -680,8 +811,8 @@ private state that the world overwrites every tick and no cell holds — but the
 **all** edges, boundary-incident ones included, because those lanes are ordinary and are the
 route the boundary's information actually takes (*The world only ever touches node stalks*, above).
 The rule was previously stated as "computed over predicting cells only", which licensed the wrong
-computation: dropping boundary edges as well as boundary nodes gives **+3391** against this section's
-**+2323**. This is a correction to the diagnostic as recorded in `01-cell-and-sheaf.md`. The two
+computation: dropping boundary edges as well as boundary nodes gives **+2007** against this section's
+**+939**. This is a correction to the diagnostic as recorded in `01-cell-and-sheaf.md`. The two
 figures were **+3164** against **+1036** on the `boundary_m = 8` surface, where the wrong rule read
 three times the right one; at `boundary_m = 4` it reads 1.4x, because narrowing the boundary lanes is
 most of what the wrong rule was dropping. **The gap narrowed and the error did not** — a reader who
@@ -694,7 +825,8 @@ estimates were retired in favour of the measurement
 ([#83](https://github.com/NGL321/patchworks/issues/83)). **Every figure in that history was read at
 `interior_m = 4`, `boundary_m = 8`**, and the surface has moved twice since:
 [#474](https://github.com/NGL321/patchworks/issues/474) took it to **+2505** and
-[#548](https://github.com/NGL321/patchworks/issues/548)'s per-edge allocation to **+2323**, with the
+[#548](https://github.com/NGL321/patchworks/issues/548)'s per-edge allocation to **+2323**, and
+[#562](https://github.com/NGL321/patchworks/issues/562)'s doubled budget to **+939**, with the
 edge count unchanged at 682 throughout. Nothing is contradicted, because what is load-bearing about
 `χ` is its **invariance under learning**, not its value — and that is exactly why a construction
 change moves it freely.
@@ -768,8 +900,8 @@ the finding — it is a reason not to let it borrow the authority of the cited m
   in the one unit the field uses.
 
   The quantitative form is the **per-tick capacity of each cut**, which is this section's own best
-  evidence: `12,288 → 1,060 → 392 → 118`. The entire sensory boundary reaches the core through
-  **118 numbers per tick**, a 104:1 squeeze at a single cut, while the two farthest predicting
+  evidence: `12,288 → 1,060 → 872 → 266`. The entire sensory boundary reaches the core through
+  **266 numbers per tick**, a 46:1 squeeze at a single cut, while the two farthest predicting
   cells are only ~9 hops apart. Both readings live in that number and the tension is owned rather
   than resolved by choosing a favourable metric.
 
@@ -777,8 +909,11 @@ the finding — it is a reason not to let it borrow the authority of the cited m
   `boundary_m = 8`, then `12,288 → 1,060 → 210 → 60` and **205:1** after
   [#474](https://github.com/NGL321/patchworks/issues/474). #474 narrowed both lanes to buy the
   private-dimension floor and the cuts tightened with them; **#548 widened the worst cut back to
-  104:1**, wider than it has ever been, by allocating interior lanes per edge — the same trade in the
-  other direction, and it is why the `dim H⁰` floor fell 1278 → 914 — the taper's capacities are set by `m`
+  104:1** by allocating interior lanes per edge — the same trade in the
+  other direction, and it is why the `dim H⁰` floor fell 1278 → 914. **#562 widened it again to
+  46:1**, wider than it has ever been, by doubling the budget the allocation spends; that widening
+  costs the floor **nothing**, because #556 moved the floor off the budget, which is the first time
+  this trade has been available in one direction only — the taper's capacities are set by `m`
   ([ADR-0030](../adr/0030-the-conversion-buys-a-design-variable-and-the-price-is-booked.md)), so this
   is arithmetic rather than a new finding. **It is the honest cost of that ruling recorded where the
   bottleneck is argued**: #474 priced the trade at the cell, per-patch, and it also tightens the
@@ -980,8 +1115,8 @@ measure, and `n` being a global constant means no predicting cell can be dimensi
   argument for pulling per-cell adapters off
   [#14](https://github.com/NGL321/patchworks/issues/14)'s constraint ladder early.
 - **The taper is the real bottleneck**, and *distance is not a separate thing from it*: the cut
-  capacities run `12,288 → 1,060 → 392 → 118`, so the whole sensory boundary reaches the core
-  through 118 numbers per tick — eighty before
+  capacities run `12,288 → 1,060 → 872 → 266`, so the whole sensory boundary reaches the core
+  through 266 numbers per tick — eighty before
   [#474](https://github.com/NGL321/patchworks/issues/474) narrowed the lanes to sixty, and back up
   since #548 allocated them per edge (*Broadcast subspaces*, above). In the literature's own units that single narrow cut **is** the high
   effective resistance between distant cells, which is why this document no longer argues that reach

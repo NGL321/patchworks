@@ -62,6 +62,44 @@ run**, which is the opposite of the previous shape and has not been argued for o
 > [#556](https://github.com/NGL321/patchworks/issues/556) weighs that against the composed-rank the
 > doubling buys; whichever way it goes, **this amendment is what it costs.**
 
+*Amended by [#562](https://github.com/NGL321/patchworks/issues/562), writing
+[#556](https://github.com/NGL321/patchworks/issues/556)'s ruling.* **The clause above is
+strengthened, and the doubling ships without costing it anything.** #556 was asked which of the
+number and its reason gives, and answered **neither**: the invariant and the private width were two
+independent quantities welded together by one line of `_assemble`, and unwelding them beats both
+horns of the trilemma at once.
+
+Three things change for this ADR, all in its favour:
+
+- **The floor goes 914 → 1800**, the highest it has ever read, and every predicting cell holds
+  **`p = 12`** rather than the thinnest holding 1. Commitment-as-`H⁰`-insulation is not merely
+  preserved; it is twelve times better guaranteed at the cell where it was weakest.
+- **The shape objection above is answered by removal.** *Insulated most where routes converge and
+  least where they run* was the previous amendment's own worry, raised because it had not been
+  argued for. There is no shape now: `p_v` is flat, so the ADR no longer rests on a distribution
+  nobody chose. What it rests on is a number that was chosen, and derived —
+  [#560](https://github.com/NGL321/patchworks/issues/560)'s `p = k = CHART_DIM`.
+- **The guarantee stops being contingent on lane rulings.** `p_v` was `n − Σ_e m_e`, so every
+  allocation decision moved the quantity this ADR depends on, silently — which is exactly how the
+  1278 → 914 above happened. It is now set directly, and no lane ruling can reach it.
+
+**What the budget still does, since this ADR was the reason it was protected.** `Σ_e m_e ≤ B` is now
+a **capacity** bound: it stops a cell's lanes outrunning what the cell can carry. It guarantees no
+private dimension and this ADR no longer depends on it. `DomeSpec.capacity_budget` carries the number
+and `DomeSpec.private_reserve` carries `p`, so a future session widening lanes cannot spend this
+ADR's premise without deliberately editing the field that holds it.
+
+> **One cost, and it is not to this clause.** At `B = 63` a cell's lanes sum to more than the `n − p`
+> block they read from, at **every** predicting cell, so incident lanes are forced to share
+> directions — 33% of the median hop at `p = 12` ([#560](https://github.com/NGL321/patchworks/issues/560)).
+> That buys composed rank and is paid for in coherent regional structure
+> ([#571](https://github.com/NGL321/patchworks/issues/571)), which is why
+> [#576](https://github.com/NGL321/patchworks/issues/576) held `p` at 12 rather than raising it. It
+> also makes the coboundary row-rank deficient by construction, so the graph has an irreducible
+> disagreement floor — [ADR-0007](./0007-the-disagreement-floor-is-tolerated-not-represented.md)'s
+> subject, arriving from construction rather than from the world. None of that touches `ker δ`, which
+> is what this clause is about.
+
 *Amended by [ADR-0009](./0009-a-drive-is-a-motor-edge-attached-deep.md).* The sensory/motor split
 above is exhaustive over the *world's* edges but not over the graph's: a **drive edge** is written from
 outside and cleared by the world moving, which makes it a motor edge attached far from the rim rather

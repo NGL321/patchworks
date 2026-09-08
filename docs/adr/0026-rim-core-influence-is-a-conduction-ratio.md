@@ -568,9 +568,11 @@ by construction. The gate is what carries that pressure rather than hiding it.
     conduction.
 
   **No numerator change was made here, and none is owed.** The floor is the **mask's** to supply —
-  `p_v = max(0, n − Σ_e m_e)` is a construction quantity the spec has never been asked to set, and
-  `06-graph-topology.md`'s *Private dimension is a gradient, and it falls out* now carries which
-  cells `interior_m` can and cannot reach. A session arriving here looking for an amendment to the
+  `p_v` is a construction quantity the spec has never been asked to set, and
+  `06-graph-topology.md`'s *Private dimension is flat, and it is reserved* carries it. *Since
+  [#562](https://github.com/NGL321/patchworks/issues/562) it is `p_v = p` at every cell rather than
+  `max(0, n − Σ_e m_e)`, so the question of which cells a lane width can and cannot reach no longer
+  arises: none of them, in this column.* A session arriving here looking for an amendment to the
   numerator should stop: the predicate, the reduction, the quantifiers and the loop enumeration are
   exactly as they stand above.
 - **The pin is released, and `conduction_ratio` becomes readable in both directions for the first

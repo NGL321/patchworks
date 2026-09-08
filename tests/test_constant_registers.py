@@ -306,10 +306,12 @@ class TestTheRegisterReachesIntoAMarkedClass:
     may turn*, so a register that cannot show the knob #14's constraint ladder
     starts on was not answering it.
 
-    That knob used to be `interior_m`. Since #548 wrote #540's ruling it is
-    `privacy_budget`: interior lane width is allocated per edge and is no longer
-    a value anyone sets, so the ladder's first rung is the invariant those
-    widths are allocated under, not the width itself.
+    That knob used to be `interior_m`. Since #548 wrote #540's ruling it is the
+    invariant those widths are allocated under rather than the width itself,
+    and since #562 wrote #556's that invariant has **split in two**:
+    `capacity_budget`, which bounds what a cell's lanes may carry, and
+    `private_reserve`, which is the private width they used to leave behind as
+    a residual. Both are knobs, and the register must show both.
     """
 
     def _fields(self, surveys):
@@ -319,34 +321,39 @@ class TestTheRegisterReachesIntoAMarkedClass:
             if entry.name.startswith("DomeSpec.")
         }
 
-    def test_all_sixteen_are_registered(self, surveys):
+    def test_all_seventeen_are_registered(self, surveys):
         """The count is pinned because the gap was one of *reach*, not of writing.
 
-        Sixteen is every field of `DomeSpec`; if a seventeenth arrives, this
+        Seventeen is every field of `DomeSpec`; if an eighteenth arrives, this
         test and the completeness check below both speak, and they say different
         things -- this one that the count moved, that one that the new field has
         no provenance.
 
         It was fifteen until #548, which retired `interior_m` and added
-        `lateral_m` and `privacy_budget` in its place. The count moved by one
-        and the register's reach did not: both new fields carry provenance.
+        `lateral_m` and `privacy_budget` in its place, and sixteen until #562,
+        which renamed `privacy_budget` to `capacity_budget` and added
+        `private_reserve` beside it -- #556's unweld, which is one field
+        becoming two because it was carrying two quantities. The count has
+        moved twice and the register's reach has not: every new field carries
+        provenance.
         """
         fields = self._fields(surveys)
-        assert len(fields) == 16
+        assert len(fields) == 17
         assert set(fields) == {
             f"DomeSpec.{name}"
             for name in (
                 "patch_grid", "vision_sides", "somatomotor_sizes", "core_sizes",
-                "joints", "lateral_m", "privacy_budget", "boundary_m",
-                "drive_m", "patch_stalk", "proprioceptive_stalk", "touch_stalk",
-                "actuator_stalk", "drive_stalk", "core_degree", "apex_degree",
+                "joints", "lateral_m", "capacity_budget", "private_reserve",
+                "boundary_m", "drive_m", "patch_stalk", "proprioceptive_stalk",
+                "touch_stalk", "actuator_stalk", "drive_stalk", "core_degree",
+                "apex_degree",
             )
         }
 
     def test_the_class_marker_sets_the_register_and_a_field_may_override_it(
         self, surveys
     ):
-        """Fourteen architecture, two the world's.
+        """Fifteen architecture, two the world's.
 
         Change the render and `patch_grid` and `patch_stalk` must follow, which
         is *what breaks downstream if the world changes* exactly, while the
@@ -371,10 +378,18 @@ class TestTheRegisterReachesIntoAMarkedClass:
         asking *may I turn this* looks.
         """
         fields = self._fields(surveys)
-        for name in ("DomeSpec.lateral_m", "DomeSpec.privacy_budget"):
+        for name in ("DomeSpec.lateral_m", "DomeSpec.capacity_budget"):
             entry = fields[name]
             assert entry.type == "stipulated"
             assert entry.provisional == ""
+        # `private_reserve` is the exception, and it is not stipulated because
+        # it does not need to be: #560 derived it as `p = k = CHART_DIM`, and
+        # the dependency is a Python constant, so ADR-0018 says the import
+        # holds it. That is the whole difference between this field and the
+        # `p = 8` its own ticket warned against shipping.
+        reserve = fields["DomeSpec.private_reserve"]
+        assert reserve.type == "derived"
+        assert reserve.depends_on == "patchworks.body.CHART_DIM"
 
     def test_the_lane_knobs_carry_the_two_things_a_reader_must_not_miss(
         self, surveys
@@ -384,11 +399,16 @@ class TestTheRegisterReachesIntoAMarkedClass:
         `lateral_m` is #540's lever (c1), which the user agreed to *tentatively*
         on the ground that this dome is a placeholder: a different
         implementation may have far more lateral edges, so the ruling has to be
-        re-derived rather than inherited. `privacy_budget` is held at `n - 1`
-        against a ruling that doubled it, because the doubled value collides
-        with the reason the invariant exists.
+        re-derived rather than inherited. `capacity_budget` sits at the doubled
+        `2n - 1` that #548 refused to ship, and is safe there **only** because
+        #556 moved privacy off it -- a reader who takes the number without the
+        unweld takes back the zero row at 104 of 150 cells.
 
-        A reader who turns either knob without meeting these two facts is the
+        `private_reserve` carries the third: it does **not** climb. Higher `p`
+        scores better on composed rank and #576 refused it anyway, because the
+        rank is bought by forcing incident lanes to share directions.
+
+        A reader who turns any of these knobs without meeting these facts is the
         failure this test exists to prevent, so they are pinned in the register
         rather than left to the spec.
         """
@@ -396,9 +416,12 @@ class TestTheRegisterReachesIntoAMarkedClass:
         lateral = fields["DomeSpec.lateral_m"].flexibility
         assert "placeholder" in lateral
         assert "re-derive" in lateral
-        budget = fields["DomeSpec.privacy_budget"].flexibility
+        budget = fields["DomeSpec.capacity_budget"].flexibility
         assert "#556" in budget
         assert "2n - 1" in budget
+        reserve = fields["DomeSpec.private_reserve"].flexibility
+        assert "#560" in reserve
+        assert "DOES NOT CLIMB" in reserve.upper()
 
     def test_the_dome_is_not_left_looking_unwarranted(self, surveys):
         """`DEFAULT_SPEC`'s opt-out is about the name, not about the dome."""
@@ -473,7 +496,7 @@ class TestTheRegistersAreAProjectionOfTheCode:
         assert registers.main([]) == 0
         stale = tmp_path / "registers" / "architecture.md"
         stale.write_text(
-            stale.read_text(encoding="utf-8").replace("`DomeSpec.privacy_budget`", "`m`"),
+            stale.read_text(encoding="utf-8").replace("`DomeSpec.capacity_budget`", "`m`"),
             encoding="utf-8",
         )
         capsys.readouterr()

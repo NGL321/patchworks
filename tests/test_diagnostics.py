@@ -80,7 +80,7 @@ def wide_dome():
     until #474. Since #548 interior width is allocated rather than set, so the
     way to open the lanes is to raise the budget they are allocated against.
     """
-    return build_graph(replace(SMALL, privacy_budget=63, boundary_m=8))
+    return build_graph(replace(SMALL, capacity_budget=63, boundary_m=8))
 
 
 @pytest.fixture
@@ -658,15 +658,37 @@ class TestTheTopologyOnlyBaseline:
     ):
         """`H¹` has two sources; the baseline is the one the maps did not cause.
 
-        At a fresh draw the masked maps are generic within their masks, so the
-        measured dimension sits at the baseline and the excess is zero. That is
-        the reading the comparison exists to make possible -- against zero it
-        would say nothing, because the cycles guarantee the baseline whatever
-        the maps do (`docs/spec/06-graph-topology.md`, *What the cycles do*).
+        The two sources are graph cycles and map rank-deficiency, and
+        `topology_only_h1` deliberately keeps the first and throws away the
+        second: it draws **unmasked** dense `(m, n)` blocks. Until #562 the
+        excess at a fresh draw was **zero**, because the mask did not bind --
+        `permitted` was `min(n, sum_e m_e)`, so a cell always exposed at least
+        as many directions as its lanes asked for, and a masked generic map was
+        as good as an unmasked one.
+
+        **The reserve mask binds, so the excess is no longer zero at a fresh
+        draw, and that is a caveat on the comparison rather than a finding
+        about learning.** A cell exposes `n - p = 20` directions into lanes
+        summing to as much as 63, so the real coboundary cannot reach the rank
+        an unmasked one does: 300 against 353 rows here, an excess of 53 that
+        no map learned and no cycle caused.
+
+        **What this costs the diagnostic, stated rather than left to be
+        discovered.** ADR-0004 reads persistent structured irreducible
+        disagreement as a falsification signature, *over* this baseline. The
+        baseline now **understates** the construction floor by the mask's
+        deficiency, so an excess over it is no longer attributable to the maps
+        alone. Anything reading this comparison as evidence about learning must
+        subtract the construction excess measured at a fresh draw first.
         """
         measured = diagnostics.read(Condition.DRIVEN).whole_graph
         assert measured.dim_h1 >= diagnostics.h1_baseline
-        assert measured.dim_h1 - diagnostics.h1_baseline == 0
+        # The excess at a fresh draw is the mask's, and it is exactly the gap
+        # between the lanes' total width and the directions they may read.
+        dome = diagnostics.sheaf.dome
+        rows = sum(e.m for e in dome.edges)
+        readable = sum(dome._permitted[c] for c in dome.predicting)
+        assert measured.dim_h1 - diagnostics.h1_baseline == rows - readable
 
     def test_learned_rank_deficiency_shows_up_as_excess_over_it(self, sheaf):
         """Drive the fleet to rank 1 and the measured dimension leaves the baseline."""
@@ -773,27 +795,39 @@ class TestTheWholeGraphReading:
         reading = diagnostics.read(Condition.DRIVEN)
         assert reading.whole_graph.minimum_energy <= float(reading.edges.energy.sum())
 
-    def test_the_floor_is_zero_on_this_dome_because_the_coboundary_is_onto(
-        self, sheaf
+    def test_the_floor_is_no_longer_zero_because_the_mask_outranks_the_lanes(
+        self, sheaf, dome
     ):
-        """And it was not, until #474 narrowed the lanes. Recorded, not asserted away.
+        """#562 flipped this, and the flip is a consequence worth recording.
 
         `minimum_energy` is `b` projected onto the **left** null space of the
         coboundary, so it is strictly positive only while `delta` is row-rank
-        deficient. On this dome `delta` was `307 x 480` of rank 291 -- 16 rows
-        deficient -- at `(interior_m, boundary_m) = (4, 8)`. At (3, 4) it is
-        `181 x 480` of **full row rank 181**, the left null space is empty, and
-        the floor is exactly 0: a configuration with zero disagreement exists.
+        deficient. The history: `307 x 480` of rank 291 at
+        `(interior_m, boundary_m) = (4, 8)`; then `181 x 480` of **full row
+        rank** at (3, 4), which is what #474 bought and what this test used to
+        assert -- a configuration with zero disagreement existed.
 
-        This is the same arithmetic as the private-dimension floor #474 was
-        ruled for -- fewer lane dimensions against unchanged stalk dimensions --
-        and it is a fact about *this small spec*, measured here. Whether the
-        default dome's coboundary is also onto is **not** measured by this test.
+        **It does not exist any more, and the reason is structural rather than
+        numerical.** Under the reserve mask a predicting cell reads from a
+        block of `n - p = 20` directions, while its incident lanes may sum to
+        `capacity_budget = 63`. At *every* predicting cell of this dome and of
+        `DEFAULT_SPEC` the lanes now sum to more than the block they read from,
+        so `delta` has more rows than the mask leaves it independent columns and
+        is row-rank deficient by construction.
+
+        **This is #560's forced overlap, seen graph-wide.** Two lanes at a cell
+        are carved from the same `k_v`-dimensional block, so they must intersect
+        in at least `max(0, m_in + m_out - k_v)` dimensions whatever the maps
+        learn -- 33% of the median hop at `p = 12`. #576 held `p` at 12 knowing
+        that price. What this test adds is where the price lands: the graph can
+        no longer drive disagreement to zero, which is ADR-0007's floor
+        (*tolerated, not represented*) arriving by construction rather than by
+        the world being inconsistent.
         """
-        diagnostics = Diagnostics(sheaf)
-        assert diagnostics.read(Condition.DRIVEN).whole_graph.minimum_energy == (
-            pytest.approx(0.0, abs=1e-12)
-        )
+        for cell in dome.predicting:
+            assert dome.stalk_sums[cell] > dome._permitted[cell]
+        floor = Diagnostics(sheaf).read(Condition.DRIVEN).whole_graph.minimum_energy
+        assert floor > 0.0
 
     def test_it_moves_with_the_maps_rather_than_being_a_construction_constant(
         self, wide_sheaf
