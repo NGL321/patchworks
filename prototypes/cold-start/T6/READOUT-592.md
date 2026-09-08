@@ -18,10 +18,14 @@ unchanged, with its Haar control.
 
 ## The answer, in one line
 
-**They coexist in the weak sense and fail in the strong one: neither term blocks
-the other, but the holonomy term erases the floor's entire gain — and the whole
-separation between arms happens *after* the world has stopped moving, so on this
-rig the question cannot yet be answered where it matters.**
+**They coexist, and the ticket's premise is wrong twice over.** Neither term has
+the other's collapse — the holonomy term reaches its full effect with a floor
+present, on both seeds, without collapsing the channel. But the floor as #592
+states it **cannot be built at all** under ADR-0032, and the scale-free floor that
+can be built contributes **nothing measurable** once the holonomy term is present.
+And the entire separation between arms happens *after* this arm's world has stopped
+moving at tick ~125, so on this rig the question cannot yet be answered where it
+matters.
 
 ---
 
@@ -154,15 +158,24 @@ with a floor present: `both` 0.8629 and `both_si` 0.8622 against `holo` alone at
 #592 — that each has the other's collapse — does not materialise as mutual
 blocking.**
 
-**(iii) But the floor's gain is erased, and that is the real failure.** The
-scale-free floor's only measurable benefit is holding emitted participation at
-**2.68** where baseline decays to 2.33 — the degeneracy B19 documented, arriving,
-and slowed. Add the holonomy term and it goes to **2.39**: *identical to holonomy
-alone*. The floor contributes **exactly nothing** once the holonomy term is
-present. `corr` moves the same way (floor_si +0.331 → both_si +0.239).
+**(iii) The floor's gain is erased — and the gain itself is not established.** On
+seed 42 the scale-free floor's one measurable benefit is holding emitted
+participation at **2.68** where baseline decays to 2.33; add the holonomy term and
+it goes to **2.39**, *identical to holonomy alone*. **Seed 43 replicates the
+erasure and undercuts the gain**: floor_si reads 2.51 against baseline 2.46, a
+margin of **+0.05** — inside the record's own two-run drift of 0.06 — and both_si
+reads 2.48 against holo's 2.48, a difference of **exactly zero**.
 
-So the two terms are not symmetric adversaries. **The holonomy term wins outright,
-and the floor's contribution is not reduced but eliminated.**
+So the honest statement is weaker than one seed suggested and points the same way:
+**the floor's benefit is small and not established (+0.35 on one seed, +0.05 on the
+other, the second within noise), and in both seeds it goes to precisely zero once
+the holonomy term is present.** The two terms are not symmetric adversaries; the
+holonomy term wins outright and the floor's contribution is eliminated rather than
+reduced.
+
+`corr` is **not** used to carry this: it scatters badly across seeds (baseline at
+2,000 reads +0.358 on seed 42 and +0.514 on seed 43) and nothing here should rest
+on it.
 
 ---
 
@@ -172,10 +185,9 @@ and the floor's contribution is not reduced but eliminated.**
   arm differs from any other. The honest statement is that this rig, as it stands,
   **cannot answer #592's question on a moving world**, and that is a finding about
   the rig rather than about the terms.
-- **One seed at the horizon.** Seed 43 on `baseline`/`holo`/`floor_si`/`both_si`
-  was launched; see §7 for whether the ordering held. [B29](https://github.com/NGL321/patchworks/issues/585)'s
-  own trained numbers were also one seed, and the record's two-run drift at 20k is
-  0.06 — an order above several gaps quoted here.
+- **Two seeds, not more.** §7 has seed 43 on four arms. The record's two-run drift
+  at 20k is 0.06, which is above several gaps quoted here — and is exactly why
+  §4(iii)'s claim was weakened rather than restated from seed 42.
 - **The weights are unswept.** Equal by choice, and the conclusion in (iii) is a
   statement at that ratio. A floor weighted 10x might hold; nothing here says it
   would not, and finding the crossing is a sweep this ticket did not run.
@@ -218,6 +230,36 @@ a pre-registered branch:
 
 ---
 
-## 7. Seed 43
+## 7. Seed 43 — what replicated and what did not
 
-See `592-coexist-<arm>-seed43-2000.json` and the appended note below.
+Four arms (`baseline`, `holo`, `floor_si`, `both_si`), same surface, seed 43.
+
+| arm | ident @150 | ident @2000 | chan @2000 | emit @2000 |
+|---|---|---|---|---|
+| baseline | 0.9858 | 0.9620 | 0.438 | 2.46 |
+| holo | 0.9827 | **0.8500** | **0.788** | 2.48 |
+| floor_si | 0.9858 | 0.9618 | 0.426 | 2.51 |
+| both_si | 0.9827 | **0.8424** | **0.790** | 2.48 |
+
+**Replicated, and firmly:**
+
+- **The holonomy term's effect.** 0.9620 → 0.8500 here against 0.9697 → 0.8591 on
+  seed 42; channel return 0.438 → 0.788 against 0.322 → 0.745. Same direction, same
+  order of magnitude, on a different draw.
+- **No mutual blocking.** `both_si` 0.8424 against `holo` 0.8500 — the term is if
+  anything marginally *more* effective with the floor present, and the gap is
+  inside the scatter either way. This is the clearest result of the ticket.
+- **The erasure.** `both_si` emit 2.48 against `holo` 2.48 — a difference of zero,
+  as on seed 42.
+- **The live-rung null.** At 150 ticks the arms are again indistinguishable
+  (0.9827–0.9858 across all four).
+
+**Did not replicate:**
+
+- **The size of the floor's gain.** +0.35 on seed 42, **+0.05** on seed 43 — the
+  latter inside the two-run drift the record already documents. §4(iii) is written
+  to this weaker fact rather than to seed 42's number.
+- **`corr` is unusable at this sample size.** Baseline at 2,000 reads +0.358 on
+  seed 42 and +0.514 on seed 43. No claim here rests on it.
+
+Two seeds is still two seeds, and both were run at the same weights.
