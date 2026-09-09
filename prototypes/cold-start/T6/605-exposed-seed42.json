@@ -1,0 +1,1372 @@
+{
+  "ticket": 605,
+  "surface": "reserve_p12",
+  "seed": 42,
+  "n": 32,
+  "cells": 150,
+  "exposed_today": {
+    "min": 20,
+    "median": 20,
+    "mean": 20.0,
+    "max": 20
+  },
+  "exposed_flat": {
+    "min": 11,
+    "median": 12,
+    "mean": 13.547,
+    "max": 20
+  },
+  "ratio_median": 0.6,
+  "per_cell": [
+    {
+      "cell": 263,
+      "degree": 7,
+      "k_v": 20,
+      "sum_m": 30,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 264,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 265,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 266,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 267,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 268,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 269,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 270,
+      "degree": 7,
+      "k_v": 20,
+      "sum_m": 30,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 271,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 272,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 273,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 274,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 275,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 276,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 277,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 278,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 279,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 280,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 281,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 282,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 283,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 284,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 285,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 286,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 287,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 288,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 289,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 290,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 291,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 292,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 293,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 294,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 295,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 296,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 297,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 298,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 299,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 300,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 301,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 302,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 303,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 304,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 305,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 306,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 307,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 308,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 309,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 310,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 311,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 312,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 313,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 314,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 315,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 316,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 317,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 32,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 318,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 319,
+      "degree": 7,
+      "k_v": 20,
+      "sum_m": 30,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 320,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 321,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 322,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 323,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 324,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 325,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 31,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 326,
+      "degree": 7,
+      "k_v": 20,
+      "sum_m": 30,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 327,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 33,
+      "max_m": 20,
+      "exposed_today": 20,
+      "exposed_flat": 20
+    },
+    {
+      "cell": 328,
+      "degree": 7,
+      "k_v": 20,
+      "sum_m": 29,
+      "max_m": 20,
+      "exposed_today": 20,
+      "exposed_flat": 20
+    },
+    {
+      "cell": 329,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 33,
+      "max_m": 20,
+      "exposed_today": 20,
+      "exposed_flat": 20
+    },
+    {
+      "cell": 330,
+      "degree": 7,
+      "k_v": 20,
+      "sum_m": 29,
+      "max_m": 20,
+      "exposed_today": 20,
+      "exposed_flat": 20
+    },
+    {
+      "cell": 331,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 33,
+      "max_m": 20,
+      "exposed_today": 20,
+      "exposed_flat": 20
+    },
+    {
+      "cell": 332,
+      "degree": 7,
+      "k_v": 20,
+      "sum_m": 29,
+      "max_m": 20,
+      "exposed_today": 20,
+      "exposed_flat": 20
+    },
+    {
+      "cell": 333,
+      "degree": 7,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 334,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 63,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 335,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 63,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 336,
+      "degree": 7,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 337,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 63,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 338,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 59,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 339,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 59,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 340,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 63,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 341,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 63,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 342,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 59,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 343,
+      "degree": 9,
+      "k_v": 20,
+      "sum_m": 59,
+      "max_m": 11,
+      "exposed_today": 20,
+      "exposed_flat": 11
+    },
+    {
+      "cell": 344,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 63,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 345,
+      "degree": 7,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 346,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 63,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 347,
+      "degree": 8,
+      "k_v": 20,
+      "sum_m": 63,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 348,
+      "degree": 7,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 349,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 63,
+      "max_m": 20,
+      "exposed_today": 20,
+      "exposed_flat": 20
+    },
+    {
+      "cell": 350,
+      "degree": 5,
+      "k_v": 20,
+      "sum_m": 42,
+      "max_m": 20,
+      "exposed_today": 20,
+      "exposed_flat": 20
+    },
+    {
+      "cell": 351,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 63,
+      "max_m": 20,
+      "exposed_today": 20,
+      "exposed_flat": 20
+    },
+    {
+      "cell": 352,
+      "degree": 5,
+      "k_v": 20,
+      "sum_m": 42,
+      "max_m": 20,
+      "exposed_today": 20,
+      "exposed_flat": 20
+    },
+    {
+      "cell": 353,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 58,
+      "max_m": 20,
+      "exposed_today": 20,
+      "exposed_flat": 20
+    },
+    {
+      "cell": 354,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 39,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 355,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 43,
+      "max_m": 16,
+      "exposed_today": 20,
+      "exposed_flat": 16
+    },
+    {
+      "cell": 356,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 46,
+      "max_m": 16,
+      "exposed_today": 20,
+      "exposed_flat": 16
+    },
+    {
+      "cell": 357,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 63,
+      "max_m": 19,
+      "exposed_today": 20,
+      "exposed_flat": 19
+    },
+    {
+      "cell": 358,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 44,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 359,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 45,
+      "max_m": 16,
+      "exposed_today": 20,
+      "exposed_flat": 16
+    },
+    {
+      "cell": 360,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 43,
+      "max_m": 16,
+      "exposed_today": 20,
+      "exposed_flat": 16
+    },
+    {
+      "cell": 361,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 58,
+      "max_m": 20,
+      "exposed_today": 20,
+      "exposed_flat": 20
+    },
+    {
+      "cell": 362,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 38,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 363,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 42,
+      "max_m": 16,
+      "exposed_today": 20,
+      "exposed_flat": 16
+    },
+    {
+      "cell": 364,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 46,
+      "max_m": 16,
+      "exposed_today": 20,
+      "exposed_flat": 16
+    },
+    {
+      "cell": 365,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 63,
+      "max_m": 19,
+      "exposed_today": 20,
+      "exposed_flat": 19
+    },
+    {
+      "cell": 366,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 45,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 367,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 46,
+      "max_m": 16,
+      "exposed_today": 20,
+      "exposed_flat": 16
+    },
+    {
+      "cell": 368,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 43,
+      "max_m": 16,
+      "exposed_today": 20,
+      "exposed_flat": 16
+    },
+    {
+      "cell": 369,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 61,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 370,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 61,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 371,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 16,
+      "exposed_today": 20,
+      "exposed_flat": 16
+    },
+    {
+      "cell": 372,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 373,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 374,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 375,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 16,
+      "exposed_today": 20,
+      "exposed_flat": 16
+    },
+    {
+      "cell": 376,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 61,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 377,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 61,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 378,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 16,
+      "exposed_today": 20,
+      "exposed_flat": 16
+    },
+    {
+      "cell": 379,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 380,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 381,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 382,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 16,
+      "exposed_today": 20,
+      "exposed_flat": 16
+    },
+    {
+      "cell": 383,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 61,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 384,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 61,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 385,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 60,
+      "max_m": 16,
+      "exposed_today": 20,
+      "exposed_flat": 16
+    },
+    {
+      "cell": 386,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 387,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 388,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 60,
+      "max_m": 16,
+      "exposed_today": 20,
+      "exposed_flat": 16
+    },
+    {
+      "cell": 389,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 61,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 390,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 61,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 391,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 60,
+      "max_m": 16,
+      "exposed_today": 20,
+      "exposed_flat": 16
+    },
+    {
+      "cell": 392,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 393,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 394,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 60,
+      "max_m": 16,
+      "exposed_today": 20,
+      "exposed_flat": 16
+    },
+    {
+      "cell": 395,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 61,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 396,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 61,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 397,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 398,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 399,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 400,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 61,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 401,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 61,
+      "max_m": 12,
+      "exposed_today": 20,
+      "exposed_flat": 12
+    },
+    {
+      "cell": 402,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 403,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 404,
+      "degree": 6,
+      "k_v": 20,
+      "sum_m": 62,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 405,
+      "degree": 5,
+      "k_v": 20,
+      "sum_m": 41,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 406,
+      "degree": 5,
+      "k_v": 20,
+      "sum_m": 41,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 407,
+      "degree": 5,
+      "k_v": 20,
+      "sum_m": 33,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 408,
+      "degree": 5,
+      "k_v": 20,
+      "sum_m": 33,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 409,
+      "degree": 5,
+      "k_v": 20,
+      "sum_m": 41,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 410,
+      "degree": 5,
+      "k_v": 20,
+      "sum_m": 41,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 411,
+      "degree": 5,
+      "k_v": 20,
+      "sum_m": 33,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    },
+    {
+      "cell": 412,
+      "degree": 5,
+      "k_v": 20,
+      "sum_m": 33,
+      "max_m": 15,
+      "exposed_today": 20,
+      "exposed_flat": 15
+    }
+  ]
+}

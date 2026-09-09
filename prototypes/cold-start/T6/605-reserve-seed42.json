@@ -1,0 +1,1099 @@
+{
+  "ticket": 605,
+  "surface": "reserve_p12",
+  "seed": 42,
+  "configurations": {
+    "ambient": {
+      "identification": 1.5804624675718944e-15,
+      "channel_return": 0.9999999999999997,
+      "sigma_max": 1.0000001115313342,
+      "cycles": 45
+    },
+    "ambient_masked": {
+      "identification": 0.6123087369649435,
+      "channel_return": 0.8645474445127352,
+      "sigma_max": 0.29098171874686707,
+      "cycles": 45
+    },
+    "reserved": {
+      "identification": 2.058301887849684e-15,
+      "channel_return": 1.0000000000000002,
+      "sigma_max": 1.0000001223102033,
+      "cycles": 45
+    },
+    "reserved_masked": {
+      "identification": 2.058301887849684e-15,
+      "channel_return": 1.0000000000000002,
+      "sigma_max": 1.0000001223102033,
+      "cycles": 45
+    },
+    "reserved_projected": {
+      "identification": 2.3445119329976374e-07,
+      "channel_return": 0.9999999999999574,
+      "sigma_max": 0.0007716071506142383,
+      "cycles": 45
+    }
+  },
+  "n": 32,
+  "k_v": 20,
+  "p": 12,
+  "overlap": {
+    "cells": 150,
+    "cells_forced": 150,
+    "fraction_forced": 1.0,
+    "median_demand_over_supply": 1.95,
+    "max_demand_over_supply": 3.15,
+    "per_cell": [
+      {
+        "cell": 263,
+        "degree": 7,
+        "demand": 30,
+        "supply": 20,
+        "forced_overlap": 10
+      },
+      {
+        "cell": 264,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 265,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 266,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 267,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 268,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 269,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 270,
+        "degree": 7,
+        "demand": 30,
+        "supply": 20,
+        "forced_overlap": 10
+      },
+      {
+        "cell": 271,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 272,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 273,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 274,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 275,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 276,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 277,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 278,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 279,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 280,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 281,
+        "degree": 9,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 282,
+        "degree": 9,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 283,
+        "degree": 9,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 284,
+        "degree": 9,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 285,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 286,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 287,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 288,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 289,
+        "degree": 9,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 290,
+        "degree": 9,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 291,
+        "degree": 9,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 292,
+        "degree": 9,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 293,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 294,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 295,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 296,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 297,
+        "degree": 9,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 298,
+        "degree": 9,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 299,
+        "degree": 9,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 300,
+        "degree": 9,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 301,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 302,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 303,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 304,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 305,
+        "degree": 9,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 306,
+        "degree": 9,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 307,
+        "degree": 9,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 308,
+        "degree": 9,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 309,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 310,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 311,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 312,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 313,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 314,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 315,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 316,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 317,
+        "degree": 9,
+        "demand": 32,
+        "supply": 20,
+        "forced_overlap": 12
+      },
+      {
+        "cell": 318,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 319,
+        "degree": 7,
+        "demand": 30,
+        "supply": 20,
+        "forced_overlap": 10
+      },
+      {
+        "cell": 320,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 321,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 322,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 323,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 324,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 325,
+        "degree": 8,
+        "demand": 31,
+        "supply": 20,
+        "forced_overlap": 11
+      },
+      {
+        "cell": 326,
+        "degree": 7,
+        "demand": 30,
+        "supply": 20,
+        "forced_overlap": 10
+      },
+      {
+        "cell": 327,
+        "degree": 8,
+        "demand": 33,
+        "supply": 20,
+        "forced_overlap": 13
+      },
+      {
+        "cell": 328,
+        "degree": 7,
+        "demand": 29,
+        "supply": 20,
+        "forced_overlap": 9
+      },
+      {
+        "cell": 329,
+        "degree": 8,
+        "demand": 33,
+        "supply": 20,
+        "forced_overlap": 13
+      },
+      {
+        "cell": 330,
+        "degree": 7,
+        "demand": 29,
+        "supply": 20,
+        "forced_overlap": 9
+      },
+      {
+        "cell": 331,
+        "degree": 8,
+        "demand": 33,
+        "supply": 20,
+        "forced_overlap": 13
+      },
+      {
+        "cell": 332,
+        "degree": 7,
+        "demand": 29,
+        "supply": 20,
+        "forced_overlap": 9
+      },
+      {
+        "cell": 333,
+        "degree": 7,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 334,
+        "degree": 8,
+        "demand": 63,
+        "supply": 20,
+        "forced_overlap": 43
+      },
+      {
+        "cell": 335,
+        "degree": 8,
+        "demand": 63,
+        "supply": 20,
+        "forced_overlap": 43
+      },
+      {
+        "cell": 336,
+        "degree": 7,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 337,
+        "degree": 8,
+        "demand": 63,
+        "supply": 20,
+        "forced_overlap": 43
+      },
+      {
+        "cell": 338,
+        "degree": 9,
+        "demand": 59,
+        "supply": 20,
+        "forced_overlap": 39
+      },
+      {
+        "cell": 339,
+        "degree": 9,
+        "demand": 59,
+        "supply": 20,
+        "forced_overlap": 39
+      },
+      {
+        "cell": 340,
+        "degree": 8,
+        "demand": 63,
+        "supply": 20,
+        "forced_overlap": 43
+      },
+      {
+        "cell": 341,
+        "degree": 8,
+        "demand": 63,
+        "supply": 20,
+        "forced_overlap": 43
+      },
+      {
+        "cell": 342,
+        "degree": 9,
+        "demand": 59,
+        "supply": 20,
+        "forced_overlap": 39
+      },
+      {
+        "cell": 343,
+        "degree": 9,
+        "demand": 59,
+        "supply": 20,
+        "forced_overlap": 39
+      },
+      {
+        "cell": 344,
+        "degree": 8,
+        "demand": 63,
+        "supply": 20,
+        "forced_overlap": 43
+      },
+      {
+        "cell": 345,
+        "degree": 7,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 346,
+        "degree": 8,
+        "demand": 63,
+        "supply": 20,
+        "forced_overlap": 43
+      },
+      {
+        "cell": 347,
+        "degree": 8,
+        "demand": 63,
+        "supply": 20,
+        "forced_overlap": 43
+      },
+      {
+        "cell": 348,
+        "degree": 7,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 349,
+        "degree": 6,
+        "demand": 63,
+        "supply": 20,
+        "forced_overlap": 43
+      },
+      {
+        "cell": 350,
+        "degree": 5,
+        "demand": 42,
+        "supply": 20,
+        "forced_overlap": 22
+      },
+      {
+        "cell": 351,
+        "degree": 6,
+        "demand": 63,
+        "supply": 20,
+        "forced_overlap": 43
+      },
+      {
+        "cell": 352,
+        "degree": 5,
+        "demand": 42,
+        "supply": 20,
+        "forced_overlap": 22
+      },
+      {
+        "cell": 353,
+        "degree": 6,
+        "demand": 58,
+        "supply": 20,
+        "forced_overlap": 38
+      },
+      {
+        "cell": 354,
+        "degree": 6,
+        "demand": 39,
+        "supply": 20,
+        "forced_overlap": 19
+      },
+      {
+        "cell": 355,
+        "degree": 6,
+        "demand": 43,
+        "supply": 20,
+        "forced_overlap": 23
+      },
+      {
+        "cell": 356,
+        "degree": 6,
+        "demand": 46,
+        "supply": 20,
+        "forced_overlap": 26
+      },
+      {
+        "cell": 357,
+        "degree": 6,
+        "demand": 63,
+        "supply": 20,
+        "forced_overlap": 43
+      },
+      {
+        "cell": 358,
+        "degree": 6,
+        "demand": 44,
+        "supply": 20,
+        "forced_overlap": 24
+      },
+      {
+        "cell": 359,
+        "degree": 6,
+        "demand": 45,
+        "supply": 20,
+        "forced_overlap": 25
+      },
+      {
+        "cell": 360,
+        "degree": 6,
+        "demand": 43,
+        "supply": 20,
+        "forced_overlap": 23
+      },
+      {
+        "cell": 361,
+        "degree": 6,
+        "demand": 58,
+        "supply": 20,
+        "forced_overlap": 38
+      },
+      {
+        "cell": 362,
+        "degree": 6,
+        "demand": 38,
+        "supply": 20,
+        "forced_overlap": 18
+      },
+      {
+        "cell": 363,
+        "degree": 6,
+        "demand": 42,
+        "supply": 20,
+        "forced_overlap": 22
+      },
+      {
+        "cell": 364,
+        "degree": 6,
+        "demand": 46,
+        "supply": 20,
+        "forced_overlap": 26
+      },
+      {
+        "cell": 365,
+        "degree": 6,
+        "demand": 63,
+        "supply": 20,
+        "forced_overlap": 43
+      },
+      {
+        "cell": 366,
+        "degree": 6,
+        "demand": 45,
+        "supply": 20,
+        "forced_overlap": 25
+      },
+      {
+        "cell": 367,
+        "degree": 6,
+        "demand": 46,
+        "supply": 20,
+        "forced_overlap": 26
+      },
+      {
+        "cell": 368,
+        "degree": 6,
+        "demand": 43,
+        "supply": 20,
+        "forced_overlap": 23
+      },
+      {
+        "cell": 369,
+        "degree": 6,
+        "demand": 61,
+        "supply": 20,
+        "forced_overlap": 41
+      },
+      {
+        "cell": 370,
+        "degree": 6,
+        "demand": 61,
+        "supply": 20,
+        "forced_overlap": 41
+      },
+      {
+        "cell": 371,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 372,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 373,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 374,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 375,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 376,
+        "degree": 6,
+        "demand": 61,
+        "supply": 20,
+        "forced_overlap": 41
+      },
+      {
+        "cell": 377,
+        "degree": 6,
+        "demand": 61,
+        "supply": 20,
+        "forced_overlap": 41
+      },
+      {
+        "cell": 378,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 379,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 380,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 381,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 382,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 383,
+        "degree": 6,
+        "demand": 61,
+        "supply": 20,
+        "forced_overlap": 41
+      },
+      {
+        "cell": 384,
+        "degree": 6,
+        "demand": 61,
+        "supply": 20,
+        "forced_overlap": 41
+      },
+      {
+        "cell": 385,
+        "degree": 6,
+        "demand": 60,
+        "supply": 20,
+        "forced_overlap": 40
+      },
+      {
+        "cell": 386,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 387,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 388,
+        "degree": 6,
+        "demand": 60,
+        "supply": 20,
+        "forced_overlap": 40
+      },
+      {
+        "cell": 389,
+        "degree": 6,
+        "demand": 61,
+        "supply": 20,
+        "forced_overlap": 41
+      },
+      {
+        "cell": 390,
+        "degree": 6,
+        "demand": 61,
+        "supply": 20,
+        "forced_overlap": 41
+      },
+      {
+        "cell": 391,
+        "degree": 6,
+        "demand": 60,
+        "supply": 20,
+        "forced_overlap": 40
+      },
+      {
+        "cell": 392,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 393,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 394,
+        "degree": 6,
+        "demand": 60,
+        "supply": 20,
+        "forced_overlap": 40
+      },
+      {
+        "cell": 395,
+        "degree": 6,
+        "demand": 61,
+        "supply": 20,
+        "forced_overlap": 41
+      },
+      {
+        "cell": 396,
+        "degree": 6,
+        "demand": 61,
+        "supply": 20,
+        "forced_overlap": 41
+      },
+      {
+        "cell": 397,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 398,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 399,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 400,
+        "degree": 6,
+        "demand": 61,
+        "supply": 20,
+        "forced_overlap": 41
+      },
+      {
+        "cell": 401,
+        "degree": 6,
+        "demand": 61,
+        "supply": 20,
+        "forced_overlap": 41
+      },
+      {
+        "cell": 402,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 403,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 404,
+        "degree": 6,
+        "demand": 62,
+        "supply": 20,
+        "forced_overlap": 42
+      },
+      {
+        "cell": 405,
+        "degree": 5,
+        "demand": 41,
+        "supply": 20,
+        "forced_overlap": 21
+      },
+      {
+        "cell": 406,
+        "degree": 5,
+        "demand": 41,
+        "supply": 20,
+        "forced_overlap": 21
+      },
+      {
+        "cell": 407,
+        "degree": 5,
+        "demand": 33,
+        "supply": 20,
+        "forced_overlap": 13
+      },
+      {
+        "cell": 408,
+        "degree": 5,
+        "demand": 33,
+        "supply": 20,
+        "forced_overlap": 13
+      },
+      {
+        "cell": 409,
+        "degree": 5,
+        "demand": 41,
+        "supply": 20,
+        "forced_overlap": 21
+      },
+      {
+        "cell": 410,
+        "degree": 5,
+        "demand": 41,
+        "supply": 20,
+        "forced_overlap": 21
+      },
+      {
+        "cell": 411,
+        "degree": 5,
+        "demand": 33,
+        "supply": 20,
+        "forced_overlap": 13
+      },
+      {
+        "cell": 412,
+        "degree": 5,
+        "demand": 33,
+        "supply": 20,
+        "forced_overlap": 13
+      }
+    ]
+  }
+}

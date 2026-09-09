@@ -1,0 +1,49 @@
+{
+  "ticket": 605,
+  "surface": "reserve_p12",
+  "seed": 42,
+  "stagger": {
+    "0": {
+      "identification": 2.058301887849684e-15,
+      "channel_return": 1.0000000000000002,
+      "sigma_max": 1.0000001223102033,
+      "edge_overlap": 1.0
+    },
+    "1": {
+      "identification": 0.6075286433691848,
+      "channel_return": 0.9999999999999994,
+      "sigma_max": 1.000000094063867,
+      "edge_overlap": 0.7000000035804433
+    },
+    "2": {
+      "identification": 0.8656206451054275,
+      "channel_return": 0.9999999999999986,
+      "sigma_max": 1.0000000411508527,
+      "edge_overlap": 0.6666666710226453
+    },
+    "3": {
+      "identification": 0.9605973110853351,
+      "channel_return": 0.3475171358627185,
+      "sigma_max": 4.5779133134536336e-08,
+      "edge_overlap": 0.4464285815045627
+    },
+    "4": {
+      "identification": 0.951128004519108,
+      "channel_return": 0.6491194799415616,
+      "sigma_max": 3.6776329280890935e-08,
+      "edge_overlap": 0.45959597154057785
+    },
+    "6": {
+      "identification": 0.9530504962823364,
+      "channel_return": 0.999999999999998,
+      "sigma_max": 1.000000013383596,
+      "edge_overlap": 0.4555555665503348
+    },
+    "8": {
+      "identification": 0.9660020124521265,
+      "channel_return": 0.17437718026331245,
+      "sigma_max": 4.032252120862421e-08,
+      "edge_overlap": 0.45959597071614205
+    }
+  }
+}

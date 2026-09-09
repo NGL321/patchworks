@@ -1,0 +1,32 @@
+{
+  "ticket": 605,
+  "surface": "reserve_p12",
+  "seed": 42,
+  "threshold": 0.9,
+  "arms": {
+    "control": {
+      "edges_with_evidence": 104,
+      "count_equals_m_e": 0,
+      "share_equals_m_e": 0.0,
+      "delta_min": -16,
+      "delta_max": -12,
+      "delta_mean": -13.8462
+    },
+    "ambient": {
+      "edges_with_evidence": 104,
+      "count_equals_m_e": 68,
+      "share_equals_m_e": 0.6538,
+      "delta_min": -6,
+      "delta_max": 0,
+      "delta_mean": -1.125
+    },
+    "reserved": {
+      "edges_with_evidence": 104,
+      "count_equals_m_e": 69,
+      "share_equals_m_e": 0.6635,
+      "delta_min": -4,
+      "delta_max": 0,
+      "delta_mean": -1.0
+    }
+  }
+}
