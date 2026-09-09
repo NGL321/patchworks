@@ -1,0 +1,123 @@
+{
+ "issue": 607,
+ "reading": "clauses 2 and 3 on the relayed mask",
+ "layout": "none",
+ "sites": 0,
+ "seed": 42,
+ "learn": 2000,
+ "trials": 3,
+ "window": 64,
+ "hold": 400,
+ "relay_m": 1,
+ "depth_floor": 4,
+ "layout_record": {
+  "layout": "none",
+  "relays": 0
+ },
+ "relays": 0,
+ "edges": 682,
+ "motion": {
+  "available": true,
+  "window": 100,
+  "std_max": 0.0007088734612188644,
+  "moving_share": 0.16666666666666666
+ },
+ "read_window": 100,
+ "double_precision_tensors": 12,
+ "cohort": [
+  405,
+  406,
+  407,
+  408,
+  409,
+  410,
+  411,
+  412
+ ],
+ "cohort_matches_level_apex": true,
+ "world_loop_cohort_median": 15.0,
+ "b38_baseline_bottleneck_at_30k": 8.35e-10,
+ "trials_out": [
+  {
+   "trial": 0,
+   "source": [
+    22
+   ],
+   "kind": "patch",
+   "bottleneck": 1.6729924138793984e-11,
+   "target": 405,
+   "edge": "#439 interior m=12 L6/core(0,) -- L7/core(0,)",
+   "path_hops": 7,
+   "per_cell": {
+    "cells": 151,
+    "ratio_median": 0.75,
+    "ratio_max": 5.875,
+    "ratio_mean": 1.3213440257314428,
+    "ratio_above_one": 60,
+    "tau_median": 6.0,
+    "tau_max": 51.0,
+    "tau_zero_cells": 5
+   },
+   "conduction_path_value_provenance_only": 0.25,
+   "censored_cells": 32,
+   "readable_cells": 7,
+   "floor": 7.389169856564832e-07,
+   "elapsed_minutes": 1.5920292178789774
+  },
+  {
+   "trial": 1,
+   "source": [
+    260
+   ],
+   "kind": "proprioceptive",
+   "bottleneck": 2.576107672154801e-12,
+   "target": 409,
+   "edge": "#449 interior m=12 L6/core(5,) -- L7/core(4,)",
+   "path_hops": 8,
+   "per_cell": {
+    "cells": 151,
+    "ratio_median": 0.9285714285714286,
+    "ratio_max": 5.5,
+    "ratio_mean": 1.2860651489790564,
+    "ratio_above_one": 75,
+    "tau_median": 9.0,
+    "tau_max": 44.0,
+    "tau_zero_cells": 2
+   },
+   "conduction_path_value_provenance_only": 0.3333333333333333,
+   "censored_cells": 6,
+   "readable_cells": 8,
+   "floor": 7.389170260133672e-07,
+   "elapsed_minutes": 1.6498137394587198
+  },
+  {
+   "trial": 2,
+   "source": [
+    259
+   ],
+   "kind": "touch",
+   "bottleneck": 2.481520632655787e-11,
+   "target": 409,
+   "edge": "#449 interior m=12 L6/core(5,) -- L7/core(4,)",
+   "path_hops": 8,
+   "per_cell": {
+    "cells": 151,
+    "ratio_median": 0.9166666666666666,
+    "ratio_max": 4.375,
+    "ratio_mean": 1.0973643354438058,
+    "ratio_above_one": 74,
+    "tau_median": 8.0,
+    "tau_max": 40.0,
+    "tau_zero_cells": 1
+   },
+   "conduction_path_value_provenance_only": 0.5,
+   "censored_cells": 17,
+   "readable_cells": 10,
+   "floor": 7.389170062903887e-07,
+   "elapsed_minutes": 1.7063328305880228
+  }
+ ],
+ "bottleneck_median": 1.6729924138793984e-11,
+ "bottleneck_max": 2.481520632655787e-11,
+ "minutes": 1.7063456296920776
+}

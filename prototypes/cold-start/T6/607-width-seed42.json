@@ -1,0 +1,4354 @@
+{
+ "issue": 607,
+ "arms": [
+  {
+   "issue": 607,
+   "reading": "both abstraction readings, per arm",
+   "layout": "none",
+   "sites": 0,
+   "seed": 42,
+   "relays": 0,
+   "relay_m": 1,
+   "edges": 682,
+   "layout_record": {
+    "layout": "none",
+    "relays": 0
+   },
+   "checkpoints": [
+    {
+     "ticks": 0,
+     "elapsed_minutes": 0.04294261535008748,
+     "strict": {
+      "degree": {
+       "n": 150,
+       "median": 7.5,
+       "mean": 7.273333333333333,
+       "min": 5.0,
+       "max": 9.0,
+       "std": 1.36086573751989,
+       "distinct": 5
+      },
+      "strict_mask": {
+       "n": 150,
+       "median": 38.5,
+       "mean": 44.36,
+       "min": 29.0,
+       "max": 63.0,
+       "std": 14.12906224772189,
+       "distinct": 19
+      },
+      "strict_mask_equals_degree_cells": 0,
+      "cells": 150,
+      "strict_criterion": {
+       "n": 150,
+       "median": 2.0,
+       "mean": 2.5866666666666664,
+       "min": 1.0,
+       "max": 5.0,
+       "std": 1.6337550475991056,
+       "distinct": 5
+      },
+      "strict_criterion_equals_degree_cells": 150,
+      "strict_criterion_cells": 150
+     },
+     "criterion_alloc": {
+      "n": 194,
+      "median": 1.0,
+      "mean": 1.0,
+      "min": 1.0,
+      "max": 1.0,
+      "std": 0.0,
+      "distinct": 1
+     },
+     "membership": {
+      "0.3": {
+       "threshold": 0.3,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 1.0,
+        "mean": 4.086666666666667,
+        "min": 1.0,
+        "max": 12.0,
+        "std": 3.469748630024307,
+        "distinct": 11
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.24,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.111349238423077,
+        "distinct": 19
+       },
+       "equals_degree_cells": 2,
+       "equals_one_cells": 78,
+       "cells": 150,
+       "histogram": {
+        "1": 78,
+        "2": 2,
+        "4": 4,
+        "5": 4,
+        "6": 6,
+        "7": 19,
+        "8": 20,
+        "9": 8,
+        "10": 6,
+        "11": 2,
+        "12": 1
+       }
+      },
+      "0.5": {
+       "threshold": 0.5,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 24.0,
+        "mean": 23.333333333333332,
+        "min": 12.0,
+        "max": 42.0,
+        "std": 8.636871861707546,
+        "distinct": 26
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.24,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.111349238423077,
+        "distinct": 19
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "12": 3,
+        "13": 12,
+        "14": 23,
+        "15": 19,
+        "16": 7,
+        "21": 1,
+        "22": 5,
+        "23": 2,
+        "24": 4,
+        "25": 3,
+        "26": 4,
+        "27": 7,
+        "28": 8,
+        "29": 7,
+        "30": 3,
+        "31": 6,
+        "32": 8,
+        "33": 8,
+        "34": 6,
+        "35": 5,
+        "36": 1,
+        "37": 1,
+        "38": 4,
+        "39": 1,
+        "40": 1,
+        "42": 1
+       }
+      },
+      "0.8": {
+       "threshold": 0.8,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.22,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.089608815717753,
+        "distinct": 19
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.24,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.111349238423077,
+        "distinct": 19
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 4,
+        "15": 40,
+        "16": 20,
+        "25": 6,
+        "32": 4,
+        "38": 1,
+        "39": 1,
+        "40": 4,
+        "42": 3,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "58": 3,
+        "59": 3,
+        "60": 5,
+        "61": 12,
+        "62": 23,
+        "63": 12
+       }
+      },
+      "0.9": {
+       "threshold": 0.9,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.24,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.111349238423077,
+        "distinct": 19
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.24,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.111349238423077,
+        "distinct": 19
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 4,
+        "15": 40,
+        "16": 20,
+        "25": 6,
+        "32": 4,
+        "38": 1,
+        "39": 1,
+        "40": 4,
+        "42": 3,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "58": 2,
+        "59": 4,
+        "60": 4,
+        "61": 12,
+        "62": 24,
+        "63": 12
+       }
+      },
+      "0.95": {
+       "threshold": 0.95,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.24,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.111349238423077,
+        "distinct": 19
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.24,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.111349238423077,
+        "distinct": 19
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 4,
+        "15": 40,
+        "16": 20,
+        "25": 6,
+        "32": 4,
+        "38": 1,
+        "39": 1,
+        "40": 4,
+        "42": 3,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "58": 2,
+        "59": 4,
+        "60": 4,
+        "61": 12,
+        "62": 24,
+        "63": 12
+       }
+      }
+     },
+     "membership_floored": {
+      "0.3": {
+       "threshold": 0.3,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 3.0,
+        "mean": 3.1466666666666665,
+        "min": 1.0,
+        "max": 6.0,
+        "std": 1.0917061061577984,
+        "distinct": 6
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.453333333333333,
+        "min": 3.0,
+        "max": 9.0,
+        "std": 1.2360510597148575,
+        "distinct": 7
+       },
+       "equals_degree_cells": 11,
+       "equals_one_cells": 8,
+       "cells": 150,
+       "histogram": {
+        "1": 8,
+        "2": 36,
+        "3": 51,
+        "4": 37,
+        "5": 17,
+        "6": 1
+       }
+      },
+      "0.5": {
+       "threshold": 0.5,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 5.0,
+        "mean": 5.14,
+        "min": 2.0,
+        "max": 9.0,
+        "std": 1.2755652341870511,
+        "distinct": 8
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.453333333333333,
+        "min": 3.0,
+        "max": 9.0,
+        "std": 1.2360510597148575,
+        "distinct": 7
+       },
+       "equals_degree_cells": 109,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "2": 1,
+        "3": 15,
+        "4": 27,
+        "5": 48,
+        "6": 48,
+        "7": 2,
+        "8": 7,
+        "9": 2
+       }
+      },
+      "0.8": {
+       "threshold": 0.8,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.453333333333333,
+        "min": 3.0,
+        "max": 9.0,
+        "std": 1.2360510597148575,
+        "distinct": 7
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.453333333333333,
+        "min": 3.0,
+        "max": 9.0,
+        "std": 1.2360510597148575,
+        "distinct": 7
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 4,
+        "4": 32,
+        "5": 38,
+        "6": 60,
+        "7": 4,
+        "8": 8,
+        "9": 4
+       }
+      },
+      "0.9": {
+       "threshold": 0.9,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.453333333333333,
+        "min": 3.0,
+        "max": 9.0,
+        "std": 1.2360510597148575,
+        "distinct": 7
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.453333333333333,
+        "min": 3.0,
+        "max": 9.0,
+        "std": 1.2360510597148575,
+        "distinct": 7
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 4,
+        "4": 32,
+        "5": 38,
+        "6": 60,
+        "7": 4,
+        "8": 8,
+        "9": 4
+       }
+      },
+      "0.95": {
+       "threshold": 0.95,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.453333333333333,
+        "min": 3.0,
+        "max": 9.0,
+        "std": 1.2360510597148575,
+        "distinct": 7
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.453333333333333,
+        "min": 3.0,
+        "max": 9.0,
+        "std": 1.2360510597148575,
+        "distinct": 7
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 4,
+        "4": 32,
+        "5": 38,
+        "6": 60,
+        "7": 4,
+        "8": 8,
+        "9": 4
+       }
+      }
+     }
+    },
+    {
+     "ticks": 500,
+     "elapsed_minutes": 0.5369870622952779,
+     "strict": {
+      "degree": {
+       "n": 150,
+       "median": 7.5,
+       "mean": 7.273333333333333,
+       "min": 5.0,
+       "max": 9.0,
+       "std": 1.36086573751989,
+       "distinct": 5
+      },
+      "strict_mask": {
+       "n": 150,
+       "median": 38.5,
+       "mean": 44.36,
+       "min": 29.0,
+       "max": 63.0,
+       "std": 14.12906224772189,
+       "distinct": 19
+      },
+      "strict_mask_equals_degree_cells": 0,
+      "cells": 150,
+      "strict_criterion": {
+       "n": 150,
+       "median": 2.0,
+       "mean": 2.5866666666666664,
+       "min": 1.0,
+       "max": 5.0,
+       "std": 1.6337550475991056,
+       "distinct": 5
+      },
+      "strict_criterion_equals_degree_cells": 150,
+      "strict_criterion_cells": 150
+     },
+     "criterion_alloc": {
+      "n": 194,
+      "median": 1.0,
+      "mean": 1.0,
+      "min": 1.0,
+      "max": 1.0,
+      "std": 0.0,
+      "distinct": 1
+     },
+     "membership": {
+      "0.3": {
+       "threshold": 0.3,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 1.5,
+        "mean": 4.26,
+        "min": 1.0,
+        "max": 14.0,
+        "std": 3.679547073576674,
+        "distinct": 13
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.24,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.111349238423077,
+        "distinct": 19
+       },
+       "equals_degree_cells": 4,
+       "equals_one_cells": 75,
+       "cells": 150,
+       "histogram": {
+        "1": 75,
+        "2": 3,
+        "3": 3,
+        "4": 2,
+        "5": 6,
+        "6": 6,
+        "7": 15,
+        "8": 17,
+        "9": 9,
+        "10": 6,
+        "11": 5,
+        "12": 2,
+        "14": 1
+       }
+      },
+      "0.5": {
+       "threshold": 0.5,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 15.0,
+        "mean": 15.84,
+        "min": 3.0,
+        "max": 29.0,
+        "std": 4.375812305542062,
+        "distinct": 20
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.24,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.111349238423077,
+        "distinct": 19
+       },
+       "equals_degree_cells": 1,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 1,
+        "7": 3,
+        "9": 1,
+        "10": 2,
+        "11": 5,
+        "12": 12,
+        "13": 23,
+        "14": 27,
+        "15": 19,
+        "16": 5,
+        "17": 9,
+        "18": 7,
+        "19": 4,
+        "20": 6,
+        "21": 6,
+        "22": 4,
+        "23": 6,
+        "24": 3,
+        "25": 5,
+        "29": 2
+       }
+      },
+      "0.8": {
+       "threshold": 0.8,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.0,
+        "mean": 36.22,
+        "min": 14.0,
+        "max": 62.0,
+        "std": 20.122249708552307,
+        "distinct": 25
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.24,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.111349238423077,
+        "distinct": 19
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 5,
+        "15": 40,
+        "16": 19,
+        "24": 1,
+        "25": 5,
+        "30": 1,
+        "32": 3,
+        "38": 3,
+        "39": 4,
+        "41": 2,
+        "42": 2,
+        "43": 1,
+        "44": 2,
+        "45": 1,
+        "46": 3,
+        "53": 1,
+        "54": 1,
+        "55": 4,
+        "56": 2,
+        "57": 4,
+        "58": 4,
+        "59": 12,
+        "60": 10,
+        "61": 13,
+        "62": 7
+       }
+      },
+      "0.9": {
+       "threshold": 0.9,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.0,
+        "mean": 37.093333333333334,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 20.9816893716614,
+        "distinct": 21
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.24,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.111349238423077,
+        "distinct": 19
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 4,
+        "15": 40,
+        "16": 20,
+        "25": 6,
+        "32": 4,
+        "38": 2,
+        "39": 1,
+        "40": 4,
+        "42": 2,
+        "43": 3,
+        "44": 2,
+        "45": 1,
+        "46": 3,
+        "56": 1,
+        "57": 1,
+        "58": 2,
+        "59": 5,
+        "60": 3,
+        "61": 13,
+        "62": 25,
+        "63": 8
+       }
+      },
+      "0.95": {
+       "threshold": 0.95,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.24,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.111349238423077,
+        "distinct": 19
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.24,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.111349238423077,
+        "distinct": 19
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 4,
+        "15": 40,
+        "16": 20,
+        "25": 6,
+        "32": 4,
+        "38": 1,
+        "39": 1,
+        "40": 4,
+        "42": 3,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "58": 2,
+        "59": 4,
+        "60": 4,
+        "61": 12,
+        "62": 24,
+        "63": 12
+       }
+      }
+     },
+     "membership_floored": {
+      "0.3": {
+       "threshold": 0.3,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 3.0,
+        "mean": 2.8666666666666667,
+        "min": 1.0,
+        "max": 6.0,
+        "std": 1.1756794725698931,
+        "distinct": 6
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.453333333333333,
+        "min": 3.0,
+        "max": 9.0,
+        "std": 1.2360510597148575,
+        "distinct": 7
+       },
+       "equals_degree_cells": 12,
+       "equals_one_cells": 18,
+       "cells": 150,
+       "histogram": {
+        "1": 18,
+        "2": 41,
+        "3": 50,
+        "4": 29,
+        "5": 8,
+        "6": 4
+       }
+      },
+      "0.5": {
+       "threshold": 0.5,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 5.0,
+        "mean": 5.046666666666667,
+        "min": 2.0,
+        "max": 9.0,
+        "std": 1.2292906717109486,
+        "distinct": 8
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.453333333333333,
+        "min": 3.0,
+        "max": 9.0,
+        "std": 1.2360510597148575,
+        "distinct": 7
+       },
+       "equals_degree_cells": 104,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "2": 1,
+        "3": 13,
+        "4": 37,
+        "5": 42,
+        "6": 50,
+        "7": 1,
+        "8": 3,
+        "9": 3
+       }
+      },
+      "0.8": {
+       "threshold": 0.8,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.453333333333333,
+        "min": 3.0,
+        "max": 9.0,
+        "std": 1.2360510597148575,
+        "distinct": 7
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.453333333333333,
+        "min": 3.0,
+        "max": 9.0,
+        "std": 1.2360510597148575,
+        "distinct": 7
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 4,
+        "4": 32,
+        "5": 38,
+        "6": 60,
+        "7": 4,
+        "8": 8,
+        "9": 4
+       }
+      },
+      "0.9": {
+       "threshold": 0.9,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.453333333333333,
+        "min": 3.0,
+        "max": 9.0,
+        "std": 1.2360510597148575,
+        "distinct": 7
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.453333333333333,
+        "min": 3.0,
+        "max": 9.0,
+        "std": 1.2360510597148575,
+        "distinct": 7
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 4,
+        "4": 32,
+        "5": 38,
+        "6": 60,
+        "7": 4,
+        "8": 8,
+        "9": 4
+       }
+      },
+      "0.95": {
+       "threshold": 0.95,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.453333333333333,
+        "min": 3.0,
+        "max": 9.0,
+        "std": 1.2360510597148575,
+        "distinct": 7
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.453333333333333,
+        "min": 3.0,
+        "max": 9.0,
+        "std": 1.2360510597148575,
+        "distinct": 7
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 4,
+        "4": 32,
+        "5": 38,
+        "6": 60,
+        "7": 4,
+        "8": 8,
+        "9": 4
+       }
+      }
+     }
+    }
+   ],
+   "minutes": 0.5604719400405884
+  },
+  {
+   "issue": 607,
+   "reading": "both abstraction readings, per arm",
+   "layout": "motor",
+   "sites": 16,
+   "seed": 42,
+   "relays": 16,
+   "relay_m": 1,
+   "edges": 698,
+   "layout_record": {
+    "layout": "motor",
+    "depth_floor": 4,
+    "relay_m": 1,
+    "sites": 16,
+    "deep_cells_available": 44,
+    "deep_components": 1,
+    "component_sizes": [
+     44
+    ],
+    "anchors_motor": 3,
+    "anchors_sensory": 67,
+    "legs": [
+     "motor"
+    ],
+    "anchor_reuse_max": 6,
+    "relays": 16,
+    "edges": [
+     {
+      "deep_cell": 405,
+      "deep_depth": 7,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 406,
+      "deep_depth": 7,
+      "anchor": 329,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 407,
+      "deep_depth": 7,
+      "anchor": 331,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 408,
+      "deep_depth": 7,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 409,
+      "deep_depth": 7,
+      "anchor": 329,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 410,
+      "deep_depth": 7,
+      "anchor": 331,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 411,
+      "deep_depth": 7,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 412,
+      "deep_depth": 7,
+      "anchor": 329,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 395,
+      "deep_depth": 6,
+      "anchor": 331,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 396,
+      "deep_depth": 6,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 397,
+      "deep_depth": 6,
+      "anchor": 329,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 398,
+      "deep_depth": 6,
+      "anchor": 331,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 399,
+      "deep_depth": 6,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 400,
+      "deep_depth": 6,
+      "anchor": 329,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 401,
+      "deep_depth": 6,
+      "anchor": 331,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 402,
+      "deep_depth": 6,
+      "anchor": 327,
+      "leg": "motor"
+     }
+    ]
+   },
+   "checkpoints": [
+    {
+     "ticks": 0,
+     "elapsed_minutes": 0.03871132532755534,
+     "strict": {
+      "degree": {
+       "n": 150,
+       "median": 7.5,
+       "mean": 7.486666666666666,
+       "min": 5.0,
+       "max": 14.0,
+       "std": 1.5043787939064932,
+       "distinct": 7
+      },
+      "strict_mask": {
+       "n": 150,
+       "median": 39.0,
+       "mean": 44.57333333333333,
+       "min": 29.0,
+       "max": 63.0,
+       "std": 14.102645929832535,
+       "distinct": 18
+      },
+      "strict_mask_equals_degree_cells": 0,
+      "cells": 150,
+      "strict_criterion": {
+       "n": 150,
+       "median": 2.0,
+       "mean": 2.5866666666666664,
+       "min": 1.0,
+       "max": 5.0,
+       "std": 1.6337550475991056,
+       "distinct": 5
+      },
+      "strict_criterion_equals_degree_cells": 150,
+      "strict_criterion_cells": 150
+     },
+     "criterion_alloc": {
+      "n": 194,
+      "median": 1.0,
+      "mean": 1.0,
+      "min": 1.0,
+      "max": 1.0,
+      "std": 0.0,
+      "distinct": 1
+     },
+     "membership": {
+      "0.3": {
+       "threshold": 0.3,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 1.0,
+        "mean": 4.0,
+        "min": 1.0,
+        "max": 12.0,
+        "std": 3.4544657088084305,
+        "distinct": 12
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.45333333333333,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.1226850145104,
+        "distinct": 21
+       },
+       "equals_degree_cells": 2,
+       "equals_one_cells": 78,
+       "cells": 150,
+       "histogram": {
+        "1": 78,
+        "2": 4,
+        "3": 1,
+        "4": 4,
+        "5": 3,
+        "6": 6,
+        "7": 18,
+        "8": 19,
+        "9": 8,
+        "10": 6,
+        "11": 2,
+        "12": 1
+       }
+      },
+      "0.5": {
+       "threshold": 0.5,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 25.0,
+        "mean": 23.346666666666668,
+        "min": 12.0,
+        "max": 42.0,
+        "std": 8.605414316321763,
+        "distinct": 24
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.45333333333333,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.1226850145104,
+        "distinct": 21
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "12": 3,
+        "13": 12,
+        "14": 23,
+        "15": 19,
+        "16": 7,
+        "21": 2,
+        "22": 3,
+        "24": 4,
+        "25": 3,
+        "26": 8,
+        "27": 8,
+        "28": 7,
+        "29": 6,
+        "30": 3,
+        "31": 6,
+        "32": 8,
+        "33": 9,
+        "34": 5,
+        "35": 6,
+        "36": 1,
+        "38": 4,
+        "39": 1,
+        "40": 1,
+        "42": 1
+       }
+      },
+      "0.8": {
+       "threshold": 0.8,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.43333333333333,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.1011584726737,
+        "distinct": 21
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.45333333333333,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.1226850145104,
+        "distinct": 21
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 4,
+        "15": 40,
+        "16": 20,
+        "25": 3,
+        "30": 2,
+        "31": 1,
+        "33": 4,
+        "38": 1,
+        "39": 1,
+        "41": 4,
+        "42": 3,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "58": 3,
+        "59": 3,
+        "60": 5,
+        "61": 8,
+        "62": 23,
+        "63": 16
+       }
+      },
+      "0.9": {
+       "threshold": 0.9,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.45333333333333,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.1226850145104,
+        "distinct": 21
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.45333333333333,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.1226850145104,
+        "distinct": 21
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 4,
+        "15": 40,
+        "16": 20,
+        "25": 3,
+        "30": 2,
+        "31": 1,
+        "33": 4,
+        "38": 1,
+        "39": 1,
+        "41": 4,
+        "42": 3,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "58": 2,
+        "59": 4,
+        "60": 4,
+        "61": 8,
+        "62": 24,
+        "63": 16
+       }
+      },
+      "0.95": {
+       "threshold": 0.95,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.45333333333333,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.1226850145104,
+        "distinct": 21
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.45333333333333,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.1226850145104,
+        "distinct": 21
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 4,
+        "15": 40,
+        "16": 20,
+        "25": 3,
+        "30": 2,
+        "31": 1,
+        "33": 4,
+        "38": 1,
+        "39": 1,
+        "41": 4,
+        "42": 3,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "58": 2,
+        "59": 4,
+        "60": 4,
+        "61": 8,
+        "62": 24,
+        "63": 16
+       }
+      }
+     },
+     "membership_floored": {
+      "0.3": {
+       "threshold": 0.3,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 3.0,
+        "mean": 3.1533333333333333,
+        "min": 1.0,
+        "max": 6.0,
+        "std": 1.1119752195480297,
+        "distinct": 6
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.666666666666667,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4772346537440226,
+        "distinct": 9
+       },
+       "equals_degree_cells": 10,
+       "equals_one_cells": 8,
+       "cells": 150,
+       "histogram": {
+        "1": 8,
+        "2": 37,
+        "3": 49,
+        "4": 38,
+        "5": 16,
+        "6": 2
+       }
+      },
+      "0.5": {
+       "threshold": 0.5,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 5.0,
+        "mean": 5.32,
+        "min": 2.0,
+        "max": 12.0,
+        "std": 1.4436989529215107,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.666666666666667,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4772346537440226,
+        "distinct": 9
+       },
+       "equals_degree_cells": 106,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "2": 1,
+        "3": 14,
+        "4": 21,
+        "5": 53,
+        "6": 41,
+        "7": 8,
+        "8": 8,
+        "9": 3,
+        "12": 1
+       }
+      },
+      "0.8": {
+       "threshold": 0.8,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.666666666666667,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4772346537440226,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.666666666666667,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4772346537440226,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 4,
+        "4": 24,
+        "5": 46,
+        "6": 49,
+        "7": 12,
+        "8": 8,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      },
+      "0.9": {
+       "threshold": 0.9,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.666666666666667,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4772346537440226,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.666666666666667,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4772346537440226,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 4,
+        "4": 24,
+        "5": 46,
+        "6": 49,
+        "7": 12,
+        "8": 8,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      },
+      "0.95": {
+       "threshold": 0.95,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.666666666666667,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4772346537440226,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.666666666666667,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4772346537440226,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 4,
+        "4": 24,
+        "5": 46,
+        "6": 49,
+        "7": 12,
+        "8": 8,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      }
+     }
+    },
+    {
+     "ticks": 500,
+     "elapsed_minutes": 0.5116434852282207,
+     "strict": {
+      "degree": {
+       "n": 150,
+       "median": 7.5,
+       "mean": 7.486666666666666,
+       "min": 5.0,
+       "max": 14.0,
+       "std": 1.5043787939064932,
+       "distinct": 7
+      },
+      "strict_mask": {
+       "n": 150,
+       "median": 39.0,
+       "mean": 44.57333333333333,
+       "min": 29.0,
+       "max": 63.0,
+       "std": 14.102645929832535,
+       "distinct": 18
+      },
+      "strict_mask_equals_degree_cells": 0,
+      "cells": 150,
+      "strict_criterion": {
+       "n": 150,
+       "median": 2.0,
+       "mean": 2.5866666666666664,
+       "min": 1.0,
+       "max": 5.0,
+       "std": 1.6337550475991056,
+       "distinct": 5
+      },
+      "strict_criterion_equals_degree_cells": 150,
+      "strict_criterion_cells": 150
+     },
+     "criterion_alloc": {
+      "n": 194,
+      "median": 1.0,
+      "mean": 1.0,
+      "min": 1.0,
+      "max": 1.0,
+      "std": 0.0,
+      "distinct": 1
+     },
+     "membership": {
+      "0.3": {
+       "threshold": 0.3,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 2.0,
+        "mean": 4.24,
+        "min": 1.0,
+        "max": 12.0,
+        "std": 3.597554725087584,
+        "distinct": 12
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.45333333333333,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.1226850145104,
+        "distinct": 21
+       },
+       "equals_degree_cells": 3,
+       "equals_one_cells": 73,
+       "cells": 150,
+       "histogram": {
+        "1": 73,
+        "2": 7,
+        "3": 1,
+        "4": 2,
+        "5": 3,
+        "6": 8,
+        "7": 16,
+        "8": 18,
+        "9": 8,
+        "10": 8,
+        "11": 5,
+        "12": 1
+       }
+      },
+      "0.5": {
+       "threshold": 0.5,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 14.0,
+        "mean": 15.626666666666667,
+        "min": 6.0,
+        "max": 31.0,
+        "std": 4.639750951170643,
+        "distinct": 22
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.45333333333333,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.1226850145104,
+        "distinct": 21
+       },
+       "equals_degree_cells": 3,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "6": 3,
+        "7": 1,
+        "8": 2,
+        "9": 5,
+        "10": 3,
+        "11": 5,
+        "12": 13,
+        "13": 18,
+        "14": 27,
+        "15": 18,
+        "16": 10,
+        "17": 3,
+        "18": 2,
+        "19": 4,
+        "20": 7,
+        "21": 4,
+        "22": 9,
+        "23": 7,
+        "24": 3,
+        "25": 4,
+        "26": 1,
+        "31": 1
+       }
+      },
+      "0.8": {
+       "threshold": 0.8,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.0,
+        "mean": 36.29333333333334,
+        "min": 13.0,
+        "max": 63.0,
+        "std": 20.053776590845814,
+        "distinct": 27
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.45333333333333,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.1226850145104,
+        "distinct": 21
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "13": 1,
+        "14": 4,
+        "15": 41,
+        "16": 18,
+        "25": 3,
+        "30": 2,
+        "31": 1,
+        "32": 1,
+        "33": 3,
+        "38": 3,
+        "39": 1,
+        "40": 2,
+        "41": 5,
+        "42": 2,
+        "43": 2,
+        "46": 3,
+        "51": 1,
+        "53": 2,
+        "55": 1,
+        "56": 6,
+        "57": 6,
+        "58": 6,
+        "59": 11,
+        "60": 2,
+        "61": 9,
+        "62": 9,
+        "63": 5
+       }
+      },
+      "0.9": {
+       "threshold": 0.9,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.266666666666666,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 20.928980439147587,
+        "distinct": 23
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.45333333333333,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.1226850145104,
+        "distinct": 21
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 4,
+        "15": 40,
+        "16": 20,
+        "25": 3,
+        "30": 2,
+        "31": 1,
+        "33": 4,
+        "38": 1,
+        "39": 1,
+        "40": 1,
+        "41": 4,
+        "42": 2,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "57": 1,
+        "58": 4,
+        "59": 6,
+        "60": 4,
+        "61": 11,
+        "62": 20,
+        "63": 12
+       }
+      },
+      "0.95": {
+       "threshold": 0.95,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.44,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.107496298708668,
+        "distinct": 21
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.45333333333333,
+        "min": 14.0,
+        "max": 63.0,
+        "std": 21.1226850145104,
+        "distinct": 21
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 4,
+        "15": 40,
+        "16": 20,
+        "25": 3,
+        "30": 2,
+        "31": 1,
+        "33": 4,
+        "38": 1,
+        "39": 1,
+        "41": 4,
+        "42": 3,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "58": 2,
+        "59": 4,
+        "60": 4,
+        "61": 10,
+        "62": 22,
+        "63": 16
+       }
+      }
+     },
+     "membership_floored": {
+      "0.3": {
+       "threshold": 0.3,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 3.0,
+        "mean": 2.9266666666666667,
+        "min": 1.0,
+        "max": 6.0,
+        "std": 1.2387987012514268,
+        "distinct": 6
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.666666666666667,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4772346537440226,
+        "distinct": 9
+       },
+       "equals_degree_cells": 12,
+       "equals_one_cells": 19,
+       "cells": 150,
+       "histogram": {
+        "1": 19,
+        "2": 38,
+        "3": 50,
+        "4": 25,
+        "5": 14,
+        "6": 4
+       }
+      },
+      "0.5": {
+       "threshold": 0.5,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 5.0,
+        "mean": 5.213333333333333,
+        "min": 2.0,
+        "max": 10.0,
+        "std": 1.3042835410889595,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.666666666666667,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4772346537440226,
+        "distinct": 9
+       },
+       "equals_degree_cells": 105,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "2": 1,
+        "3": 12,
+        "4": 28,
+        "5": 49,
+        "6": 45,
+        "7": 8,
+        "8": 3,
+        "9": 3,
+        "10": 1
+       }
+      },
+      "0.8": {
+       "threshold": 0.8,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.666666666666667,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4772346537440226,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.666666666666667,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4772346537440226,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 4,
+        "4": 24,
+        "5": 46,
+        "6": 49,
+        "7": 12,
+        "8": 8,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      },
+      "0.9": {
+       "threshold": 0.9,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.666666666666667,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4772346537440226,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.666666666666667,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4772346537440226,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 4,
+        "4": 24,
+        "5": 46,
+        "6": 49,
+        "7": 12,
+        "8": 8,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      },
+      "0.95": {
+       "threshold": 0.95,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.666666666666667,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4772346537440226,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.666666666666667,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4772346537440226,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 4,
+        "4": 24,
+        "5": 46,
+        "6": 49,
+        "7": 12,
+        "8": 8,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      }
+     }
+    }
+   ],
+   "minutes": 0.5381887356440226
+  },
+  {
+   "issue": 607,
+   "reading": "both abstraction readings, per arm",
+   "layout": "pair",
+   "sites": 16,
+   "seed": 42,
+   "relays": 32,
+   "relay_m": 1,
+   "edges": 714,
+   "layout_record": {
+    "layout": "pair",
+    "depth_floor": 4,
+    "relay_m": 1,
+    "sites": 16,
+    "deep_cells_available": 44,
+    "deep_components": 1,
+    "component_sizes": [
+     44
+    ],
+    "anchors_motor": 3,
+    "anchors_sensory": 67,
+    "legs": [
+     "motor",
+     "sensory"
+    ],
+    "anchor_reuse_max": 6,
+    "relays": 32,
+    "edges": [
+     {
+      "deep_cell": 405,
+      "deep_depth": 7,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 405,
+      "deep_depth": 7,
+      "anchor": 263,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 406,
+      "deep_depth": 7,
+      "anchor": 329,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 406,
+      "deep_depth": 7,
+      "anchor": 267,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 407,
+      "deep_depth": 7,
+      "anchor": 331,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 407,
+      "deep_depth": 7,
+      "anchor": 271,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 408,
+      "deep_depth": 7,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 408,
+      "deep_depth": 7,
+      "anchor": 275,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 409,
+      "deep_depth": 7,
+      "anchor": 329,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 409,
+      "deep_depth": 7,
+      "anchor": 279,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 410,
+      "deep_depth": 7,
+      "anchor": 331,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 410,
+      "deep_depth": 7,
+      "anchor": 283,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 411,
+      "deep_depth": 7,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 411,
+      "deep_depth": 7,
+      "anchor": 288,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 412,
+      "deep_depth": 7,
+      "anchor": 329,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 412,
+      "deep_depth": 7,
+      "anchor": 292,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 395,
+      "deep_depth": 6,
+      "anchor": 331,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 395,
+      "deep_depth": 6,
+      "anchor": 296,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 396,
+      "deep_depth": 6,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 396,
+      "deep_depth": 6,
+      "anchor": 300,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 397,
+      "deep_depth": 6,
+      "anchor": 329,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 397,
+      "deep_depth": 6,
+      "anchor": 304,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 398,
+      "deep_depth": 6,
+      "anchor": 331,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 398,
+      "deep_depth": 6,
+      "anchor": 309,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 399,
+      "deep_depth": 6,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 399,
+      "deep_depth": 6,
+      "anchor": 313,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 400,
+      "deep_depth": 6,
+      "anchor": 329,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 400,
+      "deep_depth": 6,
+      "anchor": 317,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 401,
+      "deep_depth": 6,
+      "anchor": 331,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 401,
+      "deep_depth": 6,
+      "anchor": 321,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 402,
+      "deep_depth": 6,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 402,
+      "deep_depth": 6,
+      "anchor": 325,
+      "leg": "sensory"
+     }
+    ]
+   },
+   "checkpoints": [
+    {
+     "ticks": 0,
+     "elapsed_minutes": 0.04140212138493856,
+     "strict": {
+      "degree": {
+       "n": 150,
+       "median": 8.0,
+       "mean": 7.7,
+       "min": 5.0,
+       "max": 14.0,
+       "std": 1.565247584249853,
+       "distinct": 8
+      },
+      "strict_mask": {
+       "n": 150,
+       "median": 39.0,
+       "mean": 44.78666666666667,
+       "min": 29.0,
+       "max": 64.0,
+       "std": 14.051612797904099,
+       "distinct": 20
+      },
+      "strict_mask_equals_degree_cells": 0,
+      "cells": 150,
+      "strict_criterion": {
+       "n": 150,
+       "median": 2.0,
+       "mean": 2.5866666666666664,
+       "min": 1.0,
+       "max": 5.0,
+       "std": 1.6337550475991056,
+       "distinct": 5
+      },
+      "strict_criterion_equals_degree_cells": 150,
+      "strict_criterion_cells": 150
+     },
+     "criterion_alloc": {
+      "n": 194,
+      "median": 1.0,
+      "mean": 1.0,
+      "min": 1.0,
+      "max": 1.0,
+      "std": 0.0,
+      "distinct": 1
+     },
+     "membership": {
+      "0.3": {
+       "threshold": 0.3,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 1.0,
+        "mean": 3.9,
+        "min": 1.0,
+        "max": 12.0,
+        "std": 3.3560889936551637,
+        "distinct": 11
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.666666666666664,
+        "min": 14.0,
+        "max": 64.0,
+        "std": 21.077212550261216,
+        "distinct": 22
+       },
+       "equals_degree_cells": 3,
+       "equals_one_cells": 79,
+       "cells": 150,
+       "histogram": {
+        "1": 79,
+        "2": 3,
+        "4": 5,
+        "5": 5,
+        "6": 7,
+        "7": 20,
+        "8": 18,
+        "9": 5,
+        "10": 5,
+        "11": 2,
+        "12": 1
+       }
+      },
+      "0.5": {
+       "threshold": 0.5,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 25.0,
+        "mean": 23.4,
+        "min": 12.0,
+        "max": 42.0,
+        "std": 8.517433103151832,
+        "distinct": 26
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.666666666666664,
+        "min": 14.0,
+        "max": 64.0,
+        "std": 21.077212550261216,
+        "distinct": 22
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "12": 2,
+        "13": 11,
+        "14": 22,
+        "15": 20,
+        "16": 6,
+        "17": 3,
+        "21": 1,
+        "22": 3,
+        "23": 2,
+        "24": 3,
+        "25": 3,
+        "26": 8,
+        "27": 9,
+        "28": 6,
+        "29": 6,
+        "30": 4,
+        "31": 6,
+        "32": 9,
+        "33": 8,
+        "34": 4,
+        "35": 6,
+        "36": 1,
+        "38": 3,
+        "39": 1,
+        "40": 2,
+        "42": 1
+       }
+      },
+      "0.8": {
+       "threshold": 0.8,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.64666666666667,
+        "min": 14.0,
+        "max": 64.0,
+        "std": 21.055842155774457,
+        "distinct": 22
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.666666666666664,
+        "min": 14.0,
+        "max": 64.0,
+        "std": 21.077212550261216,
+        "distinct": 22
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 3,
+        "15": 33,
+        "16": 21,
+        "17": 7,
+        "25": 3,
+        "30": 2,
+        "31": 1,
+        "34": 4,
+        "38": 1,
+        "39": 1,
+        "42": 7,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "58": 3,
+        "59": 3,
+        "60": 5,
+        "61": 8,
+        "62": 19,
+        "63": 16,
+        "64": 4
+       }
+      },
+      "0.9": {
+       "threshold": 0.9,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.666666666666664,
+        "min": 14.0,
+        "max": 64.0,
+        "std": 21.077212550261216,
+        "distinct": 22
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.666666666666664,
+        "min": 14.0,
+        "max": 64.0,
+        "std": 21.077212550261216,
+        "distinct": 22
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 3,
+        "15": 33,
+        "16": 21,
+        "17": 7,
+        "25": 3,
+        "30": 2,
+        "31": 1,
+        "34": 4,
+        "38": 1,
+        "39": 1,
+        "42": 7,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "58": 2,
+        "59": 4,
+        "60": 4,
+        "61": 8,
+        "62": 20,
+        "63": 16,
+        "64": 4
+       }
+      },
+      "0.95": {
+       "threshold": 0.95,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.666666666666664,
+        "min": 14.0,
+        "max": 64.0,
+        "std": 21.077212550261216,
+        "distinct": 22
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.666666666666664,
+        "min": 14.0,
+        "max": 64.0,
+        "std": 21.077212550261216,
+        "distinct": 22
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 3,
+        "15": 33,
+        "16": 21,
+        "17": 7,
+        "25": 3,
+        "30": 2,
+        "31": 1,
+        "34": 4,
+        "38": 1,
+        "39": 1,
+        "42": 7,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "58": 2,
+        "59": 4,
+        "60": 4,
+        "61": 8,
+        "62": 20,
+        "63": 16,
+        "64": 4
+       }
+      }
+     },
+     "membership_floored": {
+      "0.3": {
+       "threshold": 0.3,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 3.0,
+        "mean": 3.2533333333333334,
+        "min": 1.0,
+        "max": 6.0,
+        "std": 1.1086728803193282,
+        "distinct": 6
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 8,
+       "equals_one_cells": 7,
+       "cells": 150,
+       "histogram": {
+        "1": 7,
+        "2": 31,
+        "3": 52,
+        "4": 40,
+        "5": 17,
+        "6": 3
+       }
+      },
+      "0.5": {
+       "threshold": 0.5,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 5.0,
+        "mean": 5.52,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4547393810118248,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 105,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 12,
+        "4": 18,
+        "5": 46,
+        "6": 53,
+        "7": 4,
+        "8": 13,
+        "9": 2,
+        "10": 1,
+        "12": 1
+       }
+      },
+      "0.8": {
+       "threshold": 0.8,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 3,
+        "4": 20,
+        "5": 33,
+        "6": 67,
+        "7": 4,
+        "8": 16,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      },
+      "0.9": {
+       "threshold": 0.9,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 3,
+        "4": 20,
+        "5": 33,
+        "6": 67,
+        "7": 4,
+        "8": 16,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      },
+      "0.95": {
+       "threshold": 0.95,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 3,
+        "4": 20,
+        "5": 33,
+        "6": 67,
+        "7": 4,
+        "8": 16,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      }
+     }
+    },
+    {
+     "ticks": 500,
+     "elapsed_minutes": 0.520618450641632,
+     "strict": {
+      "degree": {
+       "n": 150,
+       "median": 8.0,
+       "mean": 7.7,
+       "min": 5.0,
+       "max": 14.0,
+       "std": 1.565247584249853,
+       "distinct": 8
+      },
+      "strict_mask": {
+       "n": 150,
+       "median": 39.0,
+       "mean": 44.78666666666667,
+       "min": 29.0,
+       "max": 64.0,
+       "std": 14.051612797904099,
+       "distinct": 20
+      },
+      "strict_mask_equals_degree_cells": 0,
+      "cells": 150,
+      "strict_criterion": {
+       "n": 150,
+       "median": 2.0,
+       "mean": 2.5866666666666664,
+       "min": 1.0,
+       "max": 5.0,
+       "std": 1.6337550475991056,
+       "distinct": 5
+      },
+      "strict_criterion_equals_degree_cells": 150,
+      "strict_criterion_cells": 150
+     },
+     "criterion_alloc": {
+      "n": 194,
+      "median": 1.0,
+      "mean": 1.0,
+      "min": 1.0,
+      "max": 1.0,
+      "std": 0.0,
+      "distinct": 1
+     },
+     "membership": {
+      "0.3": {
+       "threshold": 0.3,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 2.0,
+        "mean": 4.1866666666666665,
+        "min": 1.0,
+        "max": 12.0,
+        "std": 3.466769229252055,
+        "distinct": 12
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.666666666666664,
+        "min": 14.0,
+        "max": 64.0,
+        "std": 21.077212550261216,
+        "distinct": 22
+       },
+       "equals_degree_cells": 5,
+       "equals_one_cells": 71,
+       "cells": 150,
+       "histogram": {
+        "1": 71,
+        "2": 7,
+        "3": 3,
+        "4": 1,
+        "5": 4,
+        "6": 13,
+        "7": 9,
+        "8": 21,
+        "9": 12,
+        "10": 7,
+        "11": 1,
+        "12": 1
+       }
+      },
+      "0.5": {
+       "threshold": 0.5,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 15.0,
+        "mean": 16.0,
+        "min": 3.0,
+        "max": 27.0,
+        "std": 4.177718675704879,
+        "distinct": 21
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.666666666666664,
+        "min": 14.0,
+        "max": 64.0,
+        "std": 21.077212550261216,
+        "distinct": 22
+       },
+       "equals_degree_cells": 1,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 1,
+        "6": 1,
+        "8": 1,
+        "9": 1,
+        "10": 2,
+        "11": 6,
+        "12": 6,
+        "13": 26,
+        "14": 26,
+        "15": 16,
+        "16": 9,
+        "17": 8,
+        "18": 9,
+        "19": 6,
+        "20": 6,
+        "21": 6,
+        "22": 9,
+        "23": 2,
+        "24": 3,
+        "25": 3,
+        "27": 3
+       }
+      },
+      "0.8": {
+       "threshold": 0.8,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 37.5,
+        "mean": 36.593333333333334,
+        "min": 14.0,
+        "max": 64.0,
+        "std": 20.051632241679368,
+        "distinct": 29
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.666666666666664,
+        "min": 14.0,
+        "max": 64.0,
+        "std": 21.077212550261216,
+        "distinct": 22
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 5,
+        "15": 32,
+        "16": 20,
+        "17": 7,
+        "25": 3,
+        "30": 2,
+        "31": 1,
+        "33": 1,
+        "34": 3,
+        "37": 1,
+        "38": 1,
+        "40": 2,
+        "41": 1,
+        "42": 7,
+        "43": 3,
+        "45": 2,
+        "46": 1,
+        "51": 1,
+        "52": 1,
+        "54": 2,
+        "56": 1,
+        "57": 5,
+        "58": 9,
+        "59": 10,
+        "60": 8,
+        "61": 10,
+        "62": 4,
+        "63": 6,
+        "64": 1
+       }
+      },
+      "0.9": {
+       "threshold": 0.9,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.42,
+        "min": 14.0,
+        "max": 64.0,
+        "std": 20.838192499990654,
+        "distinct": 24
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.666666666666664,
+        "min": 14.0,
+        "max": 64.0,
+        "std": 21.077212550261216,
+        "distinct": 22
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 3,
+        "15": 33,
+        "16": 21,
+        "17": 7,
+        "25": 3,
+        "30": 2,
+        "31": 1,
+        "34": 4,
+        "38": 1,
+        "39": 1,
+        "41": 1,
+        "42": 6,
+        "43": 4,
+        "44": 2,
+        "46": 3,
+        "55": 2,
+        "57": 2,
+        "58": 2,
+        "59": 4,
+        "60": 8,
+        "61": 7,
+        "62": 14,
+        "63": 16,
+        "64": 3
+       }
+      },
+      "0.95": {
+       "threshold": 0.95,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.64,
+        "min": 14.0,
+        "max": 64.0,
+        "std": 21.04892079577161,
+        "distinct": 22
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 38.5,
+        "mean": 37.666666666666664,
+        "min": 14.0,
+        "max": 64.0,
+        "std": 21.077212550261216,
+        "distinct": 22
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 3,
+        "15": 33,
+        "16": 21,
+        "17": 7,
+        "25": 3,
+        "30": 2,
+        "31": 1,
+        "34": 4,
+        "38": 1,
+        "39": 1,
+        "42": 7,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "58": 3,
+        "59": 4,
+        "60": 4,
+        "61": 8,
+        "62": 19,
+        "63": 16,
+        "64": 4
+       }
+      }
+     },
+     "membership_floored": {
+      "0.3": {
+       "threshold": 0.3,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 3.0,
+        "mean": 2.8733333333333335,
+        "min": 1.0,
+        "max": 6.0,
+        "std": 1.282168302351745,
+        "distinct": 6
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 5,
+       "equals_one_cells": 24,
+       "cells": 150,
+       "histogram": {
+        "1": 24,
+        "2": 36,
+        "3": 47,
+        "4": 25,
+        "5": 14,
+        "6": 4
+       }
+      },
+      "0.5": {
+       "threshold": 0.5,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 5.0,
+        "mean": 5.386666666666667,
+        "min": 2.0,
+        "max": 10.0,
+        "std": 1.413207541571851,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 96,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "2": 1,
+        "3": 11,
+        "4": 27,
+        "5": 40,
+        "6": 52,
+        "7": 5,
+        "8": 9,
+        "9": 4,
+        "10": 1
+       }
+      },
+      "0.8": {
+       "threshold": 0.8,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 3,
+        "4": 20,
+        "5": 33,
+        "6": 67,
+        "7": 4,
+        "8": 16,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      },
+      "0.9": {
+       "threshold": 0.9,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 3,
+        "4": 20,
+        "5": 33,
+        "6": 67,
+        "7": 4,
+        "8": 16,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      },
+      "0.95": {
+       "threshold": 0.95,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 3,
+        "4": 20,
+        "5": 33,
+        "6": 67,
+        "7": 4,
+        "8": 16,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      }
+     }
+    }
+   ],
+   "minutes": 0.5458037972450256
+  },
+  {
+   "issue": 607,
+   "reading": "both abstraction readings, per arm",
+   "layout": "pair_wide",
+   "sites": 16,
+   "seed": 42,
+   "relays": 32,
+   "relay_m": 1,
+   "edges": 714,
+   "layout_record": {
+    "layout": "pair_wide",
+    "depth_floor": 4,
+    "relay_m": 20,
+    "sites": 16,
+    "deep_cells_available": 44,
+    "deep_components": 1,
+    "component_sizes": [
+     44
+    ],
+    "anchors_motor": 3,
+    "anchors_sensory": 67,
+    "legs": [
+     "motor",
+     "sensory"
+    ],
+    "anchor_reuse_max": 6,
+    "relays": 32,
+    "edges": [
+     {
+      "deep_cell": 405,
+      "deep_depth": 7,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 405,
+      "deep_depth": 7,
+      "anchor": 263,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 406,
+      "deep_depth": 7,
+      "anchor": 329,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 406,
+      "deep_depth": 7,
+      "anchor": 267,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 407,
+      "deep_depth": 7,
+      "anchor": 331,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 407,
+      "deep_depth": 7,
+      "anchor": 271,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 408,
+      "deep_depth": 7,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 408,
+      "deep_depth": 7,
+      "anchor": 275,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 409,
+      "deep_depth": 7,
+      "anchor": 329,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 409,
+      "deep_depth": 7,
+      "anchor": 279,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 410,
+      "deep_depth": 7,
+      "anchor": 331,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 410,
+      "deep_depth": 7,
+      "anchor": 283,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 411,
+      "deep_depth": 7,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 411,
+      "deep_depth": 7,
+      "anchor": 288,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 412,
+      "deep_depth": 7,
+      "anchor": 329,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 412,
+      "deep_depth": 7,
+      "anchor": 292,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 395,
+      "deep_depth": 6,
+      "anchor": 331,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 395,
+      "deep_depth": 6,
+      "anchor": 296,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 396,
+      "deep_depth": 6,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 396,
+      "deep_depth": 6,
+      "anchor": 300,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 397,
+      "deep_depth": 6,
+      "anchor": 329,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 397,
+      "deep_depth": 6,
+      "anchor": 304,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 398,
+      "deep_depth": 6,
+      "anchor": 331,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 398,
+      "deep_depth": 6,
+      "anchor": 309,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 399,
+      "deep_depth": 6,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 399,
+      "deep_depth": 6,
+      "anchor": 313,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 400,
+      "deep_depth": 6,
+      "anchor": 329,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 400,
+      "deep_depth": 6,
+      "anchor": 317,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 401,
+      "deep_depth": 6,
+      "anchor": 331,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 401,
+      "deep_depth": 6,
+      "anchor": 321,
+      "leg": "sensory"
+     },
+     {
+      "deep_cell": 402,
+      "deep_depth": 6,
+      "anchor": 327,
+      "leg": "motor"
+     },
+     {
+      "deep_cell": 402,
+      "deep_depth": 6,
+      "anchor": 325,
+      "leg": "sensory"
+     }
+    ]
+   },
+   "checkpoints": [
+    {
+     "ticks": 0,
+     "elapsed_minutes": 0.09911026954650878,
+     "strict": {
+      "degree": {
+       "n": 150,
+       "median": 8.0,
+       "mean": 7.7,
+       "min": 5.0,
+       "max": 14.0,
+       "std": 1.565247584249853,
+       "distinct": 8
+      },
+      "strict_mask": {
+       "n": 150,
+       "median": 52.0,
+       "mean": 52.89333333333333,
+       "min": 29.0,
+       "max": 153.0,
+       "std": 22.524104619027344,
+       "distinct": 26
+      },
+      "strict_mask_equals_degree_cells": 0,
+      "cells": 150,
+      "strict_criterion": {
+       "n": 150,
+       "median": 3.0,
+       "mean": 3.3466666666666667,
+       "min": 1.0,
+       "max": 10.0,
+       "std": 2.1817016803913,
+       "distinct": 10
+      },
+      "strict_criterion_equals_degree_cells": 131,
+      "strict_criterion_cells": 150
+     },
+     "criterion_alloc": {
+      "n": 226,
+      "median": 1.0,
+      "mean": 1.1106194690265487,
+      "min": 1.0,
+      "max": 5.0,
+      "std": 0.498823896756099,
+      "distinct": 5
+     },
+     "membership": {
+      "0.3": {
+       "threshold": 0.3,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 1.0,
+        "mean": 3.3133333333333335,
+        "min": 1.0,
+        "max": 12.0,
+        "std": 3.304818031635361,
+        "distinct": 12
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 43.5,
+        "mean": 45.77333333333333,
+        "min": 14.0,
+        "max": 145.0,
+        "std": 27.71717798686503,
+        "distinct": 26
+       },
+       "equals_degree_cells": 2,
+       "equals_one_cells": 94,
+       "cells": 150,
+       "histogram": {
+        "1": 94,
+        "2": 4,
+        "3": 1,
+        "4": 3,
+        "5": 2,
+        "6": 5,
+        "7": 13,
+        "8": 15,
+        "9": 5,
+        "10": 5,
+        "11": 2,
+        "12": 1
+       }
+      },
+      "0.5": {
+       "threshold": 0.5,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 26.5,
+        "mean": 24.086666666666666,
+        "min": 9.0,
+        "max": 42.0,
+        "std": 8.327413897616848,
+        "distinct": 28
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 43.5,
+        "mean": 45.77333333333333,
+        "min": 14.0,
+        "max": 145.0,
+        "std": 27.71717798686503,
+        "distinct": 26
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "9": 1,
+        "11": 1,
+        "12": 3,
+        "13": 9,
+        "14": 17,
+        "15": 17,
+        "16": 6,
+        "19": 2,
+        "20": 1,
+        "21": 1,
+        "22": 2,
+        "24": 3,
+        "25": 5,
+        "26": 7,
+        "27": 11,
+        "28": 7,
+        "29": 10,
+        "30": 5,
+        "31": 9,
+        "32": 9,
+        "33": 7,
+        "34": 4,
+        "35": 5,
+        "36": 2,
+        "38": 3,
+        "39": 1,
+        "40": 1,
+        "42": 1
+       }
+      },
+      "0.8": {
+       "threshold": 0.8,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 43.5,
+        "mean": 45.75333333333333,
+        "min": 14.0,
+        "max": 145.0,
+        "std": 27.706782964144757,
+        "distinct": 26
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 43.5,
+        "mean": 45.77333333333333,
+        "min": 14.0,
+        "max": 145.0,
+        "std": 27.71717798686503,
+        "distinct": 26
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 3,
+        "15": 32,
+        "16": 13,
+        "25": 3,
+        "34": 1,
+        "35": 8,
+        "36": 7,
+        "38": 1,
+        "39": 1,
+        "42": 3,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "58": 3,
+        "59": 3,
+        "60": 5,
+        "61": 8,
+        "62": 19,
+        "63": 12,
+        "72": 4,
+        "80": 4,
+        "101": 4,
+        "102": 4,
+        "125": 2,
+        "145": 1
+       }
+      },
+      "0.9": {
+       "threshold": 0.9,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 43.5,
+        "mean": 45.77333333333333,
+        "min": 14.0,
+        "max": 145.0,
+        "std": 27.71717798686503,
+        "distinct": 26
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 43.5,
+        "mean": 45.77333333333333,
+        "min": 14.0,
+        "max": 145.0,
+        "std": 27.71717798686503,
+        "distinct": 26
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 3,
+        "15": 32,
+        "16": 13,
+        "25": 3,
+        "34": 1,
+        "35": 8,
+        "36": 7,
+        "38": 1,
+        "39": 1,
+        "42": 3,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "58": 2,
+        "59": 4,
+        "60": 4,
+        "61": 8,
+        "62": 20,
+        "63": 12,
+        "72": 4,
+        "80": 4,
+        "101": 4,
+        "102": 4,
+        "125": 2,
+        "145": 1
+       }
+      },
+      "0.95": {
+       "threshold": 0.95,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 43.5,
+        "mean": 45.77333333333333,
+        "min": 14.0,
+        "max": 145.0,
+        "std": 27.71717798686503,
+        "distinct": 26
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 43.5,
+        "mean": 45.77333333333333,
+        "min": 14.0,
+        "max": 145.0,
+        "std": 27.71717798686503,
+        "distinct": 26
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 3,
+        "15": 32,
+        "16": 13,
+        "25": 3,
+        "34": 1,
+        "35": 8,
+        "36": 7,
+        "38": 1,
+        "39": 1,
+        "42": 3,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "58": 2,
+        "59": 4,
+        "60": 4,
+        "61": 8,
+        "62": 20,
+        "63": 12,
+        "72": 4,
+        "80": 4,
+        "101": 4,
+        "102": 4,
+        "125": 2,
+        "145": 1
+       }
+      }
+     },
+     "membership_floored": {
+      "0.3": {
+       "threshold": 0.3,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 3.0,
+        "mean": 3.2533333333333334,
+        "min": 1.0,
+        "max": 6.0,
+        "std": 1.1086728803193282,
+        "distinct": 6
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 8,
+       "equals_one_cells": 7,
+       "cells": 150,
+       "histogram": {
+        "1": 7,
+        "2": 31,
+        "3": 52,
+        "4": 40,
+        "5": 17,
+        "6": 3
+       }
+      },
+      "0.5": {
+       "threshold": 0.5,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 5.0,
+        "mean": 5.52,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4547393810118248,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 105,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 12,
+        "4": 18,
+        "5": 46,
+        "6": 53,
+        "7": 4,
+        "8": 13,
+        "9": 2,
+        "10": 1,
+        "12": 1
+       }
+      },
+      "0.8": {
+       "threshold": 0.8,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 3,
+        "4": 20,
+        "5": 33,
+        "6": 67,
+        "7": 4,
+        "8": 16,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      },
+      "0.9": {
+       "threshold": 0.9,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 3,
+        "4": 20,
+        "5": 33,
+        "6": 67,
+        "7": 4,
+        "8": 16,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      },
+      "0.95": {
+       "threshold": 0.95,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 3,
+        "4": 20,
+        "5": 33,
+        "6": 67,
+        "7": 4,
+        "8": 16,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      }
+     }
+    },
+    {
+     "ticks": 500,
+     "elapsed_minutes": 0.6278129975001018,
+     "strict": {
+      "degree": {
+       "n": 150,
+       "median": 8.0,
+       "mean": 7.7,
+       "min": 5.0,
+       "max": 14.0,
+       "std": 1.565247584249853,
+       "distinct": 8
+      },
+      "strict_mask": {
+       "n": 150,
+       "median": 52.0,
+       "mean": 52.89333333333333,
+       "min": 29.0,
+       "max": 153.0,
+       "std": 22.524104619027344,
+       "distinct": 26
+      },
+      "strict_mask_equals_degree_cells": 0,
+      "cells": 150,
+      "strict_criterion": {
+       "n": 150,
+       "median": 3.5,
+       "mean": 3.3466666666666667,
+       "min": 1.0,
+       "max": 9.0,
+       "std": 2.1509274485414167,
+       "distinct": 9
+      },
+      "strict_criterion_equals_degree_cells": 131,
+      "strict_criterion_cells": 150
+     },
+     "criterion_alloc": {
+      "n": 226,
+      "median": 1.0,
+      "mean": 1.1106194690265487,
+      "min": 1.0,
+      "max": 4.0,
+      "std": 0.47146220146324314,
+      "distinct": 4
+     },
+     "membership": {
+      "0.3": {
+       "threshold": 0.3,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 1.0,
+        "mean": 3.473333333333333,
+        "min": 1.0,
+        "max": 11.0,
+        "std": 3.4865391946105464,
+        "distinct": 11
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 43.5,
+        "mean": 45.77333333333333,
+        "min": 14.0,
+        "max": 145.0,
+        "std": 27.71717798686503,
+        "distinct": 26
+       },
+       "equals_degree_cells": 1,
+       "equals_one_cells": 90,
+       "cells": 150,
+       "histogram": {
+        "1": 90,
+        "2": 7,
+        "3": 2,
+        "4": 4,
+        "5": 2,
+        "6": 4,
+        "7": 7,
+        "8": 10,
+        "9": 12,
+        "10": 8,
+        "11": 4
+       }
+      },
+      "0.5": {
+       "threshold": 0.5,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 14.0,
+        "mean": 15.013333333333334,
+        "min": 1.0,
+        "max": 29.0,
+        "std": 6.205359690532765,
+        "distinct": 28
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 43.5,
+        "mean": 45.77333333333333,
+        "min": 14.0,
+        "max": 145.0,
+        "std": 27.71717798686503,
+        "distinct": 26
+       },
+       "equals_degree_cells": 1,
+       "equals_one_cells": 2,
+       "cells": 150,
+       "histogram": {
+        "1": 2,
+        "2": 2,
+        "3": 4,
+        "4": 4,
+        "5": 3,
+        "6": 1,
+        "7": 4,
+        "8": 2,
+        "9": 3,
+        "10": 2,
+        "11": 6,
+        "12": 8,
+        "13": 19,
+        "14": 19,
+        "15": 10,
+        "16": 6,
+        "17": 5,
+        "18": 5,
+        "19": 7,
+        "20": 3,
+        "21": 7,
+        "22": 6,
+        "23": 8,
+        "24": 6,
+        "25": 3,
+        "26": 3,
+        "28": 1,
+        "29": 1
+       }
+      },
+      "0.8": {
+       "threshold": 0.8,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 43.5,
+        "mean": 43.766666666666666,
+        "min": 14.0,
+        "max": 130.0,
+        "std": 24.733894872331685,
+        "distinct": 40
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 43.5,
+        "mean": 45.77333333333333,
+        "min": 14.0,
+        "max": 145.0,
+        "std": 27.71717798686503,
+        "distinct": 26
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 3,
+        "15": 32,
+        "16": 13,
+        "25": 3,
+        "33": 1,
+        "34": 3,
+        "35": 7,
+        "36": 5,
+        "38": 2,
+        "40": 1,
+        "41": 2,
+        "42": 2,
+        "43": 1,
+        "44": 3,
+        "45": 1,
+        "46": 2,
+        "54": 1,
+        "56": 3,
+        "57": 3,
+        "58": 3,
+        "59": 10,
+        "60": 8,
+        "61": 12,
+        "62": 9,
+        "63": 1,
+        "65": 1,
+        "66": 1,
+        "67": 1,
+        "69": 1,
+        "72": 1,
+        "73": 2,
+        "76": 1,
+        "82": 1,
+        "88": 1,
+        "89": 2,
+        "90": 1,
+        "94": 1,
+        "98": 3,
+        "99": 1,
+        "130": 1
+       }
+      },
+      "0.9": {
+       "threshold": 0.9,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 43.5,
+        "mean": 45.35333333333333,
+        "min": 14.0,
+        "max": 144.0,
+        "std": 26.937987221682977,
+        "distinct": 35
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 43.5,
+        "mean": 45.77333333333333,
+        "min": 14.0,
+        "max": 145.0,
+        "std": 27.71717798686503,
+        "distinct": 26
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 3,
+        "15": 32,
+        "16": 13,
+        "25": 3,
+        "34": 2,
+        "35": 8,
+        "36": 6,
+        "38": 1,
+        "39": 1,
+        "41": 2,
+        "42": 1,
+        "43": 3,
+        "44": 1,
+        "45": 3,
+        "46": 2,
+        "57": 1,
+        "58": 1,
+        "59": 5,
+        "60": 4,
+        "61": 10,
+        "62": 17,
+        "63": 12,
+        "69": 1,
+        "72": 3,
+        "77": 1,
+        "79": 2,
+        "80": 1,
+        "96": 1,
+        "98": 1,
+        "99": 2,
+        "100": 3,
+        "101": 1,
+        "112": 1,
+        "114": 1,
+        "144": 1
+       }
+      },
+      "0.95": {
+       "threshold": 0.95,
+       "cap": null,
+       "membership": {
+        "n": 150,
+        "median": 43.5,
+        "mean": 45.7,
+        "min": 14.0,
+        "max": 145.0,
+        "std": 27.559571839925233,
+        "distinct": 29
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 43.5,
+        "mean": 45.77333333333333,
+        "min": 14.0,
+        "max": 145.0,
+        "std": 27.71717798686503,
+        "distinct": 26
+       },
+       "equals_degree_cells": 0,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "14": 3,
+        "15": 32,
+        "16": 13,
+        "25": 3,
+        "34": 1,
+        "35": 8,
+        "36": 7,
+        "38": 1,
+        "39": 1,
+        "42": 3,
+        "43": 3,
+        "44": 1,
+        "45": 2,
+        "46": 3,
+        "58": 2,
+        "59": 5,
+        "60": 3,
+        "61": 8,
+        "62": 20,
+        "63": 12,
+        "72": 4,
+        "80": 4,
+        "99": 1,
+        "100": 1,
+        "101": 5,
+        "102": 1,
+        "121": 1,
+        "125": 1,
+        "145": 1
+       }
+      }
+     },
+     "membership_floored": {
+      "0.3": {
+       "threshold": 0.3,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 3.0,
+        "mean": 2.96,
+        "min": 1.0,
+        "max": 6.0,
+        "std": 1.2851977798507643,
+        "distinct": 6
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 11,
+       "equals_one_cells": 21,
+       "cells": 150,
+       "histogram": {
+        "1": 21,
+        "2": 35,
+        "3": 46,
+        "4": 31,
+        "5": 11,
+        "6": 6
+       }
+      },
+      "0.5": {
+       "threshold": 0.5,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 5.0,
+        "mean": 5.413333333333333,
+        "min": 2.0,
+        "max": 11.0,
+        "std": 1.4885638119416387,
+        "distinct": 10
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 100,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "2": 3,
+        "3": 10,
+        "4": 23,
+        "5": 42,
+        "6": 53,
+        "7": 4,
+        "8": 10,
+        "9": 3,
+        "10": 1,
+        "11": 1
+       }
+      },
+      "0.8": {
+       "threshold": 0.8,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 3,
+        "4": 20,
+        "5": 33,
+        "6": 67,
+        "7": 4,
+        "8": 16,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      },
+      "0.9": {
+       "threshold": 0.9,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 3,
+        "4": 20,
+        "5": 33,
+        "6": 67,
+        "7": 4,
+        "8": 16,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      },
+      "0.95": {
+       "threshold": 0.95,
+       "cap": 1,
+       "membership": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "directions_per_cell": {
+        "n": 150,
+        "median": 6.0,
+        "mean": 5.88,
+        "min": 3.0,
+        "max": 12.0,
+        "std": 1.4783774890061063,
+        "distinct": 9
+       },
+       "equals_degree_cells": 150,
+       "equals_one_cells": 0,
+       "cells": 150,
+       "histogram": {
+        "3": 3,
+        "4": 20,
+        "5": 33,
+        "6": 67,
+        "7": 4,
+        "8": 16,
+        "9": 4,
+        "11": 2,
+        "12": 1
+       }
+      }
+     }
+    }
+   ],
+   "minutes": 0.6573619365692138
+  }
+ ]
+}

@@ -1,0 +1,27 @@
+{
+  "ticket": 603,
+  "surface": "reserve_p12",
+  "seed": 42,
+  "configurations": {
+    "frames_only": {
+      "identification": 1.5804624675718944e-15,
+      "channel_return": 0.9999999999999997,
+      "sigma_max": 1.0000001115313342,
+      "cycles": 45
+    },
+    "mask_only": {
+      "identification": 0.6123087369649435,
+      "channel_return": 0.8645474445127352,
+      "sigma_max": 0.29098171874686707,
+      "cycles": 45
+    },
+    "mask_and_band": {
+      "identification": 0.03855823320490422,
+      "channel_return": 0.9998041166704306,
+      "sigma_max": 0.0007716074401175382,
+      "cycles": 45
+    }
+  },
+  "n": 32,
+  "k_v": 20
+}

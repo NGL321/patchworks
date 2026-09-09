@@ -1,0 +1,20 @@
+[B40] flat seed 42 -> 603-routes-flat-seed42-500.json
+  [flat s42]     0 ident 0.0386 chan 0.9998 sig 7.72e-04 | m_e med 12.0 max 15 std 1.39 distinct 6 | leak 1.118 | world nan
+  [flat s42]    50 ident 0.2619 chan 0.9990 sig 7.66e-04 | m_e med 10.0 max 13 std 1.24 distinct 6 | leak 1.116 | world 1.09e+00
+  [flat s42]   150 ident 0.2965 chan 0.9988 sig 7.33e-04 | m_e med 10.0 max 13 std 1.21 distinct 7 | leak 1.117 | world 1.10e+00
+  [flat s42]   500 ident 0.2963 chan 0.9982 sig 7.16e-04 | m_e med 9.0 max 13 std 1.30 distinct 7 | leak 1.118 | world 4.12e-01
+[B40] control seed 42 -> 603-routes-control-seed42-500.json
+  [control s42]     0 ident 1.0017 chan 0.2006 sig 1.59e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world nan
+  [control s42]    50 ident 0.9836 chan 0.2475 sig 1.45e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world 1.29e+00
+  [control s42]   150 ident 0.9776 chan 0.2575 sig 1.90e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world 9.35e-01
+  [control s42]   500 ident 0.9778 chan 0.2678 sig 3.58e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world 8.63e-05
+[B40] split seed 42 -> 603-routes-split-seed42-500.json
+  [split s42]     0 ident 1.0017 chan 0.2006 sig 1.59e-07 | m_e med 1.0 max 4 std 0.58 distinct 4 | leak 1.051 | world nan
+  [split s42]    50 ident 0.9842 chan 0.2498 sig 1.45e-07 | m_e med 1.0 max 4 std 0.68 distinct 4 | leak 1.118 | world 1.29e+00
+  [split s42]   150 ident 0.9760 chan 0.2554 sig 1.89e-07 | m_e med 1.0 max 4 std 0.55 distinct 4 | leak 1.115 | world 9.35e-01
+  [split s42]   500 ident 0.9851 chan 0.3031 sig 3.57e-07 | m_e med 1.0 max 4 std 0.72 distinct 4 | leak 1.109 | world 3.12e-05
+[B40] phased seed 42 -> 603-routes-phased-seed42-500.json
+  [phased s42]     0 ident 1.0017 chan 0.2006 sig 1.59e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world nan
+  [phased s42]    50 ident 0.9845 chan 0.2455 sig 1.45e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world 1.29e+00
+  [phased s42]   150 ident 0.9794 chan 0.2496 sig 1.89e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world 9.35e-01
+  [phased s42]   500 ident 0.9754 chan 0.2771 sig 3.57e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world 8.47e-05

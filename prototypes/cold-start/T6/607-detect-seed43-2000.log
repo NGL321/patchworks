@@ -1,0 +1,20 @@
+[B43] none sites=0: 414 cells, 682 edges (+0 relays); training 2000 ticks
+  trial 1/3 [patch] bottleneck 7.484e-12 | tau med 8.000e+00 | ratio med 8.889e-01 max 9.000e+00 >=1 62
+  trial 2/3 [proprioceptive] bottleneck 8.340e-11 | tau med 1.000e+01 | ratio med 1.200e+00 max 9.000e+00 >=1 97
+  trial 3/3 [touch] bottleneck 2.011e-11 | tau med 9.000e+00 | ratio med 1.000e+00 max 5.625e+00 >=1 78
+[B43] none: bottleneck median 2.011e-11 in 1.5 min -> 607-detect-none0-seed43-2000.json
+[B43] motor sites=16: 414 cells, 698 edges (+16 relays); training 2000 ticks
+  trial 1/3 [patch] bottleneck 1.285e-09 | tau med 7.000e+00 | ratio med 8.750e-01 max 4.000e+00 >=1 61
+  trial 2/3 [proprioceptive] bottleneck 7.526e-01 | tau med 4.000e+00 | ratio med 6.000e-01 max 2.222e+00 >=1 32
+  trial 3/3 [touch] bottleneck 1.995e-02 | tau med 5.000e+00 | ratio med 6.667e-01 max 4.000e+00 >=1 32
+[B43] motor: bottleneck median 1.995e-02 in 1.5 min -> 607-detect-motor16-seed43-2000.json
+[B43] pair sites=16: 414 cells, 714 edges (+32 relays); training 2000 ticks
+  trial 1/3 [patch] bottleneck 1.093e-04 | tau med 7.000e+00 | ratio med 1.000e+00 max 6.333e+00 >=1 78
+  trial 2/3 [proprioceptive] bottleneck 1.333e+00 | tau med 7.000e+00 | ratio med 1.200e+00 max 7.143e+00 >=1 89
+  trial 3/3 [touch] bottleneck 5.034e-02 | tau med 6.000e+00 | ratio med 8.750e-01 max 5.000e+00 >=1 72
+[B43] pair: bottleneck median 5.034e-02 in 1.5 min -> 607-detect-pair16-seed43-2000.json
+[B43] random sites=16: 414 cells, 714 edges (+32 relays); training 2000 ticks
+  trial 1/3 [patch] bottleneck 3.277e-04 | tau med 7.000e+00 | ratio med 8.750e-01 max 3.667e+00 >=1 68
+  trial 2/3 [proprioceptive] bottleneck 3.507e-04 | tau med 7.000e+00 | ratio med 9.000e-01 max 4.250e+00 >=1 74
+  trial 3/3 [touch] bottleneck 4.307e-04 | tau med 4.000e+00 | ratio med 6.000e-01 max 2.667e+00 >=1 36
+[B43] random: bottleneck median 3.507e-04 in 1.5 min -> 607-detect-random16-seed43-2000.json
