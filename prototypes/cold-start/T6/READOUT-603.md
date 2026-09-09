@@ -56,7 +56,31 @@ Tarjan on the wide subgraph: **all 90 are true bridges** — they lie on no cycl
 
 ## 2. The arms and the scores
 
-*(filled from `b40_table.py`)*
+*(table filled from `b40_table.py`)*
+
+### The fifth arm, which the ticket did not ask for and the comparison needs
+
+Four arms is a floor, not a design — the ticket says so. One more was required to
+make arm 4 readable at all.
+
+`flat` installs orthonormal frames onto a surface whose own initialisation sits at
+`sigma_max ≈ 1.6e-07`. Any advantage it then shows could be **isometry**, not
+flatness — the flat bundle would be winning because its maps are well-scaled, and
+that would have nothing to do with cycle consistency. So `haar` installs
+`holonomy_read.flat_maps`: the same block structure, exactly isometric, drawn
+**independently** per endpoint, with no shared per-cell frame. Same scale as `flat`;
+cycle-consistency absent. What separates the two is flatness alone.
+
+It answers cleanly. `haar` reads `identification` **1.0088 → 0.9810** — at chance
+throughout — and `sigma_max` **1.10e-07**, the same order as the untouched control
+and four orders below `flat`'s **7.72e-04**.
+
+> **The flat bundle's advantage is not scale and not isometry.** Independent
+> isometries of identical shape close nothing and carry nothing. Only the *shared
+> per-cell frame* buys closure — and with it about **7,000×** the composed amplitude
+> that independent isometries lose across seven hops. That loss is
+> [#533](https://github.com/NGL321/patchworks/issues/533)'s principal-angle collapse,
+> and the flat bundle defeats it **by construction rather than by training**.
 
 ---
 
@@ -79,6 +103,45 @@ being, on this surface, the structurally central one.
 
 ---
 
-## 4. What this does to B34
+## 4. A surprise the comparison turned up about B33
+
+This was not asked for and is not this ticket's question, but the arm comparison
+could not be taken without reproducing B33's `holo` arm, and reproducing it meant
+reading its record.
+
+**The control reproduces B33 closely.** Same surface, same seed, and despite
+descending on 190 enumerated cycles where B33 descended on 40 basis-derived ones:
+
+| ticks | B33 `holo` | B40 `control` |
+|---|---|---|
+| 0 | 1.0017 | 1.0017 |
+| 50 | 0.9827 | 0.9836 |
+| 150 | 0.9754 | 0.9776 |
+
+So the descent set's size barely matters, and the instrument is sound.
+
+**But B33's world dies at tick 150.** Its own `motion.read()` stamps, which B33
+recorded and which B38 made standing practice:
+
+| ticks | 50 | 100 | 150 | 250 | 500 | 1000 | 2000 |
+|---|---|---|---|---|---|---|---|
+| `world std_max` | 1.29 | 1.28 | **5.7e-04** | 2.9e-04 | 1.9e-04 | 9.6e-05 | 8.7e-05 |
+
+> **The reading that motivates this whole ticket — the holonomy term moving
+> `identification` 0.9697 → 0.8591 and channel return 0.322 → 0.745 — accumulates
+> almost entirely after tick 100, on a world four orders of magnitude quieter than
+> the one it started on.** The term is on the maps, so it keeps descending whether
+> the world moves or not; what is *not* established is that this is a fact about
+> learning from a live world.
+>
+> On B38's port the world stays alive (0.94 at 150, 0.41 at 500), and that is what
+> the port was built for. **The trained-arm rows below are, as far as this map's
+> record goes, the first holonomy-term contrast taken on a world that is moving.**
+> This does not overturn B33 — it re-indexes it, and it belongs to B33's ticket or a
+> successor, not to this one.
+
+---
+
+## 5. What this does to B34
 
 *(filled once the arms land)*

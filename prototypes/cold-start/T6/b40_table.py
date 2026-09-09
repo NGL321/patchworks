@@ -72,7 +72,7 @@ def main() -> None:
     rows = []
     for p in paths:
         rows.extend(rows_for(p))
-    order = {"flat": 0, "control": 1, "split": 2, "phased": 3}
+    order = {"flat": 0, "haar": 1, "control": 2, "split": 3, "phased": 4}
     rows.sort(key=lambda r: (order.get(r["arm"], 9), r["seed"], r["ticks"]))
 
     head = (

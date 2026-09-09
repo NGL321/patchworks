@@ -21,6 +21,14 @@ results indicate"* -- so this builds the arms and reports the numbers.
                local cycles and the criterion is read on the same ones. If the
                side-channel does not materialise, arms 1 and 2 are unwarranted
                machinery and this arm says so.
+* `haar`    -- **the scale-matched control for arm 4, and it is not optional.**
+               `flat` installs orthonormal frames where the rig's own
+               initialisation sits at `sigma_max ~ 1e-7`, so any advantage it
+               shows could be isometry rather than flatness. This installs
+               `holonomy_read.flat_maps` -- maps of the same block structure,
+               exactly isometric, drawn **independently** per endpoint, with no
+               shared per-cell frame. Same scale as `flat`, cycle-consistency
+               absent. What separates `flat` from `haar` is flatness alone.
 * `flat`    -- arm 4, the falsifier. Grimaldi's flat bundle: one frame per node,
                edge map `R_j^T R_i`, cycle-consistent by construction. If
                holonomy cannot fail, the count reads full width everywhere and
@@ -102,7 +110,7 @@ PHASE1_TOL = 0.05
 #: Thresholds the criterion is reported at, so no conclusion rests on one value.
 THRESHOLDS = (0.8, 0.9, 0.95)
 
-ARMS = ("control", "split", "phased", "flat")
+ARMS = ("control", "split", "phased", "flat", "haar")
 
 
 # -- the cycle sets each arm reads and descends on ----------------------------
@@ -320,6 +328,14 @@ def run_arm(arm: str, seed: int, ticks: int, out: Path) -> dict:
     flat_info = None
     if arm == "flat":
         flat_info = install_flat_bundle(dome, agent.sheaf.maps, seed)
+    elif arm == "haar":
+        # The scale-matched null: same shapes, same isometry, drawn independently.
+        gen = torch.Generator().manual_seed(seed + 9001)
+        fm = hr.flat_maps(dome, gen)
+        with torch.no_grad():
+            agent.sheaf.maps.maps.copy_(fm.maps.to(agent.sheaf.maps.maps.dtype))
+        agent.sheaf.maps.project()
+        flat_info = {"note": "independent Haar isometries; no shared cell frame"}
 
     bias = PredictionRule(agent.sheaf)
     transport = TransportRule(agent.sheaf)
@@ -407,8 +423,8 @@ def run_arm(arm: str, seed: int, ticks: int, out: Path) -> dict:
     # The training step: B33's `holo` arm, restricted to this arm's cycle set.
     def extra_step() -> dict:
         stats: dict = {}
-        if arm == "flat":
-            return stats  # arm 4 is a construction, not an objective
+        if arm in ("flat", "haar"):
+            return stats  # these are constructions, not objectives
         if arm == "phased" and not phase1_over:
             return stats  # phase 1: estimate only, no holonomy term
         tensor = agent.sheaf.maps.maps
