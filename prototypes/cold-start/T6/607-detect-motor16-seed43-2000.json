@@ -1,0 +1,235 @@
+{
+ "issue": 607,
+ "reading": "clauses 2 and 3 on the relayed mask",
+ "layout": "motor",
+ "sites": 16,
+ "seed": 43,
+ "learn": 2000,
+ "trials": 3,
+ "window": 64,
+ "hold": 400,
+ "relay_m": 1,
+ "depth_floor": 4,
+ "layout_record": {
+  "layout": "motor",
+  "depth_floor": 4,
+  "relay_m": 1,
+  "sites": 16,
+  "deep_cells_available": 44,
+  "deep_components": 1,
+  "component_sizes": [
+   44
+  ],
+  "anchors_motor": 3,
+  "anchors_sensory": 67,
+  "legs": [
+   "motor"
+  ],
+  "anchor_reuse_max": 6,
+  "relays": 16,
+  "edges": [
+   {
+    "deep_cell": 405,
+    "deep_depth": 7,
+    "anchor": 327,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 406,
+    "deep_depth": 7,
+    "anchor": 329,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 407,
+    "deep_depth": 7,
+    "anchor": 331,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 408,
+    "deep_depth": 7,
+    "anchor": 327,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 409,
+    "deep_depth": 7,
+    "anchor": 329,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 410,
+    "deep_depth": 7,
+    "anchor": 331,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 411,
+    "deep_depth": 7,
+    "anchor": 327,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 412,
+    "deep_depth": 7,
+    "anchor": 329,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 395,
+    "deep_depth": 6,
+    "anchor": 331,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 396,
+    "deep_depth": 6,
+    "anchor": 327,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 397,
+    "deep_depth": 6,
+    "anchor": 329,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 398,
+    "deep_depth": 6,
+    "anchor": 331,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 399,
+    "deep_depth": 6,
+    "anchor": 327,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 400,
+    "deep_depth": 6,
+    "anchor": 329,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 401,
+    "deep_depth": 6,
+    "anchor": 331,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 402,
+    "deep_depth": 6,
+    "anchor": 327,
+    "leg": "motor"
+   }
+  ]
+ },
+ "relays": 16,
+ "edges": 698,
+ "motion": {
+  "available": true,
+  "window": 100,
+  "std_max": 2.2351736661256836e-05,
+  "moving_share": 0.08333333333333333
+ },
+ "read_window": 100,
+ "double_precision_tensors": 12,
+ "cohort": [
+  405,
+  406,
+  407,
+  408,
+  409,
+  410,
+  411,
+  412
+ ],
+ "cohort_matches_level_apex": true,
+ "world_loop_cohort_median": 5.0,
+ "b38_baseline_bottleneck_at_30k": 8.35e-10,
+ "trials_out": [
+  {
+   "trial": 0,
+   "source": [
+    129
+   ],
+   "kind": "patch",
+   "bottleneck": 1.2849265384182898e-09,
+   "target": 407,
+   "edge": "#684 interior m=1 L7/core(2,) -- L1/somatomotor(4,)",
+   "path_hops": 6,
+   "per_cell": {
+    "cells": 151,
+    "ratio_median": 0.875,
+    "ratio_max": 4.0,
+    "ratio_mean": 0.9664038683906234,
+    "ratio_above_one": 61,
+    "tau_median": 7.0,
+    "tau_max": 14.0,
+    "tau_zero_cells": 0
+   },
+   "conduction_path_value_provenance_only": 0.7142857142857143,
+   "censored_cells": 0,
+   "readable_cells": 6,
+   "floor": 7.389929228348792e-07,
+   "elapsed_minutes": 1.3998294075330098
+  },
+  {
+   "trial": 1,
+   "source": [
+    258
+   ],
+   "kind": "proprioceptive",
+   "bottleneck": 0.7525562072568011,
+   "target": 409,
+   "edge": "#686 interior m=1 L7/core(4,) -- L1/somatomotor(2,)",
+   "path_hops": 2,
+   "per_cell": {
+    "cells": 151,
+    "ratio_median": 0.6,
+    "ratio_max": 2.2222222222222223,
+    "ratio_mean": 0.6667717859770839,
+    "ratio_above_one": 32,
+    "tau_median": 4.0,
+    "tau_max": 20.0,
+    "tau_zero_cells": 0
+   },
+   "conduction_path_value_provenance_only": 0.6666666666666666,
+   "censored_cells": 1,
+   "readable_cells": 28,
+   "floor": 7.352807399215022e-07,
+   "elapsed_minutes": 1.4488660097122192
+  },
+  {
+   "trial": 2,
+   "source": [
+    259
+   ],
+   "kind": "touch",
+   "bottleneck": 0.01995070759712361,
+   "target": 407,
+   "edge": "#684 interior m=1 L7/core(2,) -- L1/somatomotor(4,)",
+   "path_hops": 4,
+   "per_cell": {
+    "cells": 151,
+    "ratio_median": 0.6666666666666666,
+    "ratio_max": 4.0,
+    "ratio_mean": 0.7180332177020918,
+    "ratio_above_one": 32,
+    "tau_median": 5.0,
+    "tau_max": 19.0,
+    "tau_zero_cells": 0
+   },
+   "conduction_path_value_provenance_only": 0.5,
+   "censored_cells": 1,
+   "readable_cells": 22,
+   "floor": 7.389929229233674e-07,
+   "elapsed_minutes": 1.497365148862203
+  }
+ ],
+ "bottleneck_median": 0.01995070759712361,
+ "bottleneck_max": 0.7525562072568011,
+ "minutes": 1.4973763465881347
+}
