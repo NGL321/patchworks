@@ -103,14 +103,39 @@ being, on this surface, the structurally central one.
 
 ---
 
-## 4. A surprise the comparison turned up about B33
+## 3a. Three of B34's four clauses are inert
 
-This was not asked for and is not this ticket's question, but the arm comparison
-could not be taken without reproducing B33's `holo` arm, and reproducing it meant
-reading its record.
+B34's criterion has four parts: the **count**, the **floor** at 1, the **cap** by the
+less convinced endpoint, and the **ration** by `Σ_e m_e ≤ B`. On this surface, at
+every checkpoint of the only arm where the count is ever above 1:
 
-**The control reproduces B33 closely.** Same surface, same seed, and despite
-descending on 190 enumerated cycles where B33 descended on 40 basis-derived ones:
+| ticks | raw total | allocated total | delta | raw max | allocated max |
+|---|---|---|---|---|---|
+| 0 | 1323 | 1413 | **+90** | 15 | 15 |
+| 50 | 1049 | 1139 | **+90** | 13 | 13 |
+| 150 | 1018 | 1108 | **+90** | 13 | 13 |
+| 500 | 992 | 1082 | **+90** | 13 | 13 |
+
+The delta is exactly 90 every time — the floor lifting the 90 bridges from 0 to 1,
+and nothing else. `raw max` equals `allocated max` throughout, so **neither the cap
+nor the ration ever clipped a single edge.**
+
+Nor could the cap: `k_v` is 20 at every predicting cell and the largest count
+observed anywhere is 15. The ration could in principle bind — the wide subgraph's
+max degree is 5, and 5 × 15 = 75 against a budget of 63 — but it never did, because
+no degree-5 cell ever had all five lanes at maximum at once.
+
+> **Only the floor does any work, and the floor is the leaking probe lane.** The
+> clause B34 added so that a pruned edge stays measurable is simultaneously the
+> only clause with an effect and the one carrying the transmission the user asked to
+> have checked. The cap and the ration are, on this surface, decoration.
+
+---
+
+## 4. B38's port works, and this is the first trained contrast that shows it
+
+**The control reproduces B33 closely.** Same seed, and despite descending on 190
+enumerated cycles where B33 descended on 40 basis-derived ones:
 
 | ticks | B33 `holo` | B40 `control` |
 |---|---|---|
@@ -120,25 +145,26 @@ descending on 190 enumerated cycles where B33 descended on 40 basis-derived ones
 
 So the descent set's size barely matters, and the instrument is sound.
 
-**But B33's world dies at tick 150.** Its own `motion.read()` stamps, which B33
-recorded and which B38 made standing practice:
+**What does not reproduce is the stall — and that is the point.** B33's own
+`motion.read()` stamps have its world collapsing at tick 150 and never recovering;
+that stall is not a discovery here, it is precisely the finding B33 reported and
+[B38 (#599)](https://github.com/NGL321/patchworks/issues/599) was opened to fix.
+Set the two side by side:
 
-| ticks | 50 | 100 | 150 | 250 | 500 | 1000 | 2000 |
-|---|---|---|---|---|---|---|---|
-| `world std_max` | 1.29 | 1.28 | **5.7e-04** | 2.9e-04 | 1.9e-04 | 9.6e-05 | 8.7e-05 |
+| ticks | 50 | 150 | 500 |
+|---|---|---|---|
+| B33 `holo`, `world std_max` | 1.29 | **5.7e-04** | 1.9e-04 |
+| B40 `control`, `world std_max` | 1.29 | **9.35e-01** | 4.12e-01 |
 
-> **The reading that motivates this whole ticket — the holonomy term moving
-> `identification` 0.9697 → 0.8591 and channel return 0.322 → 0.745 — accumulates
-> almost entirely after tick 100, on a world four orders of magnitude quieter than
-> the one it started on.** The term is on the maps, so it keeps descending whether
-> the world moves or not; what is *not* established is that this is a fact about
-> learning from a live world.
->
-> On B38's port the world stays alive (0.94 at 150, 0.41 at 500), and that is what
-> the port was built for. **The trained-arm rows below are, as far as this map's
-> record goes, the first holonomy-term contrast taken on a world that is moving.**
-> This does not overturn B33 — it re-indexes it, and it belongs to B33's ticket or a
-> successor, not to this one.
+`arms.py` and `graph.py` both changed between B33's branch and `main`, through B38's
+port (`b64b4db`) and #597's reserve mask (`5ecaf3e`), so `reserve_p12` is a
+different surface than the one B33 read.
+
+> **B38's port delivered what it was built for**, and the rows below are the first
+> holonomy-term contrast on this map taken against a world that is still moving at
+> the horizon it is read at. B33's own contrast accumulated almost entirely after
+> tick 100 on a world four orders quieter; that re-indexing belongs to B33's
+> successor, not to this ticket, and is flagged here rather than acted on.
 
 ---
 
