@@ -7,3 +7,13 @@
   [control s42]     0 ident 1.0017 chan 0.2006 sig 1.59e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world nan
   [control s42]    50 ident 0.9836 chan 0.2475 sig 1.45e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world 1.29e+00
   [control s42]   150 ident 0.9776 chan 0.2575 sig 1.90e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world 9.35e-01
+  [control s42]   500 ident 0.9778 chan 0.2678 sig 3.58e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world 8.63e-05
+[B40] split seed 42 -> 603-routes-split-seed42-500.json
+  [split s42]     0 ident 1.0017 chan 0.2006 sig 1.59e-07 | m_e med 1.0 max 4 std 0.58 distinct 4 | leak 1.051 | world nan
+  [split s42]    50 ident 0.9842 chan 0.2498 sig 1.45e-07 | m_e med 1.0 max 4 std 0.68 distinct 4 | leak 1.118 | world 1.29e+00
+  [split s42]   150 ident 0.9760 chan 0.2554 sig 1.89e-07 | m_e med 1.0 max 4 std 0.55 distinct 4 | leak 1.115 | world 9.35e-01
+  [split s42]   500 ident 0.9851 chan 0.3031 sig 3.57e-07 | m_e med 1.0 max 4 std 0.72 distinct 4 | leak 1.109 | world 3.12e-05
+[B40] phased seed 42 -> 603-routes-phased-seed42-500.json
+  [phased s42]     0 ident 1.0017 chan 0.2006 sig 1.59e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world nan
+  [phased s42]    50 ident 0.9845 chan 0.2455 sig 1.45e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world 1.29e+00
+  [phased s42]   150 ident 0.9794 chan 0.2496 sig 1.89e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world 9.35e-01

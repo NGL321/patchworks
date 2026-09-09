@@ -307,6 +307,17 @@ entries, and truncated rows are no longer orthonormal, so the telescoping fails 
 > form, on local cycles. It says nothing about path-independence *at distance*, which
 > B27 struck as unavailable, and must not be read as walking that back.
 
+**And `sigma_max = 1.000` is not ADR-0026's bar.** This must be said plainly, because
+the number is large and inviting. `sigma_max` is an **amplitude**;
+[B38](https://github.com/NGL321/patchworks/issues/599) established that ADR-0026's bar
+is a **ratio of times** (`τ̂_c / world_loop(c)`) and that a 150× training contrast
+moved per-edge amplitude 456× and 1,427× while moving the conduction ratio **not at
+all**. This readout deliberately did not score on that ratio, per the ticket's
+instruction. So nothing here says the bar is reachable, and
+[B39](https://github.com/NGL321/patchworks/issues/601) — which asks exactly that — is
+untouched by it. What the flat bundle buys is the quantity B38 showed training already
+moves; the quantity B38 showed nothing moves remains unmoved and unmeasured here.
+
 ---
 
 ## 5. What the flat bundle costs
