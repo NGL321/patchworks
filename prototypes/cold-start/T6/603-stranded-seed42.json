@@ -1,0 +1,554 @@
+{
+  "ticket": 603,
+  "reading": "are the cycle-less wide edges bridges, or stranded by the radius",
+  "surface": "reserve_p12",
+  "seed": 42,
+  "wide_interior_edges": 194,
+  "cycleless_at_len6": 90,
+  "bridges_in_wide_subgraph": 90,
+  "cycleless_that_are_bridges": 90,
+  "cycleless_stranded_by_length": 0,
+  "stranded_shortest_cycle_hist": {},
+  "rows": [
+    {
+      "edge": 265,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 266,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 267,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 268,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 269,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 270,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 271,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 272,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 273,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 274,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 275,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 276,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 277,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 278,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 279,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 280,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 281,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 282,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 283,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 284,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 285,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 286,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 287,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 288,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 289,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 290,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 291,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 292,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 293,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 294,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 295,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 296,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 297,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 298,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 299,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 300,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 301,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 302,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 303,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 304,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 305,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 306,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 307,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 308,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 309,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 310,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 311,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 312,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 313,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 314,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 315,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 316,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 317,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 318,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 319,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 320,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 321,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 322,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 323,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 324,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 325,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 326,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 327,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 328,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 329,
+      "m": 20,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 330,
+      "m": 20,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 331,
+      "m": 20,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 332,
+      "m": 20,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 333,
+      "m": 20,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 334,
+      "m": 20,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 335,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 336,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 337,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 338,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 339,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 340,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 341,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 342,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 343,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 344,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 345,
+      "m": 11,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 346,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 347,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 348,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 349,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 350,
+      "m": 12,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 351,
+      "m": 20,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 352,
+      "m": 19,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 353,
+      "m": 20,
+      "bridge": true,
+      "shortest_cycle": 0
+    },
+    {
+      "edge": 354,
+      "m": 19,
+      "bridge": true,
+      "shortest_cycle": 0
+    }
+  ]
+}
