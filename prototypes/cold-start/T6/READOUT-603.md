@@ -97,9 +97,28 @@ the 90 bridges — carry median lane gain **0.5774** against the kept edges' **0
 a ratio of **1.118**, with **88.9%** of floored edges transmitting *above* the kept
 median. The reading is stable across every checkpoint and every arm that reaches it.
 
-**The reversibility floor is a live channel, and it transmits slightly harder than the
-lanes the criterion kept.** That is not a subtle leak; it is the floored population
-being, on this surface, the structurally central one.
+**The reversibility floor is a live channel, and it transmits harder than the lanes
+the criterion kept.**
+
+**And the leak is structural, not learned.** The numbers do not move — at every
+checkpoint of both seeds, the floored median is `1/√3` and the kept median is
+`1/√3.75`, to seven decimal places:
+
+| | floored median | kept median | ratio |
+|---|---|---|---|
+| observed, all checkpoints, seeds 42 and 43 | 0.5773502 | 0.5163978 | 1.118034 |
+| closed form | `1/√3` = 0.5773503 | `1/√3.75` = 0.5163978 | `√1.25` = 1.118034 |
+
+Which gives the mechanism. Under ADR-0032's band a restriction map is a near-isometry,
+so its norm is spread across the `m` directions the lane carries. **At `m = 1` all of
+it sits on one direction.**
+
+> **The floor does not merely fail to be inert — it leaks *because* it is a floor.**
+> Narrowing an edge concentrates the band's norm into fewer directions, so the single
+> direction a pruned edge keeps for reversibility is the strongest-transmitting
+> direction that edge has. Pruning harder makes the probe lane leak harder, by
+> construction, and no training schedule touches it. This is the answer to the user's
+> question, and it is worse than the question supposed.
 
 ---
 
