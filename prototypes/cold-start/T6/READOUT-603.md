@@ -227,6 +227,43 @@ different surface than the one B33 read.
 
 ---
 
+## 4a. Why no route wins: the count never leaves the floor
+
+This is the answer to the ticket's question, and it is not a ranking.
+
+On the trained surface the criterion's **raw** count — before the floor is applied —
+is zero on every one of the 194 wide edges, at every checkpoint, at the working
+threshold. Including the 104 edges that *do* have cycles. Lowering the threshold does
+not rescue it:
+
+| ticks | th 0.8 total / max | th 0.9 | th 0.95 |
+|---|---|---|---|
+| 0 | 1 / 1 | 0 / 0 | 0 / 0 |
+| 50 | 3 / 1 | 0 / 0 | 0 / 0 |
+| 150 | 4 / 1 | 0 / 0 | 0 / 0 |
+| 500 | 12 / 1 | 0 / 0 | 0 / 0 |
+
+At threshold 0.8, across 194 edges and 500 ticks, at most **12 edges** ever acquire a
+single warranted direction and **no edge ever acquires a second** — `max` is 1
+throughout.
+
+> **B34's criterion, applied to the surface any of these training routes produces,
+> allocates `m_e = 1` to every wide edge.** That is the degenerate outcome B34's own §4
+> feared — *"a prune criterion that rewards flatness, applied without a floor, prunes
+> toward a tree"* — arriving with the floor in place. The floor does not prevent it.
+> **The floor is it.**
+
+So the arms are indistinguishable, and **not because they are equally good**. They are
+indistinguishable because none of them moves the quantity the comparison was supposed
+to rank them on. The 1 → 12 drift at threshold 0.8 is the only sign of life in any
+trained arm, and what it says is that the horizon is orders of magnitude too short —
+not that held-out cycles, phasing and the joint form differ.
+
+**No preference was needed, and none was exercised.** The ticket asked for a choice
+driven by results; the results decline to offer one.
+
+---
+
 ## 5. What the flat bundle costs
 
 B25 carried the flat bundle with `O(Bn²)` attached as its price. On this surface that
