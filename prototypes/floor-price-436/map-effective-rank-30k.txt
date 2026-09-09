@@ -1,0 +1,12 @@
+
+=== training without the floor ===
+dome real: 414 cells, 682 edges
+training 30000 ticks with both rules, in float32...
+cast 12 tensors to float64 for the read; see `double_precision`
+
+-- the premise: map effective rank without the floor --
+
+                                              5th     median       95th
+    floored maps only                       1.249      2.949      6.676
+    lane width m = 4                        1.886      2.784      3.477
+    lane width m = 8                            1      4.259       7.27
