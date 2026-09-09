@@ -1,0 +1,251 @@
+{
+  "dome": "real",
+  "split": "train",
+  "seed": 42,
+  "ticks": 2000,
+  "horizon": 0,
+  "eigs": false,
+  "seconds": 189.6508629322052,
+  "rows": [
+    {
+      "ticks": 0,
+      "size": 6600,
+      "block_spectral_radius": {
+        "min": 0.5239644505289629,
+        "p25": 0.8174818276035297,
+        "median": 0.9293224721887132,
+        "p75": 1.0641560803276884,
+        "max": 1.5352164010145228
+      },
+      "cells_expansive": 52,
+      "cells": 150,
+      "coupling_terms": 818,
+      "coupling_share_of_norm": 0.028205159698222935,
+      "non_normality": {
+        "field": 0.04623822224043648,
+        "uncoupled": 0.04626874294858524,
+        "cell_K_166": 0.0,
+        "per_cell_uncoupled": {
+          "min": 0.47493222811657254,
+          "p25": 0.5348187369659969,
+          "median": 0.5583533699006866,
+          "p75": 0.5885893196689811,
+          "max": 0.6664579976173503
+        }
+      },
+      "checks": {
+        "broadcast_identity": {
+          "pairs_checked": 1091,
+          "max_relative_error": 0.0,
+          "median_relative_error": 0.0
+        },
+        "one_tick": {
+          "trials": 3,
+          "perturbation_scale": 0.001,
+          "max_relative_error": 0.026175054392830133,
+          "median_relative_error": 0.0007364397786003759
+        }
+      }
+    },
+    {
+      "ticks": 100,
+      "size": 6600,
+      "block_spectral_radius": {
+        "min": 0.5588892064496513,
+        "p25": 0.8356052088747217,
+        "median": 0.9226105613028703,
+        "p75": 1.005938933328506,
+        "max": 1.3686237839590678
+      },
+      "cells_expansive": 42,
+      "cells": 150,
+      "coupling_terms": 818,
+      "coupling_share_of_norm": 0.030570292420323403,
+      "non_normality": {
+        "field": 0.04599514163558327,
+        "uncoupled": 0.04603096739985553,
+        "cell_K_166": 0.0030492695897470137,
+        "per_cell_uncoupled": {
+          "min": 0.4496109975835789,
+          "p25": 0.5333388912905761,
+          "median": 0.5559197985925296,
+          "p75": 0.5802619211056204,
+          "max": 0.6913845865991626
+        }
+      },
+      "checks": {
+        "broadcast_identity": {
+          "pairs_checked": 1091,
+          "max_relative_error": 3.3507637977600098,
+          "median_relative_error": 0.0630909651517868
+        },
+        "one_tick": {
+          "trials": 3,
+          "perturbation_scale": 0.001,
+          "max_relative_error": 0.011743567542375901,
+          "median_relative_error": 0.007269304609475184
+        }
+      }
+    },
+    {
+      "ticks": 200,
+      "size": 6600,
+      "block_spectral_radius": {
+        "min": 0.471201717311076,
+        "p25": 0.8553013442885724,
+        "median": 0.9252344444067393,
+        "p75": 1.0371428635652165,
+        "max": 1.563249300182145
+      },
+      "cells_expansive": 45,
+      "cells": 150,
+      "coupling_terms": 818,
+      "coupling_share_of_norm": 0.03223596857074669,
+      "non_normality": {
+        "field": 0.04601109405972554,
+        "uncoupled": 0.04605108948173512,
+        "cell_K_166": 0.003270345836279131,
+        "per_cell_uncoupled": {
+          "min": 0.47816295795202574,
+          "p25": 0.5356208464630603,
+          "median": 0.5562947852997812,
+          "p75": 0.5806161211942225,
+          "max": 0.6629784094299388
+        }
+      },
+      "checks": {
+        "broadcast_identity": {
+          "pairs_checked": 1091,
+          "max_relative_error": 14.064302444458008,
+          "median_relative_error": 0.049322400242090225
+        },
+        "one_tick": {
+          "trials": 3,
+          "perturbation_scale": 0.001,
+          "max_relative_error": 0.006958960613777432,
+          "median_relative_error": 0.006555678288286157
+        }
+      }
+    },
+    {
+      "ticks": 500,
+      "size": 6600,
+      "block_spectral_radius": {
+        "min": 0.4739900093052829,
+        "p25": 0.8189690563243209,
+        "median": 0.9010518217142622,
+        "p75": 0.969820863388803,
+        "max": 1.3368379624637137
+      },
+      "cells_expansive": 27,
+      "cells": 150,
+      "coupling_terms": 818,
+      "coupling_share_of_norm": 0.039255692741342996,
+      "non_normality": {
+        "field": 0.04616263258689571,
+        "uncoupled": 0.04622305287247258,
+        "cell_K_166": 0.004341329652396394,
+        "per_cell_uncoupled": {
+          "min": 0.47171012649654065,
+          "p25": 0.5344332721112349,
+          "median": 0.5549321158032212,
+          "p75": 0.5791879780714976,
+          "max": 1.2983148292747397
+        }
+      },
+      "checks": {
+        "broadcast_identity": {
+          "pairs_checked": 1091,
+          "max_relative_error": 0.4651811420917511,
+          "median_relative_error": 0.035486284643411636
+        },
+        "one_tick": {
+          "trials": 3,
+          "perturbation_scale": 0.001,
+          "max_relative_error": 0.0500728547109619,
+          "median_relative_error": 0.013666862412027185
+        }
+      }
+    },
+    {
+      "ticks": 1000,
+      "size": 6600,
+      "block_spectral_radius": {
+        "min": 0.46274207574278775,
+        "p25": 0.8239484639056829,
+        "median": 0.8939075774962792,
+        "p75": 0.9903006573991745,
+        "max": 1.3394039577045944
+      },
+      "cells_expansive": 33,
+      "cells": 150,
+      "coupling_terms": 818,
+      "coupling_share_of_norm": 0.05030792832810945,
+      "non_normality": {
+        "field": 0.04623864395164279,
+        "uncoupled": 0.04633970526425601,
+        "cell_K_166": 0.005245856784959376,
+        "per_cell_uncoupled": {
+          "min": 0.4637629405661966,
+          "p25": 0.5341311158498153,
+          "median": 0.5568998793287419,
+          "p75": 0.581840951468711,
+          "max": 1.2972007614159218
+        }
+      },
+      "checks": {
+        "broadcast_identity": {
+          "pairs_checked": 1091,
+          "max_relative_error": 1.5466073751449585,
+          "median_relative_error": 0.03403262794017792
+        },
+        "one_tick": {
+          "trials": 3,
+          "perturbation_scale": 0.001,
+          "max_relative_error": 0.015130121563305966,
+          "median_relative_error": 0.00028426927455935737
+        }
+      }
+    },
+    {
+      "ticks": 2000,
+      "size": 6600,
+      "block_spectral_radius": {
+        "min": 0.32448473562272107,
+        "p25": 0.8122916481564278,
+        "median": 0.900388174037364,
+        "p75": 0.97383217720117,
+        "max": 1.3626580287097918
+      },
+      "cells_expansive": 29,
+      "cells": 150,
+      "coupling_terms": 818,
+      "coupling_share_of_norm": 0.07127410514297,
+      "non_normality": {
+        "field": 0.04599362852965434,
+        "uncoupled": 0.0461974235346241,
+        "cell_K_166": 0.007236722744407998,
+        "per_cell_uncoupled": {
+          "min": 0.46429899885844234,
+          "p25": 0.5310771631209121,
+          "median": 0.5501327702792266,
+          "p75": 0.5816833793082756,
+          "max": 1.2968461532074618
+        }
+      },
+      "checks": {
+        "broadcast_identity": {
+          "pairs_checked": 1091,
+          "max_relative_error": 0.8849417567253113,
+          "median_relative_error": 0.035607531666755676
+        },
+        "one_tick": {
+          "trials": 3,
+          "perturbation_scale": 0.001,
+          "max_relative_error": 0.014875807803695117,
+          "median_relative_error": 0.012971565421444797
+        }
+      }
+    }
+  ]
+}
