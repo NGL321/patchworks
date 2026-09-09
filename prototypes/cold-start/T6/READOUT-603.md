@@ -337,6 +337,33 @@ decision has to weigh — not the parameter count, which favours it.
 
 ---
 
-## 6. What this does to B34
+## 6. Arm 2's terminator fires, and fires vacuously
+
+The ticket demanded that arm 2 say what ends phase 1, and refused `identification` as
+the trigger on B29's ground: it is at chance from construction to horizon, so a
+phase 1 waiting for it to separate never ends.
+
+The terminator chosen instead was the criterion's **own input** settling — phase 1
+ends when the mean per-edge change in the warranted count between consecutive
+checkpoints falls below 0.05. It is stateable, checkable, and it is not
+`identification`.
+
+It fires at the **first opportunity**, tick 50, with drift **exactly 0.0**.
+
+> Not because the estimate converged, but because **it never moved.** The count is
+> pinned at the floor from construction, so the drift is identically zero and any
+> convergence test on it passes immediately. **Arm 2 collapses into arm 3 from tick
+> 50 onward**, and the estimate-then-prune schedule has no phase 1 to speak of on this
+> surface.
+>
+> This is B29's objection arriving as **arithmetic rather than as a matter of
+> waiting**. B29 said waiting never separates identification from chance; the sharper
+> version is that there is nothing to wait *for* — the quantity a phase 1 would
+> monitor is constant. Any future phased design has to name a terminator on a quantity
+> that actually moves, and this readout does not know one.
+
+---
+
+## 7. What this does to B34
 
 *(filled once the arms land)*
