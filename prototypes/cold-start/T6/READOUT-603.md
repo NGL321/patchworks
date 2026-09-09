@@ -151,7 +151,37 @@ no degree-5 cell ever had all five lanes at maximum at once.
 
 ---
 
-## 4. B38's port works, and this is the first trained contrast that shows it
+## 3b. Arm 1 and arm 3 are not comparable, and the ticket's design hid it
+
+`split` reads `m_e` max 4, std 0.58 at **tick 0** where `control` reads all 1 — same
+seed, same untrained maps, nothing trained. The only difference is that `split` reads
+the criterion on the held-out **half** of the cycles.
+
+That is not a bug in the arm; it is a property of B34's count. The count is an
+intersection over the cycles through an edge — a direction is warranted only if it
+clears threshold on all of them — so **adding a cycle can only shrink the warranted
+set.** Reading on half the cycles therefore cannot report a narrower edge, and
+sometimes reports a wider one. Measured, per edge, on one surface at a time:
+
+| surface | held-out wider | narrower | equal | mean inflation |
+|---|---|---|---|---|
+| untrained | 16 | **0** | 88 | **+0.327** |
+| flat bundle | 11 | 7 | 86 | +0.115 |
+
+On the flat bundle the effect is noise in both directions, because the cycles agree
+with each other and the intersection does not shrink. **On a surface that is not
+already flat it is a strict one-way bias** — and every surface a training route
+actually produces is of the second kind.
+
+> **Arm 1 differs from arm 3 in two ways at once**, and only one was intended: which
+> cycles the term descends on, *and* how many cycles the criterion is read over. The
+> second inflates arm 1's score-3 numbers on exactly the surfaces where the
+> comparison matters. **Any future held-out design must read the criterion over a
+> cycle count matched to the control's**, or it is measuring its own sample size.
+
+---
+
+## 4. B38's port moves the stall later; it does not remove it
 
 **The control reproduces B33 closely.** Same seed, and despite descending on 190
 enumerated cycles where B33 descended on 40 basis-derived ones:
@@ -173,17 +203,27 @@ Set the two side by side:
 | ticks | 50 | 150 | 500 |
 |---|---|---|---|
 | B33 `holo`, `world std_max` | 1.29 | **5.7e-04** | 1.9e-04 |
-| B40 `control`, `world std_max` | 1.29 | **9.35e-01** | 4.12e-01 |
+| B40 `control`, `world std_max` | 1.29 | **9.35e-01** | **8.63e-05** |
+| B40 `flat`, `world std_max` | 1.09 | 1.10 | **4.12e-01** |
 
 `arms.py` and `graph.py` both changed between B33's branch and `main`, through B38's
 port (`b64b4db`) and #597's reserve mask (`5ecaf3e`), so `reserve_p12` is a
 different surface than the one B33 read.
 
-> **B38's port delivered what it was built for**, and the rows below are the first
-> holonomy-term contrast on this map taken against a world that is still moving at
-> the horizon it is read at. B33's own contrast accumulated almost entirely after
-> tick 100 on a world four orders quieter; that re-indexing belongs to B33's
-> successor, not to this ticket, and is flagged here rather than acted on.
+> **The port moves the stall later; it does not remove it.** At tick 150 the control's
+> world is alive at 0.935 where B33's had already collapsed to 5.7e-04 — so the
+> reading B33 could not take *is* now takeable, and score 1's separation between the
+> arms at 150 is a live one. But by 500 the control has stalled too (8.63e-05), while
+> `flat` is still moving (0.412). The stall is **per run**, which is
+> [B38](https://github.com/NGL321/patchworks/issues/599)'s own finding (13× across
+> seeds of one arm) rather than a new one, and it is why every row here carries its
+> own stamp and none is inherited.
+>
+> Consequence for this readout: **the 150-tick rows are the ones that compare arms on
+> a live world; the 500-tick rows compare `flat` on a live world against trained arms
+> on a dying one.** Both are reported. Neither conclusion below rests on a 500-tick
+> trained row, because at 150 and at 500 the trained arms read the same thing —
+> nothing.
 
 ---
 
