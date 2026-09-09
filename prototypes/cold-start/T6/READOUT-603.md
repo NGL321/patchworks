@@ -264,6 +264,51 @@ driven by results; the results decline to offer one.
 
 ---
 
+## 4b. The flat bundle is *exactly* flat, and the privacy reserve is what breaks it
+
+This is the strongest thing this prototype found, and it was not on the ticket.
+
+The flat bundle as installed reads `identification` 0.0386 and `sigma_max` 7.7e-04 —
+already four orders of amplitude above anything else on this map. But that is the
+reading **after** `project()`. Before it:
+
+| configuration | `identification` | `channel_return` | `sigma_max` |
+|---|---|---|---|
+| frames only, nothing applied | **0.0000** | **1.0000** | **1.000** |
+| dimension mask only (`k_v = 20`, `n = 32`) | **0.6123** | 0.8645 | 2.91e-01 |
+| mask + ADR-0032's band (`project()`) | 0.0386 | 0.9998 | 7.72e-04 |
+
+**Exact path-independence, at unit gain, on every wide cycle.** Not near — `0.0000`
+and `1.000`.
+
+And it holds at `m_e < n`, which corrects an argument made earlier in this very
+prototype. `install_flat_bundle`'s docstring reasoned that the cell frame cancels out
+of `F_out F_inᵀ` so the construction should need `m_e = n`. That is wrong: because
+every edge at a cell takes *rows of the same frame*, a hop is the top-left `m_out ×
+m_in` block of `R_c R_cᵀ = I` — a rectangular identity — so the cycle telescopes
+exactly at any widths. The per-hop deviation from a square identity is large (median
+0.72 over 148 hops) and irrelevant; what telescopes is the product.
+
+**What breaks it is the dimension mask, not the band and not the widths.** Zeroing
+columns beyond `k_v` truncates each row of an orthogonal frame to its first 20 of 32
+entries, and truncated rows are no longer orthonormal, so the telescoping fails —
+`identification` 0.0000 → 0.6123. ADR-0032's band then *repairs* most of that
+(0.6123 → 0.0386) while costing three orders of amplitude (0.291 → 7.7e-04).
+
+> **Exact path-independence at unit gain is available by construction on this surface,
+> and the commitment standing in its way is the privacy reserve `p` — measured here as
+> `k_v = 20` against `n = 32`.** ADR-0032 is not the obstacle; on these maps its band
+> is repairing damage the mask did. This is the same object
+> [B34](https://github.com/NGL321/patchworks/issues/593)'s own resolution pointed at
+> when it corrected the record — #320's *"surviving rejection ground is about the
+> dimension mask, not `Edge.m`"*.
+>
+> Note the scope: this is path-independence in B27's retained **coherent-region**
+> form, on local cycles. It says nothing about path-independence *at distance*, which
+> B27 struck as unavailable, and must not be read as walking that back.
+
+---
+
 ## 5. What the flat bundle costs
 
 B25 carried the flat bundle with `O(Bn²)` attached as its price. On this surface that

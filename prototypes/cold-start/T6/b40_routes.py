@@ -258,19 +258,26 @@ def install_flat_bundle(dome, maps, seed: int) -> dict:
 
     Each interior cell `c` gets a Haar-random orthogonal frame `R_c` on its stalk;
     each edge endpoint `(e, c)` is set to `S_e R_c`, the edge's first `m_e` rows
-    of that frame. That is *the* flat-bundle construction -- and installing it
-    here rather than asserting its properties is the point, because the rig's
-    parameterisation composes `F_out F_in^T` **at a cell**, where the cell's own
-    frame cancels:
+    of that frame. That is *the* flat-bundle construction, and installing it here
+    rather than asserting its properties is the point.
 
-        `hop = S_out R_c R_c^T S_in^T = S_out S_in^T`
+    **It is exactly cycle-consistent at any widths**, which is measured, not
+    argued: `identification` reads `0.0000` and `sigma_max` `1.000` on every wide
+    cycle before anything is applied. The reason is that every edge at a cell
+    takes *rows of the same frame*, so a hop is the top-left `m_out x m_in` block
+    of `R_c R_c^T = I` -- a rectangular identity -- and the cycle telescopes
+    exactly. `m_e = n` is **not** required. (An earlier version of this docstring
+    argued it was, on the ground that the cell frame cancels out of
+    `F_out F_in^T`; the frame does cancel, and what it leaves is the identity
+    block rather than an arbitrary selector overlap.)
 
-    So the cell frames drop out and what goes round the cycle is a product of
-    `S_out S_in^T` -- and `S_e S_e^T = I` only when `m_e = n`. The construction is
-    cycle-consistent **at full width**, which is `O(Bn^2)` and is exactly the
-    budget `Sigma_e m_e <= B` exists to refuse. Whether flatness survives at this
-    rig's actual `m_e < n` is a fact about this surface, so it is measured rather
-    than argued, and the reading is arm 4's answer.
+    **What breaks it is the dimension mask.** `project()` zeroes the columns
+    beyond `k_v`, truncating each row of an orthogonal frame to its first `k_v` of
+    `n` entries, and truncated rows are not orthonormal -- `identification` 0.0000
+    -> 0.6123 at `k_v = 20`, `n = 32`. ADR-0032's band then repairs most of that
+    (-> 0.0386) at three orders of amplitude (1.000 -> 7.7e-04). The caller reads
+    the post-projection surface, because that is the surface the architecture
+    actually has; both are reported in `READOUT-603.md`.
     """
     gen = torch.Generator().manual_seed(seed + 9001)
     n = dome.shape.n
