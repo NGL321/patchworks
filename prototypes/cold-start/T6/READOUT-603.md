@@ -375,6 +375,40 @@ It fires at the **first opportunity**, tick 50, with drift **exactly 0.0**.
 
 ---
 
-## 7. What this does to B34
+## 7. What this readout does not establish
+
+Stated rather than buried, because two of the conclusions above are strong.
+
+- **The trained arms were run at one seed.** `flat` and `haar` are replicated at 42
+  and 43 and agree closely; `control`, `split` and `phased` are seed 42 only. So the
+  0.003 spread between their `identification` medians at 150 is **not** a
+  seed-controlled result and no weight is placed on it. The claim that the arms are
+  indistinguishable rests on a different and much harder number: **the criterion reads
+  identically zero on all 194 edges in all three arms**, at thresholds 0.9 and 0.95, at
+  every checkpoint. A count of exactly zero is not a noise-level observation.
+- **The horizon is 500 ticks**, where B33 ran to 2000 and read its effect there. If the
+  trained arms need thousands of ticks to lift the count off the floor, this readout
+  cannot see it, and the 1 → 12 drift at threshold 0.8 is consistent with exactly that.
+  What it rules out is a *route* effect visible at 500; it does not rule out the term
+  working eventually. **It also cannot be fixed by simply running longer** on this
+  surface, because the control's world is dead at 500 (8.63e-05) — a longer run is a
+  run on a stalled world, which is what B38 was opened about.
+- **The multi-cycle count uses a stated surrogate.** B34's rule is an intersection over
+  cycles; `b40_criterion.py` takes the spectrum of the **mean** of `sym(Q_c)` instead,
+  which is an upper bound on the exact count. It is the same surrogate in every arm, so
+  the comparison is not sensitive to it — but the *absolute* counts are, and the
+  headline is a count of zero, which an upper bound only makes stronger.
+- **The threshold is chosen, not derived.** Reported at 0.8, 0.9 and 0.95 so no
+  conclusion rests on the value; the zero result holds at 0.9 and 0.95 and the
+  max-of-1 result holds at 0.8.
+- **The 90 bridges are a property of this dome.** `reserve_p12` is a placeholder
+  (`graph.py` says so of its budget). That 46% of wide edges are bridges is a fact about
+  this scaffold, and a different topology would give a different fraction — but *some*
+  fraction is unavoidable and the criterion has no rule for any of it, which is the
+  finding that generalises.
+
+---
+
+## 8. What this does to B34
 
 *(filled once the arms land)*
