@@ -23,6 +23,46 @@ the decision is the record and this is why the decision looked worth taking.
 
 ---
 
+## Where it started, and what it started as
+
+**Recorded on [#605](https://github.com/NGL321/patchworks/issues/605) at the user's request**, as the
+one piece of provenance the rest of this document was written without. It is placed first because it
+is not an influence among the others — it is the objection everything below is an answer to.
+
+The starting line of thought was **decomposition**: break a problem into constituent pieces, work only
+on those pieces, and break the pieces further where needed. That arrived from Selfridge's Pandemonium
+— a crowd of small independent recognisers, each watching for one thing and shouting when it sees it.
+
+**And it arrived as a disagreement.** Pandemonium presumes a *hierarchy*: tiers of demons, each
+watching a fixed set below it. The user did not buy it — it did not match what is known about how
+semantic memory, judgement and recall behave. The response was that such a system must be
+**heterarchical, with hierarchical properties emerging** — coherent results that *look* tiered coming
+out of an organisation that is not.
+
+The argument, in the user's own terms and load-bearing rather than decorative:
+
+> Nobody was informed of their exact job — only that they would have to watch five demons. We cannot
+> presume foreknowledge of *which* five, and therefore the organisation must be heterarchical.
+
+**Why this belongs in the record rather than in the influences list.** The house rule below is that
+named influences never seed design and are never a source for a claim. That rule is not in tension
+here, because Pandemonium is not borrowed authority — it is **the rejected premise**. Recording what a
+design was defined *against* is the opposite of citing something to validate it.
+
+It is also still doing work. [B23](https://github.com/NGL321/patchworks/issues/572)'s falsifier fired
+and [B27](https://github.com/NGL321/patchworks/issues/576) called the dome wager lost, so no bar or
+reading on the architecture map may appeal to `level`;
+[B35](https://github.com/NGL321/patchworks/issues/594) then replaced abstraction-as-distance with
+**abstraction as community membership** — the number of distinct communities a cell belongs to. That
+is this objection, arrived at from the other end, years later, by measurement. A candidate that
+restores an assumed hierarchy is refusing the premise the project is built on, and
+[B42](https://github.com/NGL321/patchworks/issues/605) was refused on exactly that ground.
+
+See [the think tank](./analogies/think-tank.md) for the working image, which is Pandemonium's crowd
+with the tiers taken out and prediction put in.
+
+---
+
 ## The world
 
 A fully general learning agent: a data structure standing for a cognitive system, covering artificial
@@ -158,7 +198,7 @@ method is carving a Hilbert space with literature filling holes, not modelling i
 source for any claim in this document, and nothing above is to be presented as something any of them
 said.
 
-Richard Sutton; Jeff Hawkins; Vernon Mountcastle; Karl Friston; Rajesh Rao; Bernard Koopman; Pierre
+Oliver Selfridge; Richard Sutton; Jeff Hawkins; Vernon Mountcastle; Karl Friston; Rajesh Rao; Bernard Koopman; Pierre
 Baudot and Daniel Bennequin; Blaise Agüera y Arcas; Ilya Prigogine; Jean Piaget; Henri Poincaré; the
 "compression is all you need" line of work; mixture-of-experts and tiny-recursive-model results;
 transformer scaling; and comparative neuroscience across mammals, cephalopods, arthropods and
@@ -166,3 +206,8 @@ nematodes.
 
 Piaget and Poincaré enter through schema formation in psychology, which the user reads as part of the
 same topological perspective.
+
+Selfridge is the exception the list needs stating: he is here as the **rejected** premise rather than
+an adopted one, and *Where it started* above says how. Nothing in this document is to be presented as
+something he said, and the presumption of hierarchy his crowd carries is the thing this architecture
+exists to refuse.
