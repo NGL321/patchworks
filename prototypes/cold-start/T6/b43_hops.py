@@ -34,8 +34,26 @@ from pathlib import Path
 import numpy as np
 
 _HERE = Path(__file__).resolve().parent
-if hasattr(sys.stdout, "buffer"):
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
+
+
+def _utf8_stdout() -> None:
+    """Print the tables as UTF-8 on a cp1252 console, and stay importable.
+
+    Guarded because `b38_imports.py` execs every script in this directory inside
+    **one** process: a second unconditional rebind detaches an already-wrapped
+    stream and the import fails with `I/O operation on closed file`. Idempotent
+    and non-fatal is the only version that survives that harness.
+    """
+    stream = getattr(sys, "stdout", None)
+    if stream is None or (getattr(stream, "encoding", "") or "").lower().startswith("utf"):
+        return
+    try:
+        sys.stdout = io.TextIOWrapper(stream.buffer, encoding="utf-8")
+    except (AttributeError, ValueError):  # no buffer, or already detached
+        pass
+
+
+_utf8_stdout()
 
 #: B21's per-hop gain, the low and high end of the range it read. Used only to
 #: state what a hop count alone predicts; nothing is fitted.
