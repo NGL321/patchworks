@@ -17,3 +17,4 @@
   [phased s42]     0 ident 1.0017 chan 0.2006 sig 1.59e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world nan
   [phased s42]    50 ident 0.9845 chan 0.2455 sig 1.45e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world 1.29e+00
   [phased s42]   150 ident 0.9794 chan 0.2496 sig 1.89e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world 9.35e-01
+  [phased s42]   500 ident 0.9754 chan 0.2771 sig 3.57e-07 | m_e med 1.0 max 1 std 0.00 distinct 1 | leak nan | world 8.47e-05

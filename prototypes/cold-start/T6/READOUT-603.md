@@ -56,7 +56,45 @@ Tarjan on the wide subgraph: **all 90 are true bridges** — they lie on no cycl
 
 ## 2. The arms and the scores
 
-*(table filled from `b40_table.py`)*
+Printed by `b40_table.py`, not retyped:
+
+```
+arm       seed  ticks    ident    chan      sigma  m_med  m_max  m_std m_dist   leak   lk>     world
+----------------------------------------------------------------------------------------------------
+flat        42      0   0.0386  0.9998   7.72e-04   12.0     15   1.39      6  1.118  0.89       nan
+flat        42     50   0.2619  0.9990   7.66e-04   10.0     13   1.24      6  1.116  0.89  1.09e+00
+flat        42    150   0.2965  0.9988   7.33e-04   10.0     13   1.21      7  1.117  0.89  1.10e+00
+flat        42    500   0.2963  0.9982   7.16e-04    9.0     13   1.30      7  1.118  0.89  4.12e-01
+flat        43      0   0.0408  0.9996   7.72e-04   12.0     15   1.48      6  1.118  0.89       nan
+flat        43     50   0.2711  0.9988   7.50e-04   10.0     13   1.33      6  1.117  0.89  5.45e-01
+flat        43    150   0.2858  0.9993   7.35e-04   10.0     13   1.47      7  1.117  0.89  1.11e+00
+flat        43    500   0.2938  0.9993   7.49e-04    9.0     12   1.44      6  1.118  0.89  3.54e-01
+----------------------------------------------------------------------------------------------------
+haar        42      0   1.0088  0.1903   1.10e-07    1.0      1   0.00      1    nan   nan       nan
+haar        42     50   0.9904  0.2339   1.31e-07    1.0      1   0.00      1    nan   nan  1.00e+00
+haar        42    150   0.9938  0.2507   1.69e-07    1.0      1   0.00      1    nan   nan  1.04e+00
+haar        42    500   0.9810  0.3056   3.49e-07    1.0      1   0.00      1    nan   nan  2.73e-01
+haar        43      0   1.0079  0.2385   1.13e-07    1.0      1   0.00      1    nan   nan       nan
+haar        43     50   0.9937  0.1908   1.43e-07    1.0      1   0.00      1    nan   nan  9.00e-01
+haar        43    150   0.9820  0.1925   1.84e-07    1.0      1   0.00      1    nan   nan  9.32e-01
+haar        43    500   0.9794  0.2065   3.77e-07    1.0      1   0.00      1    nan   nan  1.39e-03
+----------------------------------------------------------------------------------------------------
+control     42      0   1.0017  0.2006   1.59e-07    1.0      1   0.00      1    nan   nan       nan
+control     42     50   0.9836  0.2475   1.45e-07    1.0      1   0.00      1    nan   nan  1.29e+00
+control     42    150   0.9776  0.2575   1.90e-07    1.0      1   0.00      1    nan   nan  9.35e-01
+control     42    500   0.9778  0.2678   3.58e-07    1.0      1   0.00      1    nan   nan  8.63e-05
+----------------------------------------------------------------------------------------------------
+split       42      0   1.0017  0.2006   1.59e-07    1.0      4   0.58      4  1.051  0.64       nan
+split       42     50   0.9842  0.2498   1.45e-07    1.0      4   0.68      4  1.118  0.82  1.29e+00
+split       42    150   0.9760  0.2554   1.89e-07    1.0      4   0.55      4  1.115  0.80  9.35e-01
+split       42    500   0.9851  0.3031   3.57e-07    1.0      4   0.72      4  1.109  0.80  3.12e-05
+----------------------------------------------------------------------------------------------------
+phased      42      0   1.0017  0.2006   1.59e-07    1.0      1   0.00      1    nan   nan       nan
+phased      42     50   0.9845  0.2455   1.45e-07    1.0      1   0.00      1    nan   nan  1.29e+00
+phased      42    150   0.9794  0.2496   1.89e-07    1.0      1   0.00      1    nan   nan  9.35e-01
+phased      42    500   0.9754  0.2771   3.57e-07    1.0      1   0.00      1    nan   nan  8.47e-05
+```
+
 
 ### The fifth arm, which the ticket did not ask for and the comparison needs
 
@@ -411,4 +449,50 @@ Stated rather than buried, because two of the conclusions above are strong.
 
 ## 8. What this does to B34
 
-*(filled once the arms land)*
+**B34 is not ruled out of scope, and the flat bundle's licence to end it does not
+fire.** The user's standing ruling licensed arm 4 to win outright *if* it closed
+cycles at no cost **and** left the criterion discriminating nothing. It closes cycles
+and it keeps transport — but the criterion **still discriminates on it** (std 1.2–1.5,
+6–7 distinct values, both seeds). The antecedent is not met, so B34 is not
+re-resolved and this readout does not touch it.
+
+What defeats the criterion *as stated* is not about routes at all:
+
+- **46% of the wide edges have no cycle to close** — 90 true bridges, unrescuable by
+  any radius or schedule;
+- **three of its four clauses are inert** — cap and ration never clip, and cannot;
+- **the only clause that acts is a structurally guaranteed leak** — `√1.25`, unmoved
+  by training, because pruning concentrates the band's norm.
+
+That is a defect in the criterion's **coverage**, not in the schedule that trains it.
+So the honest outcome is neither *"choose a route"* nor *"B34 is out of scope"*:
+
+1. **The route question is answered and closed.** Held-out cycles, phasing and the
+   joint form as built are indistinguishable, because all three leave the count at
+   zero on every edge. There was nothing to choose between them, and **no preference
+   was exercised** — which is what the user asked for, arrived at from the other side.
+2. **B34's criterion needs a rule for acyclic edges, a replacement for the floor, and
+   a ruling on whether the count should be normalised by how many cycles it reads.**
+   All three are decisions. → **B41**.
+3. **The flat bundle is promoted from falsifier to candidate architecture**, together
+   with the question of whether the privacy reserve `p` gives. → **B42**.
+
+---
+
+## 9. The surprise ledger
+
+Six things this prototype expected to be true and found otherwise. Recorded because
+three of them were the prototype's *own* reasoning rather than the ticket's.
+
+| # | expected | found |
+|---|---|---|
+| 1 | splitting 40 cycles leaves too few per edge (the ticket's named risk) | 190 enumerated cycles, median 3/edge, 104 edges with ≥2 — **risk does not fire** |
+| 2 | the cycle-less edges are a basis artifact, or stranded by radius 2 | **all 90 are true bridges**, 0 stranded — ADR-0011 exonerated |
+| 3 | the flat bundle makes the count read full width everywhere, ending B34 | the count **still spreads** — the ticket's own prediction falsified |
+| 4 | the flat bundle needs `m_e = n` to be exact (*this readout's own argument*) | **exact at any widths** — a hop is a rectangular identity block of `R_c R_cᵀ` |
+| 5 | ADR-0032's band is what costs the flat bundle its exactness | the **dimension mask** costs it; the band *repairs* most of it |
+| 6 | B38's port fixed the stall (*claimed in an earlier draft of this readout*) | it **moves it later** — alive at 150, dead by 500; per-run, as B38 said |
+
+Items 4 and 6 were corrected against data after being written down here, and item 4's
+wrong reasoning is struck in `b40_routes.py::install_flat_bundle`'s own docstring
+rather than quietly deleted.
