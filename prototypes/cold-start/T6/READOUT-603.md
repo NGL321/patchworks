@@ -227,6 +227,34 @@ different surface than the one B33 read.
 
 ---
 
-## 5. What this does to B34
+## 5. What the flat bundle costs
+
+B25 carried the flat bundle with `O(Bn²)` attached as its price. On this surface that
+price is negative:
+
+| | parameters |
+|---|---|
+| per-edge, `Σ_{e,side} m_e · n` over 1364 endpoints | **247,104** |
+| flat bundle, one `n × n` frame per predicting cell (150 × 32²) | **153,600** |
+| ratio | **0.62×** |
+
+**The flat bundle is 38% cheaper than what is there now**, so `O(Bn²)` is not an
+argument against it here — `n = 32` is small enough that a dense frame per cell costs
+less than 1364 sparse blocks.
+
+It is also **more local, not less**. An edge map at `(e, c)` is `S_e R_c`, determined
+entirely by the frame of the one cell it is incident on — where B34's criterion needs
+cycles out to radius 2. Whatever ADR-0011 demands of a prune decision, a per-cell
+frame satisfies it more easily than the criterion it would replace.
+
+**The real price is freedom.** At a degree-9 cell, nine independently learned `m × n`
+blocks become nine fixed slices of one frame. The per-edge map stops being an
+independent object; what is learned is one orthogonal frame per cell, and the edges
+read off it. That is a genuine architectural commitment and it is the thing a
+decision has to weigh — not the parameter count, which favours it.
+
+---
+
+## 6. What this does to B34
 
 *(filled once the arms land)*
