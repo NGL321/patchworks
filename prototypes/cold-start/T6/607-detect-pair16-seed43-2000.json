@@ -1,0 +1,332 @@
+{
+ "issue": 607,
+ "reading": "clauses 2 and 3 on the relayed mask",
+ "layout": "pair",
+ "sites": 16,
+ "seed": 43,
+ "learn": 2000,
+ "trials": 3,
+ "window": 64,
+ "hold": 400,
+ "relay_m": 1,
+ "depth_floor": 4,
+ "layout_record": {
+  "layout": "pair",
+  "depth_floor": 4,
+  "relay_m": 1,
+  "sites": 16,
+  "deep_cells_available": 44,
+  "deep_components": 1,
+  "component_sizes": [
+   44
+  ],
+  "anchors_motor": 3,
+  "anchors_sensory": 67,
+  "legs": [
+   "motor",
+   "sensory"
+  ],
+  "anchor_reuse_max": 6,
+  "relays": 32,
+  "edges": [
+   {
+    "deep_cell": 405,
+    "deep_depth": 7,
+    "anchor": 327,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 405,
+    "deep_depth": 7,
+    "anchor": 263,
+    "leg": "sensory"
+   },
+   {
+    "deep_cell": 406,
+    "deep_depth": 7,
+    "anchor": 329,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 406,
+    "deep_depth": 7,
+    "anchor": 267,
+    "leg": "sensory"
+   },
+   {
+    "deep_cell": 407,
+    "deep_depth": 7,
+    "anchor": 331,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 407,
+    "deep_depth": 7,
+    "anchor": 271,
+    "leg": "sensory"
+   },
+   {
+    "deep_cell": 408,
+    "deep_depth": 7,
+    "anchor": 327,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 408,
+    "deep_depth": 7,
+    "anchor": 275,
+    "leg": "sensory"
+   },
+   {
+    "deep_cell": 409,
+    "deep_depth": 7,
+    "anchor": 329,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 409,
+    "deep_depth": 7,
+    "anchor": 279,
+    "leg": "sensory"
+   },
+   {
+    "deep_cell": 410,
+    "deep_depth": 7,
+    "anchor": 331,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 410,
+    "deep_depth": 7,
+    "anchor": 283,
+    "leg": "sensory"
+   },
+   {
+    "deep_cell": 411,
+    "deep_depth": 7,
+    "anchor": 327,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 411,
+    "deep_depth": 7,
+    "anchor": 288,
+    "leg": "sensory"
+   },
+   {
+    "deep_cell": 412,
+    "deep_depth": 7,
+    "anchor": 329,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 412,
+    "deep_depth": 7,
+    "anchor": 292,
+    "leg": "sensory"
+   },
+   {
+    "deep_cell": 395,
+    "deep_depth": 6,
+    "anchor": 331,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 395,
+    "deep_depth": 6,
+    "anchor": 296,
+    "leg": "sensory"
+   },
+   {
+    "deep_cell": 396,
+    "deep_depth": 6,
+    "anchor": 327,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 396,
+    "deep_depth": 6,
+    "anchor": 300,
+    "leg": "sensory"
+   },
+   {
+    "deep_cell": 397,
+    "deep_depth": 6,
+    "anchor": 329,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 397,
+    "deep_depth": 6,
+    "anchor": 304,
+    "leg": "sensory"
+   },
+   {
+    "deep_cell": 398,
+    "deep_depth": 6,
+    "anchor": 331,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 398,
+    "deep_depth": 6,
+    "anchor": 309,
+    "leg": "sensory"
+   },
+   {
+    "deep_cell": 399,
+    "deep_depth": 6,
+    "anchor": 327,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 399,
+    "deep_depth": 6,
+    "anchor": 313,
+    "leg": "sensory"
+   },
+   {
+    "deep_cell": 400,
+    "deep_depth": 6,
+    "anchor": 329,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 400,
+    "deep_depth": 6,
+    "anchor": 317,
+    "leg": "sensory"
+   },
+   {
+    "deep_cell": 401,
+    "deep_depth": 6,
+    "anchor": 331,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 401,
+    "deep_depth": 6,
+    "anchor": 321,
+    "leg": "sensory"
+   },
+   {
+    "deep_cell": 402,
+    "deep_depth": 6,
+    "anchor": 327,
+    "leg": "motor"
+   },
+   {
+    "deep_cell": 402,
+    "deep_depth": 6,
+    "anchor": 325,
+    "leg": "sensory"
+   }
+  ]
+ },
+ "relays": 32,
+ "edges": 714,
+ "motion": {
+  "available": true,
+  "window": 100,
+  "std_max": 0.0005606519925440268,
+  "moving_share": 0.08333333333333333
+ },
+ "read_window": 100,
+ "double_precision_tensors": 12,
+ "cohort": [
+  405,
+  406,
+  407,
+  408,
+  409,
+  410,
+  411,
+  412
+ ],
+ "cohort_matches_level_apex": true,
+ "world_loop_cohort_median": 5.0,
+ "b38_baseline_bottleneck_at_30k": 8.35e-10,
+ "trials_out": [
+  {
+   "trial": 0,
+   "source": [
+    129
+   ],
+   "kind": "patch",
+   "bottleneck": 0.00010927402521416669,
+   "target": 409,
+   "edge": "#691 interior m=1 L7/core(4,) -- L1/vision(2, 0)",
+   "path_hops": 4,
+   "per_cell": {
+    "cells": 151,
+    "ratio_median": 1.0,
+    "ratio_max": 6.333333333333333,
+    "ratio_mean": 1.099689898034269,
+    "ratio_above_one": 78,
+    "tau_median": 7.0,
+    "tau_max": 19.0,
+    "tau_zero_cells": 0
+   },
+   "conduction_path_value_provenance_only": 0.6666666666666666,
+   "censored_cells": 0,
+   "readable_cells": 6,
+   "floor": 7.385500013382445e-07,
+   "elapsed_minutes": 1.432909941673279
+  },
+  {
+   "trial": 1,
+   "source": [
+    258
+   ],
+   "kind": "proprioceptive",
+   "bottleneck": 1.3327798286027377,
+   "target": 409,
+   "edge": "#690 interior m=1 L7/core(4,) -- L1/somatomotor(2,)",
+   "path_hops": 2,
+   "per_cell": {
+    "cells": 151,
+    "ratio_median": 1.2,
+    "ratio_max": 7.142857142857143,
+    "ratio_mean": 1.494646799116998,
+    "ratio_above_one": 89,
+    "tau_median": 7.0,
+    "tau_max": 50.0,
+    "tau_zero_cells": 0
+   },
+   "conduction_path_value_provenance_only": 1.8,
+   "censored_cells": 1,
+   "readable_cells": 41,
+   "floor": 7.374852181244681e-07,
+   "elapsed_minutes": 1.4831236044565836
+  },
+  {
+   "trial": 2,
+   "source": [
+    259
+   ],
+   "kind": "touch",
+   "bottleneck": 0.05033559962486641,
+   "target": 407,
+   "edge": "#686 interior m=1 L7/core(2,) -- L1/somatomotor(4,)",
+   "path_hops": 3,
+   "per_cell": {
+    "cells": 151,
+    "ratio_median": 0.875,
+    "ratio_max": 5.0,
+    "ratio_mean": 1.1962367286870599,
+    "ratio_above_one": 72,
+    "tau_median": 6.0,
+    "tau_max": 26.0,
+    "tau_zero_cells": 0
+   },
+   "conduction_path_value_provenance_only": 0.5,
+   "censored_cells": 0,
+   "readable_cells": 23,
+   "floor": 7.374921723289096e-07,
+   "elapsed_minutes": 1.531158196926117
+  }
+ ],
+ "bottleneck_median": 0.05033559962486641,
+ "bottleneck_max": 1.3327798286027377,
+ "minutes": 1.5311713973681131
+}
