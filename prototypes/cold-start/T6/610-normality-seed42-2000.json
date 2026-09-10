@@ -1,0 +1,25 @@
+{
+ "issue": 610,
+ "seed": 42,
+ "learn": 2000,
+ "at_construction": {
+  "rho_raw_median": 1.0,
+  "sigma_raw_median": 1.0,
+  "normality_ratio_median": 1.0,
+  "normality_ratio_min": 1.0,
+  "rho_used_median": 1.0,
+  "cells_sigma_above_band": 0,
+  "cells": 150,
+  "identity_max_relative_error": null
+ },
+ "trained": {
+  "rho_raw_median": 1.149326205253601,
+  "sigma_raw_median": 1.1921761631965637,
+  "normality_ratio_median": 0.98125862904282,
+  "normality_ratio_min": 0.5315483562709901,
+  "rho_used_median": 0.9812585413455963,
+  "cells_sigma_above_band": 150,
+  "cells": 150,
+  "identity_max_relative_error": 1.6595461910403394e-06
+ }
+}
