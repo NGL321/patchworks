@@ -20,6 +20,14 @@ cd "$(dirname "$0")/../../.."
 export PYTHONPATH=src
 T6=prototypes/cold-start/T6
 
+# **Stage 0, and it runs first because it can invalidate everything after it.**
+# The re-run of B62's `transport` arm did not reproduce B62's stored record on
+# byte-identical code and the same seed. Either `--no-generic` perturbs the run
+# or the arm is not deterministic; b68_repro.py separates the two, and if it is
+# the second then B62's attribution and every non-paired arm comparison on this
+# map is resting on a difference a re-run could produce by itself.
+python $T6/b68_repro.py > $T6/645-repro.log 2>&1
+
 python $T6/b62_frozen.py --mode both --ticks 20000 --no-generic \
   --out $T6/645-both-baseline-seed42-20000.json > $T6/645-both-20k.log 2>&1
 
