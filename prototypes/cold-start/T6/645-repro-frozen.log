@@ -1,0 +1,12 @@
+  A    @100    ER 2.780052  aud-diff 0.530703  exposure 9.046780
+  A    @200    ER 2.780384  aud-diff 0.530703  exposure 9.046780
+  B    @100    ER 2.780078  aud-diff 0.530703  exposure 9.046780
+  B    @200    ER 2.780165  aud-diff 0.530703  exposure 9.046780
+  C    @100    ER 2.780052  aud-diff 0.530703  exposure 9.046780
+  C    @200    ER 2.780384  aud-diff 0.530703  exposure 9.046780
+
+=== verdict ===
+  @100: A==B False   A==C True   |dER| A-B 2.621e-05  A-C 0.000e+00
+  @200: A==B False   A==C True   |dER| A-B 2.183e-04  A-C 0.000e+00
+
+written to 645-repro-frozen.json

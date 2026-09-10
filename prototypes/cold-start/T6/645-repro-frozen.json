@@ -1,0 +1,74 @@
+{
+ "issue": 645,
+ "reading": "is the arm reproducible run to run, and does the null perturb it",
+ "mode": "frozen",
+ "seed": 42,
+ "ticks": 200,
+ "surface": {
+  "commit": "144b3b77efcdccbcbb27c11bc7240fd6b1e37158",
+  "describe": "144b3b7 2026-09-10 B68 (#645): the rules keep the body alive, and the stamp cannot say so",
+  "branch": "worktree-b68-antagonism-645",
+  "dirty": false,
+  "interior_m": "allocated per edge (#548; `allocate_lane_widths`)",
+  "boundary_m": 4,
+  "lateral_m": 1,
+  "drive_m": 1,
+  "band": "forward normalisation in CellOperators.used (#466, PR #513)"
+ },
+ "runs": [
+  {
+   "label": "A",
+   "generic": false,
+   "rows": [
+    {
+     "ticks": 100,
+     "er": 2.7800522305573208,
+     "auddiff": 0.5307031247167556,
+     "exposure": 9.046780452830518
+    },
+    {
+     "ticks": 200,
+     "er": 2.780383728183663,
+     "auddiff": 0.5307031247167556,
+     "exposure": 9.046780452830518
+    }
+   ]
+  },
+  {
+   "label": "B",
+   "generic": false,
+   "rows": [
+    {
+     "ticks": 100,
+     "er": 2.780078436162981,
+     "auddiff": 0.5307031247167556,
+     "exposure": 9.046780452830518
+    },
+    {
+     "ticks": 200,
+     "er": 2.78016547810625,
+     "auddiff": 0.5307031247167556,
+     "exposure": 9.046780452830518
+    }
+   ]
+  },
+  {
+   "label": "C",
+   "generic": true,
+   "rows": [
+    {
+     "ticks": 100,
+     "er": 2.7800522305573208,
+     "auddiff": 0.5307031247167556,
+     "exposure": 9.046780452830518
+    },
+    {
+     "ticks": 200,
+     "er": 2.780383728183663,
+     "auddiff": 0.5307031247167556,
+     "exposure": 9.046780452830518
+    }
+   ]
+  }
+ ]
+}
