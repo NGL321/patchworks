@@ -40,14 +40,30 @@ of the first 5,000 ticks and the ticket's premise was gone.
 reads `N` 1.0000 on `A` **0.5728**, and the bias arm reads `N` 0.0000 on `A` 0.0000 —
 the bias arm's earlier `N(0.25) = 1.0000` at 5,000 sits on `A = 0.0039` and means nothing.
 
-**The falsifier does not fire.** `TransportRule` settles at 2.9855, flat from 5,000 on.
-The antagonism holds at B57's own horizon. Three things past 5,000 that B62 could not see:
+**The falsifier does not fire.** `TransportRule` settles at 2.9855, flat from 5,000 on; a
+replicate of the same arm reads 3.1637. Both are ~2.0 above the ~1.01 the falsifier was
+pre-registered against, which is **11× the arm's own replicate spread at that rung**
+(0.178). The antagonism holds at B57's own horizon, and the gap between the two rules —
+1.0001 against ≥2.98 — dwarfs anything the noise could supply.
 
-- **The transport arm repays its price.** B62's *"2.03 dimensions of exposure per cell"*
-  is a 5,000-tick reading. By 20,000 the cost is **0.35** dimensions, and audience
-  differentiation ends at **0.5868**, *above* construction's 0.5307 rather than below.
-  The alignment holds while the price is repaid: `q_top` is 0.0543 at 5,000 and 0.0642
-  at 20,000.
+**One weaker claim does not clear its noise at the horizon, and is stated as such.**
+*`TransportRule` raises the rank above the frozen arm* is a separation of **0.203** at
+20,000 against a spread of **0.178** — about 1.1×, marginal, though both replicates land
+above the frozen arm. At **1,000 ticks the same claim is a separation of 0.62 against a
+spread of exactly zero**, because the arm reproduces bit-exactly through 2,000. So the
+claim is established at the early rungs and is not established at 20,000 on two runs.
+
+Three things past 5,000 that B62 could not see:
+
+- **The transport arm repays its price.** The exposure cost is 2.03 dimensions at 5,000
+  and **0.35 (replicate 0.45)** at 20,000 — a fall of ~1.6 against a spread of 0.14, so
+  the repayment clears its noise. The alignment holds while the price is repaid: `q_top`
+  is 0.0543 at 5,000 and 0.0642 at 20,000, spread 0.012.
+  *The direction of the differentiation column is not this ticket's finding* — the map's
+  amended B62 entry already carries *raising differentiation rather than spending it* at
+  5,000 (0.5505). What is added here is the **horizon**: 0.5868 (replicate 0.5807) at
+  20,000, a separation of 0.055 from the frozen arm's flat 0.5307 against a spread of
+  0.0061, so it is ~9× its noise and still climbing at the last rung.
 - **The bias arm's alignment gets worse as the rank falls further.** `q_top` bottoms at
   0.5232 (2,000) and climbs to 0.6125 while ER goes 1.0087 → 1.0001.
 - **The bias arm is free in both joint columns at the full horizon**, not only to 5,000:
@@ -196,23 +212,50 @@ What remains as the difference between B62's stored record and this re-run is th
 taken **at every checkpoint** rather than only at construction — a diagnostic moving the
 trajectory it is measuring. Chasing that is not this ticket's question.
 
+**How loose, per arm.** `|run − replicate|`, same seed, same command, separate processes:
+
+| rung | both: ER / aud-diff / exposure | transport: ER / aud-diff / exposure |
+|---|---|---|
+| 0 – 2,000 | exact | **exact** |
+| 5,000 | exact | 1.17e-01 / 8.6e-03 / 1.4e-01 |
+| 10,000 | 1.2e-03 / 3.4e-03 / 1.8e-02 | 1.30e-01 / 7.4e-03 / 5.8e-03 |
+| 20,000 | 3.3e-04 / 3.9e-03 / 6.7e-02 | **1.78e-01** / 6.1e-03 / 1.0e-01 |
+
+The `transport` arm is **an order looser in ER than the `both` arm** at the horizon, and
+this is why it matters: **the map's own numbers now disagree because of it.** The amended
+B62 entry quotes transport at 5,000 as ER 3.1347, `q` 0.0636, 1.96 dimensions and
+differentiation 0.5505; this ticket's run of the same arm at the same rung reads 3.0024,
+0.0543, 2.03 and 0.5313. Both are honest single runs of the same command.
+
 **Proposed standing constraint:** *a difference between two arms that run `TransportRule`
-is quoted against a replicate of one of them at the same rung, or it is not quoted.* Every
-figure in §1–§3 that rests on such a difference has one.
+is quoted against a replicate of one of them at the same rung, or it is not quoted* — and
+where a rung reproduces bit-exactly, say so, because that is stronger than any spread.
+Every figure in §1–§3 that rests on such a difference has one, and the one that does not
+clear its spread is marked as not clearing it.
 
 ### The rules keep the body alive, and the stamp cannot say so
 
 Stamped per rule mode, because the rules change the commands the agent issues.
 
-| mode | B38's rule (last above) | first fall | re-crossings | share above |
-|---|---|---|---|---|
-| frozen | 150 | 160 | **0** | 0.0075 |
-| bias | **4,900** | 90 | **70** | 0.0390 |
-| transport | **15,790** | 80 | **131** | 0.0690 |
+| mode | B38's rule (last above) | first fall | re-crossings | share above | final `std_max` |
+|---|---|---|---|---|---|
+| frozen | 150 | 160 | **0** | 0.0075 | 2.44e-03 |
+| bias | **4,900** | 90 | **70** | 0.0390 | 9.32e-07 |
+| transport | **15,790** | 80 | **131** | 0.0690 | 1.32e-04 |
+| both | 70 | 80 | **0** | **0.0035** | **2.33e-10** |
 
 `b38_stall.boundary` takes the *last* window above `MOVING`, so it stamps the transport arm
-live to 15,790 while its first fall is at 80. Neither number describes the run. The frozen
-arm dies once and stays dead; the rule-carrying arms **re-excite the body**.
+live to 15,790 while its first fall is at 80. Neither number describes the run.
+[B61 (#634)](https://github.com/NGL321/patchworks/issues/634) landed this defect on the map
+while this ticket ran, as a standing constraint that a long-horizon reading reports both
+rules and the re-crossings; `b68_stall.py` was written to that shape independently and
+complies.
+
+**One amendment to B61's account, offered rather than assumed.** B61 describes it as *the
+world* sporadically re-crossing the threshold after it has died. On these four modes the
+frozen arm re-crosses **zero** times while the rule-carrying arms re-cross 70 and 131 — so
+on this arm the re-crossing is not the world's, it is **the rules'**. The frozen arm dies
+once and stays dead; the rule-carrying arms **re-excite the body**.
 
 Share of moving windows per interval between rungs:
 
@@ -221,10 +264,18 @@ Share of moving windows per interval between rungs:
 | frozen | 1.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 |
 | bias | 0.800 | 0.000 | **0.320** | 0.000 | **0.180** | 0.000 | 0.000 |
 | transport | 0.700 | 0.000 | 0.000 | 0.050 | 0.087 | **0.068** | **0.066** |
+| both | 0.700 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 | 0.000 |
 
 The co-occurrence is exact. The bias arm's collapse (500 → 1,000, ER 3.03 → 1.34) falls in
 its single largest re-excitation window; the transport arm's sustained rank elevation from
 5,000 on rides on sustained intermittency where the frozen arm reads 0.000 throughout.
+
+**And this is a fourth column where the pair leaves the interval its solos span — §3's
+verdict in the world rather than in the maps.** Each rule *alone* keeps the body
+intermittently alive; **together they kill it deader than running no rule at all**: 0
+re-crossings against 70 and 131, a moving share of 0.0035 *below the frozen control's*
+0.0075, and a final `std_max` of 2.33e-10 against frozen's 2.44e-03, six orders down.
+Neither solo does this and the no-rule control does not either.
 
 **B62's *"the collapse is training's and neither the body's nor the sandbox's"* holds as
 attribution** — the frozen arm does not move — but there is a third channel its location
@@ -232,3 +283,39 @@ argument did not consider: the rules change what the body does, which changes th
 which returns in the traffic. **Co-occurrence does not give the direction and none is
 claimed here.** It does mean the readings past ~160 ticks are not *"drift under a frozen
 stimulus"* on the rule-carrying arms, which is what B38's rule would have to say about them.
+
+---
+
+## Verdicts against #645's branch table
+
+- **`TransportRule`'s rank falls to the both-on arm's by 20,000 →** *did not fire.* Both
+  replicates settle ≥2.98 against the ~1.01 pre-registered, 11× the arm's own spread.
+- **The antagonism holds →** **fired.** The two rules are separable levers in fact:
+  1.0001 against ≥2.98 at 20,000, a gap that dwarfs any noise, with prices that differ in
+  kind — the bias arm free in both joint columns at every rung, the transport arm's cost
+  repaid to 0.35 dimensions. *Which rule a candidate is aimed at is now a live design
+  choice.* **The lever is not picked here**, per the ticket's own instruction; it is
+  ticketed.
+- **The rank tracks `ρ(used)` or `τ` per cell →** *did not fire, and it is refuted rather
+  than merely unsupported.* The transport arm moves the rank 2.7798 → 3.4018 with `K` at
+  exactly 1.0000 on all 150 cells, and on the arm that does collapse the correlation has
+  the wrong sign and decays to −0.079 as the collapse completes. **B44's adversary
+  constraint is not reached by this route.**
+- **The pair's outcome is not predictable from the solos →** **fired, and it is the
+  headline.** The pair leaves the interval its solos span on **four** columns — audience
+  differentiation (−0.0536 at 20,000, ~14× spread), exposure (+0.085 at tick 100, where
+  the arm reproduces bit-exactly), the ER trajectory at 1,000 (−0.241), and the body's own
+  motion, where the pair is deader than the no-rule control. The divergence is present at
+  **tick 100**, before the rank collapse, so *the transport rule trained on already-
+  collapsed traffic* is not available as the account. **Composition is its own object and
+  this map cannot reason about the shipped rule by reasoning about its parts.**
+- **Outside every branch →** two, both filed: the arms running `TransportRule` do not
+  reproduce and the map's own B62 numbers already disagree because of it; and the rules,
+  not the world, are what re-excite the body past the stall.
+
+## What this ticket did not do
+
+It did not pick a lever, set a threshold, or score a candidate architecture — #645's
+closing constraint. It did not explain *why* `PredictionRule` collapses the traffic: it
+established what the collapse **is** (per-cell and synchrony together), and ruled out the
+one candidate mechanism the ticket named. The positive account is still open.
