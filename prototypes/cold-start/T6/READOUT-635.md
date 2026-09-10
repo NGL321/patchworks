@@ -59,10 +59,12 @@ B57's own baseline arm at the same rungs on the same surface:
 | 1,000 | 2.7786 | **1.0967** |
 | 2,000 | 2.7819 | 1.0132 |
 | 5,000 | 2.7812 | 1.0130 |
+| 10,000 | 2.7801 | 1.0064 |
+| 20,000 | **2.7817** | **1.0045** |
 
 The frozen arm is flat to the third decimal across every rung — a spread of
-0.0069 over 5,000 ticks, smaller than the window-to-window spread of the same
-quantity. The rules-on arm *rises* to 2.9825 by 500 and then falls to 1.0967 by
+0.0072 over the **full 20,000-tick horizon**, smaller than the window-to-window
+spread of the same quantity. The rules-on arm *rises* to 2.9825 by 500 and then falls to 1.0967 by
 1,000.
 
 **So the rank does not decay on its own, and the collapse is not the body's or
@@ -376,7 +378,11 @@ relocates the lever is #633's to rule on; this ticket does not rule it.
 - **The split arms stop at 5,000 ticks**, not B57's 20,000. The rules-on collapse
   is complete by 1,000 and settled by 2,000, so 5,000 brackets it with two rungs
   to spare — but *the long horizon is unread on the split*, and B38's stamp is
-  per-run. Whether the two rules stay antagonistic at 20,000 is not shown.
+  per-run. Whether the two rules stay antagonistic at 20,000 is not shown, and it
+  is [B68 (#645)](https://github.com/NGL321/patchworks/issues/645)'s first item.
+  **The frozen arm does carry the full horizon** — 2.7798 → 2.7817 over 20,000
+  ticks — so item 1's *the rank does not decay on its own* is read to B57's own
+  horizon and not bracketed.
 - **The split arms carry no matched-generic null.** `against_generic` re-assembles
   three full `δ_P`/`G` pairs per reading and is the rig's dominant memory cost;
   this box's low-memory guard killed three runs before it was dropped. B57
