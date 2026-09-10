@@ -1,0 +1,561 @@
+{
+ "ticket": 630,
+ "reading": "closed form for the exact stagger family",
+ "arms": {
+  "reserve_p8": {
+   "k_v": 24,
+   "by_stagger": [
+    {
+     "stagger": 0,
+     "exact": 45,
+     "pairwise_agree": 45,
+     "base_agree": 45,
+     "pairwise_sufficient": true,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 1,
+     "exact": 40,
+     "pairwise_agree": 40,
+     "base_agree": 40,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 2,
+     "exact": 27,
+     "pairwise_agree": 27,
+     "base_agree": 27,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 3,
+     "exact": 15,
+     "pairwise_agree": 29,
+     "base_agree": 24,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 4,
+     "exact": 9,
+     "pairwise_agree": 22,
+     "base_agree": 12,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 5,
+     "exact": 11,
+     "pairwise_agree": 11,
+     "base_agree": 11,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 6,
+     "exact": 8,
+     "pairwise_agree": 27,
+     "base_agree": 8,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 7,
+     "exact": 11,
+     "pairwise_agree": 11,
+     "base_agree": 11,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 8,
+     "exact": 12,
+     "pairwise_agree": 12,
+     "base_agree": 12,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 9,
+     "exact": 5,
+     "pairwise_agree": 19,
+     "base_agree": 14,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 10,
+     "exact": 8,
+     "pairwise_agree": 8,
+     "base_agree": 8,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 11,
+     "exact": 8,
+     "pairwise_agree": 8,
+     "base_agree": 8,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 12,
+     "exact": 16,
+     "pairwise_agree": 45,
+     "base_agree": 29,
+     "pairwise_sufficient": true,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 13,
+     "exact": 10,
+     "pairwise_agree": 10,
+     "base_agree": 10,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 14,
+     "exact": 9,
+     "pairwise_agree": 9,
+     "base_agree": 9,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 15,
+     "exact": 6,
+     "pairwise_agree": 20,
+     "base_agree": 15,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 16,
+     "exact": 12,
+     "pairwise_agree": 12,
+     "base_agree": 12,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 17,
+     "exact": 10,
+     "pairwise_agree": 10,
+     "base_agree": 10,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 18,
+     "exact": 8,
+     "pairwise_agree": 27,
+     "base_agree": 8,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 19,
+     "exact": 11,
+     "pairwise_agree": 11,
+     "base_agree": 11,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 20,
+     "exact": 9,
+     "pairwise_agree": 22,
+     "base_agree": 12,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 21,
+     "exact": 14,
+     "pairwise_agree": 28,
+     "base_agree": 23,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 22,
+     "exact": 32,
+     "pairwise_agree": 32,
+     "base_agree": 32,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 23,
+     "exact": 40,
+     "pairwise_agree": 40,
+     "base_agree": 40,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    }
+   ]
+  },
+  "reserve_p12": {
+   "k_v": 20,
+   "by_stagger": [
+    {
+     "stagger": 0,
+     "exact": 45,
+     "pairwise_agree": 45,
+     "base_agree": 45,
+     "pairwise_sufficient": true,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 1,
+     "exact": 40,
+     "pairwise_agree": 40,
+     "base_agree": 40,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 2,
+     "exact": 27,
+     "pairwise_agree": 27,
+     "base_agree": 27,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 3,
+     "exact": 21,
+     "pairwise_agree": 21,
+     "base_agree": 21,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 4,
+     "exact": 18,
+     "pairwise_agree": 18,
+     "base_agree": 18,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 5,
+     "exact": 20,
+     "pairwise_agree": 20,
+     "base_agree": 20,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 6,
+     "exact": 27,
+     "pairwise_agree": 27,
+     "base_agree": 27,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 7,
+     "exact": 31,
+     "pairwise_agree": 31,
+     "base_agree": 31,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 8,
+     "exact": 14,
+     "pairwise_agree": 14,
+     "base_agree": 14,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 9,
+     "exact": 18,
+     "pairwise_agree": 18,
+     "base_agree": 18,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 10,
+     "exact": 45,
+     "pairwise_agree": 45,
+     "base_agree": 45,
+     "pairwise_sufficient": true,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 11,
+     "exact": 19,
+     "pairwise_agree": 19,
+     "base_agree": 19,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 12,
+     "exact": 14,
+     "pairwise_agree": 14,
+     "base_agree": 14,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 13,
+     "exact": 27,
+     "pairwise_agree": 27,
+     "base_agree": 27,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 14,
+     "exact": 26,
+     "pairwise_agree": 26,
+     "base_agree": 26,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 15,
+     "exact": 20,
+     "pairwise_agree": 20,
+     "base_agree": 20,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 16,
+     "exact": 17,
+     "pairwise_agree": 17,
+     "base_agree": 17,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 17,
+     "exact": 19,
+     "pairwise_agree": 19,
+     "base_agree": 19,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 18,
+     "exact": 32,
+     "pairwise_agree": 32,
+     "base_agree": 32,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 19,
+     "exact": 40,
+     "pairwise_agree": 40,
+     "base_agree": 40,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    }
+   ]
+  },
+  "reserve_p16": {
+   "k_v": 16,
+   "by_stagger": [
+    {
+     "stagger": 0,
+     "exact": 45,
+     "pairwise_agree": 45,
+     "base_agree": 45,
+     "pairwise_sufficient": true,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 1,
+     "exact": 42,
+     "pairwise_agree": 42,
+     "base_agree": 42,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 2,
+     "exact": 37,
+     "pairwise_agree": 37,
+     "base_agree": 37,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 3,
+     "exact": 40,
+     "pairwise_agree": 40,
+     "base_agree": 40,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 4,
+     "exact": 37,
+     "pairwise_agree": 37,
+     "base_agree": 37,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 5,
+     "exact": 41,
+     "pairwise_agree": 41,
+     "base_agree": 41,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 6,
+     "exact": 42,
+     "pairwise_agree": 42,
+     "base_agree": 42,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 7,
+     "exact": 41,
+     "pairwise_agree": 41,
+     "base_agree": 41,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 8,
+     "exact": 45,
+     "pairwise_agree": 45,
+     "base_agree": 45,
+     "pairwise_sufficient": true,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 9,
+     "exact": 41,
+     "pairwise_agree": 41,
+     "base_agree": 41,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 10,
+     "exact": 42,
+     "pairwise_agree": 42,
+     "base_agree": 42,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 11,
+     "exact": 42,
+     "pairwise_agree": 42,
+     "base_agree": 42,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 12,
+     "exact": 37,
+     "pairwise_agree": 37,
+     "base_agree": 37,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 13,
+     "exact": 42,
+     "pairwise_agree": 42,
+     "base_agree": 42,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 14,
+     "exact": 37,
+     "pairwise_agree": 37,
+     "base_agree": 37,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    },
+    {
+     "stagger": 15,
+     "exact": 44,
+     "pairwise_agree": 44,
+     "base_agree": 44,
+     "pairwise_sufficient": false,
+     "pairwise_necessary": true,
+     "cycles": 45
+    }
+   ]
+  }
+ }
+}

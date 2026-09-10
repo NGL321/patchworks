@@ -1,0 +1,3789 @@
+{
+ "ticket": 630,
+ "reading": "p versus differentiation at channel_return 1.0000, predicted",
+ "note": "construction only; integer arithmetic, no frame drawn and no SVD taken",
+ "arms": {
+  "reserve_p4": {
+   "42": {
+    "arm": "reserve_p4",
+    "seed": 42,
+    "k_v": 28,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     26,
+     27
+    ],
+    "exact_count": 5,
+    "ceiling": 0.8036,
+    "ceiling_at_stagger": 26,
+    "ceiling_exposed": 20.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 12.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 16.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6667,
+      "differentiation": 0.3333,
+      "exposed_median": 20.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3929,
+      "differentiation": 0.6071,
+      "exposed_median": 24.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2738,
+      "differentiation": 0.7262,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.298,
+      "differentiation": 0.702,
+      "exposed_median": 25.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2922,
+      "differentiation": 0.7078,
+      "exposed_median": 25.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3662,
+      "differentiation": 0.6338,
+      "exposed_median": 26.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 8,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2657,
+      "differentiation": 0.7343,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 9,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2576,
+      "differentiation": 0.7424,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 10,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3269,
+      "differentiation": 0.6731,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 11,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3098,
+      "differentiation": 0.6902,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 12,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.32,
+      "differentiation": 0.68,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 13,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2929,
+      "differentiation": 0.7071,
+      "exposed_median": 27.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 14,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4444,
+      "differentiation": 0.5556,
+      "exposed_median": 24.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 15,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3333,
+      "differentiation": 0.6667,
+      "exposed_median": 27.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 16,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3101,
+      "differentiation": 0.6899,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 17,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2904,
+      "differentiation": 0.7096,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 18,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2568,
+      "differentiation": 0.7432,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 19,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3947,
+      "differentiation": 0.6053,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 20,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2889,
+      "differentiation": 0.7111,
+      "exposed_median": 27.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 21,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3662,
+      "differentiation": 0.6338,
+      "exposed_median": 25.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 22,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3214,
+      "differentiation": 0.6786,
+      "exposed_median": 26.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 23,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.298,
+      "differentiation": 0.702,
+      "exposed_median": 22.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 24,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2167,
+      "differentiation": 0.7833,
+      "exposed_median": 22.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 25,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.1711,
+      "differentiation": 0.8289,
+      "exposed_median": 21.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 26,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.1964,
+      "differentiation": 0.8036,
+      "exposed_median": 20.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 27,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.2679,
+      "differentiation": 0.7321,
+      "exposed_median": 17.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     }
+    ]
+   },
+   "43": {
+    "arm": "reserve_p4",
+    "seed": 43,
+    "k_v": 28,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     26,
+     27
+    ],
+    "exact_count": 5,
+    "ceiling": 0.8036,
+    "ceiling_at_stagger": 26,
+    "ceiling_exposed": 20.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 12.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 16.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6667,
+      "differentiation": 0.3333,
+      "exposed_median": 20.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3929,
+      "differentiation": 0.6071,
+      "exposed_median": 24.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2738,
+      "differentiation": 0.7262,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.298,
+      "differentiation": 0.702,
+      "exposed_median": 25.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2922,
+      "differentiation": 0.7078,
+      "exposed_median": 25.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3662,
+      "differentiation": 0.6338,
+      "exposed_median": 26.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 8,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2657,
+      "differentiation": 0.7343,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 9,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2576,
+      "differentiation": 0.7424,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 10,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3269,
+      "differentiation": 0.6731,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 11,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3098,
+      "differentiation": 0.6902,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 12,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.32,
+      "differentiation": 0.68,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 13,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2929,
+      "differentiation": 0.7071,
+      "exposed_median": 27.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 14,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4444,
+      "differentiation": 0.5556,
+      "exposed_median": 24.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 15,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3333,
+      "differentiation": 0.6667,
+      "exposed_median": 27.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 16,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3101,
+      "differentiation": 0.6899,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 17,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2904,
+      "differentiation": 0.7096,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 18,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2568,
+      "differentiation": 0.7432,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 19,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3947,
+      "differentiation": 0.6053,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 20,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2889,
+      "differentiation": 0.7111,
+      "exposed_median": 27.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 21,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3662,
+      "differentiation": 0.6338,
+      "exposed_median": 25.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 22,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3214,
+      "differentiation": 0.6786,
+      "exposed_median": 26.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 23,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.298,
+      "differentiation": 0.702,
+      "exposed_median": 22.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 24,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2167,
+      "differentiation": 0.7833,
+      "exposed_median": 22.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 25,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.1711,
+      "differentiation": 0.8289,
+      "exposed_median": 21.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 26,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.1964,
+      "differentiation": 0.8036,
+      "exposed_median": 20.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 27,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.2679,
+      "differentiation": 0.7321,
+      "exposed_median": 17.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     }
+    ]
+   },
+   "44": {
+    "arm": "reserve_p4",
+    "seed": 44,
+    "k_v": 28,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     26,
+     27
+    ],
+    "exact_count": 5,
+    "ceiling": 0.8036,
+    "ceiling_at_stagger": 26,
+    "ceiling_exposed": 20.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 12.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 16.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6667,
+      "differentiation": 0.3333,
+      "exposed_median": 20.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3929,
+      "differentiation": 0.6071,
+      "exposed_median": 24.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2738,
+      "differentiation": 0.7262,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.298,
+      "differentiation": 0.702,
+      "exposed_median": 25.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2922,
+      "differentiation": 0.7078,
+      "exposed_median": 25.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3662,
+      "differentiation": 0.6338,
+      "exposed_median": 26.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 8,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2657,
+      "differentiation": 0.7343,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 9,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2576,
+      "differentiation": 0.7424,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 10,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3269,
+      "differentiation": 0.6731,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 11,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3098,
+      "differentiation": 0.6902,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 12,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.32,
+      "differentiation": 0.68,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 13,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2929,
+      "differentiation": 0.7071,
+      "exposed_median": 27.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 14,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4444,
+      "differentiation": 0.5556,
+      "exposed_median": 24.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 15,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3333,
+      "differentiation": 0.6667,
+      "exposed_median": 27.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 16,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3101,
+      "differentiation": 0.6899,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 17,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2904,
+      "differentiation": 0.7096,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 18,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2568,
+      "differentiation": 0.7432,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 19,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3947,
+      "differentiation": 0.6053,
+      "exposed_median": 28.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 20,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2889,
+      "differentiation": 0.7111,
+      "exposed_median": 27.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 21,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3662,
+      "differentiation": 0.6338,
+      "exposed_median": 25.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 22,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3214,
+      "differentiation": 0.6786,
+      "exposed_median": 26.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 23,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.298,
+      "differentiation": 0.702,
+      "exposed_median": 22.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 24,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2167,
+      "differentiation": 0.7833,
+      "exposed_median": 22.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 25,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.1711,
+      "differentiation": 0.8289,
+      "exposed_median": 21.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 26,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.1964,
+      "differentiation": 0.8036,
+      "exposed_median": 20.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 27,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.2679,
+      "differentiation": 0.7321,
+      "exposed_median": 17.0,
+      "exposed_today": 28.0,
+      "exposed_flat": 12.0
+     }
+    ]
+   }
+  },
+  "reserve_p8": {
+   "42": {
+    "arm": "reserve_p8",
+    "seed": 42,
+    "k_v": 24,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     22,
+     23
+    ],
+    "exact_count": 5,
+    "ceiling": 0.8036,
+    "ceiling_at_stagger": 22,
+    "ceiling_exposed": 20.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 12.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 16.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6667,
+      "differentiation": 0.3333,
+      "exposed_median": 20.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3929,
+      "differentiation": 0.6071,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.351,
+      "differentiation": 0.649,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3667,
+      "differentiation": 0.6333,
+      "exposed_median": 23.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3813,
+      "differentiation": 0.6187,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3308,
+      "differentiation": 0.6692,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 8,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4762,
+      "differentiation": 0.5238,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 9,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3333,
+      "differentiation": 0.6667,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 10,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.346,
+      "differentiation": 0.654,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 11,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.346,
+      "differentiation": 0.654,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 12,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4444,
+      "differentiation": 0.5556,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 13,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3737,
+      "differentiation": 0.6263,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 14,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3328,
+      "differentiation": 0.6672,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 15,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3367,
+      "differentiation": 0.6633,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 16,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4762,
+      "differentiation": 0.5238,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 17,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3987,
+      "differentiation": 0.6013,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 18,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3813,
+      "differentiation": 0.6187,
+      "exposed_median": 23.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 19,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3571,
+      "differentiation": 0.6429,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 20,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.35,
+      "differentiation": 0.65,
+      "exposed_median": 21.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 21,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2545,
+      "differentiation": 0.7455,
+      "exposed_median": 20.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 22,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.1964,
+      "differentiation": 0.8036,
+      "exposed_median": 20.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 23,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.2679,
+      "differentiation": 0.7321,
+      "exposed_median": 17.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     }
+    ]
+   },
+   "43": {
+    "arm": "reserve_p8",
+    "seed": 43,
+    "k_v": 24,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     22,
+     23
+    ],
+    "exact_count": 5,
+    "ceiling": 0.8036,
+    "ceiling_at_stagger": 22,
+    "ceiling_exposed": 20.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 12.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 16.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6667,
+      "differentiation": 0.3333,
+      "exposed_median": 20.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3929,
+      "differentiation": 0.6071,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.351,
+      "differentiation": 0.649,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3667,
+      "differentiation": 0.6333,
+      "exposed_median": 23.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3813,
+      "differentiation": 0.6187,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3308,
+      "differentiation": 0.6692,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 8,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4762,
+      "differentiation": 0.5238,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 9,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3333,
+      "differentiation": 0.6667,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 10,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.346,
+      "differentiation": 0.654,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 11,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.346,
+      "differentiation": 0.654,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 12,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4444,
+      "differentiation": 0.5556,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 13,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3737,
+      "differentiation": 0.6263,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 14,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3328,
+      "differentiation": 0.6672,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 15,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3367,
+      "differentiation": 0.6633,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 16,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4762,
+      "differentiation": 0.5238,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 17,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3987,
+      "differentiation": 0.6013,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 18,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3813,
+      "differentiation": 0.6187,
+      "exposed_median": 23.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 19,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3571,
+      "differentiation": 0.6429,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 20,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.35,
+      "differentiation": 0.65,
+      "exposed_median": 21.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 21,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2545,
+      "differentiation": 0.7455,
+      "exposed_median": 20.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 22,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.1964,
+      "differentiation": 0.8036,
+      "exposed_median": 20.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 23,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.2679,
+      "differentiation": 0.7321,
+      "exposed_median": 17.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     }
+    ]
+   },
+   "44": {
+    "arm": "reserve_p8",
+    "seed": 44,
+    "k_v": 24,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     22,
+     23
+    ],
+    "exact_count": 5,
+    "ceiling": 0.8036,
+    "ceiling_at_stagger": 22,
+    "ceiling_exposed": 20.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 12.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 16.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6667,
+      "differentiation": 0.3333,
+      "exposed_median": 20.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3929,
+      "differentiation": 0.6071,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.351,
+      "differentiation": 0.649,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3667,
+      "differentiation": 0.6333,
+      "exposed_median": 23.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3813,
+      "differentiation": 0.6187,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3308,
+      "differentiation": 0.6692,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 8,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4762,
+      "differentiation": 0.5238,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 9,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3333,
+      "differentiation": 0.6667,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 10,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.346,
+      "differentiation": 0.654,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 11,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.346,
+      "differentiation": 0.654,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 12,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4444,
+      "differentiation": 0.5556,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 13,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3737,
+      "differentiation": 0.6263,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 14,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3328,
+      "differentiation": 0.6672,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 15,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3367,
+      "differentiation": 0.6633,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 16,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4762,
+      "differentiation": 0.5238,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 17,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3987,
+      "differentiation": 0.6013,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 18,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3813,
+      "differentiation": 0.6187,
+      "exposed_median": 23.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 19,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.3571,
+      "differentiation": 0.6429,
+      "exposed_median": 24.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 20,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.35,
+      "differentiation": 0.65,
+      "exposed_median": 21.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 21,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.2545,
+      "differentiation": 0.7455,
+      "exposed_median": 20.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 22,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.1964,
+      "differentiation": 0.8036,
+      "exposed_median": 20.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 23,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.2679,
+      "differentiation": 0.7321,
+      "exposed_median": 17.0,
+      "exposed_today": 24.0,
+      "exposed_flat": 12.0
+     }
+    ]
+   }
+  },
+  "reserve_p12": {
+   "42": {
+    "arm": "reserve_p12",
+    "seed": 42,
+    "k_v": 20,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     6,
+     7,
+     10,
+     13,
+     14,
+     18,
+     19
+    ],
+    "exact_count": 10,
+    "ceiling": 0.7321,
+    "ceiling_at_stagger": 19,
+    "ceiling_exposed": 17.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 12.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 16.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6667,
+      "differentiation": 0.3333,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4464,
+      "differentiation": 0.5536,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4596,
+      "differentiation": 0.5404,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4967,
+      "differentiation": 0.5033,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.4556,
+      "differentiation": 0.5444,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.4975,
+      "differentiation": 0.5025,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 8,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4596,
+      "differentiation": 0.5404,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 9,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.404,
+      "differentiation": 0.596,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 10,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7333,
+      "differentiation": 0.2667,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 11,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4308,
+      "differentiation": 0.5692,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 12,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4596,
+      "differentiation": 0.5404,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 13,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.3308,
+      "differentiation": 0.6692,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 14,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.4884,
+      "differentiation": 0.5116,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 15,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.5664,
+      "differentiation": 0.4336,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 16,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4958,
+      "differentiation": 0.5042,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 17,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4913,
+      "differentiation": 0.5087,
+      "exposed_median": 18.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 18,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.304,
+      "differentiation": 0.696,
+      "exposed_median": 18.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 19,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.2679,
+      "differentiation": 0.7321,
+      "exposed_median": 17.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     }
+    ]
+   },
+   "43": {
+    "arm": "reserve_p12",
+    "seed": 43,
+    "k_v": 20,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     6,
+     7,
+     10,
+     13,
+     14,
+     18,
+     19
+    ],
+    "exact_count": 10,
+    "ceiling": 0.7321,
+    "ceiling_at_stagger": 19,
+    "ceiling_exposed": 17.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 12.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 16.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6667,
+      "differentiation": 0.3333,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4464,
+      "differentiation": 0.5536,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4596,
+      "differentiation": 0.5404,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4967,
+      "differentiation": 0.5033,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.4556,
+      "differentiation": 0.5444,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.4975,
+      "differentiation": 0.5025,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 8,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4596,
+      "differentiation": 0.5404,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 9,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.404,
+      "differentiation": 0.596,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 10,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7333,
+      "differentiation": 0.2667,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 11,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4308,
+      "differentiation": 0.5692,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 12,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4596,
+      "differentiation": 0.5404,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 13,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.3308,
+      "differentiation": 0.6692,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 14,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.4884,
+      "differentiation": 0.5116,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 15,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.5664,
+      "differentiation": 0.4336,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 16,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4958,
+      "differentiation": 0.5042,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 17,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4913,
+      "differentiation": 0.5087,
+      "exposed_median": 18.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 18,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.304,
+      "differentiation": 0.696,
+      "exposed_median": 18.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 19,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.2679,
+      "differentiation": 0.7321,
+      "exposed_median": 17.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     }
+    ]
+   },
+   "44": {
+    "arm": "reserve_p12",
+    "seed": 44,
+    "k_v": 20,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     6,
+     7,
+     10,
+     13,
+     14,
+     18,
+     19
+    ],
+    "exact_count": 10,
+    "ceiling": 0.7321,
+    "ceiling_at_stagger": 19,
+    "ceiling_exposed": 17.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 12.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 16.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6667,
+      "differentiation": 0.3333,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4464,
+      "differentiation": 0.5536,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4596,
+      "differentiation": 0.5404,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4967,
+      "differentiation": 0.5033,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.4556,
+      "differentiation": 0.5444,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.4975,
+      "differentiation": 0.5025,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 8,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4596,
+      "differentiation": 0.5404,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 9,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.404,
+      "differentiation": 0.596,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 10,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7333,
+      "differentiation": 0.2667,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 11,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4308,
+      "differentiation": 0.5692,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 12,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4596,
+      "differentiation": 0.5404,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 13,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.3308,
+      "differentiation": 0.6692,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 14,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.4884,
+      "differentiation": 0.5116,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 15,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.5664,
+      "differentiation": 0.4336,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 16,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4958,
+      "differentiation": 0.5042,
+      "exposed_median": 20.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 17,
+      "sigma_max_median": 0.0,
+      "channel_return_median": 0.0,
+      "edge_overlap": 0.4913,
+      "differentiation": 0.5087,
+      "exposed_median": 18.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 18,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.304,
+      "differentiation": 0.696,
+      "exposed_median": 18.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 19,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.2679,
+      "differentiation": 0.7321,
+      "exposed_median": 17.0,
+      "exposed_today": 20.0,
+      "exposed_flat": 12.0
+     }
+    ]
+   }
+  },
+  "reserve_p16": {
+   "42": {
+    "arm": "reserve_p16",
+    "seed": 42,
+    "k_v": 16,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15
+    ],
+    "exact_count": 16,
+    "ceiling": 0.6072,
+    "ceiling_at_stagger": 15,
+    "ceiling_exposed": 16.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 12.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6905,
+      "differentiation": 0.3095,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.5427,
+      "differentiation": 0.4573,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.596,
+      "differentiation": 0.404,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.5313,
+      "differentiation": 0.4687,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.5631,
+      "differentiation": 0.4369,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.5657,
+      "differentiation": 0.4343,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 8,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.8,
+      "differentiation": 0.2,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 9,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6253,
+      "differentiation": 0.3747,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 10,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.5631,
+      "differentiation": 0.4369,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 11,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.598,
+      "differentiation": 0.402,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 12,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.601,
+      "differentiation": 0.399,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 13,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6782,
+      "differentiation": 0.3218,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 14,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.653,
+      "differentiation": 0.347,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 15,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.3928,
+      "differentiation": 0.6072,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     }
+    ]
+   },
+   "43": {
+    "arm": "reserve_p16",
+    "seed": 43,
+    "k_v": 16,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15
+    ],
+    "exact_count": 16,
+    "ceiling": 0.6072,
+    "ceiling_at_stagger": 15,
+    "ceiling_exposed": 16.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 12.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6905,
+      "differentiation": 0.3095,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.5427,
+      "differentiation": 0.4573,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.596,
+      "differentiation": 0.404,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.5313,
+      "differentiation": 0.4687,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.5631,
+      "differentiation": 0.4369,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.5657,
+      "differentiation": 0.4343,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 8,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.8,
+      "differentiation": 0.2,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 9,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6253,
+      "differentiation": 0.3747,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 10,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.5631,
+      "differentiation": 0.4369,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 11,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.598,
+      "differentiation": 0.402,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 12,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.601,
+      "differentiation": 0.399,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 13,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6782,
+      "differentiation": 0.3218,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 14,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.653,
+      "differentiation": 0.347,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 15,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.3928,
+      "differentiation": 0.6072,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     }
+    ]
+   },
+   "44": {
+    "arm": "reserve_p16",
+    "seed": 44,
+    "k_v": 16,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15
+    ],
+    "exact_count": 16,
+    "ceiling": 0.6072,
+    "ceiling_at_stagger": 15,
+    "ceiling_exposed": 16.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 12.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6905,
+      "differentiation": 0.3095,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.5427,
+      "differentiation": 0.4573,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.596,
+      "differentiation": 0.404,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.5313,
+      "differentiation": 0.4687,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.5631,
+      "differentiation": 0.4369,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.5657,
+      "differentiation": 0.4343,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 8,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.8,
+      "differentiation": 0.2,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 9,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6253,
+      "differentiation": 0.3747,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 10,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.5631,
+      "differentiation": 0.4369,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 11,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.598,
+      "differentiation": 0.402,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 12,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.601,
+      "differentiation": 0.399,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 13,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.6782,
+      "differentiation": 0.3218,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 14,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.653,
+      "differentiation": 0.347,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 15,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.3928,
+      "differentiation": 0.6072,
+      "exposed_median": 16.0,
+      "exposed_today": 16.0,
+      "exposed_flat": 12.0
+     }
+    ]
+   }
+  },
+  "reserve_p20": {
+   "42": {
+    "arm": "reserve_p20",
+    "seed": 42,
+    "k_v": 12,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11
+    ],
+    "exact_count": 12,
+    "ceiling": 0.3,
+    "ceiling_at_stagger": 1,
+    "ceiling_exposed": 12.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.8,
+      "differentiation": 0.2,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 8,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 9,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 10,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 11,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     }
+    ]
+   },
+   "43": {
+    "arm": "reserve_p20",
+    "seed": 43,
+    "k_v": 12,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11
+    ],
+    "exact_count": 12,
+    "ceiling": 0.3,
+    "ceiling_at_stagger": 1,
+    "ceiling_exposed": 12.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.8,
+      "differentiation": 0.2,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 8,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 9,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 10,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 11,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     }
+    ]
+   },
+   "44": {
+    "arm": "reserve_p20",
+    "seed": 44,
+    "k_v": 12,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11
+    ],
+    "exact_count": 12,
+    "ceiling": 0.3,
+    "ceiling_at_stagger": 1,
+    "ceiling_exposed": 12.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.8,
+      "differentiation": 0.2,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 8,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 9,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 10,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     },
+     {
+      "stagger": 11,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 12.0,
+      "exposed_today": 12.0,
+      "exposed_flat": 12.0
+     }
+    ]
+   }
+  },
+  "reserve_p24": {
+   "42": {
+    "arm": "reserve_p24",
+    "seed": 42,
+    "k_v": 8,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7
+    ],
+    "exact_count": 8,
+    "ceiling": 0.3,
+    "ceiling_at_stagger": 1,
+    "ceiling_exposed": 8.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.8,
+      "differentiation": 0.2,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     }
+    ]
+   },
+   "43": {
+    "arm": "reserve_p24",
+    "seed": 43,
+    "k_v": 8,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7
+    ],
+    "exact_count": 8,
+    "ceiling": 0.3,
+    "ceiling_at_stagger": 1,
+    "ceiling_exposed": 8.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.8,
+      "differentiation": 0.2,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     }
+    ]
+   },
+   "44": {
+    "arm": "reserve_p24",
+    "seed": 44,
+    "k_v": 8,
+    "exact_staggers": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7
+    ],
+    "exact_count": 8,
+    "ceiling": 0.3,
+    "ceiling_at_stagger": 1,
+    "ceiling_exposed": 8.0,
+    "rows": [
+     {
+      "stagger": 0,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 1.0,
+      "differentiation": 0.0,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 1,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 2,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 3,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 4,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.8,
+      "differentiation": 0.2,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 5,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 6,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     },
+     {
+      "stagger": 7,
+      "sigma_max_median": 1.0,
+      "channel_return_median": 1.0,
+      "edge_overlap": 0.7,
+      "differentiation": 0.3,
+      "exposed_median": 8.0,
+      "exposed_today": 8.0,
+      "exposed_flat": 8.0
+     }
+    ]
+   }
+  }
+ },
+ "validation_vs_B56": {
+  "checked": true,
+  "staggers": 20,
+  "exactness_agrees": 20,
+  "max_overlap_error": 0.018222,
+  "per_stagger": [
+   {
+    "stagger": 0,
+    "d_overlap": 0.0,
+    "exact_measured": true,
+    "exact_predicted": true
+   },
+   {
+    "stagger": 1,
+    "d_overlap": 0.0,
+    "exact_measured": true,
+    "exact_predicted": true
+   },
+   {
+    "stagger": 2,
+    "d_overlap": 3.3e-05,
+    "exact_measured": true,
+    "exact_predicted": true
+   },
+   {
+    "stagger": 3,
+    "d_overlap": 2.9e-05,
+    "exact_measured": false,
+    "exact_predicted": false
+   },
+   {
+    "stagger": 4,
+    "d_overlap": 4e-06,
+    "exact_measured": false,
+    "exact_predicted": false
+   },
+   {
+    "stagger": 5,
+    "d_overlap": 0.0033,
+    "exact_measured": false,
+    "exact_predicted": false
+   },
+   {
+    "stagger": 6,
+    "d_overlap": 4.4e-05,
+    "exact_measured": true,
+    "exact_predicted": true
+   },
+   {
+    "stagger": 7,
+    "d_overlap": 2.5e-05,
+    "exact_measured": true,
+    "exact_predicted": true
+   },
+   {
+    "stagger": 8,
+    "d_overlap": 4e-06,
+    "exact_measured": false,
+    "exact_predicted": false
+   },
+   {
+    "stagger": 9,
+    "d_overlap": 4e-05,
+    "exact_measured": false,
+    "exact_predicted": false
+   },
+   {
+    "stagger": 10,
+    "d_overlap": 3.3e-05,
+    "exact_measured": true,
+    "exact_predicted": true
+   },
+   {
+    "stagger": 11,
+    "d_overlap": 0.002533,
+    "exact_measured": false,
+    "exact_predicted": false
+   },
+   {
+    "stagger": 12,
+    "d_overlap": 4e-06,
+    "exact_measured": false,
+    "exact_predicted": false
+   },
+   {
+    "stagger": 13,
+    "d_overlap": 8e-06,
+    "exact_measured": true,
+    "exact_predicted": true
+   },
+   {
+    "stagger": 14,
+    "d_overlap": 0.000489,
+    "exact_measured": true,
+    "exact_predicted": true
+   },
+   {
+    "stagger": 15,
+    "d_overlap": 0.000267,
+    "exact_measured": false,
+    "exact_predicted": false
+   },
+   {
+    "stagger": 16,
+    "d_overlap": 0.0042,
+    "exact_measured": false,
+    "exact_predicted": false
+   },
+   {
+    "stagger": 17,
+    "d_overlap": 0.017033,
+    "exact_measured": false,
+    "exact_predicted": false
+   },
+   {
+    "stagger": 18,
+    "d_overlap": 0.018222,
+    "exact_measured": true,
+    "exact_predicted": true
+   },
+   {
+    "stagger": 19,
+    "d_overlap": 4.3e-05,
+    "exact_measured": true,
+    "exact_predicted": true
+   }
+  ]
+ }
+}
