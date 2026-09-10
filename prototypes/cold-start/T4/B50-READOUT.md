@@ -129,9 +129,15 @@ Seed 42, both T3 arms, the checkpoint ladder to 20k. `f` is structural and
 | 0 | 0.3553 | 2.456 | 0.3553 | 2.456 | 0.5307 |
 | 500 | 0.3766 | 2.603 | 0.4117 | 2.846 | 0.5061 |
 | 2000 | 0.3985 | 2.754 | 0.4333 | 2.995 | 0.4727 |
-| 5000 | 0.4099 | 2.833 | 0.4491 | 3.104 | 0.4407 |
-| 10000 | 0.4161 | 2.876 | 0.4524 | 3.127 | 0.4309 |
-| 20000 | PENDING | PENDING | **0.4337** | **2.997** | **0.4540** |
+| 5000 | 0.4132 | 2.856 | 0.4491 | 3.104 | 0.4407 |
+| 10000 | 0.4231 | 2.924 | 0.4524 | 3.127 | 0.4309 |
+| 20000 | **0.4172** | **2.884** | **0.4337** | **2.997** | **0.4540** |
+
+*Run-to-run spread, measured:* the baseline arm was run twice at seed 42 (the
+first killed at 10k by a session teardown). The two runs agree to **0.003** in
+corner mass at matched checkpoints — 0.4099 vs 0.4132 at 5k, 0.4161 vs 0.4231 at
+10k — so the trajectory is real but its increments are quoted no finer than that.
+The completed run's numbers are the ones tabled.
 
 **Mass moves toward 1, monotonically, in both arms**, fastest in the winner
 (which reaches by 500 ticks what the baseline needs 5000 for) and saturating by
@@ -142,10 +148,10 @@ Seed 42, both T3 arms, the checkpoint ladder to 20k. `f` is structural and
 corners*, which #537's statistic cannot do. Taking **#537's own statistic** —
 median leading cosine over median second cosine, per hop:
 
-| | #537, old surface | today |
-|---|---|---|
-| construction | 1.728 | **1.089** |
-| 20k | 2.021 (**widening**) | **1.058** (**narrowing**) |
+| | #537, old surface | today, baseline | today, winner |
+|---|---|---|---|
+| construction | 1.728 | **1.089** | **1.089** |
+| 20k | 2.021 (**widening**) | **1.079** (**narrowing**) | **1.058** (**narrowing**) |
 
 So on today's surface the two motions come apart and point **opposite ways**:
 the ratio narrows — the top of each spectrum flattens as more directions tie the
@@ -156,11 +162,11 @@ of the per-hop cosines on the current surface.
 
 Per hop, count of cosines above the threshold, chain population, seed 42:
 
-| | construction | baseline 10k | winner 20k |
+| | construction | baseline 20k | winner 20k |
 |---|---|---|---|
-| `r@0.90` mean | 3.023 | 3.365 | 3.552 |
-| `r@0.95` mean | 2.456 | 2.876 | 2.997 |
-| `r@0.99` mean | 2.111 | 2.359 | 2.473 |
+| `r@0.90` mean | 3.023 | 3.344 | 3.552 |
+| `r@0.95` mean | 2.456 | 2.884 | 2.997 |
+| `r@0.99` mean | 2.111 | 2.342 | 2.473 |
 | `r@0.95` **median** | 1.0 | 1.0 | 1.0 |
 | `r@0.95` **max** | 20 | 20 | 20 |
 | **forced floor `f`** | **2.086** | **2.086** | **2.086** |
@@ -179,7 +185,7 @@ B42's flat bundle is 0.0000 by this measure at its stagger-0 row.
 |---|---|---|---|---|
 | construction s42 | **0.5307** | 0.2923 | 0.7484 | 142 |
 | construction s43 / s44 | 0.5578 / 0.5453 | | | |
-| baseline 10k | 0.4650 | | | |
+| baseline 20k | **0.4712** | | | |
 | winner 20k | **0.4540** | | | |
 
 Nowhere near the flat bundle, and **falling monotonically with training** —
