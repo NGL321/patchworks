@@ -374,8 +374,14 @@ normalisation (bare)
 
 **Sheaf cohomology**:
 The cohomology of the cellular sheaf on the graph — coefficients are stalks, the differential
-is disagreement. `H⁰` is the configurations no edge disagrees on, which in Patchworks are
-exactly the features private to a cell's sub-problem. **Not** the cohomology of Baudot &
+is disagreement. `H⁰` is the configurations no edge disagrees on. In Patchworks it **contains** the
+features private to a cell's sub-problem and may be larger: a private direction is constrained by no
+edge, so it lies in `ker δ` by construction, but nothing says the kernel stops there. The split is
+`trivial = Σ_v (n − k_v)` — the mask-forced part, with `k_v` the rank of `v`'s stacked incident maps —
+and `earned = dim H⁰ − trivial`, the remainder, which counts as structure only where it exceeds the
+counting slack `generic = max(0, (columns − trivial) − rows)` (#571 for the construction, #615 for the
+reading). **Private features are exactly `H⁰` if and only if `earned` is zero**, which is a measured
+property of the current architecture and not the meaning of the word. **Not** the cohomology of Baudot &
 Bennequin's information theory, which is taken over a poset of partitions and has no graph in
 it; the two share a letter and nothing else, and must never be conflated.
 _Avoid_: cohomology (bare), information cohomology (for this object), topological invariant
@@ -399,10 +405,26 @@ _Avoid_: non-abelian (retired — it was the artifact), commutative (bare), abel
 degenerate rank-1 limit is abelian and is the failure), order-invariant
 
 **Private features**:
-The node stalk directions a cell exposes on no edge — masked out everywhere, and therefore exactly
-the sheaf's `H⁰`. Reconciliation cannot move them, which is what makes them the home of a cell's
-slowly-varying state as well as of its own sub-problem.
-_Avoid_: hidden features, internal state (reserve that for the chart), latent
+The node stalk directions a cell exposes on no edge — masked out everywhere, and therefore a **subset**
+of the sheaf's `H⁰`, the part of it the mask forces (`trivial`; see *Sheaf cohomology*). Equality is a
+measurement, not a definition, and holds only while `earned` is zero. Reconciliation cannot move them,
+which is what makes them the home of a cell's slowly-varying state as well as of its own sub-problem —
+that much is unaffected, since containment runs in the direction those claims need.
+_Avoid_: hidden features, internal state (reserve that for the chart), latent, `H⁰` (as a synonym)
+
+**Earned agreement**:
+The invariants the graph discovered it holds in common: `dim H⁰` less the mask-forced part, counting as
+structure only above the counting slack a surface in general position would give anyway
+(`earned = dim H⁰ − trivial`, read against `generic`; see *Sheaf cohomology*). It is **currently zero on
+every arm measured** — `earned − generic = +0`, eight arms of eight (#571); where raw `earned` is large
+it is counting slack, not structure — so the record's `dim H⁰` figures have been the privacy reserve and
+nothing else. A **diagnostic, never a bar** (#615, on the same terms as composed effective
+rank): it reads the transport operator rather than anything travelling on it, and it is an *exact* rank
+coincidence, so it is constructible but not learnable. It is never reported alone — **alongside audience
+differentiation at a cell and the exposure it cost**, and agreement rising at zero differentiation
+scores nothing.
+_Avoid_: agreement (bare), coordination (bare — the record uses both loosely), consensus, `H⁰` (bare,
+for this part of it)
 
 **Execution clock**:
 How often a cell runs: **one tick, uniformly across the graph**. Every cell infers one step ahead on
