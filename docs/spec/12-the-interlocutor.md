@@ -57,7 +57,7 @@ and small rather than merely recommending it.
 
 ## The alphabet
 
-**97 symbols: the 95 printable ASCII characters, plus `idle` and a turn boundary.** One-hot, and the
+**97 tokens: the 95 printable ASCII characters, plus `idle` and a turn boundary.** One-hot, and the
 **same alphabet on both rims**.
 
 One-hot because it asserts nothing. Ninety-seven dimensions is trivial beside the sandbox's
@@ -74,7 +74,7 @@ and **any structure over characters is what the graph exists to discover**.
   byte rim is three times wider for the same content.
 
 `idle` is a **value**, not an absence — #128's *silence is a value* — and it is what makes the tick
-uniform when nobody is saying anything. The turn boundary is likewise a symbol the world writes rather
+uniform when nobody is saying anything. The turn boundary is likewise a token the world writes rather
 than an event the rig signals out of band.
 
 ## The rims
@@ -151,7 +151,7 @@ uptake alongside **coherence**, a continuous motor readback
 stalk is a continuous valence scalar. So the discreteness describes **one of the wedge's two
 columns**, not the wedge.
 
-**The mixture is favoured, not tolerated.** A symbol stream read through a rim that also carries the
+**The mixture is favoured, not tolerated.** A token stream read through a rim that also carries the
 motor consequence of speaking is what learning the **dynamics of a conversation** requires, as
 against the statistics of a corpus — the same commitment *Conversational by construction* makes,
 read one level down at the stalks. It stands on ADR-0025, which put coherence on the motor rim, and
@@ -239,7 +239,7 @@ nothing.
 
 **Topics are concrete simple subjects, not formal ones.** Bounded vocabulary with high repetition is
 what a babbling stage needs. A deterministic domain such as arithmetic buys little when the agent has
-no second rim to ground symbols against — it would be manipulating strings either way — and a formal
+no second rim to ground tokens against — it would be manipulating strings either way — and a formal
 roster can be added later **without disturbing this contract**, which is why the choice is recorded as
 deferrable rather than as final.
 

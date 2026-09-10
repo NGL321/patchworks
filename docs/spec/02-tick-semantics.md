@@ -53,8 +53,8 @@ Two things fall out, neither of which needed machinery:
 [#128](https://github.com/NGL321/patchworks/issues/128) found that this ordering quietly assumed a
 world that speaks on every tick — the sandbox advances whether or not the agent acts, so something
 always lands. A world that can be *quiet* breaks that assumption, and the contract makes the
-requirement explicit instead: **a rim whose world can fall silent owes an idle symbol in its
-encoding**, and that symbol is written like any other value.
+requirement explicit instead: **a rim whose world can fall silent owes an idle token in its
+encoding**, and that token is written like any other value.
 
 The two alternatives were rejected because both cut into the ordering above, which is load-bearing well
 beyond the rim. Skipping the external write on a quiet tick leaves a stalk holding whatever

@@ -176,6 +176,35 @@ different site, coefficients, differential, and no comparison map. `CONTEXT.md` 
 formalism, which is compatible; but the two vocabularies now touch, and they must be kept apart. The
 `H¹` above is the cellular sheaf's and nothing else's.
 
+## The symbol
+
+**Recorded on 2026-09-10 at the user's request**, during the audit that compressed
+[#532](https://github.com/NGL321/patchworks/issues/532), as the name for an object the record had been
+drafting around without a title.
+
+A **symbol** is the thing outside the room that a set of invariants compresses around — the idea of an
+object, the apple in [the think tank](./analogies/think-tank.md). That is what holonomy in the sheaf is
+*for*: not that any channel individually survives a loop, but that some set of invariants closes around
+one immaterial referent, so that what is represented inside the room is defined by symbols and not by
+individual features, cells or predictors. What matters is what in the world, outside the room, is being
+represented inside it.
+
+**A symbol has no meaning on its own.** In mathematics a variable, a number, an operator, a parenthesis
+are each a symbol, and none means anything alone; a symbol is given meaning by the equation or function
+it is composed into. Here **the cells are the functions**: each cell takes the symbols arriving on its
+lanes and composes them into a function whose dynamics it approximates. That is where activity lives —
+in the function, not in the symbol — and it is why the restriction maps' basis is a non-consideration.
+Basis sometimes matters, and the design does not want it to: what is being composed is functions of
+symbols, and a symbol's identity must not depend on the frame it happens to be carried in.
+`docs/agents/reading-rules.md` carries that as the rule to quote gauge invariants.
+
+The word is borrowed from the influences list; the object, and the placement of activity in the
+functions rather than in the symbol, are the user's own. In the record's vocabulary: a symbol's
+*identity* is a community's coherent direction, read on the transport operator; its *activation* is the
+traffic riding that direction, read on the node stalks; **earned agreement** counts the symbols the room
+has registered, and reads zero today ([B48](https://github.com/NGL321/patchworks/issues/615)). The
+interlocutor's 97-element alphabet, which used to share the word, is made of **tokens**.
+
 ## The goal, replacing free energy
 
 Not minimisation of an objective — **persistent information structures.** It coincides with survival,
@@ -183,6 +212,18 @@ which is why active inference appears: not a mathematical objective but a behavi
 top of what began as a rudimentary control system. In the data structure, survival means thermodynamic
 survival, and thermodynamic survival means topological compression. *(Thin-provenance motivation, per
 the rule above.)*
+
+**What this effort demands of the system**, stated by the user on 2026-09-10: not that it performs
+useful inference, but that it performs *cohesive* inference and has internal fluid dynamics — that the
+room forms and holds symbols. Usefulness is the level after, below.
+
+## The next level, recorded as direction of travel
+
+Once the room forms and holds symbols, the level of abstraction after this one is **working with
+symbols**: cells as functions of symbols composing into functions of functions. The user's stated aim is
+the bridge between the neural approach and the symbolic one, which has been investigated little from
+either side. It is out of scope for every current map and is written here so that a decision taken now
+does not foreclose it — the same reason attention is recorded under #532's *Out of scope*.
 
 ## Attachment, recorded because it calibrates everything above
 
@@ -199,7 +240,8 @@ source for any claim in this document, and nothing above is to be presented as s
 said.
 
 Oliver Selfridge; Richard Sutton; Jeff Hawkins; Vernon Mountcastle; Karl Friston; Rajesh Rao; Bernard Koopman; Pierre
-Baudot and Daniel Bennequin; Blaise Agüera y Arcas; Ilya Prigogine; Jean Piaget; Henri Poincaré; the
+Baudot and Daniel Bennequin; Blaise Agüera y Arcas; Ilya Prigogine; Jean Piaget; Henri Poincaré; Douglas
+Hofstadter; the
 "compression is all you need" line of work; mixture-of-experts and tiny-recursive-model results;
 transformer scaling; and comparative neuroscience across mammals, cephalopods, arthropods and
 nematodes.
@@ -211,3 +253,6 @@ Selfridge is the exception the list needs stating: he is here as the **rejected*
 an adopted one, and *Where it started* above says how. Nothing in this document is to be presented as
 something he said, and the presumption of hierarchy his crowd carries is the thing this architecture
 exists to refuse.
+
+Hofstadter enters through the word *symbol* alone, and *The symbol* above says where the formulation
+departs from his: the activity is placed in the functions the cells compute, not in the symbol.

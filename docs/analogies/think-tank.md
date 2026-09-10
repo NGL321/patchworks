@@ -7,6 +7,9 @@ in the same session when the first version turned out to describe a relay networ
 predictor. That division matters: a later session must not talk the user out of an image the user
 built.
 
+**The symbol reading is the user's own** ([#532](https://github.com/NGL321/patchworks/issues/532),
+2026-09-10): the apple is a symbol, and the people are the functions that give symbols their meaning.
+
 It is the working analogy for the whole architecture. Use it in preference to inventing a new one.
 
 ---
@@ -49,7 +52,8 @@ turn out to specialise in. Everyone runs on the same clock — nobody waits.
 | a group who all mean the same thing by something | a **community** — the user's *clique* |
 | how many cliques a person is in | **abstraction** (B35) |
 | narrowing a phrasebook that never helps | a **carve** |
-| what the room genuinely agrees about | `H⁰` |
+| the apple everyone is describing | a **symbol** — its identity a community's coherent direction, its activation the traffic riding it |
+| what the room genuinely agrees about | **earned agreement** — the count of registered symbols (`dim H⁰` less the privacy reserve) |
 | porthole → room → response → world → porthole | the **world loop** |
 
 ## The five things the analogy is actually good at
@@ -168,6 +172,25 @@ deletion**. Two reasons, both visible in the room:
    closed.** An irreversible carve does not just make a bad bet — it destroys the room's ability to
    discover that it made one.
 
+## The symbol, and where its activity lives
+
+Added on 2026-09-10 from the user's ruling on [#532](https://github.com/NGL321/patchworks/issues/532).
+The apple is a **symbol**: the thing outside the room that a set of invariants compresses around. Two
+readings of it, and neither stands in for the other (§2's rule): its *identity* — which direction, over
+which community — is a fact about the phrasebooks; its *activation* — how much traffic rides that
+direction — is a fact about the pages, read as `A(θ)` beside the count `N(θ)`
+([B52](https://github.com/NGL321/patchworks/issues/622), [B62](https://github.com/NGL321/patchworks/issues/635)).
+
+A symbol means nothing on its own. It is the people who give it meaning, by composing the symbols they
+receive into the function they are trying to approximate; that is where the dynamics are. So *symbol
+activation* is the room's whole function: what matters is what in the world outside is represented
+inside, never which phrasebook carried it and never in which basis. Two consequences the analogy makes
+obvious: the flat room has exactly one symbol, spanning everyone, transmitted perfectly — which is why
+it clears the dependence gate ([B66](https://github.com/NGL321/patchworks/issues/642)) and why it is no
+architecture ([B42](https://github.com/NGL321/patchworks/issues/605)); and a room whose one agreed thing
+is the standing mean ([B57](https://github.com/NGL321/patchworks/issues/629)) has one symbol too. The
+bar on #532 asks for many, activated distinctly by what arrives at the portholes.
+
 ## Where it has been wrong
 
 Kept because a corrected analogy is more trustworthy than a clean one.
@@ -207,7 +230,7 @@ Kept because a corrected analogy is more trustworthy than a clean one.
   reading; both then had to be *measured*, and one of them came back against the prediction.
 - **It has no levels in it, and must not grow any.** [B27](https://github.com/NGL321/patchworks/issues/576)
   called the dome wager lost; no bar, reading or ADR may appeal to `level`. A room has no storeys.
-- **The apple is the user's, and it is `H⁰`.** *"Even if neither could describe it in a way the other
-  could understand, they have to be describing the same thing."* That is earned agreement — and
-  [B48](https://github.com/NGL321/patchworks/issues/615) exists because the trained architecture
-  currently has **none**.
+- **The apple is the user's, and it is a symbol.** *"Even if neither could describe it in a way the other
+  could understand, they have to be describing the same thing."* Earned agreement counts the symbols the
+  room has registered — and [B48](https://github.com/NGL321/patchworks/issues/615) exists because the
+  trained architecture currently has **none**.

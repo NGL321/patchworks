@@ -52,6 +52,14 @@ bounded by construction rather than pinned to its neighbours'. Distinct from the
 internal state, which reconciliation never touches.
 _Avoid_: node state, node embedding, activation
 
+**Traffic**:
+What a cell's node stalk carries over a window: the stream whose covariance the agreement spectrum
+reads (#622). Its uncentred effective rank is the room's **symbol capacity** — directions carrying
+traffic — and reads 2.78 with the rules off, 1.01 under the prediction rule alone, 3.13 under the
+transport rule alone (#635). Uncentred and centred are different measurements (`corr` +0.21, #567),
+and the centred one is window-bound (#629, #635); name which is quoted.
+_Avoid_: activity, signal (bare), state rank (that is one reading of it)
+
 **Communication lane**:
 The space shared by two adjacent cells, carrying a belief about a latent variable both are
 modelling in common. It carries belief only; error is never a channel in it. Non-directional:
@@ -240,6 +248,17 @@ two directions do not share a gain. Detectability rather than magnitude because 
 settles: the perturbation must be distinguishable from what stands on the edge, not clear a wall.
 _Avoid_: transmission target, reachability, the ~0.37 per hop (retired), sufficiency (bare)
 
+**Sensorimotor dependence**:
+`I(P; Δ)`, *traditional* mutual information between a content-varying, fixed-norm sensory
+perturbation within one stratum and the paired-counterfactual response at the world-read boundary,
+with the situation marginalised (#609). Rim-to-core detectability's statistic since B43b, and a
+**gate, not a ranking** (#642): quoted on patch alone, against the untrained surface and the flat
+bundle, whole-window trace, `C ≥ 16`, float64 cast with the float32 gate beside it (#637; ruled
+2026-09-10). In the symbol vocabulary: do distinct external patterns activate distinguishable
+symbols.
+_Avoid_: transmission (bare), mutual information (bare — declare it, see *Information term*),
+detectability (bare — the predicate is *rim-to-core detectability*)
+
 **Conduction ratio**:
 A cell's measured retention time over the tick length of its command-to-consequence loop —
 `τ̂_c / world_loop(c)`, dimensionless because both halves are in ticks. The numerator is the e-fold
@@ -425,6 +444,89 @@ differentiation at a cell and the exposure it cost**, and agreement rising at ze
 scores nothing.
 _Avoid_: agreement (bare), coordination (bare — the record uses both loosely), consensus, `H⁰` (bare,
 for this part of it)
+
+**Symbol**:
+The object a community's coherent direction stands for — the thing outside the room that a set of
+invariants compresses around, the think tank's apple. It has no meaning on its own: it is given meaning
+by the function it is composed into, and **the cells are the functions**, each approximating a function
+of the symbols arriving on its lanes; activity lives there, not in the symbol. Its **identity** is read
+on the transport operator (which direction, over which community) and does not depend on the frame the
+maps carry it in — quote gauge invariants (`docs/agents/reading-rules.md`); its **activation** is read
+on the node stalks (the traffic riding that direction, `A(θ)` beside `N(θ)`). Holonomy exists to keep a
+symbol's identity route-free; *audience differentiation* says which cells a symbol spans; *earned
+agreement* counts the symbols the room has registered. The word is on the motivating image's
+influences list; the object is the user's own (#532, 2026-09-10). What the interlocutor writes is a
+*token*, not a symbol.
+_Avoid_: token (reserve for the interlocutor's alphabet), concept (bare), feature, representation,
+active symbol, symbolic (in the sense of symbolic AI)
+
+**Community**:
+A *connected* set of cells over which one direction stays consistent — a group who all mean the same
+thing by something (#594). Explicitly not graph learning's density sense: a tight huddle can agree on
+nothing, and a strung-out chain can all mean the same thing. A symbol's support. **Abstraction is the
+number of communities a cell belongs to**, replacing hop distance (#594, #576). Read on B22's
+construction-level instrument (#571); the cell-local count is degenerate to degree at `p = 12` (#607).
+_Avoid_: clique (the graph-theoretic density sense), coherent structure (retired, #594), region
+(bare), level
+
+**Audience differentiation**:
+How differently a cell speaks to its different neighbours: one less the mean squared cosine between
+the subspaces its incident lanes carry (`1 − Σcos²θ / min(m_in, m_out)`, #618). Zero means a cell says
+one thing on every lane — the flat bundle's defining property (#605) — and exact path-independence
+holds only there. The measure of a symbol set's *locality*: cells belonging to different symbol sets.
+Operator-side; reported beside any agreement or holonomy reading, and void while `k_v` moves
+unreported (#631).
+_Avoid_: differentiation (bare), specialisation, diversity
+
+**Channel return**:
+Holonomy read on the sub-bundle a loop actually carries: the leading singular direction's return,
+`|⟨u₁, v₁⟩|`, around a cycle of restriction maps (#585, #624). One is a symbol returning as itself.
+Contrast **identification**, `‖UVᵀ − I‖_F / √(2m)`, the full-stalk form, which sits at chance on every
+trained arm and which a graded term need not close. Both are operator-side; a term whose gradient
+reads no stalk may be read past the stall stamp (#628).
+_Avoid_: alignment (bare), cycle consistency (the field's word), holonomy (bare — say which form)
+
+**Flat bundle**:
+One orthogonal frame per cell with the edge map the frames' product, so every cycle closes exactly:
+`identification` 0.0000, `channel_return` 1.0000 at construction (#603, #605). Exactly
+path-independent because every cell says one thing on every lane — audience differentiation 0.0000 —
+so it carries one symbol spanning the room. Refused as architecture ("a fancy mixture of experts",
+#605) and **retained as #532's null**: it earns 88 dimensions of agreement at zero differentiation and
+clears the dependence gate (#642). It does not stay at zero under training (#634, #646).
+_Avoid_: trivial sheaf, constant sheaf, the null (bare — say which)
+
+**Staggered frame**:
+An initialisation that gives each incident lane a different block of rows of the cell's permitted
+window, in an exact family arithmetic in `k_v = n − p` (#628, #630). The per-cell frame cancels out of
+every hop, so it is an arrangement of which symbols ride which lane, not a basis. Reaches
+`channel_return` 0.9995 at differentiation 0.63 with no objective term, settling at 0.39 by 30,000
+ticks on one seed (#634). A candidate on #655, never yet read on the bar (#657).
+_Avoid_: stagger (bare), frame (bare)
+
+**Exposure**:
+How much of a cell's node stalk its lanes actually use: the participation ratio of `Σ_e F_eᵀF_e`
+(rank-measured `k_v` reads 20.0 on every arm and sees nothing, #628, #630). The quantity an agreement
+statistic is reported *with* — agreement bought by exposing more of the page is priced, not free. The
+staggered frame buys it (13.6 against a random start's 8.7 at 2,000 ticks) and decays to 9.4 by
+30,000 (#634).
+_Avoid_: capacity (bare), rank (bare), private dimension (that is the reserve)
+
+**Clamp**:
+A construction-time object standing between a trained parameter and the quantity the architecture
+reads, so the parameter moves and the reading does not. Four on record: the restriction-map mask,
+re-applied by `project()` (#571); the band on `K`, pinning `σ(used)` at 1.000 while `ρ(K)` moves
+(#610); rank-measured `k_v` at 20.0 while differentiation moves (#628); and `spec.joints = 3` at the
+dependence gate's terminus (#637, #643). A candidate that proposes to train a quantity states which
+clamp stands between the parameter and the reading.
+_Avoid_: constraint (bare), regulariser, bottleneck
+
+**Carve**:
+Narrowing a lane that never helps: a per-edge width allocation that counts the directions clearing
+threshold on the short local cycles through the edge, floored, capped and rationed (#593, #604).
+Pruning is the `m_e = 0` case. **A reallocation, never a deletion** — a pruned edge's warrant stays
+readable, reversibility is graded, and the rule reaches the node-stalk mask (#604, #605). Every carve
+prices its `world_loop` cost (#601). Out of #532's scope as an architecture; the effort after it.
+_Avoid_: prune (bare), sparsify, delete an edge
 
 **Execution clock**:
 How often a cell runs: **one tick, uniformly across the graph**. Every cell infers one step ahead on
@@ -658,9 +760,10 @@ _Avoid_: pyramid, cone, hierarchy, layers
 
 **Level**:
 One stage of the dome's taper, indexed by hop distance from the sensorimotor boundary. Not a tier
-a cell belongs to by attribute — a level is a set of cells at a distance, and abstraction is that
-distance.
-_Avoid_: layer, tier, stage, rank
+a cell belongs to by attribute — a level is a set of cells at a distance. **It is not abstraction**:
+abstraction is community membership (see *Community*; #594 struck the distance reading, and #576
+called the dome wager lost, so no bar, reading or ADR appeals to level).
+_Avoid_: layer, tier, stage, rank, abstraction
 
 **Core**:
 The dome's deep levels: small, not a lattice, where the modalities first share a cell and where
@@ -738,14 +841,15 @@ _Avoid_: feedback, acknowledgement, actual torque
 
 **Sensorimotor rim**:
 The region of the graph where the world touches it — the sensory and motor boundary cells together.
-Abstraction is hop distance from this rim; internal faculties attach at other rims without being
-concrete.
+Abstraction is *not* hop distance from this rim (struck on #594; see *Community*); internal
+faculties attach at other rims without being concrete.
 _Avoid_: input layer, periphery, level zero
 
 **Internal rim**:
 Where something outside the sheaf that is *not the world* attaches — the drive boundary cell today, a
-limbic-analogue appetite or a hippocampal-analogue memory later. Physically the **apex**, so a faculty
-is abstract by attachment point. What attaches here is an **internal faculty**, and it is barred from
+limbic-analogue appetite or a hippocampal-analogue memory later. Physically the **apex** today; *a faculty
+is abstract by attachment point* is struck (#589), and the attachment rule becomes conduction to the
+actuator under a span floor, written on #659. What attaches here is an **internal faculty**, and it is barred from
 two things: holding its own model of the world, and reaching the world by any route but the graph.
 Attention is *not* one of these — its likely mechanism is in-graph.
 _Avoid_: abstract rim, top-down interface, internal boundary
@@ -930,6 +1034,13 @@ remarks on the babble, and supplies no instruction, so what it gives the agent i
 rather than a target to match. It is the entire compute cost of the domain, which is why it is small
 and local. The counterpart of the *arm and arena* together, not of either alone.
 _Avoid_: teacher, oracle, environment model, partner model, LLM (bare), corpus
+
+**Token**:
+One element of the interlocutor's 97-element alphabet — the 95 printable ASCII characters plus `idle`
+and the turn boundary — a unit of language work the world writes onto the wedge's rim, one per tick.
+Not a symbol: a token carries no meaning of its own and no invariant closes around it; symbols are
+what the room may form *from* a token stream.
+_Avoid_: symbol (reserve for the room's object), character (the alphabet has two non-characters)
 
 **Floor**:
 Which party currently holds the right to speak. Half-duplex, so exactly one does. Not a lock the rig

@@ -178,7 +178,7 @@ precisely where a future reader will come looking for permission to assume other
   - **`colspan(D)`** — unchanged, still read first. It is shared across cells and fixed at
     construction, and it references no geometry at all.
   - **The lag floor** — unchanged in principle. The **quiescent hold is available** in language
-    because `idle` is a symbol in the 97-alphabet, so holding the world still is something the
+    because `idle` is a token in the 97-token alphabet, so holding the world still is something the
     interlocutor can do. **One instrument detail is unsettled, and is recorded as open rather than
     invented here**: the hold's second half is *sweep configurations while held*, and what a sweep
     is on the **heard** column with the world silent is not obvious. It belongs to stage 5's demo

@@ -254,7 +254,7 @@ whether or not it has anything to say. There is no standstill available: **the a
 act.**
 
 **The failure takes a new form: constant emission** — the agent settling on whichever single character
-is cheapest to keep predicting, plausibly a space or a vowel rather than the idle symbol itself. That
+is cheapest to keep predicting, plausibly a space or a vowel rather than the idle token itself. That
 is a degenerate fixed point, it is reachable, it is stable, and it is low-error for exactly the reason
 the dark room is.
 
@@ -264,7 +264,7 @@ and maximally predictable ([`12-the-interlocutor.md`](./12-the-interlocutor.md),
 idle run yields the floor*). The degenerate fixed point and the failure to yield the floor are the
 **same object**, which is why one observable catches both.
 
-**The observable is emission entropy, not idle-symbol fraction.** Idle fraction reads only the
+**The observable is emission entropy, not idle-token fraction.** Idle fraction reads only the
 special case where the character the agent settles on happens to be idle; entropy reads the whole
 family, and the family is what the failure actually is.
 
