@@ -372,6 +372,32 @@ level wrong.
 _Avoid_: spectral radius bound, stability constraint, scale gauge (that is the sheaf's), spectral
 normalisation (bare)
 
+**Information term**:
+Any term naming an information-theoretic quantity — `H⁰`, `H¹`, entropy, mutual information —
+**declares itself `traditional` or `cohomological`**, and a `cohomological` use **names its site**.
+**`traditional`** is an ordinary Shannon quantity on random variables: no graph, no complex, no
+coboundaries — #609's `I(P; Δ)` is this. **`cohomological`** is a class of a cohomology and is
+**never self-sufficient**, because two sites are in play that share notation and share nothing else:
+this project's **cellular sheaf on the graph** (*Sheaf cohomology* below), and **Baudot &
+Bennequin's poset of partitions**, which has no graph in it and in which the higher mutual
+informations are coboundaries, hence zero in cohomology. There is no functor and no comparison map
+between them (`docs/research/015-information-cohomology.md`, whose *say which is meant* rule is this
+standard's ancestor). So the declaration is three-way in practice: `traditional`, or `cohomological`
+naming which site.
+**A declaration may be inline or standing**, and the two `H¹` firewall sentences — in *Sheaf
+cohomology* and *Free abelian* — are the standing one for the sheaf side, which is why a bare `H⁰`
+in a sheaf-side document is declared already. Outside such a scope, and for **every** entropy or
+mutual-information term anywhere, the declaration is inline. **What the standard replaces is
+counting**: the record guarded `H¹` alone and tracked the guard by hand — *"this is the second `H¹`
+sentence in the record"* — while bare *mutual information* and bare *entropy* went unguarded, which
+is exactly where #609 needed one. A standing declaration is what a hand count becomes when the class
+it guards outgrows it.
+**The qualifier is `cohomological`, not `topological`.** *Topological invariant* is on *Sheaf
+cohomology*'s Avoid list deliberately — it overstates what a graph-dependent linear-algebra object
+is — and *topological* as the qualifier re-imports the overstatement that ban exists to block.
+_Avoid_: mutual information (bare), entropy (bare), topological (as the qualifier), information
+cohomology (for the sheaf's object — see *Sheaf cohomology*)
+
 **Sheaf cohomology**:
 The cohomology of the cellular sheaf on the graph — coefficients are stalks, the differential
 is disagreement. `H⁰` is the configurations no edge disagrees on. In Patchworks it **contains** the
@@ -383,7 +409,9 @@ counting slack `generic = max(0, (columns − trivial) − rows)` (#571 for the 
 reading). **Private features are exactly `H⁰` if and only if `earned` is zero**, which is a measured
 property of the current architecture and not the meaning of the word. **Not** the cohomology of Baudot &
 Bennequin's information theory, which is taken over a poset of partitions and has no graph in
-it; the two share a letter and nothing else, and must never be conflated.
+it; the two share a letter and nothing else, and must never be conflated. **This entry is a standing
+`cohomological` declaration for this project's site** (see *Information term*), which is what makes a
+bare `H⁰` or `H¹` legible in a sheaf-side document.
 _Avoid_: cohomology (bare), information cohomology (for this object), topological invariant
 
 **Free abelian**:
@@ -396,11 +424,14 @@ the prize** — the sign #315 reads it under. Heterogeneity is preserved and re-
 **different subsets of the generators** — different masks, different degree, different `m_e` — not
 different orders. Corrected from `non-abelian`, a dictation artifact in `docs/motivating-image.md`,
 on #411.
-**The `H¹` firewall holds here too, and this is the second `H¹` sentence in the record.** The holonomy
-obstruction named alongside this is the **cellular sheaf's** `H¹` and nothing else's — never Baudot &
-Bennequin's, whose `H¹` is a different group of a different complex over a different site, with no
-comparison map between them (`docs/research/015-information-cohomology.md`). Which is why
-*topological invariant* is on the Avoid list above and stays there.
+**The `H¹` firewall holds here too, and this sentence is a standing `cohomological` declaration** (see
+*Information term*). The holonomy obstruction named alongside this is the **cellular sheaf's** `H¹`
+and nothing else's — never Baudot & Bennequin's, whose `H¹` is a different group of a different
+complex over a different site, with no comparison map between them
+(`docs/research/015-information-cohomology.md`). Which is why *topological invariant* is on the Avoid
+list above and stays there — and why `topological` is not the qualifier the standard uses. The
+record's hand count of its `H¹` sentences is retired with the standard that replaced it; the guard is
+no longer `H¹`-only, so a count over the class it now covers is not maintainable by hand.
 _Avoid_: non-abelian (retired — it was the artifact), commutative (bare), abelian (bare — the maps'
 degenerate rank-1 limit is abelian and is the failure), order-invariant
 

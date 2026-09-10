@@ -176,7 +176,17 @@ Line them up:
 The two theories share the letters `H`, `δ`, "cochain," and "sheaf," and share nothing else. There
 is no functor, no comparison map, and no spectral sequence in the literature relating a Patchworks
 lane `H¹` to an entropy class. **Any Patchworks document that puts the two `H¹`s in the same
-sentence must say which is meant.** In particular, `01-cell-and-sheaf.md`'s Dirichlet-energy/
+sentence must say which is meant.**
+
+**That rule has a successor, and the successor is what binds** (#638, graduated from #609): every
+information-theoretic term in the record — `H⁰`, `H¹`, entropy, mutual information — declares itself
+`traditional` or `cohomological`, and a `cohomological` use names its site. See `CONTEXT.md`'s
+**Information term**. The rule above reached `H¹` only, and reached it only when both `H¹`s appeared
+together; the standard reaches every such term at every use, which is what #609 needed when it had
+to say that `I(P; Δ)` is a Shannon quantity and nothing here touches it. This section remains the
+**evidence** — the site-by-site comparison the standard rests on — and the standard remains the rule.
+
+In particular, `01-cell-and-sheaf.md`'s Dirichlet-energy/
 harmonic-space machinery lives entirely on the *cellular* side; information cohomology contributes
 nothing to it.
 

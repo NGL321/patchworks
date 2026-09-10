@@ -137,6 +137,11 @@ differential, no comparison map in the literature. Everything here is on the
 `CONTEXT.md` puts *"topological invariant"* on an `_Avoid_` list and this module
 observes it.
 
+In the standard's own words (`CONTEXT.md`, **Information term**): every reading in
+this module is **cohomological on the cellular sheaf on the graph**, and this
+paragraph is that declaration standing for the module. Nothing here is a
+`traditional` Shannon quantity.
+
 This rig **rules on no remedy**. [#396](https://github.com/NGL321/patchworks/issues/396)
 is the alignment proposal ADR-0032 superseded and it stays superseded; running
 #315's instrument is not adopting #315, which goes `adopted` when an ADR covers
