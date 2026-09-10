@@ -133,11 +133,17 @@ Seed 42, both T3 arms, the checkpoint ladder to 20k. `f` is structural and
 | 10000 | 0.4231 | 2.924 | 0.4524 | 3.127 | 0.4309 |
 | 20000 | **0.4172** | **2.884** | **0.4337** | **2.997** | **0.4540** |
 
-*Run-to-run spread, measured:* the baseline arm was run twice at seed 42 (the
-first killed at 10k by a session teardown). The two runs agree to **0.003** in
-corner mass at matched checkpoints — 0.4099 vs 0.4132 at 5k, 0.4161 vs 0.4231 at
-10k — so the trajectory is real but its increments are quoted no finer than that.
-The completed run's numbers are the ones tabled.
+*Run-to-run spread, measured — both arms were run twice at seed 42, by accident.*
+A session teardown orphaned the first run rather than killing it, so each arm has
+an independent replicate:
+
+- **baseline**: 0.4099 vs 0.4132 at 5k, 0.4161 vs 0.4231 at 10k — agree to 0.007.
+- **winner**: 0.4524 vs 0.4502 at 10k, 0.4337 vs 0.4344 at 20k — agree to 0.002.
+
+Identical seeds and arms, so this is the rig's own nondeterminism, not a
+condition. The trajectory (+0.06 to +0.10 in corner mass) is an order of
+magnitude larger than it and is quoted no finer. The tabled numbers are the runs
+this session drove; the replicates are in the git history of the same files.
 
 **Mass moves toward 1, monotonically, in both arms**, fastest in the winner
 (which reaches by 500 ticks what the baseline needs 5000 for) and saturating by
