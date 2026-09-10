@@ -67,7 +67,8 @@ def main() -> None:
 
     print("\n== 2. The headline profile: peak feature, k=8, nearest-centroid ==\n")
     h = f"{'arm':<11}{'stratum':<16}{'acc':>7}{'MI':>8}{'null':>8}{'excess':>9}{'p':>8}{'ceil':>7}"
-    print(h); print("-" * len(h))
+    print(h)
+    print("-" * len(h))
     for arm in ARMS:
         for kind, block, r in rows(arms[arm], "peak|k8|all|centroid"):
             print(f"{arm:<11}{kind:<16}{r['accuracy']:>7.3f}{r['mi_bits']:>8.3f}"
@@ -76,7 +77,8 @@ def main() -> None:
 
     print("\n== 3. The k-ladder (nested labels, so it is free) ==\n")
     h = f"{'arm':<11}{'stratum':<16}" + "".join(f"{'k=' + str(k):>18}" for k in (2, 4, 8))
-    print(h); print("-" * len(h))
+    print(h)
+    print("-" * len(h))
     for arm in ARMS:
         for kind in KINDS:
             block = arms[arm]["profile"]["strata"][kind]
@@ -90,7 +92,8 @@ def main() -> None:
 
     print("\n== 4. The configuration ladder -- the sweep IS the noise model ==\n")
     h = f"{'arm':<11}{'stratum':<16}" + "".join(f"{'C=' + str(c):>10}" for c in (4, 8, 16, 24))
-    print(h); print("-" * len(h))
+    print(h)
+    print("-" * len(h))
     for arm in ARMS:
         for kind in KINDS:
             lad = arms[arm]["profile"]["strata"][kind]["config_ladder"]
@@ -105,7 +108,8 @@ def main() -> None:
 
     print("\n== 5. Decoder and feature, on the trained arm ==\n")
     h = f"{'variant':<28}{'acc':>7}{'MI':>8}{'null':>8}{'excess':>9}{'p':>8}"
-    print(h); print("-" * len(h))
+    print(h)
+    print("-" * len(h))
     for kind in KINDS:
         for key in ("peak|k8|all|centroid", "peak|k8|all|nn1",
                     "trace|k8|all|centroid", "peak|k8|gated|centroid"):
@@ -134,7 +138,8 @@ def main() -> None:
         print("  stalks, this is on the lane. No number crosses (B49, #616).\n")
         h = (f"{'stratum':<16}{'edges':>7}{'median':>9}{'null':>8}{'excess':>9}"
              f"{'max':>8}{'p<=.05':>12}{'min':>7}")
-        print(h); print("-" * len(h))
+        print(h)
+        print("-" * len(h))
         for kind in KINDS:
             s = L["strata"][kind]
             print(f"{kind:<16}{s['carried_edges']:>7}{s['mi_median_bits']:>9.3f}"
