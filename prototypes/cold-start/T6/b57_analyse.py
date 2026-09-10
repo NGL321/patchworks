@@ -69,8 +69,9 @@ def show_accept(r: dict) -> None:
         print(full_profile(f"scrambled/{name}", a))
     print()
     print("-- window stability (same held configuration, frozen maps) --")
-    for w, a in r["window_stability"].items():
-        print(profile_line(f"T = {w}", a))
+    for w, pair in r["window_stability"].items():
+        for variant in ("uncentred", "centred"):
+            print(profile_line(f"T = {w} / {variant}", pair[variant]))
     print()
     print("-- matched-generic null on the same traffic --")
     print(f"   generic q_weighted mean {r['generic']['q_weighted_mean']:.4f} "

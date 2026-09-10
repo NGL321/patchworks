@@ -59,14 +59,26 @@ beside it.
 every cold-start figure on this rig has been taken over. Re-read on the same
 held configuration at frozen maps:
 
-| `T` | traffic ER | `q̄` |
-|---|---|---|
-| 250 | 2.7303 | 0.9411 |
-| 500 | 2.7564 | 0.9405 |
-| 1000 | 2.7656 | 0.9410 |
+| `T` | traffic ER, uncentered | `q̄`, uncentered | traffic ER, **centred** | `q̄`, centred |
+|---|---|---|---|---|
+| 250 | 2.7303 | 0.9411 | 13.014 | 1.0262 |
+| 500 | 2.7564 | 0.9405 | 18.465 | 1.0249 |
+| 1000 | 2.7656 | 0.9410 | 24.912 | 1.0235 |
 
-A single tick is not a covariance and the whole run is not a state; 1,000 ticks
-is stable to the fourth decimal against a quarter of itself.
+A single tick is not a covariance and the whole run is not a state; on B52's
+uncentered form 1,000 ticks is stable to the fourth decimal against a quarter of
+itself.
+
+> **The defence does not transfer to the centred form, and this is a limit on
+> §4 rather than on the window.** Centred traffic ER grows monotonically with
+> `T` — 13.0 → 18.5 → 24.9 as the window quadruples — because the centred
+> covariance of a slowly-varying configuration keeps admitting directions as the
+> window lengthens. **So the centred effective ranks quoted in §4 are not
+> window-independent quantities and no architectural conclusion rests on their
+> magnitude.** What does not move with the window is the count: centred `N(θ)`
+> is **0.0000 at every `θ` at every `T`**, which is the reading §3 actually
+> carries. Whether the *trained* centred ranks are window-stable is unmeasured —
+> the sweep was run at construction only.
 
 ## 3. What it reads — and the two forms disagree about what the room agrees on
 
@@ -125,6 +137,14 @@ is not born at rank one and held there — it *starts* at 2.77 uncentered and
 Stated as measured and not as mechanism: the collapse **co-occurs with the
 training rule running**, and this ticket did not run an arm with the rule off
 past construction, so it cannot attribute it.
+
+**And the centred column of that table is window-dependent** (§2): centred ER at
+construction reads 13.0 / 18.5 / 24.9 at `T` = 250 / 500 / 1000, so *24.912 →
+1.611* is a fall measured at one window rather than a bound on the architecture.
+The uncentered column does not have this problem. **The direction of the fall is
+robust and its magnitude is not**, and B53's fork — *is centred ER materially
+above 1.002?* — is therefore answered only in the weak form: **there is centred
+rank at construction that is not there at the horizon**, at `T = 1,000`.
 
 ## 5. The flat bundle: B52's §5 prediction is confirmed, in its own words
 
@@ -191,6 +211,9 @@ not a repair to the instrument.
   candidate, and reading it is item 3 rather than a scoring.
 - **The collapse is not attributed.** §4 measures that traffic rank falls while
   the rule runs; it does not isolate the rule as the cause.
+- **Centred effective rank is window-dependent** (§2), so §4's centred column
+  reports a direction and not a magnitude. The sweep was run at construction
+  only; whether the trained centred ranks are window-stable is unmeasured.
 - **`N(θ)` above 1 was never observed**, so nothing here says what the instrument
   would read on a surface whose traffic carries rank — which is exactly
   [B53 (#623)](https://github.com/NGL321/patchworks/issues/623)'s and
