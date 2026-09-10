@@ -26,7 +26,7 @@ fact and at cost).
 **One console log is not a record and is kept marked as such.** This box's
 low-memory guard killed the runner script three times while its python child
 survived and kept writing, so two frozen 20,000-tick arms ran concurrently and
-**interleaved their lines into `635-frozen-20k.log`**. The JSON records are
+**interleaved their lines into `635-frozen-20k-INTERLEAVED.log`**. The JSON records are
 unaffected — each is rewritten whole at every checkpoint, so a file is always one
 run — and the surviving 20,000 record is internally consistent with monotonic
 elapsed times. Every number in this readout is taken from a JSON record and none
@@ -109,21 +109,21 @@ run per column.
 | rung | frozen | bias only | transport only | both (B57) |
 |---|---|---|---|---|
 | construction | 2.7798 | 2.7798 | 2.7798 | 2.7656 |
-| 100 | 2.7801 | 2.8069 | 2.8266 | 2.8073 |
-| 200 | 2.7804 | 2.8324 | 3.1265 | 2.8378 |
-| 500 | 2.7750 | 3.0288 | 3.3558 | 2.9825 |
-| 1,000 | 2.7786 | **1.3399** | 3.4018 | **1.0967** |
-| 2,000 | 2.7819 | **1.0087** | 3.0982 | 1.0132 |
-| 5,000 | 2.7812 | **1.0089** | **3.0024** | 1.0130 |
+| 100 | 2.7801 | 2.8069 | 2.8109 | 2.8073 |
+| 200 | 2.7804 | 2.8324 | 2.9705 | 2.8378 |
+| 500 | 2.7750 | 3.0288 | 3.1619 | 2.9825 |
+| 1,000 | 2.7786 | **1.3399** | 3.1837 | **1.0967** |
+| 2,000 | 2.7819 | **1.0087** | 3.3307 | 1.0132 |
+| 5,000 | 2.7812 | **1.0089** | **3.1347** | 1.0130 |
 
 `q` of the leading direction, same arms and rungs:
 
 | rung | frozen | bias only | transport only | both (B57) |
 |---|---|---|---|---|
 | construction | 0.8832 | 0.8832 | 0.8832 | 0.8842 |
-| 500 | 0.8833 | 0.8808 | 0.1955 | 0.6694 |
-| 1,000 | 0.8832 | 0.5550 | 0.1611 | 0.2117 |
-| 5,000 | 0.8835 | **0.5495** | **0.0543** | 0.1830 |
+| 500 | 0.8833 | 0.8808 | 0.1779 | 0.6694 |
+| 1,000 | 0.8832 | 0.5550 | 0.1133 | 0.2117 |
+| 5,000 | 0.8835 | **0.5495** | **0.0636** | 0.1830 |
 
 **The two rules are not two halves of one movement. They are antagonistic on the
 rank.**
@@ -133,9 +133,9 @@ rank.**
   1.0132 — on the same interval, and its leading direction stops at `q = 0.5495`
   with `A(0.25) = 0.0039`. Nothing is agreed at the end of it.
 - **`TransportRule` buys the agreement and *raises* the rank.** It never
-  collapses: 2.7798 → 3.4018 at 1,000, settling at 3.0024. Its leading direction
-  reaches `q = 0.0543` — **better alignment than both rules together manage**
-  (0.1830) — at `A(0.25) = 0.5769`.
+  collapses: 2.7798 → 3.1837 at 1,000, peaking at 3.3307 and ending at 3.1347.
+  Its leading direction reaches `q = 0.0636` — **better alignment than both rules
+  together manage** (0.1830) — at `A(0.25) = 0.5552`.
 
 So the collapse #635 asks about is **`PredictionRule`'s alone**, and the
 agreement B52's instrument was built to see is **`TransportRule`'s alone**. The
@@ -147,8 +147,8 @@ transport rule would.
 exposure and audience differentiation **bit-identical to the frozen arm** at
 every rung (9.05/32 and 0.5307), because it updates `K` and never touches a
 restriction map; the traffic it collapses is the traffic the body *generates*.
-`TransportRule` holds differentiation flat (0.5307 → 0.5313) and spends
-**2.03 dimensions of exposure per cell** (9.05 → 7.02). Read against B48's
+`TransportRule` **raises** differentiation (0.5307 → 0.5505) and spends
+**1.96 dimensions of exposure per cell** (9.05 → 7.09). Read against B48's
 constraint — *agreement rising while differentiation stays nonzero* — the
 transport rule passes the differentiation clause outright and pays in the
 exposure column instead. The both-on arm spends differentiation (→ 0.4826) and
@@ -321,9 +321,9 @@ Exposure (effective median of 32) and differentiation (median), all four arms:
 | rung | frozen | bias | transport | both (B57) |
 |---|---|---|---|---|
 | construction | 9.05 / 0.5307 | 9.05 / 0.5307 | 9.05 / 0.5307 | 9.05 / 0.5307 |
-| 500 | 9.05 / 0.5307 | 9.05 / 0.5307 | 7.45 / 0.5264 | 9.04 / 0.5206 |
-| 1,000 | 9.05 / 0.5307 | 9.05 / 0.5307 | 7.18 / 0.5225 | 8.90 / 0.5161 |
-| 5,000 | 9.05 / 0.5307 | 9.05 / 0.5307 | **7.02 / 0.5313** | 8.62 / 0.4826 |
+| 500 | 9.05 / 0.5307 | 9.05 / 0.5307 | 7.30 / 0.5262 | 9.04 / 0.5206 |
+| 1,000 | 9.05 / 0.5307 | 9.05 / 0.5307 | 6.87 / 0.5282 | 8.90 / 0.5161 |
+| 5,000 | 9.05 / 0.5307 | 9.05 / 0.5307 | **7.09 / 0.5505** | 8.62 / 0.4826 |
 
 Three things this column says that no agreement number does:
 
@@ -332,11 +332,12 @@ Three things this column says that no agreement number does:
   the bias arm it is a *finding* — `PredictionRule` collapses the traffic's rank
   by a factor of 2.8 **at exactly zero cost in either column**, because it never
   touches a restriction map.
-- **`TransportRule` pays in exposure and not in differentiation** — 2.03
-  dimensions per cell, differentiation ending where it started (0.5307 → 0.5313).
-  Read against B48's constraint, *agreement rising while differentiation stays
-  nonzero*, the transport rule passes the differentiation clause outright; its
-  price is in the column B48 asks to be reported beside it.
+- **`TransportRule` pays in exposure and *gains* differentiation** — 1.96
+  dimensions per cell spent, differentiation ending **above** where it started
+  (0.5307 → 0.5505). Read against B48's constraint, *agreement rising while
+  differentiation stays nonzero*, the transport rule does not merely pass the
+  differentiation clause, it moves that column the right way; its whole price is
+  in the column B48 asks to be reported beside it.
 - **The both-on arm's price is neither rule's own.** It spends differentiation
   (→ 0.4826, and → 0.4893 by 20,000) and less exposure (→ 8.62) than transport
   alone. The compromise costs a column that neither lever costs by itself.
@@ -405,12 +406,15 @@ relocates the lever is #633's to rule on; this ticket does not rule it.
   **The frozen arm does carry the full horizon** — 2.7798 → 2.7817 over 20,000
   ticks — so item 1's *the rank does not decay on its own* is read to B57's own
   horizon and not bracketed.
-- **The split arms carry no matched-generic null.** `against_generic` re-assembles
-  three full `δ_P`/`G` pairs per reading and is the rig's dominant memory cost;
-  this box's low-memory guard killed three runs before it was dropped. B57
-  established `N_gen = 0.0000` at every level, arm, checkpoint and redraw, and
-  items 1–2 ask about the rank and `q`, not the excess — but the excess is
-  inherited on those two arms rather than re-measured.
+- **The published transport figures were re-taken.** The first transport arm was
+  run with the matched-generic null switched off to survive this box's
+  low-memory guard, and its output file was then overwritten by the runner
+  chain's own transport run before the commit. Everything above is the surviving
+  record; the two runs agree in every qualitative respect (ER never below 3.1,
+  `q` of the leading direction below 0.07, `A(0.25)` ≈ 0.55) and differ in the
+  second decimal. **All three surviving arms do carry the matched-generic null**,
+  three redraws each, reading `N_gen = A_gen = 0.0000` — so the excess is
+  measured on every arm here rather than inherited from B57.
 - **§2's antagonism is measured, not explained.** *Why* `TransportRule` raises
   traffic ER while `PredictionRule` collapses it is not established here. The
   obvious asymmetry — one rule writes `K` and the other writes the maps — is a
