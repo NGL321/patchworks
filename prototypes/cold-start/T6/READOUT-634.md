@@ -68,19 +68,42 @@ but it is dominated by the fast early decay and the flattening tail is exactly w
 [B50 (#618)](https://github.com/NGL321/patchworks/issues/618)'s rule: the comparison is the gap at a
 rung, never the level against 0.0000.
 
+Seed 42, and seed 43 beneath it — **both seeds, both arms, every shared rung**:
+
 | ticks | 2000 | 4000 | 6000 | 9000 |
 | ---: | ---: | ---: | ---: | ---: |
-| `s19` diff | 0.5361 | 0.4949 | 0.4713 | 0.4313 |
-| `s0` diff (flat bundle) | 0.0803 | 0.0952 | 0.1079 | **0.1269** |
-| **gap** | 0.4558 | 0.3997 | 0.3635 | **0.3044** |
-| gap rate per 1k | −0.041 | −0.028 | −0.018 | −0.020 |
+| `s19` diff, seed 42 | 0.5361 | 0.4949 | 0.4713 | 0.4313 |
+| `s0` diff (flat bundle), seed 42 | 0.0803 | 0.0952 | 0.1079 | **0.1269** |
+| **gap, seed 42** | 0.4558 | 0.3997 | 0.3635 | **0.3044** |
+| gap rate per 1k, seed 42 | −0.041 | −0.028 | −0.018 | −0.020 |
+| `s19` diff, seed 43 | 0.5436 | 0.5046 | 0.4716 | 0.4397 |
+| `s0` diff, seed 43 | 0.0864 | 0.1203 | 0.1313 | **0.1511** |
+| **gap, seed 43** | 0.4572 | 0.3842 | 0.3402 | **0.2887** |
+| gap rate per 1k, seed 43 | −0.051 | −0.036 | −0.022 | −0.017 |
+
+**The null's *level* is the more seed-sensitive of the two arms, and its *rate* is not.** `s0` reads
+0.1269 (seed 42) against 0.1511 (seed 43) at 9,000 — a 19% spread, against the staggered arm's 2%
+(0.4313 / 0.4397) — but the climb rate over the last rung pair agrees closely, **+0.0063 and +0.0066
+per 1k**. So the flat bundle's *trajectory* is reproducible while its level is not, and a gap quoted
+at a rung carries the null's spread. Both seeds give the same qualitative picture: gap ~0.29–0.30 at
+9,000, still narrowing, both rates decaying.
 
 **So the honest split is:** the candidate's level settles; the *gap* is still closing at the deepest
 shared rung, and closing because the null climbs. The gap's own rate is also falling (−0.041 →
-−0.020), and against a settled candidate at 0.391 a null rising at ~0.005 per 1k would need on the
-order of 50,000 further ticks to close the remaining 0.30 — with both rates decaying. **A crossing is
-not in evidence, and neither is a proof that none occurs.** That is the limit of what these rungs
-support.
+−0.020 on seed 42, −0.051 → −0.017 on seed 43), and against a settled candidate at 0.391 a null
+rising at ~0.0065 per 1k would need on the order of 40,000 further ticks to close the remaining 0.29
+— with both rates decaying. **A crossing is not in evidence, and neither is a proof that none
+occurs.** That is the limit of what these rungs support.
+
+**And it puts a question against the null itself.** [B48 (#615)](https://github.com/NGL321/patchworks/issues/615)'s
+null is *the flat bundle's 88 at audience differentiation **0.0000***, and 0.0000 is its defining
+property — B42 derived collapse as the *only* point of exact path-independence. Trained under the
+shipped rule the flat bundle **does not stay there**: it reads 0.1269 and 0.1511 at 9,000 on the two
+seeds and is climbing on both. So the object the joint rule names is a **construction** reading, and
+the trained flat bundle is a different object that no ticket on this map has characterised. That is
+not a defect in B48's rule — the rule is stated at construction and B42's derivation is exact there —
+but a bar carried against "the flat bundle" now has to say **which** flat bundle, and the answer
+changes with the horizon it is read at. Ticketed rather than ruled here.
 
 ## §4 — `p = 8` against `p = 12`: the ordering **survives**, narrowed and noisy
 
@@ -198,14 +221,39 @@ The levels agree to within the jitter (0.4313 vs 0.4397 at 9,000; participation 
 Seed 43's sequence is monotone; seed 42's has one non-monotone step. Both fall by roughly a factor of
 three over the range.
 
+The null replicates too, and differently — see §3: `s0`'s **level** carries a 19% seed spread at
+9,000 against the staggered arm's 2%, while its **climb rate** agrees to within 5%. The flat bundle
+is the noisier arm of the two, which matters because it is the one driving the gap.
+
 **What the second seed does *not* establish.** It reaches 9,000, not 30,000, so it replicates the
 **decaying rate** and not the **settle**. The claim that the level stops moving rests on seed 42
-alone (§8).
+alone (§9).
 
 Run-to-run jitter at a *fixed* seed is **~5%** on differentiation at 9,000 (two `s0` attempts read
 0.1205 and 0.1269), which is the precision of every single-seed statement above.
 
-## §8 — What the box permitted, and what is consequently owed
+## §8 — What landed alongside: [B62 (#635)](https://github.com/NGL321/patchworks/issues/635) names the rule this decay should be attributed to
+
+B62 resolved on #532 while these arms were running, and it bears on the *mechanism* of the decay
+without touching the *shape* measured here. Its decomposition of the shipped pair:
+
+- with both rules off past construction, the traffic's rank does not move at all;
+- **`PredictionRule` alone** reproduces the rank collapse at **zero cost in exposure or audience
+  differentiation**;
+- **`TransportRule` alone** *raises* the rank and buys alignment for 2.03 dimensions of exposure;
+- **the shipped pair** costs a differentiation column that neither lever costs by itself.
+
+**Every arm in this ticket runs the shipped pair**, so the decay measured in §1–§2 is the pair's, and
+B62's reading says the pair is exactly where a differentiation cost appears. **Which of the two rules
+drives the settle is therefore not answered here and should not be inferred from these arms** —
+B62's own standing constraint is that a candidate names which rule it is aimed at and may not argue
+a rule effect from the pair. Running `s19_baseline` under `TransportRule` alone and under
+`PredictionRule` alone is the obvious next reading and is cheap on this rig; it is named in the
+resolution rather than taken here.
+
+Nothing in B62 contradicts §1–§2: it takes no long-horizon reading and its arms are 5,000 ticks.
+
+## §9 — What the box permitted, and what is consequently owed
 
 The machine was saturated throughout — **62.7 GB committed of a 64.8 GB limit (97%)** at worst, with
 44 `claude` processes holding 10.9 GB and other sessions' benchmark processes holding 1.5–1.7 GB
@@ -215,13 +263,16 @@ horizon — so that every arm shares rungs.
 
 **Owed, and named rather than papered over:**
 
-- The **null past 9,000**. An attempt reached 18,000 and read `s0` at 0.1429 (13,000) and 0.1638
-  (18,000); it was **overwritten by a retry before the staging fix landed** and is not reproducible
-  from disk. Those two numbers are recorded here as observed-then-lost and **no claim rests on
-  them**. The gap beyond 9,000 is therefore unmeasured.
+- The **null past 9,000**, on either seed — which is what a crossing claim would need. An attempt
+  reached 18,000 and read `s0` at 0.1429 (13,000) and 0.1638 (18,000); it was **overwritten by a
+  retry before the staging fix landed** and is not reproducible from disk. Those two numbers are
+  recorded here as observed-then-lost and **no claim rests on them** (they sit close to seed 42's
+  trajectory, between the two seeds' 9,000 readings, which is the only thing worth saying about
+  them). The gap beyond 9,000 is unmeasured.
 - **`p = 8` past 9,000**, and a second seed on it.
 - The settle itself is measured on **one seed**, because only one arm reached the rungs where the
-  flattening is unambiguous.
+  flattening is unambiguous. Seed 43 replicates the decaying rate to 9,000 and stops short of the
+  flat region.
 
 **A rig fix landed with it.** B56's `run_arm` writes each rung to `<name>.inflight.json` and renames
 at the horizon — which bounds a kill — but it writes from the first frame, so **a retry that dies
