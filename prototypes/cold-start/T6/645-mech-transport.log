@@ -1,0 +1,7 @@
+  transport @0         global-ER  2.7798 | block-ER med  1.392 | sync |cos| 0.9764 joint-ER   1.082 | rho(used) med 1.0000 | r(ER,rho)    n/a r(ER,tau)    n/a r(ER,nn)    n/a
+  transport @100       global-ER  2.8266 | block-ER med  1.415 | sync |cos| 0.9727 joint-ER   1.088 | rho(used) med 1.0000 | r(ER,rho)    n/a r(ER,tau)    n/a r(ER,nn)    n/a (0.3 min)
+  transport @200       global-ER  3.1265 | block-ER med  1.485 | sync |cos| 0.9685 joint-ER   1.110 | rho(used) med 1.0000 | r(ER,rho)    n/a r(ER,tau)    n/a r(ER,nn)    n/a (0.4 min)
+  transport @500       global-ER  3.3558 | block-ER med  1.547 | sync |cos| 0.9639 joint-ER   1.126 | rho(used) med 1.0000 | r(ER,rho)    n/a r(ER,tau)    n/a r(ER,nn)    n/a (0.6 min)
+  transport @1000      global-ER  3.4018 | block-ER med  1.554 | sync |cos| 0.9680 joint-ER   1.123 | rho(used) med 1.0000 | r(ER,rho)    n/a r(ER,tau)    n/a r(ER,nn)    n/a (0.9 min)
+  transport @2000      global-ER  3.0982 | block-ER med  1.452 | sync |cos| 0.9751 joint-ER   1.094 | rho(used) med 1.0000 | r(ER,rho)    n/a r(ER,tau)    n/a r(ER,nn)    n/a (1.5 min)
+[B68] wrote 645-mech-transport-baseline-seed42-2000.json

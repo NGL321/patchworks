@@ -1,0 +1,7 @@
+  frozen @0            global-ER  2.7798 | block-ER med  1.392 | sync |cos| 0.9764 joint-ER   1.082 | rho(used) med 1.0000 | r(ER,rho)    n/a r(ER,tau)    n/a r(ER,nn)    n/a
+  frozen @100          global-ER  2.7801 | block-ER med  1.394 | sync |cos| 0.9763 joint-ER   1.082 | rho(used) med 1.0000 | r(ER,rho)    n/a r(ER,tau)    n/a r(ER,nn)    n/a (0.3 min)
+  frozen @200          global-ER  2.7804 | block-ER med  1.393 | sync |cos| 0.9763 joint-ER   1.082 | rho(used) med 1.0000 | r(ER,rho)    n/a r(ER,tau)    n/a r(ER,nn)    n/a (0.3 min)
+  frozen @500          global-ER  2.7750 | block-ER med  1.396 | sync |cos| 0.9764 joint-ER   1.082 | rho(used) med 1.0000 | r(ER,rho)    n/a r(ER,tau)    n/a r(ER,nn)    n/a (0.4 min)
+  frozen @1000         global-ER  2.7787 | block-ER med  1.395 | sync |cos| 0.9765 joint-ER   1.082 | rho(used) med 1.0000 | r(ER,rho)    n/a r(ER,tau)    n/a r(ER,nn)    n/a (0.5 min)
+  frozen @2000         global-ER  2.7820 | block-ER med  1.395 | sync |cos| 0.9764 joint-ER   1.082 | rho(used) med 1.0000 | r(ER,rho)    n/a r(ER,tau)    n/a r(ER,nn)    n/a (0.6 min)
+[B68] wrote 645-mech-frozen-baseline-seed42-2000.json

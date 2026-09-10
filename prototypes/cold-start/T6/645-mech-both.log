@@ -1,0 +1,7 @@
+  both @0              global-ER  2.7798 | block-ER med  1.392 | sync |cos| 0.9764 joint-ER   1.082 | rho(used) med 1.0000 | r(ER,rho)    n/a r(ER,tau)    n/a r(ER,nn)    n/a
+  both @100            global-ER  2.8122 | block-ER med  1.390 | sync |cos| 0.9634 joint-ER   1.103 | rho(used) med 0.9734 | r(ER,rho) -0.468 r(ER,tau) -0.468 r(ER,nn) -0.469 (0.3 min)
+  both @200            global-ER  2.8453 | block-ER med  1.376 | sync |cos| 0.9540 joint-ER   1.127 | rho(used) med 0.9746 | r(ER,rho) -0.491 r(ER,tau) -0.491 r(ER,nn) -0.491 (0.4 min)
+  both @500            global-ER  2.9909 | block-ER med  1.391 | sync |cos| 0.9297 joint-ER   1.214 | rho(used) med 0.9731 | r(ER,rho) -0.500 r(ER,tau) -0.500 r(ER,nn) -0.500 (0.7 min)
+  both @1000           global-ER  1.0998 | block-ER med  1.033 | sync |cos| 0.9976 joint-ER   1.011 | rho(used) med 0.9696 | r(ER,rho) -0.388 r(ER,tau) -0.388 r(ER,nn) -0.388 (1.0 min)
+  both @2000           global-ER  1.0132 | block-ER med  1.001 | sync |cos| 0.9999 joint-ER   1.001 | rho(used) med 0.9656 | r(ER,rho)  0.040 r(ER,tau)  0.040 r(ER,nn)  0.040 (1.7 min)
+[B68] wrote 645-mech-both-baseline-seed42-2000.json

@@ -1,0 +1,7 @@
+  bias @0              global-ER  2.7798 | block-ER med  1.392 | sync |cos| 0.9764 joint-ER   1.082 | rho(used) med 1.0000 | r(ER,rho)    n/a r(ER,tau)    n/a r(ER,nn)    n/a
+  bias @100            global-ER  2.8069 | block-ER med  1.402 | sync |cos| 0.9676 joint-ER   1.097 | rho(used) med 0.9464 | r(ER,rho) -0.209 r(ER,tau) -0.209 r(ER,nn) -0.209 (0.3 min)
+  bias @200            global-ER  2.8324 | block-ER med  1.412 | sync |cos| 0.9617 joint-ER   1.110 | rho(used) med 0.9351 | r(ER,rho) -0.216 r(ER,tau) -0.216 r(ER,nn) -0.216 (0.4 min)
+  bias @500            global-ER  3.0288 | block-ER med  1.621 | sync |cos| 0.9364 joint-ER   1.202 | rho(used) med 0.9099 | r(ER,rho) -0.167 r(ER,tau) -0.167 r(ER,nn) -0.167 (0.4 min)
+  bias @1000           global-ER  1.3409 | block-ER med  1.212 | sync |cos| 0.9930 joint-ER   1.045 | rho(used) med 0.9028 | r(ER,rho) -0.029 r(ER,tau) -0.029 r(ER,nn) -0.029 (0.6 min)
+  bias @2000           global-ER  1.0087 | block-ER med  1.007 | sync |cos| 0.9998 joint-ER   1.003 | rho(used) med 0.8896 | r(ER,rho) -0.079 r(ER,tau) -0.079 r(ER,nn) -0.079 (0.8 min)
+[B68] wrote 645-mech-bias-baseline-seed42-2000.json
