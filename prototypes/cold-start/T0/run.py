@@ -93,8 +93,16 @@ def surface() -> dict:
         "describe": git("log", "-1", "--format=%h %ad %s", "--date=short"),
         "branch": git("rev-parse", "--abbrev-ref", "HEAD"),
         "dirty": bool(git("status", "--porcelain", "--", "src")),
-        "interior_m": int(DEFAULT_SPEC.interior_m),
+        # `interior_m` stood here until #548 wrote #540's ruling and deleted the
+        # field: an interior width is now allocated per edge by
+        # `allocate_lane_widths`, so there is no single number to stamp. The
+        # named lanes below are the ones that are still constants, and every
+        # reading taken after #548 is on an allocated surface rather than the
+        # uniform one #537's figures were taken on.
+        "interior_m": "allocated per edge (#548; `allocate_lane_widths`)",
         "boundary_m": int(DEFAULT_SPEC.boundary_m),
+        "lateral_m": int(DEFAULT_SPEC.lateral_m),
+        "drive_m": int(DEFAULT_SPEC.drive_m),
         "band": "forward normalisation in CellOperators.used (#466, PR #513)",
     }
 

@@ -1,0 +1,160 @@
+{
+ "issue": 618,
+ "read": "pigeonhole floor on the corner mass",
+ "seeds": {
+  "42": {
+   "label": "construction seed 42",
+   "hops": 395,
+   "forced_mean": 2.0860759493670886,
+   "forced_hist": {
+    "0": 256,
+    "2": 16,
+    "3": 2,
+    "4": 77,
+    "6": 2,
+    "7": 6,
+    "8": 6,
+    "10": 16,
+    "11": 2,
+    "12": 4,
+    "14": 2,
+    "19": 2,
+    "20": 4
+   },
+   "at_one_hist": {
+    "0": 256,
+    "2": 16,
+    "3": 2,
+    "4": 77,
+    "6": 2,
+    "7": 6,
+    "8": 6,
+    "10": 16,
+    "11": 2,
+    "12": 4,
+    "14": 2,
+    "19": 2,
+    "20": 4
+   },
+   "identity_holds_on": 395,
+   "identity_of": 395,
+   "r95_mean": 2.4556962025316458,
+   "excess_mean": 0.369620253164557,
+   "excess_hist": {
+    "0": 257,
+    "1": 130,
+    "2": 8
+   },
+   "hops_all_forced": 15,
+   "width_mean": 6.9113924050632916,
+   "forced_share_of_width": 0.3018315018315018
+  },
+  "43": {
+   "label": "construction seed 43",
+   "hops": 395,
+   "forced_mean": 2.0860759493670886,
+   "forced_hist": {
+    "0": 256,
+    "2": 16,
+    "3": 2,
+    "4": 77,
+    "6": 2,
+    "7": 6,
+    "8": 6,
+    "10": 16,
+    "11": 2,
+    "12": 4,
+    "14": 2,
+    "19": 2,
+    "20": 4
+   },
+   "at_one_hist": {
+    "0": 256,
+    "2": 16,
+    "3": 2,
+    "4": 77,
+    "6": 2,
+    "7": 6,
+    "8": 6,
+    "10": 16,
+    "11": 2,
+    "12": 4,
+    "14": 2,
+    "19": 2,
+    "20": 4
+   },
+   "identity_holds_on": 395,
+   "identity_of": 395,
+   "r95_mean": 2.470886075949367,
+   "excess_mean": 0.3848101265822785,
+   "excess_hist": {
+    "0": 249,
+    "1": 141,
+    "2": 4,
+    "3": 1
+   },
+   "hops_all_forced": 15,
+   "width_mean": 6.9113924050632916,
+   "forced_share_of_width": 0.3018315018315018
+  },
+  "44": {
+   "label": "construction seed 44",
+   "hops": 395,
+   "forced_mean": 2.0860759493670886,
+   "forced_hist": {
+    "0": 256,
+    "2": 16,
+    "3": 2,
+    "4": 77,
+    "6": 2,
+    "7": 6,
+    "8": 6,
+    "10": 16,
+    "11": 2,
+    "12": 4,
+    "14": 2,
+    "19": 2,
+    "20": 4
+   },
+   "at_one_hist": {
+    "0": 256,
+    "2": 16,
+    "3": 2,
+    "4": 77,
+    "6": 2,
+    "7": 6,
+    "8": 6,
+    "10": 16,
+    "11": 2,
+    "12": 4,
+    "14": 2,
+    "19": 2,
+    "20": 4
+   },
+   "identity_holds_on": 395,
+   "identity_of": 395,
+   "r95_mean": 2.50126582278481,
+   "excess_mean": 0.4151898734177215,
+   "excess_hist": {
+    "0": 236,
+    "1": 155,
+    "2": 3,
+    "3": 1
+   },
+   "hops_all_forced": 15,
+   "width_mean": 6.9113924050632916,
+   "forced_share_of_width": 0.3018315018315018
+  }
+ },
+ "surface": {
+  "commit": "eedb781ae664cf9bf4a26b7314022470f295a432",
+  "describe": "eedb781 2026-09-09 Merge pull request #617 from NGL321/docs-analogies-605",
+  "branch": "worktree-b50-cosine-spectra-618",
+  "dirty": false,
+  "interior_m": "allocated per edge (#548; `allocate_lane_widths`)",
+  "boundary_m": 4,
+  "lateral_m": 1,
+  "drive_m": 1,
+  "band": "forward normalisation in CellOperators.used (#466, PR #513)"
+ }
+}
