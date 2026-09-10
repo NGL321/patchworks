@@ -1,0 +1,11 @@
+[B57] delta check: {'diagnostics_rank': 3000, 'here_rank': 3000, 'diagnostics_dim_h0': 1800, 'here_dim_h0': 1800, 'agrees': True, 'columns': 4800, 'delta_rows': 3861, 'gram_rows': 6654}
+  baseline s42 @0              traffic-ER 2.7656/24.9119 | N@0.05 0.0000 N@0.1 0.0000 N@0.25 0.0000 | cen N@0.05 0.0000 N@0.1 0.0000 N@0.25 0.0000 | q_w 0.9410/1.0235 | aud-diff 0.5307 | exposure 9.05/32
+  baseline s42 @100            traffic-ER 2.8073/22.4646 | N@0.05 0.0000 N@0.1 0.0000 N@0.25 0.0000 | cen N@0.05 0.0000 N@0.1 0.0000 N@0.25 0.0000 | q_w 0.8287/1.0065 | aud-diff 0.5316 | exposure 9.12/32 (1.6 min)
+  baseline s42 @200            traffic-ER 2.8378/15.4402 | N@0.05 0.0000 N@0.1 0.0000 N@0.25 0.0000 | cen N@0.05 0.0000 N@0.1 0.0000 N@0.25 0.0000 | q_w 0.8462/1.0002 | aud-diff 0.5237 | exposure 9.08/32 (2.2 min)
+  baseline s42 @500            traffic-ER 2.9825/6.3737 | N@0.05 0.0000 N@0.1 0.0000 N@0.25 0.0000 | cen N@0.05 0.0000 N@0.1 0.0000 N@0.25 0.0000 | q_w 0.7833/0.9785 | aud-diff 0.5206 | exposure 9.04/32 (2.8 min)
+  baseline s42 @1000           traffic-ER 1.0967/5.7011 | N@0.05 0.0000 N@0.1 0.0000 N@0.25 1.0000 | cen N@0.05 0.0000 N@0.1 0.0000 N@0.25 0.0000 | q_w 0.2553/1.1379 | aud-diff 0.5161 | exposure 8.90/32 (3.6 min)
+  baseline s42 @2000           traffic-ER 1.0132/3.3782 | N@0.05 0.0000 N@0.1 0.0000 N@0.25 1.0000 | cen N@0.05 0.0000 N@0.1 0.0000 N@0.25 0.0000 | q_w 0.2111/1.2255 | aud-diff 0.5047 | exposure 8.72/32 (4.7 min)
+  baseline s42 @5000           traffic-ER 1.0130/3.2446 | N@0.05 0.0000 N@0.1 0.0000 N@0.25 1.0000 | cen N@0.05 0.0000 N@0.1 0.0000 N@0.25 0.0000 | q_w 0.1868/0.9133 | aud-diff 0.4826 | exposure 8.62/32 (8.0 min)
+  baseline s42 @10000          traffic-ER 1.0064/2.0499 | N@0.05 0.0000 N@0.1 0.0000 N@0.25 1.0000 | cen N@0.05 0.0000 N@0.1 0.0000 N@0.25 0.0000 | q_w 0.1841/0.6944 | aud-diff 0.4846 | exposure 8.78/32 (12.6 min)
+  baseline s42 @20000          traffic-ER 1.0045/1.6108 | N@0.05 0.0000 N@0.1 0.0000 N@0.25 1.0000 | cen N@0.05 0.0000 N@0.1 0.0000 N@0.25 0.0000 | q_w 0.1796/0.7792 | aud-diff 0.4893 | exposure 8.57/32 (21.1 min)
+[B57] wrote 629-baseline-seed42-20000.json

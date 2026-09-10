@@ -1,0 +1,7 @@
+[B57] delta check: {'diagnostics_rank': 3000, 'here_rank': 3000, 'diagnostics_dim_h0': 1800, 'here_dim_h0': 1800, 'agrees': True, 'columns': 4800, 'delta_rows': 3861, 'gram_rows': 6654}
+  held                         traffic-ER 2.7656/24.9119 | N@0.05 0.0000 N@0.1 0.0000 N@0.25 0.0000 | cen N@0.05 0.0000 N@0.1 0.0000 N@0.25 0.0000 | q_w 0.9410/1.0235 | aud-diff 0.5307 | exposure 9.05/32
+  scramble/permute/uncentred    traffic-ER 15.9718 | A@1 0.3884 N@1 170.9198 | q_w 0.9990
+  scramble/permute/centred      traffic-ER 352.4663 | A@1 0.5292 N@1 176.4319 | q_w 0.9986
+  scramble/isotropic/uncentred    traffic-ER 827.5315 | A@1 0.5207 N@1 416.6497 | q_w 0.9988
+  scramble/isotropic/centred      traffic-ER 826.8321 | A@1 0.5068 N@1 414.3914 | q_w 0.9988
+[B57] wrote 629-accept-baseline-seed42.json
