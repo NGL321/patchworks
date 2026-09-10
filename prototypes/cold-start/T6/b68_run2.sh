@@ -31,6 +31,20 @@ python $T6/b68_repro.py > $T6/645-repro.log 2>&1
 python $T6/b62_frozen.py --mode both --ticks 20000 --no-generic \
   --out $T6/645-both-baseline-seed42-20000.json > $T6/645-both-20k.log 2>&1
 
+# **The same arm again, same seed.** The `bias` arm reproduces B62's stored
+# record to four decimals (1.0090 against 1.0089 at 5,000) while the
+# `transport` arm does not, and the bias arm reproduced across a
+# generic-null-on / generic-null-off difference -- so the null is not the
+# perturbation and the non-determinism is specific to the arms that run
+# `TransportRule`. `both` is one of them, and item 3's verdict is that the
+# pair's audience differentiation (0.4826) lies below *both* solos (0.5307,
+# 0.5505). That gap is 0.048 and the transport arm's own run-to-run spread on
+# the same column is ~0.019, so the claim is roughly 2.5x its noise and is not
+# safe to assert against an unmeasured null. This replicate measures it on the
+# arm that carries the claim rather than borrowing it from another arm.
+python $T6/b62_frozen.py --mode both --ticks 20000 --no-generic \
+  --out $T6/645-both-rep2-baseline-seed42-20000.json > $T6/645-both-rep2-20k.log 2>&1
+
 python $T6/b68_stall.py --ticks 20000 > $T6/645-stall.log 2>&1
 
 python $T6/b68_mechanism.py --mode bias --ticks 2000 > $T6/645-mech-bias.log 2>&1
