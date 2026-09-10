@@ -491,8 +491,11 @@ One orthogonal frame per cell with the edge map the frames' product, so every cy
 `identification` 0.0000, `channel_return` 1.0000 at construction (#603, #605). Exactly
 path-independent because every cell says one thing on every lane — audience differentiation 0.0000 —
 so it carries one symbol spanning the room. Refused as architecture ("a fancy mixture of experts",
-#605) and **retained as #532's null**: it earns 88 dimensions of agreement at zero differentiation and
-clears the dependence gate (#642). It does not stay at zero under training (#634, #646).
+#605) and **retained as #532's null at the construction point**: it earns 45 dimensions of agreement
+there at zero differentiation (the 88 often quoted is B42's reserved frame, disentangled on #646) and
+clears the dependence gate (#642). Under training `earned` collapses to 0 by tick 50 and its
+differentiation climbs without settling even at 60,000 ticks (#634, #646), which is why the null is
+the construction reading, labelled as such.
 _Avoid_: trivial sheaf, constant sheaf, the null (bare — say which)
 
 **Staggered frame**:

@@ -45,6 +45,13 @@ note a reading should carry, not a condition a candidate must clear.
 - **Two runs identical in seed and schedule diverge past ~3,000 ticks** when a read-only diagnostic
   differs; few-percent differences between arms are not signal
   ([B19 #568](https://github.com/NGL321/patchworks/issues/568)).
+- **A difference between two `TransportRule`-carrying arms is quoted against a replicate of one of
+  them at the same rung, or it is not quoted**; where a rung reproduces bit-exactly, say so. Such arms
+  diverge from the last bit inside one process (ΔER 2.6e-05 at tick 100 with no rule running,
+  amplified three orders in 200 ticks by `TransportRule`; up to 0.18 at 20,000), while a separate
+  process reproduces exactly ([B68 #645](https://github.com/NGL321/patchworks/issues/645) §4a; the source
+  is [B74 #653](https://github.com/NGL321/patchworks/issues/653)'s). B62's and B68's transport-arm
+  figures differ by this spread, not by an error.
 
 ## Agreement readings
 
@@ -52,10 +59,15 @@ note a reading should carry, not a condition a candidate must clear.
   inside the counted band and reads 1.0000 on a direction carrying 0.4% of the traffic; `A` says how
   much traffic the agreed directions carry ([B62 #635](https://github.com/NGL321/patchworks/issues/635)).
 - **An agreement statistic is reported alongside audience differentiation at a cell and the exposure
-  it cost.** Agreement rising at differentiation 0.0000 scores nothing: the flat bundle earns 88
-  dimensions that way ([B48 #615](https://github.com/NGL321/patchworks/issues/615),
-  [B52 #622](https://github.com/NGL321/patchworks/issues/622)). This guards a *candidate's training
-  path*; it is not a scoring column on a reference architecture
+  it cost.** Agreement rising at differentiation 0.0000 scores nothing: the reserved frame earns 88
+  dimensions that way and the flat bundle 45 ([B48 #615](https://github.com/NGL321/patchworks/issues/615),
+  [B52 #622](https://github.com/NGL321/patchworks/issues/622); the two rows were merged in B48's prose
+  and [B69 #646](https://github.com/NGL321/patchworks/issues/646) disentangled them). **The rule's null
+  is the construction point, labelled `construction`** — a trained flat bundle has `earned = 0` from
+  tick 50 and no settled differentiation even at 60,000 ticks — and any *gap* claim is read at a
+  shared rung against the trained flat bundle run to that rung ([B69](https://github.com/NGL321/patchworks/issues/646),
+  restated on [B71 #650](https://github.com/NGL321/patchworks/issues/650)). This guards a *candidate's
+  training path*; it is not a scoring column on a reference architecture
   ([B66 #642](https://github.com/NGL321/patchworks/issues/642)).
 - **A candidate aimed at the traffic's rank names which rule it is aimed at.** The prediction rule
   alone collapses it at zero exposure cost; the transport rule alone raises it and raises
@@ -133,7 +145,7 @@ note a reading should carry, not a condition a candidate must clear.
 
 Ratified by the user on 2026-09-10 as the terms under which the staggered frame counts as guarded
 against collapse. They do not decide candidacy, which is judged on the bar
-([B71 #655](https://github.com/NGL321/patchworks/issues/655)).
+([B76 #655](https://github.com/NGL321/patchworks/issues/655)).
 
 - **Falsifier:** differentiation settles above collapse with the drift decaying, not linear; read
   at 0.3912 by 30,000 ticks on seed 42 ([B61 #634](https://github.com/NGL321/patchworks/issues/634)).
@@ -158,9 +170,10 @@ against collapse. They do not decide candidacy, which is judged on the bar
 
 ## Known instrument defects
 
-- Rigs that share an output path lose tables: B62's published transport-arm figures came from an
-  overwritten run and were corrected from the surviving record ([#635](https://github.com/NGL321/patchworks/issues/635)).
-  Give every run its own path.
+- Rigs that share an output path lose tables: B62 overwrote one of its own runs and rebuilt the table
+  from the surviving record ([#635](https://github.com/NGL321/patchworks/issues/635)). Give every run
+  its own path. The remaining gap between B62's and B68's transport-arm figures is run-to-run spread
+  (above), not the overwrite.
 - A low-memory guard at 97% killed five arms on B61; the settle there rests on one seed
   ([#634](https://github.com/NGL321/patchworks/issues/634)).
 - B50's readout on `main` and its ticket disagree on one number (0.4309 against 0.4278 for the
