@@ -1,0 +1,12 @@
+  A    @100    ER 2.826586  aud-diff 0.532433  exposure 8.366248
+  A    @200    ER 3.126509  aud-diff 0.534977  exposure 7.891929
+  B    @100    ER 2.803612  aud-diff 0.527484  exposure 8.226586
+  B    @200    ER 2.879145  aud-diff 0.532173  exposure 7.810558
+  C    @100    ER 2.826586  aud-diff 0.532433  exposure 8.366248
+  C    @200    ER 3.126509  aud-diff 0.534977  exposure 7.891929
+
+=== verdict ===
+  @100: A==B False   A==C True   |dER| A-B 2.297e-02  A-C 0.000e+00
+  @200: A==B False   A==C True   |dER| A-B 2.474e-01  A-C 0.000e+00
+
+written to 645-repro.json

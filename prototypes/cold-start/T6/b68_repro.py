@@ -67,14 +67,14 @@ from patchworks.learning import TransportRule  # noqa: E402
 RUNGS = (100, 200)
 
 
-def one(label: str, seed: int, ticks: int, *, generic: bool) -> dict:
+def one(label: str, seed: int, ticks: int, *, generic: bool, mode: str = "transport") -> dict:
     env, agent, arm, _flat = b57.build_arm("baseline", seed)
     try:
         layout = b57.Layout(agent.dome)
         chains = b57.t2.rim_chains(agent.dome)
         traffic = b57.Traffic(agent, b62.BUFFER)
         recorder = b57.t2.EdgeRecorder(agent)
-        transport = TransportRule(agent.sheaf)
+        transport = TransportRule(agent.sheaf) if mode == "transport" else None
 
         b62.step(agent, b62.BUFFER, seed, recorder, None, None, traffic)
         rows = []
@@ -113,19 +113,34 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--ticks", type=int, default=200)
-    p.add_argument("--out", type=Path, default=_HERE / "645-repro.json")
+    p.add_argument(
+        "--mode",
+        choices=("transport", "frozen"),
+        default="transport",
+        help="`frozen` runs no rule at all, so any A/B disagreement is the world "
+        "stream itself and not the transport rule amplifying it. It is the "
+        "control the transport reading needs: A != B on `transport` says the arm "
+        "does not reproduce, and only this says whether the rule is the amplifier "
+        "or merely the messenger.",
+    )
+    p.add_argument("--out", type=Path, default=None)
     args = p.parse_args()
+    if args.out is None:
+        args.out = _HERE / f"645-repro-{args.mode}.json"
 
     record = {
         "issue": 645,
-        "reading": "is the transport arm reproducible run to run, and does the null perturb it",
+        "reading": "is the arm reproducible run to run, and does the null perturb it",
+        "mode": args.mode,
         "seed": args.seed,
         "ticks": args.ticks,
         "surface": b57.t0.surface(),
         "runs": [],
     }
     for label, generic in (("A", False), ("B", False), ("C", True)):
-        record["runs"].append(one(label, args.seed, args.ticks, generic=generic))
+        record["runs"].append(
+            one(label, args.seed, args.ticks, generic=generic, mode=args.mode)
+        )
         args.out.write_text(json.dumps(record, indent=1))
 
     a, b, c = record["runs"]

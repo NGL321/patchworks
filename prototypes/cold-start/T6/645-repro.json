@@ -1,0 +1,73 @@
+{
+ "issue": 645,
+ "reading": "is the transport arm reproducible run to run, and does the null perturb it",
+ "seed": 42,
+ "ticks": 200,
+ "surface": {
+  "commit": "117ac5711b16593b9fb44f65646c2340d927cdab",
+  "describe": "117ac57 2026-09-09 B68 (#645): replicate the both-on arm, to size item 3's claim against its noise",
+  "branch": "worktree-b68-antagonism-645",
+  "dirty": false,
+  "interior_m": "allocated per edge (#548; `allocate_lane_widths`)",
+  "boundary_m": 4,
+  "lateral_m": 1,
+  "drive_m": 1,
+  "band": "forward normalisation in CellOperators.used (#466, PR #513)"
+ },
+ "runs": [
+  {
+   "label": "A",
+   "generic": false,
+   "rows": [
+    {
+     "ticks": 100,
+     "er": 2.826585671250834,
+     "auddiff": 0.5324331137310011,
+     "exposure": 8.366247736803306
+    },
+    {
+     "ticks": 200,
+     "er": 3.1265091383682018,
+     "auddiff": 0.5349770470355077,
+     "exposure": 7.891929343940164
+    }
+   ]
+  },
+  {
+   "label": "B",
+   "generic": false,
+   "rows": [
+    {
+     "ticks": 100,
+     "er": 2.8036119109733297,
+     "auddiff": 0.5274844085021906,
+     "exposure": 8.226585851358521
+    },
+    {
+     "ticks": 200,
+     "er": 2.8791451350000816,
+     "auddiff": 0.5321729921467764,
+     "exposure": 7.810557594331248
+    }
+   ]
+  },
+  {
+   "label": "C",
+   "generic": true,
+   "rows": [
+    {
+     "ticks": 100,
+     "er": 2.826585671250834,
+     "auddiff": 0.5324331137310011,
+     "exposure": 8.366247736803306
+    },
+    {
+     "ticks": 200,
+     "er": 3.1265091383682018,
+     "auddiff": 0.5349770470355077,
+     "exposure": 7.891929343940164
+    }
+   ]
+  }
+ ]
+}
