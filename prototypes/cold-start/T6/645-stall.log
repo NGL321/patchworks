@@ -1,0 +1,4 @@
+       mode  last_above  first_fall  recross   t_dead       peak      final   mins
+     frozen         150         160        0    20000  1.843e+00  2.439e-03    1.4
+       bias        4900          90       70    19970  1.773e+00  9.315e-07    3.5
+  transport       15790          80      131    20000  1.875e+00  1.317e-04   10.4
