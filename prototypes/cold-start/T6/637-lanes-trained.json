@@ -1,0 +1,261 @@
+{
+ "issue": 637,
+ "object": "lane",
+ "arm": "trained",
+ "seed": 42,
+ "traditional_or_cohomological": "traditional",
+ "b49_note": "lane object; no number here is comparable with the endpoint reading, which is on node stalks",
+ "k": 8,
+ "permutations": 50,
+ "strata": {
+  "patch": {
+   "edges": 682,
+   "carried_edges": 682,
+   "ceiling_bits": 3.0,
+   "mi_median_bits": 2.6961931815409863,
+   "mi_max_bits": 3.0,
+   "null_median_bits": 0.22007223062018733,
+   "excess_median_bits": 2.4878157272527295,
+   "edges_significant_p05": 655,
+   "top": [
+    {
+     "edge": "#288 interior m=12 L1/vision(2, 7) -- L2/vision(1, 3)",
+     "m": 12,
+     "mi_bits": 3.0,
+     "excess_bits": 2.8610250180581627,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#386 interior m=12 L3/core(15,) -- L4/core(0,)",
+     "m": 12,
+     "mi_bits": 3.0,
+     "excess_bits": 2.857474689432306,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#337 interior m=12 L2/vision(0, 2) -- L3/core(2,)",
+     "m": 12,
+     "mi_bits": 3.0,
+     "excess_bits": 2.8422121781060987,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#392 interior m=16 L4/core(2,) -- L5/core(2,)",
+     "m": 16,
+     "mi_bits": 3.0,
+     "excess_bits": 2.841257114365249,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#179 sensory m=4 L0/vision(11, 3) -- L1/vision(5, 1)",
+     "m": 4,
+     "mi_bits": 3.0,
+     "excess_bits": 2.8397697211116903,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#306 interior m=12 L1/vision(5, 1) -- L2/vision(2, 0)",
+     "m": 12,
+     "mi_bits": 3.0,
+     "excess_bits": 2.8378750710862444,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#220 sensory m=4 L0/vision(13, 12) -- L1/vision(6, 6)",
+     "m": 4,
+     "mi_bits": 3.0,
+     "excess_bits": 2.8231453089531144,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#155 sensory m=4 L0/vision(9, 11) -- L1/vision(4, 5)",
+     "m": 4,
+     "mi_bits": 3.0,
+     "excess_bits": 2.820450474551157,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#212 sensory m=4 L0/vision(13, 4) -- L1/vision(6, 2)",
+     "m": 4,
+     "mi_bits": 3.0,
+     "excess_bits": 2.816850701196522,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#272 interior m=12 L1/vision(0, 7) -- L2/vision(0, 3)",
+     "m": 12,
+     "mi_bits": 3.0,
+     "excess_bits": 2.810972824023163,
+     "p": 0.0196078431372549
+    }
+   ],
+   "minutes": 0.05845862627029419
+  },
+  "proprioceptive": {
+   "edges": 682,
+   "carried_edges": 682,
+   "ceiling_bits": 3.0,
+   "mi_median_bits": 1.0426975547276935,
+   "mi_max_bits": 3.0,
+   "null_median_bits": 0.16722901398086332,
+   "excess_median_bits": 0.9699850537477107,
+   "edges_significant_p05": 621,
+   "top": [
+    {
+     "edge": "#9 sensory m=4 L0/vision(0, 9) -- L1/vision(0, 4)",
+     "m": 4,
+     "mi_bits": 3.0,
+     "excess_bits": 2.904820947168733,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#13 sensory m=4 L0/vision(0, 13) -- L1/vision(0, 6)",
+     "m": 4,
+     "mi_bits": 3.0,
+     "excess_bits": 2.893062428041173,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#331 interior m=20 L1/somatomotor(2,) -- L2/somatomotor(1,)",
+     "m": 20,
+     "mi_bits": 3.0,
+     "excess_bits": 2.8864881999097785,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#385 interior m=16 L3/core(15,) -- L4/core(13,)",
+     "m": 16,
+     "mi_bits": 3.0,
+     "excess_bits": 2.886381204960078,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#333 interior m=20 L1/somatomotor(4,) -- L2/somatomotor(2,)",
+     "m": 20,
+     "mi_bits": 3.0,
+     "excess_bits": 2.8831318319913364,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#341 interior m=11 L2/vision(1, 2) -- L3/core(6,)",
+     "m": 11,
+     "mi_bits": 3.0,
+     "excess_bits": 2.8828402038259715,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#368 interior m=16 L3/core(6,) -- L4/core(6,)",
+     "m": 16,
+     "mi_bits": 3.0,
+     "excess_bits": 2.8828402038259715,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#367 interior m=15 L3/core(6,) -- L4/core(5,)",
+     "m": 15,
+     "mi_bits": 3.0,
+     "excess_bits": 2.8828402038259715,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#409 interior m=15 L4/core(11,) -- L5/core(9,)",
+     "m": 15,
+     "mi_bits": 3.0,
+     "excess_bits": 2.8823510037776683,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#305 interior m=12 L1/vision(5, 0) -- L2/vision(2, 0)",
+     "m": 12,
+     "mi_bits": 3.0,
+     "excess_bits": 2.8774351742825286,
+     "p": 0.0196078431372549
+    }
+   ],
+   "minutes": 0.0638049602508545
+  },
+  "touch": {
+   "edges": 682,
+   "carried_edges": 682,
+   "ceiling_bits": 3.0,
+   "mi_median_bits": 1.1683787228596858,
+   "mi_max_bits": 3.0,
+   "null_median_bits": 0.17250344730100886,
+   "excess_median_bits": 0.976356426157535,
+   "edges_significant_p05": 624,
+   "top": [
+    {
+     "edge": "#409 interior m=15 L4/core(11,) -- L5/core(9,)",
+     "m": 15,
+     "mi_bits": 3.0,
+     "excess_bits": 2.8889377924525124,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#435 interior m=15 L5/core(10,) -- L6/core(8,)",
+     "m": 15,
+     "mi_bits": 3.0,
+     "excess_bits": 2.887912641684357,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#286 interior m=11 L1/vision(2, 5) -- L2/vision(1, 2)",
+     "m": 11,
+     "mi_bits": 3.0,
+     "excess_bits": 2.8870455282528638,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#381 interior m=15 L3/core(13,) -- L4/core(11,)",
+     "m": 15,
+     "mi_bits": 3.0,
+     "excess_bits": 2.885856748750551,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#436 interior m=15 L5/core(10,) -- L6/core(9,)",
+     "m": 15,
+     "mi_bits": 3.0,
+     "excess_bits": 2.884227688330226,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#434 interior m=15 L5/core(9,) -- L6/core(8,)",
+     "m": 15,
+     "mi_bits": 3.0,
+     "excess_bits": 2.8813862515686504,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#75 sensory m=4 L0/vision(4, 11) -- L1/vision(2, 5)",
+     "m": 4,
+     "mi_bits": 3.0,
+     "excess_bits": 2.8810328427513827,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#410 interior m=15 L4/core(11,) -- L5/core(10,)",
+     "m": 15,
+     "mi_bits": 3.0,
+     "excess_bits": 2.879217998486283,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#369 interior m=16 L3/core(7,) -- L4/core(6,)",
+     "m": 16,
+     "mi_bits": 3.0,
+     "excess_bits": 2.879122308933658,
+     "p": 0.0196078431372549
+    },
+    {
+     "edge": "#290 interior m=12 L1/vision(3, 1) -- L2/vision(1, 0)",
+     "m": 12,
+     "mi_bits": 3.0,
+     "excess_bits": 2.878670084472698,
+     "p": 0.0196078431372549
+    }
+   ],
+   "minutes": 0.0672809918721517
+  }
+ }
+}

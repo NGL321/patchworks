@@ -1,0 +1,15 @@
+{
+ "issue": 637,
+ "surface": "reserve_p12",
+ "seed": 42,
+ "learn": 2000,
+ "motion": {
+  "available": true,
+  "window": 100,
+  "std_max": 0.0007089778752861465,
+  "moving_share": 0.16666666666666666
+ },
+ "read_window": 100,
+ "horizon_note": "stamped per-RUN, not per-arm: B38 (#599) measured the stall horizon varying 13x between seeds of one arm. detectability holds the world during the read, so a stalled body does not invalidate the reading; what it bounds is what may be said about the *trained* surface.",
+ "minutes": 2.7837786436080934
+}
