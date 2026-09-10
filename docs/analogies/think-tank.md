@@ -65,28 +65,74 @@ multiplies the **translation rules only** and never touches anybody's page ([B17
 so a holonomy reading contains no belief content at all. It asks whether the room's dictionaries are
 mutually consistent, not whether its beliefs are unchanged.
 
-### 2. Attenuation *is* misalignment — there is no separate "reach"
+### 2. Two different things shrink a message, and they must not be quoted as one
 
-A message arrives on one phrasebook and must leave on a different one. What survives is the
-**cosine of the angle between the directions the two carry** — [#533](https://github.com/NGL321/patchworks/issues/533)
-established that the composed object is a product of principal-angle cosines and nothing else.
-Over a chain the cosines multiply.
+A message arrives on one phrasebook and must leave on a different one. What survives *that
+handover* is the **cosine of the angle between the directions the two phrasebooks carry** —
+[#533](https://github.com/NGL321/patchworks/issues/533) established that the composed object is a
+product of principal-angle cosines and nothing else. Over a chain the cosines multiply.
 
-So [B21](https://github.com/NGL321/patchworks/issues/570)'s 20–50× loss per person and reach of 2–3
-hops is not a separate fact from expressiveness. **A person saying different things to different
-neighbours is exactly those angles being large.** One quantity, read from two ends.
+**Those cosines are not small.** [#537](https://github.com/NGL321/patchworks/issues/537) read them
+directly over 1578 hops × 3 angles: leading `cos θ` per hop is **0.568** at construction (min 0.474,
+max 0.688) and *rises* under training to **0.792 / 0.809** at 20k. No hop is near-aligned and none
+is near-orthogonal. `0.79⁷ = 0.19` — a factor of five over seven people, not orders of magnitude.
 
-### 3. Which makes the central trade visible, and its two cheap escapes
+**A separate quantity, read with a separate instrument, says something much louder.**
+[B21](https://github.com/NGL321/patchworks/issues/570)'s 20–50× per person is the peak deviation of a
+**dynamical impulse** — a disturbance actually propagating through `sheaf.tick()` — and it reads
+**people's pages**. A full-magnitude shock is already down to `9.7e-03` by the **first** person,
+~100× before any composition has happened.
 
-A product of small numbers has exactly two ways to get bigger:
+The two do not meet:
+
+| | what it reads | in the room | what it says |
+|---|---|---|---|
+| [#533](https://github.com/NGL321/patchworks/issues/533) / [#537](https://github.com/NGL321/patchworks/issues/537) | the **transport operator** — restriction maps only, which [B17](https://github.com/NGL321/patchworks/issues/565) established **never touches the stalks** | the **phrasebooks**: how much of a topic survives translation | `cos θ` per hop 0.568 → 0.792 / 0.809 |
+| [B21](https://github.com/NGL321/patchworks/issues/570) | **node stalks**, via an impulse through `sheaf.tick()` | the **pages**: how large a live disturbance still is a few people later | 20–50× per person; ~100× by hop one |
+
+**Roughly two orders per hop separate them**, and that gap is not a rounding difference inside one
+quantity — it is the signature of two. It is the tick's reconciliation gain, the pages' own
+dynamics, and whatever else lives between a phrasebook and a page.
+
+So **a person saying different things to different neighbours is not, by itself, the same fact as a
+disturbance dying out.** That identity was asserted here as fact and
+[B49 (#616)](https://github.com/NGL321/patchworks/issues/616) struck it on the user's ruling: it was
+a **weld** of two instruments, not a finding. **Standing rule, inherited from that ruling: a reading
+states which of the two objects it is on, and no argument carries a number from one to the other.**
+
+One more number that gets quoted wrongly in the same breath: composed effective rank **1.000 is
+domination, not annihilation.** #537 §4 finds the composite numerically **full rank 3** on the median
+chain, with `σ₂/σ₁` 0.113 at construction and 0.005 at 20k. One direction survives well and the
+others are pushed down — not *nothing arrives*.
+
+### 3. Two cheap escapes, and why "two" is not yet known to be the whole list
+
+**Read as a single number**, a product of small numbers has two ways to get bigger:
 
 | move | effect | how it went |
 |---|---|---|
 | **fewer terms** — shorten paths, relays, rewiring | multiply 3 cosines, not 7 | [B43](https://github.com/NGL321/patchworks/issues/607): an **unaimed random rewiring** passed the amplitude clause by seven orders. Loud; nothing understood. |
 | **bigger terms** — align every lane | every cosine → 1 | [B42](https://github.com/NGL321/patchworks/issues/605): exact path-independence at any distance. Clear; nothing distinct to say. |
 
-Both make the headline number go up. Neither is the architecture. Whether a third move exists is
-[B49](https://github.com/NGL321/patchworks/issues/616).
+Both make the headline number go up. Neither is the architecture.
+
+**But two is not known to be the whole list.** A phrasebook pair does not have
+*a* cosine — it has one per direction the phrasebook carries, and this map has only ever read that
+spectrum through a **scalar**. A scalar cannot tell *everything is attenuating* apart from *some
+directions go through intact and the rest do not*, and those are different rooms. Whether reading the
+spectrum instead of the scalar yields a genuine third move is
+**[B50 (#618)](https://github.com/NGL321/patchworks/issues/618)'s, and undecided** — it is a reading
+of the existing surface, with nothing constructed and no candidate scored. Until it rules, the
+analogy states the two moves above and does **not** claim they exhaust the list.
+
+**One thing the table is not about: the size of the page.** The trade is drawn inside a fixed budget
+— `Σ_e m_e ≤ n − 1`, phrasebook width paid for out of page space — and a budget is something you
+allocate, not a wall. The claim that the budget itself could not be enlarged is **false on `main`**:
+scaling page and phrasebooks together at the built ratio reads median composed effective rank
+**2.047 at `n ≈ 128`** against **1.015** as built ([#537](https://github.com/NGL321/patchworks/issues/537)),
+corroborated independently by [B4 (#539)](https://github.com/NGL321/patchworks/issues/539)'s closed
+form at **2.195**. Bigger pages *do* buy transport. That is not a move on the table above; it moves
+the table.
 
 ### 4. Privacy is a split on one page, not a locked drawer
 
@@ -140,6 +186,20 @@ Kept because a corrected analogy is more trustworthy than a clean one.
   everyone — density. The record explicitly rejects that. Here the defining property is **shared
   referent**: a connected set over which one direction stays consistent. A tight huddle can agree on
   nothing; a strung-out chain can all mean the same thing.
+- **"Attenuation *is* misalignment — there is no separate reach" was a weld, and it broke.** §2 stated
+  as fact that a person saying different things to different neighbours and a disturbance dying out
+  were one quantity read from two ends. They are two quantities, read by two instruments on two
+  objects — [B21](https://github.com/NGL321/patchworks/issues/570)'s impulse on **node stalks** and
+  [#533](https://github.com/NGL321/patchworks/issues/533)/[#537](https://github.com/NGL321/patchworks/issues/537)'s
+  cosines on the **transport operator**, which [B17](https://github.com/NGL321/patchworks/issues/565)
+  established never touches the stalks — and they disagree by roughly **two orders per hop**. The
+  section also implied cosines of 0.02–0.05, which is `1/20`–`1/50`: B21's amplitude wearing an
+  angle's clothes. The measured cosines are **0.568** at construction, rising to **0.792 / 0.809**
+  under training. Struck by [B49 (#616)](https://github.com/NGL321/patchworks/issues/616) on the
+  user's ruling that **the weld breaks**; both refuting readings were already on `main` when this
+  section was written, which is the more useful half of the lesson. **Nothing in §1 moves** — B17's
+  result is what supports the content/registration split, and it is the same result that broke the
+  weld.
 
 ## What it must not be used for
 
