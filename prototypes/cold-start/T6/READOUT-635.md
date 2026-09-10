@@ -19,7 +19,18 @@ rebuild. `n = 32`, 150 predicting cells, `δ_P` is `[3861, 4800]`, `G` is
 **Rig.** `b62_frozen.py` (items 1–2: the rules under a switch),
 `b62_qlevel.py` (item 3: the pencil and the banded traffic),
 `b62_stated_rank.py` (item 3's first pass, superseded in part — see §5),
-`b62_run.sh` (the stages, strictly one at a time).
+`b62_table.py` (the four arms side by side), `b62_run.sh` (the stages, strictly
+one at a time — and see the warning in its header, which was written after the
+fact and at cost).
+
+**One console log is not a record and is kept marked as such.** This box's
+low-memory guard killed the runner script three times while its python child
+survived and kept writing, so two frozen 20,000-tick arms ran concurrently and
+**interleaved their lines into `635-frozen-20k.log`**. The JSON records are
+unaffected — each is rewritten whole at every checkpoint, so a file is always one
+run — and the surviving 20,000 record is internally consistent with monotonic
+elapsed times. Every number in this readout is taken from a JSON record and none
+from that log.
 
 **B49's two-objects line.** Everything below is on **node stalks**: `x_t` is
 `sheaf.evidence()`, what every page is actually holding. Audience
@@ -52,20 +63,28 @@ B57's own baseline arm at the same rungs on the same surface:
 
 | taught ticks | rules **off** (this ticket) | rules **on** (B57) |
 |---|---|---|
-| construction | 2.7798 | 2.7656 |
-| 100 | 2.7801 | 2.8073 |
-| 200 | 2.7804 | 2.8378 |
-| 500 | 2.7750 | 2.9825 |
-| 1,000 | 2.7786 | **1.0967** |
-| 2,000 | 2.7819 | 1.0132 |
-| 5,000 | 2.7812 | 1.0130 |
-| 10,000 | 2.7801 | 1.0064 |
-| 20,000 | **2.7817** | **1.0045** |
+| construction | 2.7802 | 2.7656 |
+| 100 | 2.7807 | 2.8073 |
+| 200 | 2.7808 | 2.8378 |
+| 500 | 2.7757 | 2.9825 |
+| 1,000 | 2.7787 | **1.0967** |
+| 2,000 | 2.7816 | 1.0132 |
+| 5,000 | 2.7785 | 1.0130 |
+| 10,000 | 2.7821 | 1.0064 |
+| 20,000 | **2.7825** | **1.0045** |
 
 The frozen arm is flat to the third decimal across every rung — a spread of
-0.0072 over the **full 20,000-tick horizon**, smaller than the window-to-window
-spread of the same quantity. The rules-on arm *rises* to 2.9825 by 500 and then falls to 1.0967 by
-1,000.
+**0.0068** over the full 20,000-tick horizon, smaller than the window-to-window
+spread of the same quantity. The rules-on arm *rises* to 2.9825 by 500 and then
+falls to 1.0967 by 1,000.
+
+**The frozen column is one arm, and a second one replicates it.** The rungs above
+are `635-frozen-baseline-seed42-20000.json` throughout — a single run, so no row
+is borrowed from another. An earlier frozen arm to 5,000
+(`635-frozen-baseline-seed42-5000.json`, a separate run) reads 2.7798 / 2.7801 /
+2.7804 / 2.7750 / 2.7786 / 2.7819 / 2.7812 on its own seven rungs, **spread
+0.0069** — the same flatness, independently. Neither arm's spread reaches a
+thousandth of the collapse it is being compared against.
 
 **So the rank does not decay on its own, and the collapse is not the body's or
 the sandbox's.** It is spent, and it is spent between 500 and 1,000 taught
@@ -82,7 +101,10 @@ inherits it.*
 
 `PredictionRule` and `TransportRule` separately, on the same dome, seed and
 window, against B57's both-on arm. Uncentered ER at `T = 1,000`, with the `q` of
-the leading direction and the weight below `θ = 0.25` beside it, because §2a:
+the leading direction and the weight below `θ = 0.25` beside it, because §2a.
+**The frozen column here is the through-5,000 arm**, which is the one that runs
+to the same horizon as the split arms; §1's is the 20,000 arm. Each table is one
+run per column.
 
 | rung | frozen | bias only | transport only | both (B57) |
 |---|---|---|---|---|
