@@ -1,0 +1,517 @@
+{
+ "ticket": 628,
+ "reading": "does the exact-stagger set move with k_v = n - p",
+ "seed": 42,
+ "note": "construction only -- nothing here is trained",
+ "by_arm": {
+  "reserve_p8": {
+   "k_v": 24,
+   "cycles": {
+    "full": 260,
+    "wide": 45
+   },
+   "stagger": {
+    "0": {
+     "identification": 1.949511142220914e-15,
+     "channel_return": 0.9999999999999999,
+     "sigma_max": 1.0000001359519264,
+     "edge_overlap": 1.0,
+     "differentiation": 0.0
+    },
+    "1": {
+     "identification": 0.6724217394778873,
+     "channel_return": 0.9999999999999993,
+     "sigma_max": 1.0000000901033763,
+     "edge_overlap": 0.7000000031748784,
+     "differentiation": 0.2999999968251216
+    },
+    "2": {
+     "identification": 0.902930228178977,
+     "channel_return": 0.9999999999999984,
+     "sigma_max": 1.0000000436490604,
+     "edge_overlap": 0.6666666710410297,
+     "differentiation": 0.3333333289589703
+    },
+    "3": {
+     "identification": 0.9549758046156397,
+     "channel_return": 0.40855344940486316,
+     "sigma_max": 1.6666144999761374e-15,
+     "edge_overlap": 0.39285715345835753,
+     "differentiation": 0.6071428465416424
+    },
+    "4": {
+     "identification": 1.0066126985878041,
+     "channel_return": 0.1456129840606523,
+     "sigma_max": 1.4514620724962053e-15,
+     "edge_overlap": 0.35101011071027294,
+     "differentiation": 0.648989889289727
+    },
+    "5": {
+     "identification": 0.987249043486382,
+     "channel_return": 0.1114170425195706,
+     "sigma_max": 2.32409871272322e-08,
+     "edge_overlap": 0.36666667626566946,
+     "differentiation": 0.6333333237343306
+    },
+    "6": {
+     "identification": 0.9978212772839493,
+     "channel_return": 0.0639813064831351,
+     "sigma_max": 2.0683373101974588e-08,
+     "edge_overlap": 0.3813131411405536,
+     "differentiation": 0.6186868588594464
+    },
+    "7": {
+     "identification": 0.9959069865245133,
+     "channel_return": 0.09639148060511912,
+     "sigma_max": 2.868817501147921e-08,
+     "edge_overlap": 0.33333334442330576,
+     "differentiation": 0.6666666555766942
+    },
+    "8": {
+     "identification": 0.9921686327695102,
+     "channel_return": 0.2661933405237083,
+     "sigma_max": 3.3713460311686744e-08,
+     "edge_overlap": 0.47619048276875375,
+     "differentiation": 0.5238095172312462
+    },
+    "9": {
+     "identification": 0.9948035719390965,
+     "channel_return": 0.09597835608768254,
+     "sigma_max": 1.3517056241883998e-15,
+     "edge_overlap": 0.3333333444081269,
+     "differentiation": 0.6666666555918731
+    },
+    "10": {
+     "identification": 0.9974281206098924,
+     "channel_return": 0.18408399090793473,
+     "sigma_max": 7.173504737200825e-09,
+     "edge_overlap": 0.34595960628692884,
+     "differentiation": 0.6540403937130712
+    },
+    "11": {
+     "identification": 0.9973245015557307,
+     "channel_return": 0.1063317021662494,
+     "sigma_max": 1.3844019014885397e-08,
+     "edge_overlap": 0.3459596054226788,
+     "differentiation": 0.6540403945773212
+    },
+    "12": {
+     "identification": 0.9598751626407778,
+     "channel_return": 0.32652142769294057,
+     "sigma_max": 1.330395735569077e-15,
+     "edge_overlap": 0.44444445159228807,
+     "differentiation": 0.5555555484077119
+    },
+    "13": {
+     "identification": 0.9839835552870985,
+     "channel_return": 0.22001919122697422,
+     "sigma_max": 1.4091331945140767e-08,
+     "edge_overlap": 0.3737373844581637,
+     "differentiation": 0.6262626155418363
+    },
+    "14": {
+     "identification": 1.0096799378342585,
+     "channel_return": 0.22377275514789652,
+     "sigma_max": 1.80653274426899e-15,
+     "edge_overlap": 0.33333334347462906,
+     "differentiation": 0.6666666565253709
+    },
+    "15": {
+     "identification": 0.9987981746175782,
+     "channel_return": 0.09377949844679115,
+     "sigma_max": 1.2064559817680501e-15,
+     "edge_overlap": 0.3400000090424127,
+     "differentiation": 0.6599999909575873
+    },
+    "16": {
+     "identification": 0.9812881911398176,
+     "channel_return": 0.040522467573764584,
+     "sigma_max": 3.77157809943559e-08,
+     "edge_overlap": 0.4761904831366814,
+     "differentiation": 0.5238095168633186
+    },
+    "17": {
+     "identification": 0.9891893820294524,
+     "channel_return": 0.08145677911098478,
+     "sigma_max": 2.7314499588811104e-08,
+     "edge_overlap": 0.4000000084033494,
+     "differentiation": 0.5999999915966505
+    },
+    "18": {
+     "identification": 0.9999999771913429,
+     "channel_return": 0.17429385700638075,
+     "sigma_max": 1.4146827134554425e-15,
+     "edge_overlap": 0.3813131401561464,
+     "differentiation": 0.6186868598438535
+    },
+    "19": {
+     "identification": 0.994270063049711,
+     "channel_return": 0.10293865041467715,
+     "sigma_max": 2.146089259934253e-08,
+     "edge_overlap": 0.35714286714345206,
+     "differentiation": 0.642857132856548
+    },
+    "20": {
+     "identification": 0.9944009347943106,
+     "channel_return": 0.18101506632694442,
+     "sigma_max": 1.2345600840444274e-15,
+     "edge_overlap": 0.3666666786810664,
+     "differentiation": 0.6333333213189336
+    },
+    "21": {
+     "identification": 1.003846640011414,
+     "channel_return": 0.2565821434133054,
+     "sigma_max": 1.5431719308369643e-15,
+     "edge_overlap": 0.2589285795824338,
+     "differentiation": 0.7410714204175661
+    },
+    "22": {
+     "identification": 0.8665326507164164,
+     "channel_return": 0.9999999999999983,
+     "sigma_max": 1.0000000451168551,
+     "edge_overlap": 0.19642858238938654,
+     "differentiation": 0.8035714176106135
+    },
+    "23": {
+     "identification": 0.5947882286010253,
+     "channel_return": 0.9999999999999992,
+     "sigma_max": 1.0000000964513354,
+     "edge_overlap": 0.26785715242703206,
+     "differentiation": 0.7321428475729679
+    }
+   },
+   "exact_staggers": [
+    0,
+    1,
+    2,
+    22,
+    23
+   ],
+   "exact_count": 5,
+   "best_exact": {
+    "identification": 0.8665326507164164,
+    "channel_return": 0.9999999999999983,
+    "sigma_max": 1.0000000451168551,
+    "edge_overlap": 0.19642858238938654,
+    "differentiation": 0.8035714176106135
+   }
+  },
+  "reserve_p12": {
+   "k_v": 20,
+   "cycles": {
+    "full": 260,
+    "wide": 45
+   },
+   "stagger": {
+    "0": {
+     "identification": 2.058301887849684e-15,
+     "channel_return": 1.0000000000000002,
+     "sigma_max": 1.0000001223102033,
+     "edge_overlap": 1.0,
+     "differentiation": 0.0
+    },
+    "1": {
+     "identification": 0.6075286433691848,
+     "channel_return": 0.9999999999999994,
+     "sigma_max": 1.000000094063867,
+     "edge_overlap": 0.7000000035804433,
+     "differentiation": 0.29999999641955666
+    },
+    "2": {
+     "identification": 0.8656206451054275,
+     "channel_return": 0.9999999999999986,
+     "sigma_max": 1.0000000411508527,
+     "edge_overlap": 0.6666666710226453,
+     "differentiation": 0.3333333289773547
+    },
+    "3": {
+     "identification": 0.9605973110853351,
+     "channel_return": 0.3475171358627185,
+     "sigma_max": 4.5779133134536336e-08,
+     "edge_overlap": 0.4464285815045627,
+     "differentiation": 0.5535714184954372
+    },
+    "4": {
+     "identification": 0.951128004519108,
+     "channel_return": 0.6491194799415616,
+     "sigma_max": 3.6776329280890935e-08,
+     "edge_overlap": 0.45959597154057785,
+     "differentiation": 0.5404040284594221
+    },
+    "5": {
+     "identification": 0.9735739782738629,
+     "channel_return": 0.5281270730731462,
+     "sigma_max": 6.577565361034628e-08,
+     "edge_overlap": 0.500000005549495,
+     "differentiation": 0.499999994450505
+    },
+    "6": {
+     "identification": 0.9530504962823364,
+     "channel_return": 0.999999999999998,
+     "sigma_max": 1.000000013383596,
+     "edge_overlap": 0.4555555665503348,
+     "differentiation": 0.5444444334496652
+    },
+    "7": {
+     "identification": 0.9338207988052634,
+     "channel_return": 0.999999999999998,
+     "sigma_max": 1.0000000258045127,
+     "edge_overlap": 0.49747475695028004,
+     "differentiation": 0.50252524304972
+    },
+    "8": {
+     "identification": 0.9660020124521265,
+     "channel_return": 0.17437718026331245,
+     "sigma_max": 4.032252120862421e-08,
+     "edge_overlap": 0.45959597071614205,
+     "differentiation": 0.5404040292838579
+    },
+    "9": {
+     "identification": 0.9808457079413276,
+     "channel_return": 0.10827224905486069,
+     "sigma_max": 5.8740586324957775e-08,
+     "edge_overlap": 0.40404041544640806,
+     "differentiation": 0.5959595845535919
+    },
+    "10": {
+     "identification": 0.771961638621559,
+     "channel_return": 0.9999999999999989,
+     "sigma_max": 1.0000000788332557,
+     "edge_overlap": 0.7333333376089382,
+     "differentiation": 0.26666666239106185
+    },
+    "11": {
+     "identification": 0.9731143851485791,
+     "channel_return": 0.25249371877006754,
+     "sigma_max": 4.4490450078371897e-08,
+     "edge_overlap": 0.4333333408047244,
+     "differentiation": 0.5666666591952756
+    },
+    "12": {
+     "identification": 0.9681788577795026,
+     "channel_return": 0.21017582221618922,
+     "sigma_max": 3.899601408699045e-08,
+     "edge_overlap": 0.45959597039765554,
+     "differentiation": 0.5404040296023445
+    },
+    "13": {
+     "identification": 0.9358845979428068,
+     "channel_return": 0.9999999999999978,
+     "sigma_max": 1.0000000137546063,
+     "edge_overlap": 0.3308080935673577,
+     "differentiation": 0.6691919064326424
+    },
+    "14": {
+     "identification": 0.9337822478699422,
+     "channel_return": 0.9999999999999969,
+     "sigma_max": 0.9999999633688255,
+     "edge_overlap": 0.48888889557581156,
+     "differentiation": 0.5111111044241885
+    },
+    "15": {
+     "identification": 0.966098388354014,
+     "channel_return": 0.46910813867580786,
+     "sigma_max": 5.723858176222888e-08,
+     "edge_overlap": 0.56666667009913,
+     "differentiation": 0.43333332990087003
+    },
+    "16": {
+     "identification": 0.9555473417637875,
+     "channel_return": 0.2618401385374605,
+     "sigma_max": 3.91256409654032e-08,
+     "edge_overlap": 0.5000000071390535,
+     "differentiation": 0.49999999286094654
+    },
+    "17": {
+     "identification": 0.9891298385256988,
+     "channel_return": 0.23841379826265469,
+     "sigma_max": 3.695578884594862e-08,
+     "edge_overlap": 0.5083333448637403,
+     "differentiation": 0.49166665513625973
+    },
+    "18": {
+     "identification": 0.853535226425973,
+     "channel_return": 0.9999999999999987,
+     "sigma_max": 1.0000000571489276,
+     "edge_overlap": 0.32222223572883457,
+     "differentiation": 0.6777777642711654
+    },
+    "19": {
+     "identification": 0.6387914543490388,
+     "channel_return": 0.9999999999999993,
+     "sigma_max": 1.0000000979941859,
+     "edge_overlap": 0.2678571544444552,
+     "differentiation": 0.7321428455555448
+    }
+   },
+   "exact_staggers": [
+    0,
+    1,
+    2,
+    6,
+    7,
+    10,
+    13,
+    14,
+    18,
+    19
+   ],
+   "exact_count": 10,
+   "best_exact": {
+    "identification": 0.6387914543490388,
+    "channel_return": 0.9999999999999993,
+    "sigma_max": 1.0000000979941859,
+    "edge_overlap": 0.2678571544444552,
+    "differentiation": 0.7321428455555448
+   }
+  },
+  "reserve_p16": {
+   "k_v": 16,
+   "cycles": {
+    "full": 260,
+    "wide": 45
+   },
+   "stagger": {
+    "0": {
+     "identification": 2.635950397827813e-15,
+     "channel_return": 1.0000000000000002,
+     "sigma_max": 1.0000001483084557,
+     "edge_overlap": 1.0,
+     "differentiation": 0.0
+    },
+    "1": {
+     "identification": 0.6289218612896986,
+     "channel_return": 0.9999999999999991,
+     "sigma_max": 1.0000001108730103,
+     "edge_overlap": 0.7000000025013806,
+     "differentiation": 0.2999999974986194
+    },
+    "2": {
+     "identification": 0.8354511496459144,
+     "channel_return": 0.9999999999999983,
+     "sigma_max": 1.0000000861987641,
+     "edge_overlap": 0.6904761952080074,
+     "differentiation": 0.3095238047919926
+    },
+    "3": {
+     "identification": 0.8614009928334174,
+     "channel_return": 0.9999999999999987,
+     "sigma_max": 1.0000000760185608,
+     "edge_overlap": 0.5444444531654192,
+     "differentiation": 0.45555554683458077
+    },
+    "4": {
+     "identification": 0.8164965712224359,
+     "channel_return": 0.999999999999999,
+     "sigma_max": 1.00000011053782,
+     "edge_overlap": 0.5959596038370736,
+     "differentiation": 0.4040403961629264
+    },
+    "5": {
+     "identification": 0.7243410058596746,
+     "channel_return": 0.9999999999999986,
+     "sigma_max": 1.0000000783424445,
+     "edge_overlap": 0.5333333425232503,
+     "differentiation": 0.46666665747674974
+    },
+    "6": {
+     "identification": 0.8191678141960725,
+     "channel_return": 0.9999999999999989,
+     "sigma_max": 1.0000000819692658,
+     "edge_overlap": 0.5631313210888986,
+     "differentiation": 0.43686867891110137
+    },
+    "7": {
+     "identification": 0.8738829707187383,
+     "channel_return": 0.9999999999999984,
+     "sigma_max": 1.0000000736269794,
+     "edge_overlap": 0.5656565733681517,
+     "differentiation": 0.43434342663184833
+    },
+    "8": {
+     "identification": 0.5365211852721826,
+     "channel_return": 0.9999999999999992,
+     "sigma_max": 1.000000133154395,
+     "edge_overlap": 0.8000000028568571,
+     "differentiation": 0.19999999714314287
+    },
+    "9": {
+     "identification": 0.9263573766054073,
+     "channel_return": 0.9999999999999981,
+     "sigma_max": 1.0000000544507521,
+     "edge_overlap": 0.6424242473823405,
+     "differentiation": 0.3575757526176595
+    },
+    "10": {
+     "identification": 0.838666829528606,
+     "channel_return": 0.9999999999999987,
+     "sigma_max": 1.0000000800729385,
+     "edge_overlap": 0.5631313226552184,
+     "differentiation": 0.43686867734478163
+    },
+    "11": {
+     "identification": 0.804221996125581,
+     "channel_return": 0.9999999999999987,
+     "sigma_max": 1.000000077369557,
+     "edge_overlap": 0.6000000065690032,
+     "differentiation": 0.3999999934309968
+    },
+    "12": {
+     "identification": 0.8164965819891188,
+     "channel_return": 0.9999999999999987,
+     "sigma_max": 1.0000000997456027,
+     "edge_overlap": 0.6020202074693787,
+     "differentiation": 0.3979797925306213
+    },
+    "13": {
+     "identification": 0.8635334360000713,
+     "channel_return": 0.9999999999999983,
+     "sigma_max": 1.000000083121217,
+     "edge_overlap": 0.6785714324725801,
+     "differentiation": 0.3214285675274199
+    },
+    "14": {
+     "identification": 0.8235841432292881,
+     "channel_return": 0.9999999999999984,
+     "sigma_max": 1.000000077794292,
+     "edge_overlap": 0.6616161654975671,
+     "differentiation": 0.3383838345024329
+    },
+    "15": {
+     "identification": 0.5869162827688547,
+     "channel_return": 0.9999999999999991,
+     "sigma_max": 1.0000000885548168,
+     "edge_overlap": 0.3939394036697139,
+     "differentiation": 0.6060605963302861
+    }
+   },
+   "exact_staggers": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15
+   ],
+   "exact_count": 16,
+   "best_exact": {
+    "identification": 0.5869162827688547,
+    "channel_return": 0.9999999999999991,
+    "sigma_max": 1.0000000885548168,
+    "edge_overlap": 0.3939394036697139,
+    "differentiation": 0.6060605963302861
+   }
+  }
+ },
+ "minutes": 0.3779971718788147
+}
