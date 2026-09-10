@@ -26,10 +26,21 @@ ARMS = {
     "frozen": ("635-frozen-baseline-seed42-20000.json", "neither rule"),
     "bias": ("645-bias-baseline-seed42-20000.json", "PredictionRule only"),
     "transport": ("645-transport-baseline-seed42-20000.json", "TransportRule only"),
-    "both": ("629-baseline-seed42-20000.json", "both rules (B57's baseline)"),
+    "both": ("645-both-baseline-seed42-20000.json", "both rules, this surface"),
+    "both-rep2": ("645-both-rep2-baseline-seed42-20000.json", "both rules, replicate"),
+    "transport-rep2": (
+        "645-transport-rep2-baseline-seed42-20000.json",
+        "TransportRule only, replicate",
+    ),
+    "both@B57": ("629-baseline-seed42-20000.json", "both rules, B57's run on c925866"),
     "bias@5k": ("635-bias-baseline-seed42-5000.json", "PredictionRule only, B62's run"),
     "transport@5k": ("635-transport-baseline-seed42-5000.json", "TransportRule only, B62's run"),
 }
+
+#: Arms that enter the joined table -- one surface, one run each. The replicates
+#: and the inherited records are printed above it but never joined into it: a
+#: hull argument built out of two surfaces is exactly what #455's rule forbids.
+JOINED = ("frozen", "bias", "transport", "both")
 
 
 def load(path: Path) -> dict | None:
@@ -109,7 +120,7 @@ def main() -> None:
             print(line(r))
 
     shared = {}
-    for name in ("frozen", "bias", "transport", "both"):
+    for name in JOINED:
         if name in loaded:
             shared[name] = {r["ticks"]: r for r in rows(loaded[name])}
     if len(shared) < 2:
@@ -123,6 +134,37 @@ def main() -> None:
             r = shared[n][t]
             cells.append(f"{r['er']:8.4f} {r['q_top']:7.4f} {r['auddiff']:8.4f}")
         print(f"{t:>7} " + " ".join(f"{c:>26}" for c in cells))
+
+    if not {"bias", "transport", "both"} <= set(shared):
+        return
+    # The hull needs the three rule arms and not the frozen one, so its rungs are
+    # theirs. B62's committed frozen record stops at 10,000 -- its 20,000 rung was
+    # printed to `635-frozen-20k.log` (ER 2.7825, aud-diff 0.5307, exposure 9.05)
+    # but the file was committed before the run's last write landed -- and taking
+    # the intersection with it would silently drop the horizon rung from a
+    # comparison the frozen arm does not enter.
+    rungs = sorted(
+        set(shared["bias"]) & set(shared["transport"]) & set(shared["both"])
+    )
+    print("\n=== item 3: is the pair inside the interval its solos span? ===")
+    print(
+        "    `lo`/`hi` are the two solo arms at that rung; `both` is the pair. "
+        "`out` is how far\n    outside the interval the pair lies, 0 when it is "
+        "inside. Reported per column,\n    never fused -- B49's struck move.\n"
+    )
+    for column, label in (("auddiff", "audience differentiation"), ("exposure", "exposure"), ("er", "uncentered ER")):
+        print(f"  -- {label} --")
+        print(f"{'ticks':>7}{'bias':>10}{'transport':>11}{'both':>10}{'out':>10}")
+        for t in rungs:
+            lo = min(shared["bias"][t][column], shared["transport"][t][column])
+            hi = max(shared["bias"][t][column], shared["transport"][t][column])
+            v = shared["both"][t][column]
+            out = 0.0 if lo <= v <= hi else (v - hi if v > hi else v - lo)
+            print(
+                f"{t:>7}{shared['bias'][t][column]:>10.4f}"
+                f"{shared['transport'][t][column]:>11.4f}{v:>10.4f}{out:>+10.4f}"
+            )
+        print()
 
 
 if __name__ == "__main__":
