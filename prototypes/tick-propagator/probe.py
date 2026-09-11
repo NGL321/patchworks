@@ -51,8 +51,10 @@ Four readings, three surfaces, one held world:
 
 Surfaces: the constructor's draw (`untrained`), `holonomy_read.flat_maps`
 installed (`flat`), and `untrained_fixed_point.taught` at 2,000 ticks
-(`taught2000`). Small dome, float64, seed 42. Output one JSON per surface,
-next to this file. Nothing under `src/` changes; no benchmark CLI `read` is
+(`taught2000`). Two graphs: `--graph dome` (the small dome, `tests/conftest.py`)
+and `--graph dense` (`dense.py`: the same rim on one densely connected
+undifferentiated population, the user's ruling that prototypes leave the dome).
+Float64, seed 42. Output one JSON per graph and surface, next to this file. Nothing under `src/` changes; no benchmark CLI `read` is
 called, so nothing files to GitHub.
 """
 
@@ -80,6 +82,7 @@ import detectability as det  # noqa: E402
 import holonomy_read  # noqa: E402
 import untrained_fixed_point as ufp  # noqa: E402
 from conftest import SMALL  # noqa: E402
+from dense import build_dense  # noqa: E402
 from patchworks.agent import Agent  # noqa: E402
 from patchworks.graph import build_graph  # noqa: E402
 from patchworks.sandbox import PlanarPushSandbox  # noqa: E402
@@ -98,11 +101,10 @@ UNIT_TOL = 1e-9
 # -- surfaces ----------------------------------------------------------------
 
 
-def build(surface: str):
+def build(surface: str, graph: str = "dome"):
     env = PlanarPushSandbox(split="train", image_size=16)
-    agent = Agent(
-        env, dome=build_graph(SMALL), generator=torch.Generator().manual_seed(SEED)
-    )
+    dome = build_graph(SMALL) if graph == "dome" else build_dense(SMALL, interior=len(build_graph(SMALL).predicting), seed=SEED)
+    agent = Agent(env, dome=dome, generator=torch.Generator().manual_seed(SEED))
     observation, _info = env.reset(seed=SEED)
     agent.observe(observation)
     if surface == "flat":
@@ -489,9 +491,16 @@ def impulse_reading(agent, base, observation, applied) -> dict:
 # -- main --------------------------------------------------------------------
 
 
-def run(surface: str, out: Path) -> dict:
-    print(f"== {surface}", flush=True)
-    env, agent, observation, applied = build(surface)
+def run(surface: str, out: Path, graph: str = "dome") -> dict:
+    print(f"== {graph} {surface}", flush=True)
+    env, agent, observation, applied = build(surface, graph)
+    dome = agent.dome
+    print(
+        f"  graph: {len(dome.cells)} cells, {len(dome.predicting)} predicting, {len(dome.edges)} edges, "
+        f"interior lane widths {sorted({e.m for e in dome.edges if not (dome.cells[e.u].is_boundary or dome.cells[e.v].is_boundary)})}, "
+        f"predicting degree {sorted({len(dome.incident[c]) for c in dome.predicting})}",
+        flush=True,
+    )
     base = ufp.snapshot(agent.sheaf)
     blocks = layout_blocks(agent, base)
     closure = check_state_closure(agent, base, observation, applied)
@@ -522,6 +531,14 @@ def run(surface: str, out: Path) -> dict:
     spectrum["read_at_a_fixed_point"] = bool(orbit["per_tick_change_over_state_norm"] < 1e-6)
     impulse = impulse_reading(agent, base, observation, applied)
     result = {
+        "graph": graph,
+        "graph_shape": {
+            "cells": len(dome.cells),
+            "predicting": len(dome.predicting),
+            "edges": len(dome.edges),
+            "interior_lane_widths": sorted({e.m for e in dome.edges if not (dome.cells[e.u].is_boundary or dome.cells[e.v].is_boundary)}),
+            "predicting_degrees": sorted({len(dome.incident[c]) for c in dome.predicting}),
+        },
         "surface": surface,
         "seed": SEED,
         "dome": "SMALL",
@@ -556,10 +573,11 @@ def run(surface: str, out: Path) -> dict:
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--surfaces", nargs="+", default=["untrained", "flat", "taught2000"])
+    parser.add_argument("--graph", choices=("dome", "dense"), default="dome")
     args = parser.parse_args(argv)
     torch.set_num_threads(max(1, os.cpu_count() or 1))
     for surface in args.surfaces:
-        run(surface, HERE / f"{surface}-seed{SEED}.json")
+        run(surface, HERE / f"{args.graph}-{surface}-seed{SEED}.json", args.graph)
 
 
 if __name__ == "__main__":

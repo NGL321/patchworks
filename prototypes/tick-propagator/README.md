@@ -13,13 +13,20 @@ first order, no momentum, the predicting stalk overwritten by `decode` before it
 diffusion, nothing oscillates, an impulse's peak arrives later at farther cells and never
 changes sign. **That prediction was wrong**, and the reason is recorded below.
 
-Rig: `probe.py`. Small dome (`tests/conftest.py::SMALL`, 39 cells, 15 predicting), one seed
-(42), float64 (`detectability.double_precision`), world held by re-writing the same
-observation every tick (`detectability.hold_still`, 100 ticks) — the same hold every
-detectability reading uses. Three surfaces: the constructor's draw (`untrained`),
-`holonomy_read.flat_maps` installed (`flat`), and `untrained_fixed_point.taught` at 2,000
-ticks (`taught2000`). One JSON per surface beside this file. No benchmark CLI `read` is
-called, so nothing files to GitHub.
+Rig: `probe.py`. One seed (42), float64 (`detectability.double_precision`), world held by
+re-writing the same observation every tick (`detectability.hold_still`, 100 ticks) — the
+same hold every detectability reading uses. Three surfaces: the constructor's draw
+(`untrained`), `holonomy_read.flat_maps` installed (`flat`), and
+`untrained_fixed_point.taught` at 2,000 ticks (`taught2000`). **Two graphs**, `--graph dome`
+and `--graph dense`; one JSON per graph and surface beside this file (`dome-*.json`,
+`dense-*.json`). No benchmark CLI `read` is called, so nothing files to GitHub.
+
+The readings below were taken first on the small dome (`tests/conftest.py::SMALL`, 39
+cells, 15 predicting, 54 edges). **The user then ruled that prototypes leave the dome**
+(B81, #660): the dome is a placeholder the record calls explicitly abandonable, and the
+graph the effort is aimed at is a densely connected undifferentiated one carved toward
+sparsity afterwards. The dome readings are kept as what they are, labelled, and the whole
+read was repeated on that graph — *The same read off the dome* below.
 
 ## Readings
 
@@ -125,9 +132,55 @@ riding the cells' own oscillation.
   the connection, and this read is consistent with ADR-0032's steer that the remaining gap
   is not alignment: exactly flat maps leave every dynamical reading unchanged.
 
+## The same read off the dome
+
+`dense.py`: the dome's sensorimotor rim cell for cell (the rim is the world's shape, not the
+dome's), and in place of levels, columns, covering and taper one population of 15
+predicting cells with every pair joined — 133 edges against the dome's 54, degree 15–17
+per predicting cell against 3–7. Each sensory cell attaches to one interior cell in a
+seeded round-robin, the actuator by the dome's own reflex rule, the drive to the three
+least-loaded cells. Interior lane widths are **re-derived, not inherited**: the allocator
+pins any same-level edge to `lateral_m = 1` (#540's ruling (c1), which `graph.py` marks
+contingent on the dome), so on a one-level graph every lane gets the width the budget
+affords evenly, which is 3. The dome's interior lanes are `[1, 15]` — laterals pinned,
+verticals wide — and that is the first named confound: the two graphs spend the same
+capacity budget on entirely different lane shapes. The privacy reserve is unchanged.
+
+| reading | dome | dense | holds? |
+|---|---|---|---|
+| ring at construction: change / state (untrained, flat) | 0.95, 0.97 | 0.80, 1.00 | yes |
+| ring period (autocorrelation, impulse) | ≈ 3.5 ticks | ≈ 3.5–4.6 ticks | yes |
+| cells ringing at construction | 16 / 39 | 16 / 39 | yes |
+| leading growth moduli at construction | 1.005, 1.002 | 1.008, 1.002 | yes: sustained |
+| inference phase alone (untrained) | 0.94, rings | 0.91, rings | yes |
+| reconciliation alone (untrained) | 7.0e-4, monotone | 6.0e-4, monotone | yes |
+| reconciliation without the delay | identical | identical | yes |
+| exactly flat maps change the dynamics | no | no | yes |
+| trained: change / state | 0.042 | **1.8e-4** | damping is ~250× stronger |
+| trained: cells still ringing | 13 / 39 | **1 / 39** | |
+| trained: impulse peak by hop 1 / 2 / 3 | 1 / 6 / 12 | 1 / 3 / 6 | front twice as fast |
+| trained: impulse energy at 256 / peak | 2.7e-10 | 1.8e-3 | dense holds it longer |
+| trained: slowest decaying e-fold (300-tick rates) | 92 ticks | 80 ticks | |
+
+**Every qualitative reading holds off the dome.** The ring is the cell's own loop on both
+graphs; reconciliation is a whisper of the same size on both — with 2.5× the edges and
+3-wide lanes in place of 1-and-15 — because the gain denominator caps `λ_max(Σ_e F_evᵀF_ev)`
+at `g_v² c_v` and the gain divides by the same, so the total reconciliation strength at a
+cell is bounded by `γ` whatever its degree (`tick.py`, *reconciliation_gain*;
+`restriction.py`, *_push_apart*). The coupling is weak by construction, not by shape.
+
+What the dome did confound is the trained surface. On the dense graph two thousand ticks
+of the same rules silence the ring almost completely and the impulse crosses the graph
+twice as fast, while the perturbation drains more slowly. A hypothesis, not a finding:
+with 15–17 neighbours the reconciled target each cell's decoder is fitted to is a wider
+average and so steadier, and the prediction rule's damping of the cell's loop is faster
+for it. Which of the closed B-series readings this touches is B81's item 4.
+
 ## Limits
 
-Small dome, one seed, float64, world held. Nothing here is read under drive or on the real
-dome. The finite-time rates are 300-tick rates. The 2,000-tick surface is one arm; the
-reading at 20k, which the bar (#532, *Destination*) is set at, is not taken. No ticket is
-filed on this: it is a probe for the user to read first.
+One seed, float64, world held, small graphs of 15 predicting cells. Nothing here is read
+under drive or at the real dome's size. The finite-time rates are 300-tick rates. The
+2,000-tick surface is one arm; the reading at 20k, which the bar (#532, *Destination*) is
+set at, is not taken. The dense graph's parameters (population, density, covering, drive
+attachment, lane widths) are a first reference and are the user's to rule on B81 (#660);
+the readings above are posted there.
